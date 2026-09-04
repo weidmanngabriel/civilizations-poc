@@ -88,7 +88,7 @@ Für alle Gebäude- und Rohstoffknoten außer dem Lager gelten getrennte Kapazit
 
 ### Arbeitskräfte und Hauptquartier
 
-Der PoC besitzt einen begrenzten Pool an Personen, die auf Arbeitsstätten verteilt werden können. Die maximale Gesamtzahl der verfügbaren Personen wird als Szenario-Parameter festgelegt und kann später leicht verändert werden.
+Der PoC besitzt eine aktuelle Bevölkerung, die auf Arbeitsstätten verteilt werden kann. Das erste Szenario startet standardmäßig mit 8 Personen. Diese Zahl ist kein dauerhaftes Bevölkerungslimit, sondern nur ein konfigurierbarer Startwert.
 
 Das Hauptquartier dient als Sammelpunkt für freie Personen.
 
@@ -107,7 +107,17 @@ Für PoC 1 gelten damit insbesondere:
 - Schreinerei: 0 bis 1 Produktionsarbeiter und 0 bis 2 Träger.
 - Lager: 0 Produktionsarbeiter und 0 bis 2 Lager-Träger.
 
-Die konkrete maximale Gesamtzahl aller Personen für das erste Szenario ist noch festzulegen.
+### Bevölkerung im laufenden PoC
+
+Unter dem Spiel gibt es eine einfache Debug-Steuerung für die aktuelle Bevölkerung. Damit kann die Personenzahl während des laufenden Spiels erhöht oder reduziert werden.
+
+- `+1` erzeugt eine neue freie Person am Hauptquartier.
+- `-1` entfernt eine freie Person am Hauptquartier.
+- Sind keine freien Personen am Hauptquartier verfügbar, wird durch `-1` keine bereits eingesetzte oder noch laufende Person zwangsweise entfernt.
+- Die aktuelle Bevölkerungszahl wird sichtbar angezeigt.
+- Der Startwert von 8 Personen soll einfach konfigurierbar bleiben.
+
+Diese Steuerung ist ausdrücklich ein PoC-/Debug-Werkzeug und bildet keine spätere Spielmechanik ab. Langfristig soll sich die Bevölkerung durch normale Spielsysteme verändern können, insbesondere durch Nachwuchs und Tod. Deshalb darf die Architektur nicht von einer konstanten oder festen maximalen Bevölkerungszahl ausgehen.
 
 ### Bauarbeiter als spätere Erweiterung
 
@@ -120,6 +130,7 @@ Die Bauarbeiterfunktion gehört ausdrücklich nicht zum ersten Implementierungss
 - Bauarbeiter und Baustellenlogistik
 - Bedürfnisse wie Hunger und Schlaf
 - Familien, Kinder und Wohnen
+- natürliche Geburten und Todesfälle
 - Kampf, Diplomatie und Handel
 - Berufserfahrung und Freischaltungen
 - freie Gebäudeplatzierung
@@ -127,4 +138,4 @@ Die Bauarbeiterfunktion gehört ausdrücklich nicht zum ersten Implementierungss
 
 ## Leitprinzip
 
-Die Fachlogik soll so modelliert werden, dass Rohstoffarbeiter, Produktionsarbeiter, unterstützende Träger, Lager-Träger und spätere Bauarbeiter unterschiedliche Rollen mit jeweils eigenen Beschaffungsregeln haben können, ohne das grundlegende Graph-, Waren- und Bewegungssystem neu bauen zu müssen.
+Die Fachlogik soll so modelliert werden, dass Rohstoffarbeiter, Produktionsarbeiter, unterstützende Träger, Lager-Träger und spätere Bauarbeiter unterschiedliche Rollen mit jeweils eigenen Beschaffungsregeln haben können, ohne das grundlegende Graph-, Waren- und Bewegungssystem neu bauen zu müssen. Bevölkerung ist ein veränderlicher Weltzustand und keine feste Konstante.
