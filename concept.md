@@ -11,24 +11,17 @@ Der PoC läuft zunächst rundenbasiert.
 - Jede Kante im Graphen hat die Länge 1.
 - Jede Figur kann sich pro Runde um genau eine Kante bewegen.
 - Wege werden über den kürzesten Weg im Graphen bestimmt, nicht über Luftlinie.
-- Eine Produktion dauert immer 5 Runden, sobald alle benötigten Rohstoffe an der Arbeitsstätte vorhanden sind.
+- Eine Produktion dauert immer 5 Runden, sobald alle benötigten Rohstoffe an der Arbeitsstätte vorhanden sind und ein zuständiger Arbeiter dort produzieren kann.
 
-### Rohstoffquellen
+### Allgemeines Produktionsprinzip
 
-Rohstoffquellen wie Wälder sind eigene Knoten im Graphen und produzieren Ressourcen nach demselben Zeitprinzip wie andere Produktionsstätten.
+Nichts produziert automatisch. Jede Produktion braucht mindestens einen zugewiesenen Arbeiter.
 
-Für den PoC gilt:
+Für verarbeitende Arbeitsstätten gilt:
 
-- Ein Wald ist eine unerschöpfliche Quelle für Holz.
-- Die Quelle ist mengenmäßig unendlich, erzeugt die Ware aber nicht sofort.
-- Die Produktion von 1 Holz dauert 5 Runden.
-- Produziertes Holz liegt anschließend an der Quelle und kann dort abgeholt werden.
-
-Damit besitzen auch Primärressourcen eine Produktionsrate und sind nicht einfach jederzeit unbegrenzt verfügbar.
-
-### Produktionsprinzip
-
-Jede produktive Arbeitsstätte hat genau einen verantwortlichen Arbeiter. Der Arbeiter beschafft fehlende Rohstoffe selbst, bringt sie zu seiner Arbeitsstätte zurück und produziert dort die nächste Ware.
+- Jede produktive Arbeitsstätte hat genau einen verantwortlichen Produktionsarbeiter.
+- Der Produktionsarbeiter beschafft fehlende Rohstoffe selbst, bringt sie zur Arbeitsstätte zurück und produziert dort die nächste Ware.
+- Jeder Produktionsstätte können zusätzlich bis zu 2 Träger zugewiesen werden, die ausschließlich Rohstoffe für diese Arbeitsstätte beschaffen.
 
 Für den PoC gilt ein einheitliches Rezeptprinzip:
 
@@ -37,14 +30,27 @@ Für den PoC gilt ein einheitliches Rezeptprinzip:
 
 Beispiel:
 
-- Wald produziert alle 5 Runden 1 Holz.
 - Der Arbeiter des Sägewerks beschafft 2 Holz und produziert daraus 1 Brett.
 - Der Arbeiter der Schreinerei beschafft 2 Bretter und produziert daraus 1 Holzwerkzeug.
-- Produzierte Waren bleiben zunächst lokal an der jeweiligen Arbeitsstätte liegen.
+- Produzierte Waren bleiben lokal an der jeweiligen Arbeitsstätte liegen, bis sie von einem zuständigen Abholer eingesammelt werden.
 
 Der Arbeiter sucht für einen fehlenden Rohstoff eine verfügbare Quelle und bewegt sich über den kürzesten Weg im Graphen dorthin und wieder zurück.
 
 Für den ersten Stand wird angenommen, dass eine Figur pro Weg genau 1 Einheit Ware tragen kann. Diese Tragkapazität ist bewusst als einfache PoC-Regel gewählt und kann später erweitert werden.
+
+### Rohstoffquellen
+
+Rohstoffquellen wie Wälder sind ebenfalls Arbeitsstätten und produzieren nicht automatisch.
+
+Für den Wald gilt im PoC:
+
+- Der Wald ist unerschöpflich.
+- Im Wald können bis zu 2 Arbeiter gleichzeitig arbeiten.
+- Jeder Arbeiter produziert nach 5 Runden genau 1 Holz.
+- Produziertes Holz liegt anschließend im lokalen Inventar des Waldknotens.
+- Ist das Inventar des Walds voll, kann dort nicht weiter produziert werden, bis wieder Platz frei ist.
+
+Dass Rohstoffquellen mehrere Arbeiter haben können, unterscheidet sie in PoC 1 bewusst von verarbeitenden Arbeitsstätten mit genau einem Produktionsarbeiter.
 
 ### Träger an Produktionsstätten
 
@@ -58,16 +64,25 @@ Für die erste Version gilt auch für Träger eine Tragkapazität von 1 Einheit 
 
 ### Lager
 
-Das Lager produziert keine Waren. Es sammelt fertige Waren aus Produktionsstätten ein.
+Das Lager ist keine Produktionsstätte. Es sammelt fertige Waren ein.
 
-Für den ersten PoC gilt:
+Für PoC 1 gilt:
 
-- Dem Lager können bis zu 2 Träger zugewiesen werden.
-- Diese Träger holen zunächst ausschließlich Holzwerkzeuge aus der Schreinerei ab und bringen sie zum Lager.
-- Der Schreiner transportiert fertige Holzwerkzeuge nicht selbst zum Lager; der Output bleibt in der Schreinerei liegen, bis ein Lager-Träger ihn abholt.
-- Die maximale Lagerkapazität ist noch nicht festgelegt.
+- Das Lager kann bis zu 2 Träger haben.
+- Diese Lager-Träger sammeln zunächst ausschließlich Holzwerkzeuge aus der Schreinerei ein und bringen sie zum Lager.
+- Der Schreiner bringt fertige Holzwerkzeuge nicht selbst zum Lager.
+- Später sollen Lager-Träger allgemein geeignete Waren aus der Umgebung einsammeln können.
+- Das Lager besitzt im PoC keine Kapazitätsgrenze.
+- Eingelagerte Waren verschwinden nicht, sondern werden dauerhaft als Bestand mitgezählt.
 
-Später sollen Lager-Träger nicht nur eine fest definierte Schreinerei bedienen, sondern geeignete Waren aus der Umgebung einsammeln können, solange das Lager noch Platz hat. Diese allgemeinere Sammellogik gehört noch nicht zum ersten Implementierungsschritt.
+### Inventarkapazitäten
+
+Für alle Gebäude- und Rohstoffknoten außer dem Lager gilt zunächst eine gemeinsame Gesamtkapazität von 10 Wareneinheiten.
+
+- Inputs und Outputs teilen sich diese Kapazität.
+- Sobald insgesamt 10 Einheiten im lokalen Inventar liegen, ist der Knoten voll.
+- Ein voller Produktionsknoten kann keinen weiteren Output erzeugen, bis wieder Platz frei wird.
+- Das Lager ist die einzige aktuelle Ausnahme und besitzt unbegrenzte Kapazität.
 
 ### Bauarbeiter als spätere Erweiterung
 
@@ -78,13 +93,13 @@ Die Bauarbeiterfunktion gehört ausdrücklich nicht zum ersten Implementierungss
 ### Noch nicht Teil des ersten Schritts
 
 - Bauarbeiter und Baustellenlogistik
-- allgemeine Lager-Sammellogik für Waren aus der Umgebung
 - Bedürfnisse wie Hunger und Schlaf
 - Familien, Kinder und Wohnen
 - Kampf, Diplomatie und Handel
 - Berufserfahrung und Freischaltungen
 - freie Gebäudeplatzierung
+- allgemeines Einsammeln beliebiger Waren durch Lager-Träger
 
 ## Leitprinzip
 
-Die Fachlogik soll so modelliert werden, dass Rohstoffquellen, Produktionsarbeiter, unterstützende Träger, Lager-Träger und spätere Bauarbeiter unterschiedliche Rollen mit jeweils eigenen Produktions- und Beschaffungsregeln haben können, ohne das grundlegende Graph-, Waren- und Bewegungssystem neu bauen zu müssen.
+Die Fachlogik soll so modelliert werden, dass Rohstoffarbeiter, Produktionsarbeiter, unterstützende Träger, Lager-Träger und spätere Bauarbeiter unterschiedliche Rollen mit jeweils eigenen Beschaffungsregeln haben können, ohne das grundlegende Graph-, Waren- und Bewegungssystem neu bauen zu müssen.
