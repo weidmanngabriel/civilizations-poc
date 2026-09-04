@@ -48,7 +48,7 @@ Für den Wald gilt im PoC:
 - Im Wald können bis zu 2 Arbeiter gleichzeitig arbeiten.
 - Jeder Arbeiter produziert nach 5 Runden genau 1 Holz.
 - Produziertes Holz liegt anschließend im lokalen Inventar des Waldknotens.
-- Ist das Inventar des Walds voll, kann dort nicht weiter produziert werden, bis wieder Platz frei ist.
+- Ist das Output-Inventar des Walds voll, kann dort nicht weiter produziert werden, bis wieder Platz frei ist.
 
 Dass Rohstoffquellen mehrere Arbeiter haben können, unterscheidet sie in PoC 1 bewusst von verarbeitenden Arbeitsstätten mit genau einem Produktionsarbeiter.
 
@@ -77,12 +77,37 @@ Für PoC 1 gilt:
 
 ### Inventarkapazitäten
 
-Für alle Gebäude- und Rohstoffknoten außer dem Lager gilt zunächst eine gemeinsame Gesamtkapazität von 10 Wareneinheiten.
+Für alle Gebäude- und Rohstoffknoten außer dem Lager gelten getrennte Kapazitäten für Input und Output.
 
-- Inputs und Outputs teilen sich diese Kapazität.
-- Sobald insgesamt 10 Einheiten im lokalen Inventar liegen, ist der Knoten voll.
-- Ein voller Produktionsknoten kann keinen weiteren Output erzeugen, bis wieder Platz frei wird.
+- Das Input-Inventar kann maximal 10 Einheiten aufnehmen.
+- Das Output-Inventar kann maximal 3 Einheiten aufnehmen.
+- Inputs und Outputs teilen sich keine gemeinsame Kapazität.
+- Ein Produktionsvorgang startet nur, wenn im Output-Inventar noch Platz für den entstehenden Output vorhanden ist.
+- Ein voller Output verhindert weitere Produktion, bis Output abgeholt wurde.
 - Das Lager ist die einzige aktuelle Ausnahme und besitzt unbegrenzte Kapazität.
+
+### Arbeitskräfte und Hauptquartier
+
+Der PoC besitzt einen begrenzten Pool an Personen, die auf Arbeitsstätten verteilt werden können. Die maximale Gesamtzahl der verfügbaren Personen wird als Szenario-Parameter festgelegt und kann später leicht verändert werden.
+
+Das Hauptquartier dient als Sammelpunkt für freie Personen.
+
+- Freie Personen haben keine Arbeitsstätte zugewiesen und bewegen sich zum Hauptquartier.
+- Wird eine Person an einer Arbeitsstätte freigesetzt, endet ihre Zuweisung sofort und sie läuft vom aktuellen Ort zum Hauptquartier.
+- Wird eine freie Person bereits unterwegs zum Hauptquartier einer neuen Arbeitsstätte zugewiesen, läuft sie direkt von ihrer aktuellen Position zur neuen Arbeitsstätte weiter.
+- Eine zugewiesene Person zählt erst dann als aktiver Arbeiter oder Träger der Ziel-Arbeitsstätte, wenn sie dort angekommen ist.
+- Personen werden nie zwischen Arbeitsstätten teleportiert; jeder Wechsel benötigt die reguläre Bewegung über den Graphen.
+
+Für Arbeitsstätten gibt es eine einfache Einstellung der gewünschten Besetzung. Der Spieler kann die Zahl der zugewiesenen Arbeiter bzw. Träger innerhalb der jeweiligen Obergrenze erhöhen oder reduzieren. Eine Erhöhung verwendet freie Personen aus dem globalen Pool; eine Reduktion setzt entsprechende Personen frei.
+
+Für PoC 1 gelten damit insbesondere:
+
+- Wald: 0 bis 2 Produktionsarbeiter.
+- Sägewerk: 0 bis 1 Produktionsarbeiter und 0 bis 2 Träger.
+- Schreinerei: 0 bis 1 Produktionsarbeiter und 0 bis 2 Träger.
+- Lager: 0 Produktionsarbeiter und 0 bis 2 Lager-Träger.
+
+Die konkrete maximale Gesamtzahl aller Personen für das erste Szenario ist noch festzulegen.
 
 ### Bauarbeiter als spätere Erweiterung
 
