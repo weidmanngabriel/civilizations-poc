@@ -4,6 +4,21 @@
 
 Ziel des ersten Proof of Concept ist es, den Kern der personenbasierten Produktionslogistik zu testen. Die Welt wird zunächst als Graph aus Gebäude- und Wegknoten modelliert. Gebäude werden nicht direkt miteinander verbunden; Wege laufen über eigene Wegknoten.
 
+### Kartenstruktur
+
+Die sichtbare Karte basiert im PoC auf einem Hex-Grid.
+
+- Jede Kartenkachel ist ein Hexfeld.
+- Jedes Gebäude belegt genau ein Hexfeld.
+- Gebäude werden nicht direkt miteinander verbunden; zwischen Gebäuden liegen begehbare Wegkacheln.
+- Nur Wegkacheln und Gebäudekacheln sind im ersten PoC begehbar.
+- Wiesen sind zunächst nicht begehbar.
+- Berge und Flüsse sind ebenfalls nicht begehbar und dienen zunächst nur als Hindernisse bzw. zur optischen Auflockerung.
+- Geländearten besitzen zunächst keine unterschiedlichen Bewegungskosten, Boni oder sonstige Sonderregeln.
+- Die erste Karte ist fest vorgegeben; freie Gebäudeplatzierung gehört noch nicht zum PoC.
+
+Die Startkarte soll klein bleiben, aber bereits unterschiedliche Laufwege sichtbar machen. Sie enthält mindestens Hauptquartier, Wald, Sägewerk, Schreinerei und Lager sowie einige Wiesen-, Berg- und Flusskacheln.
+
 ### Zeit- und Bewegungsmodell
 
 Der PoC läuft zunächst rundenbasiert.
@@ -135,6 +150,7 @@ Die Bauarbeiterfunktion gehört ausdrücklich nicht zum ersten Implementierungss
 - Berufserfahrung und Freischaltungen
 - freie Gebäudeplatzierung
 - allgemeines Einsammeln beliebiger Waren durch Lager-Träger
+- unterschiedliche Bewegungskosten oder Boni durch Gelände
 
 ## Leitprinzip
 
