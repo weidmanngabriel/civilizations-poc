@@ -39,14 +39,14 @@ This is an architectural baseline, not a commitment to model the final game arou
 ## Implemented PoC 1
 
 - `src/simulation/model.ts` defines a generic person, assignment, transport trip, recipe, building and world state. Roles are data, not subclasses.
-- `scenario.ts` owns the 9 × 7 offset-layout hex map, axial building coordinates, eight-person start and economy configuration.
+- `scenario.ts` owns the fixed **21 × 13** offset-layout hex map, axial building coordinates, eight-person start and economy configuration. Buildings still occupy one tile, while the road network deliberately separates production stages by longer routes and includes branches/loops.
 - `hex.ts` provides axial neighbors and BFS over road/building tiles only.
 - `simulation.ts` owns deterministic in-place ticks, assignment changes, population changes, reservations, recipes and status derivation. No timers or renderer imports occur in the core.
 - Each tick moves every person at most once, handles arrivals and transfers, advances production once, then plans new transport trips. Stable person/building order resolves ties.
 - Trips represent reservations directly; no separate job queue exists. Unpicked trips reserve existing output, all trips reserve destination capacity, and picked trips retain a source output slot until delivery. Cancellation can therefore return cargo without loss or overflow.
 - Production inputs are consumed at completion and remain in the building while work is in progress. No other system consumes input inventory. Cancelling work resets progress while preserving materials. In-progress work reserves output capacity.
-- `game/MainScene.ts` renders colored hex polygons, numbered person markers and live input/output capacity slots for production buildings with Phaser 4.2.1. The slots are presentation-only and read the existing building inventories and configured capacities.
-- `ui/controls.ts` implements native DOM buttons and building/person panels. Rendering reads the same world after each user command. The optional autoplay timer also lives here and repeatedly calls the same deterministic `tick()` used by the manual next-round button; the simulation remains timer-free.
+- `game/MainScene.ts` renders the 21 × 13 world into a 1000 × 570 Phaser canvas using a denser hex projection, plus numbered person markers and live input/output capacity slots. The slots are presentation-only and read existing building inventories and configured capacities.
+- `ui/controls.ts` implements native DOM buttons and building/person panels. Rendering reads the same world after each user command. The optional autoplay timer also lives here and repeatedly calls the same deterministic `tick()` used by the manual next-round button. Its UI exposes **1–10 FPS**, interpreted as 1–10 regular simulation rounds per real second; changing FPS never changes simulation rules.
 - TypeScript 5.9 is used because its JavaScript compiler also works in restricted runtimes that cannot run the native TypeScript 7 compiler.
 - `npm test` uses Node's test runner through `tsx`. `npm run build` checks types then creates `dist/` with Vite. No external fonts or graphic assets are required.
 - `.github/workflows/deploy.yml` tests and builds on pushes to `main`, then deploys the artifact to GitHub Pages. Branch pushes do not trigger this workflow. Pages must use the GitHub Actions publishing source. Vite's base is `/civilizations-poc/`.

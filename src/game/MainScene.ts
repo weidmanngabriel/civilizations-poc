@@ -3,7 +3,13 @@ import type { Good, Hex, World } from "../simulation/model";
 import { key } from "../simulation/hex";
 import { CONFIG } from "../simulation/scenario";
 
-const pixel = (h: Hex) => ({ x: 78 + 82 * (h.q + h.r / 2), y: 68 + h.r * 71 });
+const HEX_X = 44;
+const HEX_Y = 39;
+const HEX_RADIUS = 25;
+const pixel = (h: Hex) => ({
+  x: 48 + HEX_X * (h.q + h.r / 2),
+  y: 48 + h.r * HEX_Y,
+});
 const colors = {
   grass: 0x526b42,
   road: 0xc0a375,
@@ -32,28 +38,29 @@ export class MainScene extends Phaser.Scene {
         { length: 6 },
         (_, i) =>
           new Phaser.Math.Vector2(
-            x + 46 * Math.cos(((60 * i - 30) * Math.PI) / 180),
-            y + 46 * Math.sin(((60 * i - 30) * Math.PI) / 180),
+            x + HEX_RADIUS * Math.cos(((60 * i - 30) * Math.PI) / 180),
+            y + HEX_RADIUS * Math.sin(((60 * i - 30) * Math.PI) / 180),
           ),
       );
       g.fillStyle(colors[tile.terrain]);
       g.fillPoints(points, true);
-      g.lineStyle(1, 0x20392c, 0.5);
+      g.lineStyle(1, 0x20392c, 0.45);
       g.strokePoints(points, true);
       if (tile.terrain === "mountain") {
         g.fillStyle(0xb4bab0);
-        g.fillTriangle(x - 17, y + 13, x, y - 17, x + 17, y + 13);
+        g.fillTriangle(x - 9, y + 7, x, y - 9, x + 9, y + 7);
       }
       if (tile.terrain === "river") {
         g.lineStyle(2, 0xafd3d3, 0.6);
-        g.lineBetween(x - 16, y + 2, x + 16, y - 2);
+        g.lineBetween(x - 9, y + 1, x + 9, y - 1);
       }
       if (tile.terrain === "grass") {
-        g.lineStyle(1, 0x93a76e, 0.4);
-        g.lineBetween(x - 3, y + 3, x - 6, y - 4);
-        g.lineBetween(x - 3, y + 3, x + 2, y - 5);
+        g.lineStyle(1, 0x93a76e, 0.35);
+        g.lineBetween(x - 2, y + 2, x - 4, y - 3);
+        g.lineBetween(x - 2, y + 2, x + 1, y - 3);
       }
     }
+
     for (const b of this.world.buildings) {
       const { x, y } = pixel(b.position);
       const labels = {
@@ -64,22 +71,23 @@ export class MainScene extends Phaser.Scene {
         warehouse: "LAGER",
       };
       this.add
-        .text(x, y - 17, labels[b.id], {
+        .text(x, y - 9, labels[b.id], {
           fontFamily: "system-ui",
-          fontSize: "10px",
+          fontSize: "7px",
           fontStyle: "bold",
           color: "#203226",
         })
         .setOrigin(0.5);
       if (b.id === "forest") {
         g.fillStyle(0x315537);
-        g.fillTriangle(x - 10, y - 25, x, y - 42, x + 10, y - 25);
+        g.fillTriangle(x - 6, y - 13, x, y - 23, x + 6, y - 13);
       } else {
         g.fillStyle(0x785d3e);
-        g.fillRect(x - 9, y - 38, 18, 11);
-        g.fillTriangle(x - 13, y - 38, x, y - 47, x + 13, y - 38);
+        g.fillRect(x - 5, y - 20, 10, 6);
+        g.fillTriangle(x - 7, y - 20, x, y - 26, x + 7, y - 20);
       }
     }
+
     this.markers = this.add.container(0, 0);
     this.renderWorld();
   }
@@ -93,8 +101,8 @@ export class MainScene extends Phaser.Scene {
     good: Good,
     columns: number,
   ): void {
-    const size = 5;
-    const gap = 2;
+    const size = 3;
+    const gap = 1;
     for (let i = 0; i < capacity; i += 1) {
       const sx = x + (i % columns) * (size + gap);
       const sy = y + Math.floor(i / columns) * (size + gap);
@@ -119,34 +127,34 @@ export class MainScene extends Phaser.Scene {
       if (b.recipe.input) {
         this.drawSlots(
           slots,
-          x + 13,
-          y - 9,
+          x + 7,
+          y - 5,
           b.input,
           CONFIG.inputCapacity,
           b.recipe.input,
           5,
         );
         this.markers.add(
-          this.add.text(x + 13, y - 16, "IN", {
+          this.add.text(x + 7, y - 10, "IN", {
             fontFamily: "system-ui",
-            fontSize: "6px",
+            fontSize: "4px",
             color: "#21372a",
           }),
         );
       }
       this.drawSlots(
         slots,
-        x + 13,
-        b.recipe.input ? y + 8 : y - 2,
+        x + 7,
+        b.recipe.input ? y + 5 : y - 1,
         b.output,
         CONFIG.outputCapacity,
         b.recipe.output,
         3,
       );
       this.markers.add(
-        this.add.text(x + 13, b.recipe.input ? y + 15 : y + 5, "OUT", {
+        this.add.text(x + 7, b.recipe.input ? y + 9 : y + 3, "OUT", {
           fontFamily: "system-ui",
-          fontSize: "6px",
+          fontSize: "4px",
           color: "#21372a",
         }),
       );
@@ -154,22 +162,22 @@ export class MainScene extends Phaser.Scene {
 
     const groups = new Map<string, number>();
     for (const p of this.world.people) {
-      const k = key(p.position),
-        i = groups.get(k) ?? 0;
+      const k = key(p.position);
+      const i = groups.get(k) ?? 0;
       groups.set(k, i + 1);
-      const pos = pixel(p.position),
-        x = pos.x + ((i % 4) - 1.5) * 16,
-        y = pos.y + 2 + Math.floor(i / 4) * 16;
+      const pos = pixel(p.position);
+      const x = pos.x + ((i % 4) - 1.5) * 11;
+      const y = pos.y + 1 + Math.floor(i / 4) * 11;
       const color = !p.assignment
         ? 0xdde5db
         : p.assignment.role === "worker"
           ? 0x234636
           : 0x8b512e;
-      const dot = this.add.circle(x, y, 7, color).setStrokeStyle(1, 0xffffff);
+      const dot = this.add.circle(x, y, 5, color).setStrokeStyle(1, 0xffffff);
       const label = this.add
         .text(x, y, String(p.id), {
           fontFamily: "system-ui",
-          fontSize: "8px",
+          fontSize: "6px",
           color: "#ffffff",
         })
         .setOrigin(0.5);
@@ -178,10 +186,10 @@ export class MainScene extends Phaser.Scene {
       if (p.trip?.picked)
         this.markers.add(
           this.add.text(
-            x + 5,
-            y - 9,
+            x + 4,
+            y - 7,
             { wood: "H", plank: "B", woodenTool: "W" }[p.trip.good],
-            { fontSize: "9px", color: "#fff2a3", backgroundColor: "#263c2d" },
+            { fontSize: "6px", color: "#fff2a3", backgroundColor: "#263c2d" },
           ),
         );
     }
