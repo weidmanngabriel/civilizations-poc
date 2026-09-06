@@ -46,6 +46,8 @@ function assertInvariants(w: World) {
       w.people.filter((p) => p.trip?.source === b.id && !p.trip.picked)
         .length <= b.output,
     );
+    if (b.forestRemaining !== undefined)
+      assert.ok(b.forestRemaining >= 0 && b.forestRemaining <= CONFIG.forestYield);
   }
 }
 test("six unique hex neighbors, reciprocal adjacency", () => {
@@ -167,7 +169,6 @@ test("one physical unit cannot be claimed twice; carried cancellation returns th
   while (!p.trip?.picked) tick(w);
   assert.equal(building(w, "forest").output, 0);
   assert.equal(w.people.filter((p) => p.trip?.picked).length, 1);
-  // Remove the second carrier, then the loaded first carrier.
   changeAssignment(w, "sawmill", "carrier", -1);
   changeAssignment(w, "sawmill", "carrier", -1);
   assert.equal(building(w, "forest").output, 1);
@@ -202,7 +203,12 @@ test("whole economy repeatedly reaches unbounded warehouse, with conserved goods
       (sum, b) =>
         sum +
         b.input * (b.id === "carpenter" ? 2 : 1) +
-        b.output * (b.id === "forest" ? 1 : b.id === "sawmill" ? 2 : 4),
+        b.output *
+          (b.recipe?.output === "wood"
+            ? 1
+            : b.recipe?.output === "plank"
+              ? 2
+              : 4),
       0,
     ) +
     world.people.reduce(
@@ -217,9 +223,10 @@ test("whole economy repeatedly reaches unbounded warehouse, with conserved goods
   for (let i = 0; i < 1500; i++) {
     const before = w.people.map((p) => ({ ...p.position }));
     const goodsBefore = timber(w);
-    const producedWood = assigned(w, "forest", "worker").filter(
-      (p) => p.progress === 4,
-    ).length;
+    const producedWood = w.people.filter((p) => {
+      if (p.progress !== 4 || !p.assignment) return false;
+      return building(w, p.assignment.building).forestRemaining !== undefined;
+    }).length;
     tick(w);
     assert.equal(timber(w), goodsBefore + producedWood);
     w.people.forEach((p, j) =>
