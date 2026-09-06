@@ -184,7 +184,8 @@ function retireEmptyForests(w: World): void {
       forest.retired ||
       forest.forestRemaining !== 0 ||
       forest.output > 0 ||
-      assigned(w, forest.id, "worker").length > 0
+      assigned(w, forest.id, "worker").length > 0 ||
+      w.people.some((p) => p.trip?.source === forest.id)
     )
       continue;
     forest.retired = true;
