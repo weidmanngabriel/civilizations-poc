@@ -27,6 +27,7 @@ Der PoC läuft zunächst rundenbasiert.
 - Jede Figur kann sich pro Runde um genau eine Kante bewegen.
 - Wege werden über den kürzesten Weg im Graphen bestimmt, nicht über Luftlinie.
 - Eine Produktion dauert immer 5 Runden, sobald alle benötigten Rohstoffe an der Arbeitsstätte vorhanden sind und ein zuständiger Arbeiter dort produzieren kann.
+- Runden können weiterhin einzeln ausgelöst oder optional automatisch abgespielt werden. Beim Autolauf kann die reale Dauer einer Runde in 0,5-Sekunden-Schritten zwischen 0,5 und 3,0 Sekunden gewählt werden. Diese Einstellung verändert nicht die Simulationsregeln, sondern nur den zeitlichen Abstand zwischen zwei regulären Runden.
 
 ### Allgemeines Produktionsprinzip
 
@@ -100,6 +101,8 @@ Für alle Gebäude- und Rohstoffknoten außer dem Lager gelten getrennte Kapazit
 - Ein Produktionsvorgang startet nur, wenn im Output-Inventar noch Platz für den entstehenden Output vorhanden ist.
 - Ein voller Output verhindert weitere Produktion, bis Output abgeholt wurde.
 - Das Lager ist die einzige aktuelle Ausnahme und besitzt unbegrenzte Kapazität.
+- Auf der Karte werden die begrenzten Input- und Output-Kapazitäten als feste Ressourcen-Slots direkt an der jeweiligen Produktionsstätte dargestellt. Vorhandene Waren füllen diese Slots sichtbar; nach Abholung oder Verbrauch werden sie wieder leer. Reservierte, aber noch nicht physisch vorhandene Waren füllen keinen Slot.
+- Für das unbegrenzte Lager werden keine Kapazitäts-Slots dargestellt, damit keine künstliche Obergrenze suggeriert wird.
 
 ### Arbeitskräfte und Hauptquartier
 
@@ -166,3 +169,5 @@ Die Fachlogik soll so modelliert werden, dass Rohstoffarbeiter, Produktionsarbei
 - Bewegung erfolgt zuerst. Eine Person kann in ihrer Ankunftsrunde Waren übergeben und einen Arbeitsfortschritt erhalten. Neu geplante Wege beginnen erst in der folgenden Runde.
 - „Aktiv“ bedeutet: Die zugewiesene Person ist erstmals an ihrer Arbeitsstätte angekommen. Anschließende Beschaffungsgänge gehören weiterhin zu dieser aktiven Besetzung.
 - Die Bedienung zeigt Runde, freie und gesamte Bevölkerung, Lagerbestand, Besetzung, Inputs, Outputs und Produktionsstatus. Eine aufklappbare Personenliste zeigt Zuweisungen, Wege und Transportaufträge.
+- Zusätzlich kann der Spieler den bestehenden Rundenschritt automatisch in einem wählbaren Intervall von 0,5 bis 3,0 Sekunden ausführen lassen und jederzeit pausieren; der manuelle Rundenschritt bleibt parallel verfügbar.
+- Begrenzte Inventare werden auf der Hex-Karte zusätzlich als leere bzw. gefüllte Slots visualisiert. Die numerischen Bestände in den Arbeitsstätten-Karten bleiben als genaue Debug-Anzeige bestehen.
