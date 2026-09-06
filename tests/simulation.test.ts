@@ -13,13 +13,17 @@ import {
   building,
   changeAssignment,
   changePopulation,
+  changeWoodcutters,
   outputOccupied,
   tick,
+  woodcutters,
 } from "../src/simulation/simulation";
 import type { BuildingId, World } from "../src/simulation/model";
+
 const rounds = (w: World, n: number) => {
   for (let i = 0; i < n; i++) tick(w);
 };
+
 function workerAt(w: World, id: BuildingId) {
   changeAssignment(w, id, "worker", 1);
   const p = assigned(w, id, "worker").at(-1)!;
@@ -28,6 +32,17 @@ function workerAt(w: World, id: BuildingId) {
   p.active = true;
   return p;
 }
+
+function woodcutterAtForest(w: World) {
+  changeWoodcutters(w, 1);
+  const p = woodcutters(w).at(-1)!;
+  const forest = building(w, p.assignment!.building);
+  p.position = { ...forest.position };
+  p.path = [];
+  p.active = true;
+  return { p, forest };
+}
+
 function assertInvariants(w: World) {
   for (const b of w.buildings) {
     assert.ok(b.input >= 0 && b.input <= CONFIG.inputCapacity);
@@ -46,16 +61,20 @@ function assertInvariants(w: World) {
       w.people.filter((p) => p.trip?.source === b.id && !p.trip.picked)
         .length <= b.output,
     );
-    if (b.forestRemaining !== undefined)
+    if (b.forestRemaining !== undefined) {
       assert.ok(b.forestRemaining >= 0 && b.forestRemaining <= CONFIG.forestYield);
+      assert.ok(assigned(w, b.id, "worker").length <= 1);
+    }
   }
 }
+
 test("six unique hex neighbors, reciprocal adjacency", () => {
   const h = { q: 0, r: 0 };
   assert.equal(new Set(neighbors(h).map(key)).size, 6);
   for (const n of neighbors(h)) assert.ok(neighbors(n).some((x) => same(x, h)));
 });
-test("BFS shortest path, barriers, disconnected nodes, every building reachable", () => {
+
+test("BFS shortest path, barriers, disconnected nodes, every initial building reachable", () => {
   const w = createWorld();
   const hq = building(w, "hq");
   for (const b of w.buildings) {
@@ -85,9 +104,10 @@ test("BFS shortest path, barriers, disconnected nodes, every building reachable"
     null,
   );
 });
+
 test("arrival controls activation; one edge per round; release and reassignment never teleport", () => {
   const w = createWorld();
-  changeAssignment(w, "forest", "worker", 1);
+  changeAssignment(w, "sawmill", "worker", 1);
   const p = w.people[0]!;
   assert.equal(p.active, false);
   while (p.path.length) {
@@ -96,7 +116,7 @@ test("arrival controls activation; one edge per round; release and reassignment 
     assert.ok(neighbors(prev).some((h) => same(h, p.position)));
   }
   assert.equal(p.active, true);
-  changeAssignment(w, "forest", "worker", -1);
+  changeAssignment(w, "sawmill", "worker", -1);
   assert.equal(p.assignment, undefined);
   const pos = { ...p.position };
   tick(w);
@@ -106,6 +126,7 @@ test("arrival controls activation; one edge per round; release and reassignment 
   assert.deepEqual(p.position, next);
   assert.deepEqual(p.assignment, { building: "carpenter", role: "worker" });
 });
+
 test("exactly five working rounds, 2 input consumed, one output, cancellation preserves inputs", () => {
   const w = createWorld();
   const b = building(w, "sawmill");
@@ -124,6 +145,7 @@ test("exactly five working rounds, 2 input consumed, one output, cancellation pr
   assert.equal(b.output, 1);
   assert.equal(p.progress, 0);
 });
+
 test("no production without worker, two inputs or output space", () => {
   const w = createWorld();
   const b = building(w, "sawmill");
@@ -140,22 +162,23 @@ test("no production without worker, two inputs or output space", () => {
   assert.equal(b.input, 2);
   assert.equal(b.output, 3);
 });
-test("two forest workers reserve output space without exceeding capacity", () => {
+
+test("one woodcutter occupies one forest and respects output capacity", () => {
   const w = createWorld();
-  workerAt(w, "forest");
-  workerAt(w, "forest");
-  const b = building(w, "forest");
-  rounds(w, 5);
-  assert.equal(b.output, 2);
-  rounds(w, 5);
-  assert.equal(b.output, 3);
+  const { forest } = woodcutterAtForest(w);
+  assert.equal(assigned(w, forest.id, "worker").length, 1);
+  rounds(w, 15);
+  assert.equal(forest.output, 3);
   rounds(w, 10);
-  assert.equal(b.output, 3);
+  assert.equal(forest.output, 3);
   assertInvariants(w);
 });
+
 test("one physical unit cannot be claimed twice; carried cancellation returns the unit", () => {
   const w = createWorld();
-  building(w, "forest").output = 1;
+  const { forest } = woodcutterAtForest(w);
+  forest.output = 1;
+  changeWoodcutters(w, -1);
   for (let i = 0; i < 2; i++) {
     changeAssignment(w, "sawmill", "carrier", 1);
     const p = assigned(w, "sawmill", "carrier").at(-1)!;
@@ -165,22 +188,23 @@ test("one physical unit cannot be claimed twice; carried cancellation returns th
   }
   tick(w);
   assert.equal(w.people.filter((p) => p.trip).length, 1);
-  const p = w.people.find((p) => p.trip)!;
+  const p = w.people.find((person) => person.trip)!;
   while (!p.trip?.picked) tick(w);
-  assert.equal(building(w, "forest").output, 0);
-  assert.equal(w.people.filter((p) => p.trip?.picked).length, 1);
+  assert.equal(forest.output, 0);
+  assert.equal(w.people.filter((person) => person.trip?.picked).length, 1);
   changeAssignment(w, "sawmill", "carrier", -1);
   changeAssignment(w, "sawmill", "carrier", -1);
-  assert.equal(building(w, "forest").output, 1);
+  assert.equal(forest.output, 1);
   assert.equal(p.trip, undefined);
   assertInvariants(w);
 });
-test("population removal only removes free people at HQ; IDs stay unique", () => {
+
+test("population removal only removes truly free people at HQ; IDs stay unique", () => {
   const w = createWorld(1);
-  changeAssignment(w, "forest", "worker", 1);
+  changeWoodcutters(w, 1);
   assert.equal(changePopulation(w, -1), false);
   tick(w);
-  changeAssignment(w, "forest", "worker", -1);
+  changeWoodcutters(w, -1);
   assert.equal(changePopulation(w, -1), false);
   while (w.people[0]!.path.length) tick(w);
   assert.equal(changePopulation(w, -1), true);
@@ -188,10 +212,11 @@ test("population removal only removes free people at HQ; IDs stay unique", () =>
   changePopulation(w, 1);
   assert.equal(w.people[0]!.id, 2);
 });
+
 test("whole economy repeatedly reaches unbounded warehouse, with conserved goods and legal movement", () => {
   const w = createWorld();
-  changeAssignment(w, "forest", "worker", 1);
-  changeAssignment(w, "forest", "worker", 1);
+  changeWoodcutters(w, 1);
+  changeWoodcutters(w, 1);
   for (const id of ["sawmill", "carpenter"] as const) {
     changeAssignment(w, id, "worker", 1);
     changeAssignment(w, id, "carrier", 1);
@@ -241,16 +266,18 @@ test("whole economy repeatedly reaches unbounded warehouse, with conserved goods
   }
   assert.ok(priorWarehouse > 10, `tools: ${priorWarehouse}`);
 });
+
 test("deterministic replay and frequent reassignments preserve limits", () => {
   const a = createWorld(),
     b = createWorld();
-  const ids = ["forest", "sawmill", "carpenter", "warehouse"] as const;
+  const ids = ["sawmill", "carpenter", "warehouse"] as const;
   for (let i = 0; i < 600; i++) {
     for (const w of [a, b]) {
+      if (i % 5 === 0) changeWoodcutters(w, i % 20 === 0 ? -1 : 1);
       if (i % 3 === 0)
         changeAssignment(
           w,
-          ids[Math.floor(i / 3) % 4]!,
+          ids[Math.floor(i / 3) % ids.length]!,
           i % 2 ? "worker" : "carrier",
           i % 7 === 0 ? -1 : 1,
         );

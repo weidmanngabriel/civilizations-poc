@@ -28,17 +28,6 @@ export function createWorld(population: number = CONFIG.population): World {
       output: 0,
     },
     {
-      id: "forest",
-      name: "Wald 1",
-      position: at(2, 1),
-      workers: 2,
-      carriers: 0,
-      input: 0,
-      output: 0,
-      forestRemaining: CONFIG.forestYield,
-      recipe: { amount: 0, output: "wood", duration: CONFIG.duration },
-    },
-    {
       id: "sawmill",
       name: "Sägewerk",
       position: at(9, 4),
@@ -89,7 +78,7 @@ export function createWorld(population: number = CONFIG.population): World {
   ];
 
   const forestTiles = [
-    [1, 0], [2, 0], [1, 1], [2, 2], [3, 2],
+    [1, 0], [2, 0], [1, 1], [2, 1], [2, 2], [3, 2],
     [6, 2], [7, 2], [8, 2], [7, 3], [8, 3],
     [4, 10], [5, 10], [5, 11], [6, 11],
     [13, 7], [13, 8], [14, 8], [14, 9],
@@ -133,7 +122,7 @@ export function createWorld(population: number = CONFIG.population): World {
   return {
     round: 0,
     nextId: population + 1,
-    nextForestId: 2,
+    nextForestId: 1,
     rngState: 0x1a2b3c4d,
     buildings,
     tiles,

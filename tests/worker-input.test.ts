@@ -5,7 +5,9 @@ import {
   assigned,
   building,
   changeAssignment,
+  changeWoodcutters,
   tick,
+  woodcutters,
 } from "../src/simulation/simulation";
 
 function activeSawmillWorker() {
@@ -16,12 +18,14 @@ function activeSawmillWorker() {
   worker.position = { ...sawmill.position };
   worker.path = [];
   worker.active = true;
-  return { world, sawmill, worker };
+  changeWoodcutters(world, 1);
+  const woodcutter = woodcutters(world)[0]!;
+  const forest = building(world, woodcutter.assignment!.building);
+  return { world, sawmill, worker, forest };
 }
 
 test("production worker keeps producing while input and output space allow it", () => {
-  const { world, sawmill, worker } = activeSawmillWorker();
-  const forest = building(world, "forest");
+  const { world, sawmill, worker, forest } = activeSawmillWorker();
   sawmill.input = 10;
   forest.output = 1;
 
@@ -39,7 +43,7 @@ test("production worker keeps producing while input and output space allow it", 
   assert.equal(sawmill.input, 4);
   assert.equal(worker.progress, 0);
   assert.deepEqual(worker.trip, {
-    source: "forest",
+    source: forest.id,
     target: "sawmill",
     good: "wood",
     picked: false,
@@ -47,8 +51,7 @@ test("production worker keeps producing while input and output space allow it", 
 });
 
 test("production worker keeps filling free input slots while output is full", () => {
-  const { world, sawmill, worker } = activeSawmillWorker();
-  const forest = building(world, "forest");
+  const { world, sawmill, worker, forest } = activeSawmillWorker();
 
   sawmill.input = 2;
   sawmill.output = 3;
@@ -58,7 +61,7 @@ test("production worker keeps filling free input slots while output is full", ()
 
   assert.equal(worker.progress, 0);
   assert.deepEqual(worker.trip, {
-    source: "forest",
+    source: forest.id,
     target: "sawmill",
     good: "wood",
     picked: false,
