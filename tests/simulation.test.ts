@@ -178,6 +178,7 @@ test("one physical unit cannot be claimed twice; carried cancellation returns th
   const w = createWorld();
   const { forest } = woodcutterAtForest(w);
   forest.output = 1;
+  changeWoodcutters(w, -1);
   for (let i = 0; i < 2; i++) {
     changeAssignment(w, "sawmill", "carrier", 1);
     const p = assigned(w, "sawmill", "carrier").at(-1)!;
@@ -202,6 +203,7 @@ test("population removal only removes truly free people at HQ; IDs stay unique",
   const w = createWorld(1);
   changeWoodcutters(w, 1);
   assert.equal(changePopulation(w, -1), false);
+  tick(w);
   changeWoodcutters(w, -1);
   assert.equal(changePopulation(w, -1), false);
   while (w.people[0]!.path.length) tick(w);
