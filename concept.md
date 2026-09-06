@@ -17,7 +17,7 @@ Die sichtbare Karte basiert im PoC auf einem Hex-Grid.
 - Geländearten besitzen zunächst keine unterschiedlichen Bewegungskosten, Boni oder sonstige Sonderregeln.
 - Die erste Karte ist fest vorgegeben; freie Gebäudeplatzierung gehört noch nicht zum PoC.
 
-Die Startkarte soll klein bleiben, aber bereits unterschiedliche Laufwege sichtbar machen. Sie enthält mindestens Hauptquartier, Wald, Sägewerk, Schreinerei und Lager sowie einige Wiesen-, Berg- und Flusskacheln.
+Die aktuelle Startkarte umfasst **21 × 13 Hexfelder**. Sie enthält Hauptquartier, Wald, Sägewerk, Schreinerei und Lager sowie Wiesen-, Berg- und Flusskacheln. Die Gebäude bleiben jeweils genau ein Hexfeld groß, liegen aber bewusst deutlich weiter auseinander als im ersten Kartenentwurf. Das Straßennetz verwendet längere, teilweise verzweigte Wege und Umwege, damit Transportzeit und Bewegung im laufenden Wirtschaftskreislauf sichtbar und relevant werden.
 
 ### Zeit- und Bewegungsmodell
 
@@ -27,7 +27,8 @@ Der PoC läuft zunächst rundenbasiert.
 - Jede Figur kann sich pro Runde um genau eine Kante bewegen.
 - Wege werden über den kürzesten Weg im Graphen bestimmt, nicht über Luftlinie.
 - Eine Produktion dauert immer 5 Runden, sobald alle benötigten Rohstoffe an der Arbeitsstätte vorhanden sind und ein zuständiger Arbeiter dort produzieren kann.
-- Runden können weiterhin einzeln ausgelöst oder optional automatisch abgespielt werden. Beim Autolauf kann die reale Dauer einer Runde in 0,5-Sekunden-Schritten zwischen 0,5 und 3,0 Sekunden gewählt werden. Diese Einstellung verändert nicht die Simulationsregeln, sondern nur den zeitlichen Abstand zwischen zwei regulären Runden.
+- Runden können weiterhin einzeln ausgelöst oder optional automatisch abgespielt werden.
+- Beim Autolauf stellt der Spieler die Geschwindigkeit mit einem Regler von **1 bis 10 FPS** ein. Im PoC bedeutet 1 FPS genau eine reguläre Simulationsrunde pro realer Sekunde und 10 FPS entsprechend zehn Runden pro Sekunde. Die Einstellung verändert nur den zeitlichen Abstand zwischen bestehenden `tick()`-Schritten und nicht die Simulationsregeln.
 
 ### Allgemeines Produktionsprinzip
 
@@ -169,5 +170,5 @@ Die Fachlogik soll so modelliert werden, dass Rohstoffarbeiter, Produktionsarbei
 - Bewegung erfolgt zuerst. Eine Person kann in ihrer Ankunftsrunde Waren übergeben und einen Arbeitsfortschritt erhalten. Neu geplante Wege beginnen erst in der folgenden Runde.
 - „Aktiv“ bedeutet: Die zugewiesene Person ist erstmals an ihrer Arbeitsstätte angekommen. Anschließende Beschaffungsgänge gehören weiterhin zu dieser aktiven Besetzung.
 - Die Bedienung zeigt Runde, freie und gesamte Bevölkerung, Lagerbestand, Besetzung, Inputs, Outputs und Produktionsstatus. Eine aufklappbare Personenliste zeigt Zuweisungen, Wege und Transportaufträge.
-- Zusätzlich kann der Spieler den bestehenden Rundenschritt automatisch in einem wählbaren Intervall von 0,5 bis 3,0 Sekunden ausführen lassen und jederzeit pausieren; der manuelle Rundenschritt bleibt parallel verfügbar.
+- Zusätzlich kann der Spieler den bestehenden Rundenschritt automatisch mit **1 bis 10 FPS** ausführen lassen und jederzeit pausieren; der manuelle Rundenschritt bleibt parallel verfügbar.
 - Begrenzte Inventare werden auf der Hex-Karte zusätzlich als leere bzw. gefüllte Slots visualisiert. Die numerischen Bestände in den Arbeitsstätten-Karten bleiben als genaue Debug-Anzeige bestehen.
