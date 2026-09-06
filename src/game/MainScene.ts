@@ -7,6 +7,7 @@ const HEX_X = 44;
 const HEX_Y = 39;
 const HEX_RADIUS = 25;
 const TEXT_RESOLUTION = 2;
+const MIN_FOREST_ALPHA = 0.35;
 const pixel = (h: Hex) => ({
   x: 48 + HEX_X * (h.q + h.r / 2),
   y: 48 + h.r * HEX_Y,
@@ -41,10 +42,15 @@ export class MainScene extends Phaser.Scene {
     this.renderWorld();
   }
 
-  private drawTree(g: Phaser.GameObjects.Graphics, x: number, y: number): void {
-    g.fillStyle(0x29452f);
+  private drawTree(
+    g: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    alpha = 1,
+  ): void {
+    g.fillStyle(0x29452f, alpha);
     g.fillTriangle(x - 5, y + 5, x, y - 7, x + 5, y + 5);
-    g.fillStyle(0x5b442d);
+    g.fillStyle(0x5b442d, alpha);
     g.fillRect(x - 1, y + 4, 2, 5);
   }
 
@@ -110,7 +116,11 @@ export class MainScene extends Phaser.Scene {
           .setOrigin(0.5),
       );
       if (b.forestRemaining !== undefined) {
-        this.drawTree(g, x, y - 17);
+        const alpha = Math.max(
+          MIN_FOREST_ALPHA,
+          b.forestRemaining / CONFIG.forestYield,
+        );
+        this.drawTree(g, x, y - 17, alpha);
       } else {
         g.fillStyle(0x785d3e);
         g.fillRect(x - 5, y - 20, 10, 6);
@@ -149,7 +159,11 @@ export class MainScene extends Phaser.Scene {
 
     const slots = this.add.graphics();
     this.markers.add(slots);
-    for (const b of this.world.buildings.filter((building) => !building.retired)) {
+    for (const b of this.world.buildings.filter(
+      (building) =>
+        !building.retired ||
+        (building.forestRemaining === 0 && building.output > 0),
+    )) {
       if (!b.recipe) continue;
       const { x, y } = pixel(b.position);
       if (b.recipe.input) {
@@ -200,9 +214,9 @@ export class MainScene extends Phaser.Scene {
       const pos = pixel(p.position);
       const x = pos.x + ((i % 4) - 1.5) * 11;
       const y = pos.y + 1 + Math.floor(i / 4) * 11;
-      const color = !p.assignment
+      const color = !p.assignment && !p.woodcutter
         ? 0xdde5db
-        : p.assignment.role === "worker"
+        : p.assignment?.role === "worker" || p.woodcutter
           ? 0x234636
           : 0x8b512e;
       const dot = this.add.circle(x, y, 5, color).setStrokeStyle(1, 0xffffff);
@@ -214,7 +228,7 @@ export class MainScene extends Phaser.Scene {
         })
         .setResolution(TEXT_RESOLUTION)
         .setOrigin(0.5);
-      if (!p.assignment) label.setColor("#24362b");
+      if (!p.assignment && !p.woodcutter) label.setColor("#24362b");
       this.markers.add([dot, label]);
       if (p.trip?.picked)
         this.markers.add(
