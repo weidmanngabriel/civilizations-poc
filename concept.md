@@ -91,8 +91,8 @@ Der erschöpfte alte Wald bleibt zunächst als Restholzquelle bestehen:
 
 - Bereits produziertes Holz bleibt dort vollständig verfügbar und kann von Trägern weiterhin abgeholt werden.
 - Die Waldarbeiter dürfen bereits an neuen Standorten arbeiten, während am alten Standort noch Restholz liegt.
-- Sobald am alten Standort kein Holz mehr verfügbar und kein Transport von dort mehr offen ist, verschwindet das alte Waldgebäude.
-- Seine Kachel wird anschließend dauerhaft zu einer normalen Wegkachel.
+- Sobald am alten Standort kein Holz mehr gelagert ist, verschwindet das alte Waldgebäude und seine Kachel wird zu einer normalen Wegkachel. Bereits abgeholtes Holz darf zu diesem Zeitpunkt noch unterwegs sein.
+- Falls ein bereits abgeholter Transport per Debug-Zuweisung abgebrochen und das Holz an die Quelle zurückgebucht wird, erscheint der erschöpfte Wald vorübergehend wieder als Restholzquelle, bis auch dieses Holz erneut abgeholt wurde.
 
 Dass Rohstoffquellen mehrere Arbeiter haben können und ihre Arbeitsstätte im Lauf der Simulation wechseln kann, unterscheidet sie bewusst von den stationären verarbeitenden Arbeitsstätten.
 
@@ -192,7 +192,7 @@ Die Fachlogik soll so modelliert werden, dass Rohstoffarbeiter, Produktionsarbei
 - Alle acht Personen starten frei; die Besetzung wird vom Spieler eingestellt.
 - Bei gleichen Entfernungen entscheidet bei normalen Warenquellen weiterhin die feste Reihenfolge der Gebäude. Zuweisungen verwenden die erste freie Person; Reduktionen lösen die zuletzt zugewiesene passende Person.
 - Für die Standortwahl erschöpfter Waldarbeiter gilt davon abweichend: Nur die kürzeste erreichbare Distanz zählt; bei mehreren gleich weit entfernten Waldkacheln wird pro Arbeiter pseudozufällig gewählt. Ein Seed im Weltzustand hält Replays deterministisch.
-- Passive Waldkacheln sind von Anfang an begehbar. Wird eine davon als neuer Waldstandort gewählt, wird sie zu einer aktiven Wald-Arbeitsstätte mit 10 Holz Vorrat. Wird ein erschöpfter alter Wald vollständig geleert und sind seine offenen Abholungen abgeschlossen, wird seine Kachel zu einem Weg.
+- Passive Waldkacheln sind von Anfang an begehbar. Wird eine davon als neuer Waldstandort gewählt, wird sie zu einer aktiven Wald-Arbeitsstätte mit 10 Holz Vorrat. Sobald ein erschöpfter alter Wald lokal kein Holz mehr lagert, wird seine Kachel zu einem Weg; bereits abgeholte Transporte dürfen weiterlaufen. Wird solches Holz durch einen abgebrochenen Transport zurückgebucht, wird die Restholzquelle wieder sichtbar.
 - Ein Abholauftrag reserviert eine vorhandene Wareneinheit und einen Input-Platz am Ziel. Träger füllen den Input bis zur Kapazitätsgrenze auf. Produktionsarbeiter tun dies nur dann ebenfalls, wenn sie gerade nicht produzieren können; mögliche Produktion hat Vorrang. Bereits eingehende Lieferungen zählen gegen die freien Slots.
 - Während eines Transports bleibt der ursprüngliche Output-Platz bis zur Ablieferung reserviert. Bei Freisetzung wird eine bereits getragene Ware sofort in diesen Platz an der Quelle zurückgebucht. Die Person läuft von ihrer aktuellen Position zum HQ. Diese vereinfachte Rückbuchung betrifft nur Waren, niemals Personen.
 - Produktionsinputs bleiben bis zum Abschluss im Input-Inventar gebunden und werden dann verbraucht. Bei Freisetzung wird der Arbeitsfortschritt verworfen; die Inputs bleiben erhalten. Ein laufender Produktionsvorgang reserviert einen Output-Platz, damit auch zwei Waldarbeiter die Kapazität gemeinsam einhalten. Laufende Waldproduktionen reservieren zusätzlich implizit den verbleibenden endlichen Holzvorrat, damit zwei Arbeiter zusammen nie über 10 Holz hinaus produzieren.
