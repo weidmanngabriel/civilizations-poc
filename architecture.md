@@ -35,3 +35,17 @@ This fits the project's current goal: build a small, understandable proof of con
 ## Scope of this decision
 
 This is an architectural baseline, not a commitment to model the final game around Phaser concepts. If requirements later justify a different renderer or runtime, the independent simulation layer should minimize migration cost.
+
+## Implemented PoC 1
+
+- `src/simulation/model.ts` defines a generic person, assignment, transport trip, recipe, building and world state. Roles are data, not subclasses.
+- `scenario.ts` owns the 9 × 7 offset-layout hex map, axial building coordinates, eight-person start and economy configuration.
+- `hex.ts` provides axial neighbors and BFS over road/building tiles only.
+- `simulation.ts` owns deterministic in-place ticks, assignment changes, population changes, reservations, recipes and status derivation. No timers or renderer imports occur in the core.
+- Each tick moves every person at most once, handles arrivals and transfers, advances production once, then plans new transport trips. Stable person/building order resolves ties.
+- Trips represent reservations directly; no separate job queue exists. Unpicked trips reserve existing output, all trips reserve destination capacity, and picked trips retain a source output slot until delivery. Cancellation can therefore return cargo without loss or overflow.
+- Production inputs are consumed at completion and remain in the building while work is in progress. No other system consumes input inventory. Cancelling work resets progress while preserving materials. In-progress work reserves output capacity.
+- `game/MainScene.ts` renders colored hex polygons and numbered person markers with Phaser 4.2.1. `ui/controls.ts` implements native DOM buttons and building/person panels. Rendering reads the same world after each user command.
+- TypeScript 5.9 is used because its JavaScript compiler also works in restricted runtimes that cannot run the native TypeScript 7 compiler.
+- `npm test` uses Node's test runner through `tsx`. `npm run build` checks types then creates `dist/` with Vite. No external fonts or graphic assets are required.
+- `.github/workflows/deploy.yml` tests and builds on pushes to `main`, then deploys the artifact to GitHub Pages. Branch pushes do not trigger this workflow. Pages must use the GitHub Actions publishing source. Vite's base is `/civilizations-poc/`.
