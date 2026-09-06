@@ -152,12 +152,13 @@ export function tick(w: World): void {
     if (!p.assignment || !p.active || p.path.length || p.trip || p.progress > 0)
       continue;
     const b = building(w, p.assignment.building);
-    if (
-      p.assignment.role === "carrier" ||
-      (p.assignment.role === "worker" &&
-        b.recipe?.input &&
-        b.input + incoming(w, b.id) < CONFIG.inputCapacity)
-    )
+    const recipe = b.recipe;
+    const workerNeedsResupply =
+      p.assignment.role === "worker" &&
+      recipe?.input &&
+      b.input + incoming(w, b.id) < CONFIG.inputCapacity &&
+      (b.input < recipe.amount || outputOccupied(w, b) >= CONFIG.outputCapacity);
+    if (p.assignment.role === "carrier" || workerNeedsResupply)
       requestInput(w, p, b);
   }
 }
