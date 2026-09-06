@@ -1,6 +1,8 @@
 import Phaser from "phaser";
-import type { Hex, World } from "../simulation/model";
+import type { Good, Hex, World } from "../simulation/model";
 import { key } from "../simulation/hex";
+import { CONFIG } from "../simulation/scenario";
+
 const pixel = (h: Hex) => ({ x: 78 + 82 * (h.q + h.r / 2), y: 68 + h.r * 71 });
 const colors = {
   grass: 0x526b42,
@@ -9,11 +11,19 @@ const colors = {
   river: 0x43879a,
   building: 0xe6ce94,
 };
+const goodColors: Record<Good, number> = {
+  wood: 0x6f4a2d,
+  plank: 0xd4a763,
+  woodenTool: 0xc8d8d0,
+};
+
 export class MainScene extends Phaser.Scene {
   private markers?: Phaser.GameObjects.Container;
+
   constructor(private world: World) {
     super("main");
   }
+
   create(): void {
     const g = this.add.graphics();
     for (const tile of this.world.tiles) {
@@ -73,9 +83,75 @@ export class MainScene extends Phaser.Scene {
     this.markers = this.add.container(0, 0);
     this.renderWorld();
   }
+
+  private drawSlots(
+    g: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    count: number,
+    capacity: number,
+    good: Good,
+    columns: number,
+  ): void {
+    const size = 5;
+    const gap = 2;
+    for (let i = 0; i < capacity; i += 1) {
+      const sx = x + (i % columns) * (size + gap);
+      const sy = y + Math.floor(i / columns) * (size + gap);
+      if (i < count) {
+        g.fillStyle(goodColors[good], 1);
+        g.fillRect(sx, sy, size, size);
+      }
+      g.lineStyle(1, 0x21372a, 0.8);
+      g.strokeRect(sx, sy, size, size);
+    }
+  }
+
   renderWorld(): void {
     if (!this.markers) return;
     this.markers.removeAll(true);
+
+    const slots = this.add.graphics();
+    this.markers.add(slots);
+    for (const b of this.world.buildings) {
+      if (!b.recipe) continue;
+      const { x, y } = pixel(b.position);
+      if (b.recipe.input) {
+        this.drawSlots(
+          slots,
+          x + 13,
+          y - 9,
+          b.input,
+          CONFIG.inputCapacity,
+          b.recipe.input,
+          5,
+        );
+        this.markers.add(
+          this.add.text(x + 13, y - 16, "IN", {
+            fontFamily: "system-ui",
+            fontSize: "6px",
+            color: "#21372a",
+          }),
+        );
+      }
+      this.drawSlots(
+        slots,
+        x + 13,
+        b.recipe.input ? y + 8 : y - 2,
+        b.output,
+        CONFIG.outputCapacity,
+        b.recipe.output,
+        3,
+      );
+      this.markers.add(
+        this.add.text(x + 13, b.recipe.input ? y + 15 : y + 5, "OUT", {
+          fontFamily: "system-ui",
+          fontSize: "6px",
+          color: "#21372a",
+        }),
+      );
+    }
+
     const groups = new Map<string, number>();
     for (const p of this.world.people) {
       const k = key(p.position),
