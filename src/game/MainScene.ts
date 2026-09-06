@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { Good, Hex, World } from "../simulation/model";
+import type { Building, Good, Hex, World } from "../simulation/model";
 import { key } from "../simulation/hex";
 import { CONFIG } from "../simulation/scenario";
 
@@ -14,6 +14,7 @@ const pixel = (h: Hex) => ({
 const colors = {
   grass: 0x526b42,
   road: 0xc0a375,
+  forest: 0x3f623d,
   mountain: 0x727b72,
   river: 0x43879a,
   building: 0xe6ce94,
@@ -25,6 +26,8 @@ const goodColors: Record<Good, number> = {
 };
 
 export class MainScene extends Phaser.Scene {
+  private mapGraphics?: Phaser.GameObjects.Graphics;
+  private mapLabels?: Phaser.GameObjects.Container;
   private markers?: Phaser.GameObjects.Container;
 
   constructor(private world: World) {
@@ -32,7 +35,35 @@ export class MainScene extends Phaser.Scene {
   }
 
   create(): void {
-    const g = this.add.graphics();
+    this.mapGraphics = this.add.graphics();
+    this.mapLabels = this.add.container(0, 0);
+    this.markers = this.add.container(0, 0);
+    this.renderWorld();
+  }
+
+  private drawTree(g: Phaser.GameObjects.Graphics, x: number, y: number): void {
+    g.fillStyle(0x29452f);
+    g.fillTriangle(x - 5, y + 5, x, y - 7, x + 5, y + 5);
+    g.fillStyle(0x5b442d);
+    g.fillRect(x - 1, y + 4, 2, 5);
+  }
+
+  private buildingLabel(b: Building): string {
+    if (b.forestRemaining !== undefined) return "WALD";
+    return {
+      hq: "HQ",
+      sawmill: "SÄGEWERK",
+      carpenter: "SCHREINEREI",
+      warehouse: "LAGER",
+    }[b.id] ?? b.name.toUpperCase();
+  }
+
+  private drawMap(): void {
+    if (!this.mapGraphics || !this.mapLabels) return;
+    const g = this.mapGraphics;
+    g.clear();
+    this.mapLabels.removeAll(true);
+
     for (const tile of this.world.tiles) {
       const { x, y } = pixel(tile);
       const points = Array.from(
@@ -60,38 +91,33 @@ export class MainScene extends Phaser.Scene {
         g.lineBetween(x - 2, y + 2, x - 4, y - 3);
         g.lineBetween(x - 2, y + 2, x + 1, y - 3);
       }
+      if (tile.terrain === "forest") {
+        this.drawTree(g, x - 5, y + 1);
+        this.drawTree(g, x + 5, y - 2);
+      }
     }
 
-    for (const b of this.world.buildings) {
+    for (const b of this.world.buildings.filter((building) => !building.retired)) {
       const { x, y } = pixel(b.position);
-      const labels = {
-        hq: "HQ",
-        forest: "WALD",
-        sawmill: "SÄGEWERK",
-        carpenter: "SCHREINEREI",
-        warehouse: "LAGER",
-      };
-      this.add
-        .text(x, y - 9, labels[b.id], {
-          fontFamily: "system-ui",
-          fontSize: "8px",
-          fontStyle: "bold",
-          color: "#203226",
-        })
-        .setResolution(TEXT_RESOLUTION)
-        .setOrigin(0.5);
-      if (b.id === "forest") {
-        g.fillStyle(0x315537);
-        g.fillTriangle(x - 6, y - 13, x, y - 23, x + 6, y - 13);
+      this.mapLabels.add(
+        this.add
+          .text(x, y - 9, this.buildingLabel(b), {
+            fontFamily: "system-ui",
+            fontSize: "8px",
+            fontStyle: "bold",
+            color: "#203226",
+          })
+          .setResolution(TEXT_RESOLUTION)
+          .setOrigin(0.5),
+      );
+      if (b.forestRemaining !== undefined) {
+        this.drawTree(g, x, y - 17);
       } else {
         g.fillStyle(0x785d3e);
         g.fillRect(x - 5, y - 20, 10, 6);
         g.fillTriangle(x - 7, y - 20, x, y - 26, x + 7, y - 20);
       }
     }
-
-    this.markers = this.add.container(0, 0);
-    this.renderWorld();
   }
 
   private drawSlots(
@@ -119,11 +145,12 @@ export class MainScene extends Phaser.Scene {
 
   renderWorld(): void {
     if (!this.markers) return;
+    this.drawMap();
     this.markers.removeAll(true);
 
     const slots = this.add.graphics();
     this.markers.add(slots);
-    for (const b of this.world.buildings) {
+    for (const b of this.world.buildings.filter((building) => !building.retired)) {
       if (!b.recipe) continue;
       const { x, y } = pixel(b.position);
       if (b.recipe.input) {
