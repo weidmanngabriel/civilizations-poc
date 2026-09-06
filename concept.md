@@ -155,3 +155,14 @@ Die Bauarbeiterfunktion gehört ausdrücklich nicht zum ersten Implementierungss
 ## Leitprinzip
 
 Die Fachlogik soll so modelliert werden, dass Rohstoffarbeiter, Produktionsarbeiter, unterstützende Träger, Lager-Träger und spätere Bauarbeiter unterschiedliche Rollen mit jeweils eigenen Beschaffungsregeln haben können, ohne das grundlegende Graph-, Waren- und Bewegungssystem neu bauen zu müssen. Bevölkerung ist ein veränderlicher Weltzustand und keine feste Konstante.
+
+## Konkretisierungen der PoC-Implementierung
+
+- Alle acht Personen starten frei; die Besetzung wird vom Spieler eingestellt.
+- Bei gleichen Entfernungen entscheidet die feste Reihenfolge der Gebäude über die Quelle. Zuweisungen verwenden die erste freie Person; Reduktionen lösen die zuletzt zugewiesene passende Person.
+- Ein Abholauftrag reserviert eine vorhandene Wareneinheit und einen Input-Platz am Ziel. Träger füllen den Input bis zur Kapazitätsgrenze auf. Produktionsarbeiter beschaffen nur fehlende Rezeptzutaten.
+- Während eines Transports bleibt der ursprüngliche Output-Platz bis zur Ablieferung reserviert. Bei Freisetzung wird eine bereits getragene Ware sofort in diesen Platz an der Quelle zurückgebucht. Die Person läuft von ihrer aktuellen Position zum HQ. Diese vereinfachte Rückbuchung betrifft nur Waren, niemals Personen.
+- Produktionsinputs bleiben bis zum Abschluss im Input-Inventar gebunden und werden dann verbraucht. Bei Freisetzung wird der Arbeitsfortschritt verworfen; die Inputs bleiben erhalten. Ein laufender Produktionsvorgang reserviert einen Output-Platz, damit auch zwei Waldarbeiter die Kapazität gemeinsam einhalten.
+- Bewegung erfolgt zuerst. Eine Person kann in ihrer Ankunftsrunde Waren übergeben und einen Arbeitsfortschritt erhalten. Neu geplante Wege beginnen erst in der folgenden Runde.
+- „Aktiv“ bedeutet: Die zugewiesene Person ist erstmals an ihrer Arbeitsstätte angekommen. Anschließende Beschaffungsgänge gehören weiterhin zu dieser aktiven Besetzung.
+- Die Bedienung zeigt Runde, freie und gesamte Bevölkerung, Lagerbestand, Besetzung, Inputs, Outputs und Produktionsstatus. Eine aufklappbare Personenliste zeigt Zuweisungen, Wege und Transportaufträge.
