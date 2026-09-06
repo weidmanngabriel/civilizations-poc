@@ -1,7 +1,6 @@
 export type Good = "wood" | "plank" | "woodenTool";
 export type BuildingId =
   | "hq"
-  | "forest"
   | `forest-${number}`
   | "sawmill"
   | "carpenter"
@@ -42,6 +41,7 @@ export interface Person {
   id: number;
   position: Hex;
   assignment?: { building: BuildingId; role: Role };
+  woodcutter?: boolean;
   active: boolean;
   progress: number;
   path: Hex[];
