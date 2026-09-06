@@ -1,13 +1,18 @@
 export type Good = "wood" | "plank" | "woodenTool";
 export type BuildingId =
-  "hq" | "forest" | "sawmill" | "carpenter" | "warehouse";
+  | "hq"
+  | "forest"
+  | `forest-${number}`
+  | "sawmill"
+  | "carpenter"
+  | "warehouse";
 export type Role = "worker" | "carrier";
 export interface Hex {
   q: number;
   r: number;
 }
 export interface Tile extends Hex {
-  terrain: "grass" | "road" | "mountain" | "river" | "building";
+  terrain: "grass" | "road" | "forest" | "mountain" | "river" | "building";
 }
 export interface Recipe {
   input?: Good;
@@ -24,6 +29,8 @@ export interface Building {
   recipe?: Recipe;
   input: number;
   output: number;
+  forestRemaining?: number;
+  retired?: boolean;
 }
 export interface Trip {
   source: BuildingId;
@@ -43,6 +50,8 @@ export interface Person {
 export interface World {
   round: number;
   nextId: number;
+  nextForestId: number;
+  rngState: number;
   people: Person[];
   buildings: Building[];
   tiles: Tile[];

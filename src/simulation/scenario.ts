@@ -6,6 +6,7 @@ export const CONFIG = {
   carryCapacity: 1,
   inputCapacity: 10,
   outputCapacity: 3,
+  forestYield: 10,
   mapColumns: 21,
   mapRows: 13,
 } as const;
@@ -28,12 +29,13 @@ export function createWorld(population: number = CONFIG.population): World {
     },
     {
       id: "forest",
-      name: "Wald",
+      name: "Wald 1",
       position: at(2, 1),
       workers: 2,
       carriers: 0,
       input: 0,
       output: 0,
+      forestRemaining: CONFIG.forestYield,
       recipe: { amount: 0, output: "wood", duration: CONFIG.duration },
     },
     {
@@ -86,6 +88,14 @@ export function createWorld(population: number = CONFIG.population): World {
     [15, 8], [15, 9], [16, 9], [16, 10], [17, 10], [17, 11], [18, 11],
   ];
 
+  const forestTiles = [
+    [1, 0], [2, 0], [1, 1], [2, 2], [3, 2],
+    [6, 2], [7, 2], [8, 2], [7, 3], [8, 3],
+    [4, 10], [5, 10], [5, 11], [6, 11],
+    [13, 7], [13, 8], [14, 8], [14, 9],
+    [18, 12], [19, 12], [20, 12], [20, 11],
+  ];
+
   const river = [
     [9, 0], [10, 0], [11, 0], [11, 1], [12, 1], [12, 2], [13, 2], [13, 3], [14, 3], [14, 4], [15, 4], [15, 5],
     [1, 6], [2, 6], [2, 7], [3, 7], [3, 8],
@@ -114,13 +124,17 @@ export function createWorld(population: number = CONFIG.population): World {
               ? "river"
               : inList(mountains)
                 ? "mountain"
-                : "grass",
+                : inList(forestTiles)
+                  ? "forest"
+                  : "grass",
       });
     }
 
   return {
     round: 0,
     nextId: population + 1,
+    nextForestId: 2,
+    rngState: 0x1a2b3c4d,
     buildings,
     tiles,
     people: Array.from({ length: population }, (_, i) => ({

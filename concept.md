@@ -11,13 +11,15 @@ Die sichtbare Karte basiert im PoC auf einem Hex-Grid.
 - Jede Kartenkachel ist ein Hexfeld.
 - Jedes Gebäude belegt genau ein Hexfeld.
 - Gebäude werden nicht direkt miteinander verbunden; zwischen Gebäuden liegen begehbare Wegkacheln.
-- Nur Wegkacheln und Gebäudekacheln sind im ersten PoC begehbar.
+- Wegkacheln, Waldkacheln und Gebäudekacheln sind begehbar.
 - Wiesen sind zunächst nicht begehbar.
 - Berge und Flüsse sind ebenfalls nicht begehbar und dienen zunächst nur als Hindernisse bzw. zur optischen Auflockerung.
-- Geländearten besitzen zunächst keine unterschiedlichen Bewegungskosten, Boni oder sonstige Sonderregeln.
-- Die erste Karte ist fest vorgegeben; freie Gebäudeplatzierung gehört noch nicht zum PoC.
+- Geländearten besitzen zunächst keine unterschiedlichen Bewegungskosten oder Boni; Wald ist bewegungstechnisch einem Weg gleichgestellt.
+- Die erste Karte ist fest vorgegeben; freie Gebäudeplatzierung durch den Spieler gehört noch nicht zum PoC.
 
-Die aktuelle Startkarte umfasst **21 × 13 Hexfelder**. Sie enthält Hauptquartier, Wald, Sägewerk, Schreinerei und Lager sowie Wiesen-, Berg- und Flusskacheln. Die Gebäude bleiben jeweils genau ein Hexfeld groß, liegen aber bewusst deutlich weiter auseinander als im ersten Kartenentwurf. Das Straßennetz verwendet längere, teilweise verzweigte Wege und Umwege, damit Transportzeit und Bewegung im laufenden Wirtschaftskreislauf sichtbar und relevant werden.
+Die aktuelle Startkarte umfasst **21 × 13 Hexfelder**. Sie enthält Hauptquartier, einen anfangs aktiven Wald, Sägewerk, Schreinerei und Lager sowie Wiesen-, Berg-, Fluss-, Weg- und weitere Waldkacheln. Die zusätzlichen Waldkacheln sind in mehreren kleinen Gruppen über die Karte verteilt, statt einen einzelnen großen Waldblock zu bilden. Sie sind bereits begehbar, aber zunächst noch keine aktiven Wald-Arbeitsstätten.
+
+Die Gebäude bleiben jeweils genau ein Hexfeld groß, liegen aber bewusst deutlich weiter auseinander. Das Straßennetz verwendet längere, teilweise verzweigte Wege und Umwege, damit Transportzeit und Bewegung im laufenden Wirtschaftskreislauf sichtbar und relevant werden.
 
 ### Zeit- und Bewegungsmodell
 
@@ -26,6 +28,7 @@ Der PoC läuft zunächst rundenbasiert.
 - Jede Kante im Graphen hat die Länge 1.
 - Jede Figur kann sich pro Runde um genau eine Kante bewegen.
 - Wege werden über den kürzesten Weg im Graphen bestimmt, nicht über Luftlinie.
+- Waldkacheln dürfen beim Pathfinding genauso betreten und durchquert werden wie Wegkacheln.
 - Eine Produktion dauert immer 5 Runden, sobald alle benötigten Rohstoffe an der Arbeitsstätte vorhanden sind und ein zuständiger Arbeiter dort produzieren kann.
 - Runden können weiterhin einzeln ausgelöst oder optional automatisch abgespielt werden.
 - Beim Autolauf stellt der Spieler die Geschwindigkeit mit einem Regler von **1 bis 10 FPS** ein. Im PoC bedeutet 1 FPS genau eine reguläre Simulationsrunde pro realer Sekunde und 10 FPS entsprechend zehn Runden pro Sekunde. Die Einstellung verändert nur den zeitlichen Abstand zwischen bestehenden `tick()`-Schritten und nicht die Simulationsregeln.
@@ -57,19 +60,41 @@ Der Arbeiter sucht für einen Rohstoff eine verfügbare Quelle und bewegt sich �
 
 Für den ersten Stand wird angenommen, dass eine Figur pro Weg genau 1 Einheit Ware tragen kann. Diese Tragkapazität ist bewusst als einfache PoC-Regel gewählt und kann später erweitert werden.
 
-### Rohstoffquellen
+### Rohstoffquellen und wandernde Waldarbeit
 
 Rohstoffquellen wie Wälder sind ebenfalls Arbeitsstätten und produzieren nicht automatisch.
 
-Für den Wald gilt im PoC:
+Für jeden aktiven Waldstandort gilt im PoC:
 
-- Der Wald ist unerschöpflich.
+- Ein neu aktiver Wald besitzt einen festen Holzvorrat von **10 Einheiten**.
 - Im Wald können bis zu 2 Arbeiter gleichzeitig arbeiten.
 - Jeder Arbeiter produziert nach 5 Runden genau 1 Holz.
-- Produziertes Holz liegt anschließend im lokalen Inventar des Waldknotens.
+- Jede produzierte Holzeinheit reduziert den noch abbaubaren Vorrat des Standorts um 1.
+- Mehrere Waldarbeiter dürfen gemeinsam niemals mehr als die insgesamt 10 verfügbaren Einheiten produzieren.
+- Produziertes Holz liegt anschließend im lokalen Output-Inventar des Waldstandorts.
 - Ist das Output-Inventar des Walds voll, kann dort nicht weiter produziert werden, bis wieder Platz frei ist.
+- Sobald der zehnte Holzvorrat produziert wurde, ist der Standort erschöpft und erzeugt kein weiteres Holz.
 
-Dass Rohstoffquellen mehrere Arbeiter haben können, unterscheidet sie in PoC 1 bewusst von verarbeitenden Arbeitsstätten mit genau einem Produktionsarbeiter.
+Sobald ein Wald erschöpft ist, wechseln seine Arbeiter automatisch den Standort:
+
+- Jeder Waldarbeiter sucht **unabhängig** nach den nächstgelegenen noch nicht aktiven Waldkacheln.
+- Die Entfernung wird vom erschöpften Waldstandort über den normalen begehbaren Graphen gemessen.
+- Gibt es mehrere gleich weit entfernte Waldkacheln, wählt jeder Arbeiter zufällig eine davon.
+- Dadurch können sich zwei bisher gemeinsam arbeitende Waldarbeiter auf verschiedene neue Waldstandorte aufteilen oder denselben neuen Standort wählen.
+- Pro neuem Waldstandort dürfen weiterhin höchstens 2 Waldarbeiter arbeiten.
+- Die gewählte Waldkachel wird zu einem neuen aktiven Waldgebäude mit erneut 10 Einheiten Holzvorrat.
+- Der Arbeiter läuft regulär über das Wegenetz bzw. begehbare Waldkacheln zum neuen Standort; es gibt keine Teleportation.
+
+Der Zufall bei gleich weit entfernten Waldkacheln soll reproduzierbar bleiben, damit Simulation und Tests deterministisch wiederholbar sind. Die konkrete Implementierung darf daher einen Seed im Weltzustand verwenden, statt unkontrolliert globale Zufallswerte zu verwenden.
+
+Der erschöpfte alte Wald bleibt zunächst als Restholzquelle bestehen:
+
+- Bereits produziertes Holz bleibt dort vollständig verfügbar und kann von Trägern weiterhin abgeholt werden.
+- Die Waldarbeiter dürfen bereits an neuen Standorten arbeiten, während am alten Standort noch Restholz liegt.
+- Sobald am alten Standort kein Holz mehr gelagert ist, verschwindet das alte Waldgebäude und seine Kachel wird zu einer normalen Wegkachel. Bereits abgeholtes Holz darf zu diesem Zeitpunkt noch unterwegs sein.
+- Falls ein bereits abgeholter Transport per Debug-Zuweisung abgebrochen und das Holz an die Quelle zurückgebucht wird, erscheint der erschöpfte Wald vorübergehend wieder als Restholzquelle, bis auch dieses Holz erneut abgeholt wurde.
+
+Dass Rohstoffquellen mehrere Arbeiter haben können und ihre Arbeitsstätte im Lauf der Simulation wechseln kann, unterscheidet sie bewusst von den stationären verarbeitenden Arbeitsstätten.
 
 ### Träger an Produktionsstätten
 
@@ -123,7 +148,7 @@ Für Arbeitsstätten gibt es eine einfache Einstellung der gewünschten Besetzun
 
 Für PoC 1 gelten damit insbesondere:
 
-- Wald: 0 bis 2 Produktionsarbeiter.
+- Aktiver Wald: 0 bis 2 Produktionsarbeiter.
 - Sägewerk: 0 bis 1 Produktionsarbeiter und 0 bis 2 Träger.
 - Schreinerei: 0 bis 1 Produktionsarbeiter und 0 bis 2 Träger.
 - Lager: 0 Produktionsarbeiter und 0 bis 2 Lager-Träger.
@@ -154,7 +179,7 @@ Die Bauarbeiterfunktion gehört ausdrücklich nicht zum ersten Implementierungss
 - natürliche Geburten und Todesfälle
 - Kampf, Diplomatie und Handel
 - Berufserfahrung und Freischaltungen
-- freie Gebäudeplatzierung
+- freie Gebäudeplatzierung durch den Spieler
 - allgemeines Einsammeln beliebiger Waren durch Lager-Träger
 - unterschiedliche Bewegungskosten oder Boni durch Gelände
 
@@ -165,12 +190,14 @@ Die Fachlogik soll so modelliert werden, dass Rohstoffarbeiter, Produktionsarbei
 ## Konkretisierungen der PoC-Implementierung
 
 - Alle acht Personen starten frei; die Besetzung wird vom Spieler eingestellt.
-- Bei gleichen Entfernungen entscheidet die feste Reihenfolge der Gebäude über die Quelle. Zuweisungen verwenden die erste freie Person; Reduktionen lösen die zuletzt zugewiesene passende Person.
+- Bei gleichen Entfernungen entscheidet bei normalen Warenquellen weiterhin die feste Reihenfolge der Gebäude. Zuweisungen verwenden die erste freie Person; Reduktionen lösen die zuletzt zugewiesene passende Person.
+- Für die Standortwahl erschöpfter Waldarbeiter gilt davon abweichend: Nur die kürzeste erreichbare Distanz zählt; bei mehreren gleich weit entfernten Waldkacheln wird pro Arbeiter pseudozufällig gewählt. Ein Seed im Weltzustand hält Replays deterministisch.
+- Passive Waldkacheln sind von Anfang an begehbar. Wird eine davon als neuer Waldstandort gewählt, wird sie zu einer aktiven Wald-Arbeitsstätte mit 10 Holz Vorrat. Sobald ein erschöpfter alter Wald lokal kein Holz mehr lagert, wird seine Kachel zu einem Weg; bereits abgeholte Transporte dürfen weiterlaufen. Wird solches Holz durch einen abgebrochenen Transport zurückgebucht, wird die Restholzquelle wieder sichtbar.
 - Ein Abholauftrag reserviert eine vorhandene Wareneinheit und einen Input-Platz am Ziel. Träger füllen den Input bis zur Kapazitätsgrenze auf. Produktionsarbeiter tun dies nur dann ebenfalls, wenn sie gerade nicht produzieren können; mögliche Produktion hat Vorrang. Bereits eingehende Lieferungen zählen gegen die freien Slots.
 - Während eines Transports bleibt der ursprüngliche Output-Platz bis zur Ablieferung reserviert. Bei Freisetzung wird eine bereits getragene Ware sofort in diesen Platz an der Quelle zurückgebucht. Die Person läuft von ihrer aktuellen Position zum HQ. Diese vereinfachte Rückbuchung betrifft nur Waren, niemals Personen.
-- Produktionsinputs bleiben bis zum Abschluss im Input-Inventar gebunden und werden dann verbraucht. Bei Freisetzung wird der Arbeitsfortschritt verworfen; die Inputs bleiben erhalten. Ein laufender Produktionsvorgang reserviert einen Output-Platz, damit auch zwei Waldarbeiter die Kapazität gemeinsam einhalten.
+- Produktionsinputs bleiben bis zum Abschluss im Input-Inventar gebunden und werden dann verbraucht. Bei Freisetzung wird der Arbeitsfortschritt verworfen; die Inputs bleiben erhalten. Ein laufender Produktionsvorgang reserviert einen Output-Platz, damit auch zwei Waldarbeiter die Kapazität gemeinsam einhalten. Laufende Waldproduktionen reservieren zusätzlich implizit den verbleibenden endlichen Holzvorrat, damit zwei Arbeiter zusammen nie über 10 Holz hinaus produzieren.
 - Bewegung erfolgt zuerst. Eine Person kann in ihrer Ankunftsrunde Waren übergeben und einen Arbeitsfortschritt erhalten. Neu geplante Wege beginnen erst in der folgenden Runde.
-- „Aktiv“ bedeutet: Die zugewiesene Person ist erstmals an ihrer Arbeitsstätte angekommen. Anschließende Beschaffungsgänge gehören weiterhin zu dieser aktiven Besetzung.
-- Die Bedienung zeigt Runde, freie und gesamte Bevölkerung, Lagerbestand, Besetzung, Inputs, Outputs und Produktionsstatus. Eine aufklappbare Personenliste zeigt Zuweisungen, Wege und Transportaufträge.
+- „Aktiv“ bedeutet: Die zugewiesene Person ist erstmals an ihrer Arbeitsstätte angekommen. Anschließende Beschaffungsgänge oder automatische Waldwechsel gehören weiterhin zu dieser aktiven Arbeitslogik.
+- Die Bedienung zeigt Runde, freie und gesamte Bevölkerung, Lagerbestand, Besetzung, Inputs, Outputs, Waldrestvorrat und Produktionsstatus. Eine aufklappbare Personenliste zeigt Zuweisungen, Wege und Transportaufträge.
 - Zusätzlich kann der Spieler den bestehenden Rundenschritt automatisch mit **1 bis 10 FPS** ausführen lassen und jederzeit pausieren; der manuelle Rundenschritt bleibt parallel verfügbar.
 - Begrenzte Inventare werden auf der Hex-Karte zusätzlich als leere bzw. gefüllte Slots visualisiert. Die numerischen Bestände in den Arbeitsstätten-Karten bleiben als genaue Debug-Anzeige bestehen.

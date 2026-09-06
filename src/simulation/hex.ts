@@ -11,7 +11,7 @@ export const neighbors = (h: Hex): Hex[] =>
     [0, 1],
   ].map(([q, r]) => ({ q: h.q + q!, r: h.r + r! }));
 export const walkable = (t: Tile): boolean =>
-  t.terrain === "road" || t.terrain === "building";
+  t.terrain === "road" || t.terrain === "forest" || t.terrain === "building";
 /** Returns steps excluding the start, or null for an unreachable destination. */
 export function findPath(tiles: Tile[], start: Hex, end: Hex): Hex[] | null {
   const allowed = new Set(tiles.filter(walkable).map(key));
