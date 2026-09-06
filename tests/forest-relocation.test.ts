@@ -6,33 +6,55 @@ import {
   assigned,
   building,
   changeAssignment,
+  changeWoodcutters,
   tick,
+  woodcutters,
 } from "../src/simulation/simulation";
 
-function activateForestWorkers(count = 1) {
+function activeWoodcutter() {
   const world = createWorld();
-  const forest = building(world, "forest");
-  for (let i = 0; i < count; i++) {
-    changeAssignment(world, "forest", "worker", 1);
-    const worker = assigned(world, "forest", "worker").at(-1)!;
-    worker.position = { ...forest.position };
-    worker.path = [];
-    worker.active = true;
-  }
-  return { world, forest };
+  assert.equal(changeWoodcutters(world, 1), true);
+  const worker = woodcutters(world)[0]!;
+  const forest = building(world, worker.assignment!.building);
+  worker.position = { ...forest.position };
+  worker.path = [];
+  worker.active = true;
+  return { world, forest, worker };
 }
 
-test("forest tiles are walkable and distributed as reachable future sites", () => {
+test("world starts without an active forest and passive forest tiles are walkable", () => {
   const world = createWorld();
+  assert.equal(world.buildings.some((b) => b.forestRemaining !== undefined), false);
   const forestTiles = world.tiles.filter((tile) => tile.terrain === "forest");
   assert.ok(forestTiles.length >= 15);
   assert.ok(forestTiles.every(walkable));
-  for (const tile of forestTiles)
-    assert.ok(findPath(world.tiles, building(world, "forest").position, tile));
+  assert.ok(
+    forestTiles.some((tile) =>
+      findPath(world.tiles, building(world, "hq").position, tile),
+    ),
+  );
 });
 
-test("a forest produces exactly ten wood before its workers relocate", () => {
-  const { world, forest } = activateForestWorkers(1);
+test("each appointed woodcutter claims a different forest", () => {
+  const world = createWorld();
+  assert.equal(changeWoodcutters(world, 1), true);
+  assert.equal(changeWoodcutters(world, 1), true);
+
+  const workers = woodcutters(world);
+  assert.equal(workers.length, 2);
+  const forestIds = workers.map((p) => p.assignment?.building);
+  assert.ok(forestIds.every(Boolean));
+  assert.equal(new Set(forestIds).size, 2);
+  for (const id of forestIds) {
+    const forest = building(world, id!);
+    assert.equal(forest.workers, 1);
+    assert.equal(assigned(world, forest.id, "worker").length, 1);
+    assert.equal(forest.forestRemaining, CONFIG.forestYield);
+  }
+});
+
+test("a forest produces exactly ten wood, disappears immediately, and its woodcutter relocates", () => {
+  const { world, forest, worker } = activeWoodcutter();
   for (let produced = 0; produced < CONFIG.forestYield; produced++) {
     forest.output = 0;
     for (let round = 0; round < CONFIG.duration; round++) tick(world);
@@ -40,44 +62,39 @@ test("a forest produces exactly ten wood before its workers relocate", () => {
 
   assert.equal(forest.forestRemaining, 0);
   assert.equal(forest.output, 1);
-  const worker = world.people.find((p) => p.assignment?.role === "worker")!;
-  assert.notEqual(worker.assignment?.building, "forest");
-  const newForest = building(world, worker.assignment!.building);
-  assert.equal(newForest.forestRemaining, CONFIG.forestYield);
-  assert.ok(worker.path.length > 0);
-});
-
-test("two workers can split across equally near forest sites", () => {
-  const { world, forest } = activateForestWorkers(2);
-  world.rngState = 1;
-  forest.forestRemaining = 1;
-  forest.output = 0;
-
-  for (let i = 0; i < CONFIG.duration; i++) tick(world);
-
-  assert.equal(forest.forestRemaining, 0);
-  assert.equal(assigned(world, "forest", "worker").length, 0);
-  const ids = world.people
-    .filter((p) => p.assignment?.role === "worker")
-    .map((p) => p.assignment!.building);
-  assert.equal(ids.length, 2);
-  assert.equal(new Set(ids).size, 2);
-  assert.ok(ids.every((id) => building(world, id).forestRemaining === CONFIG.forestYield));
-});
-
-test("depleted forest stays as rest-wood source, then turns into road", () => {
-  const { world, forest } = activateForestWorkers(1);
-  forest.forestRemaining = 1;
-  forest.output = 0;
-  for (let i = 0; i < CONFIG.duration; i++) tick(world);
-  assert.equal(forest.forestRemaining, 0);
-  assert.equal(forest.output, 1);
-  assert.equal(forest.retired, undefined);
-
-  forest.output = 0;
-  tick(world);
   assert.equal(forest.retired, true);
+  assert.equal(assigned(world, forest.id, "worker").length, 0);
+  assert.notEqual(worker.assignment?.building, forest.id);
+  const nextForest = building(world, worker.assignment!.building);
+  assert.equal(nextForest.forestRemaining, CONFIG.forestYield);
   const oldTile = world.tiles.find((tile) => same(tile, forest.position))!;
   assert.equal(oldTile.terrain, "road");
-  assert.ok(walkable(oldTile));
+});
+
+test("leftover wood remains collectible after the forest has disappeared", () => {
+  const { world, forest } = activeWoodcutter();
+  forest.forestRemaining = 1;
+  forest.output = 0;
+  for (let i = 0; i < CONFIG.duration; i++) tick(world);
+  assert.equal(forest.retired, true);
+  assert.equal(forest.output, 1);
+
+  changeAssignment(world, "sawmill", "carrier", 1);
+  const carrier = assigned(world, "sawmill", "carrier")[0]!;
+  carrier.position = { ...building(world, "sawmill").position };
+  carrier.path = [];
+  carrier.active = true;
+  tick(world);
+
+  assert.equal(carrier.trip?.source, forest.id);
+  assert.equal(carrier.trip?.good, "wood");
+  assert.equal(forest.retired, true);
+});
+
+test("removing a woodcutter returns the person to the normal free-person flow", () => {
+  const { world, worker } = activeWoodcutter();
+  assert.equal(changeWoodcutters(world, -1), true);
+  assert.equal(worker.woodcutter, undefined);
+  assert.equal(worker.assignment, undefined);
+  assert.ok(worker.path.length > 0);
 });
