@@ -50,12 +50,11 @@ export class MainScene extends Phaser.Scene {
 
   private buildingLabel(b: Building): string {
     if (b.forestRemaining !== undefined) return "WALD";
-    return {
-      hq: "HQ",
-      sawmill: "SÄGEWERK",
-      carpenter: "SCHREINEREI",
-      warehouse: "LAGER",
-    }[b.id] ?? b.name.toUpperCase();
+    if (b.id === "hq") return "HQ";
+    if (b.id === "sawmill") return "SÄGEWERK";
+    if (b.id === "carpenter") return "SCHREINEREI";
+    if (b.id === "warehouse") return "LAGER";
+    return b.name.toUpperCase();
   }
 
   private drawMap(): void {
