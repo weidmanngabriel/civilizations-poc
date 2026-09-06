@@ -29,7 +29,14 @@ const tileAt = (w: World, position: Hex): Tile =>
   w.tiles.find((tile) => same(tile, position))!;
 
 function cancel(w: World, p: Person): void {
-  if (p.trip?.picked) building(w, p.trip.source).output += CONFIG.carryCapacity;
+  if (p.trip?.picked) {
+    const source = building(w, p.trip.source);
+    source.output += CONFIG.carryCapacity;
+    if (source.retired && source.forestRemaining === 0) {
+      source.retired = false;
+      tileAt(w, source.position).terrain = "building";
+    }
+  }
   p.trip = undefined;
   p.progress = 0;
   p.path = [];
@@ -184,8 +191,7 @@ function retireEmptyForests(w: World): void {
       forest.retired ||
       forest.forestRemaining !== 0 ||
       forest.output > 0 ||
-      assigned(w, forest.id, "worker").length > 0 ||
-      w.people.some((p) => p.trip?.source === forest.id)
+      assigned(w, forest.id, "worker").length > 0
     )
       continue;
     forest.retired = true;
