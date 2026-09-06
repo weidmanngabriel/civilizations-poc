@@ -47,7 +47,7 @@ test("a forest produces exactly ten wood before its workers relocate", () => {
   assert.ok(worker.path.length > 0);
 });
 
-test("two workers choose nearest forest sites independently and may split", () => {
+test("two workers can split across equally near forest sites", () => {
   const { world, forest } = activateForestWorkers(2);
   world.rngState = 1;
   forest.forestRemaining = 1;
@@ -56,12 +56,12 @@ test("two workers choose nearest forest sites independently and may split", () =
   for (let i = 0; i < CONFIG.duration; i++) tick(world);
 
   assert.equal(forest.forestRemaining, 0);
-  const destinations = assigned(world, "forest", "worker");
-  assert.equal(destinations.length, 0);
+  assert.equal(assigned(world, "forest", "worker").length, 0);
   const ids = world.people
     .filter((p) => p.assignment?.role === "worker")
     .map((p) => p.assignment!.building);
   assert.equal(ids.length, 2);
+  assert.equal(new Set(ids).size, 2);
   assert.ok(ids.every((id) => building(world, id).forestRemaining === CONFIG.forestYield));
 });
 
