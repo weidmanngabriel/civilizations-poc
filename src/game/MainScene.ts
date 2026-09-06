@@ -6,6 +6,7 @@ import { CONFIG } from "../simulation/scenario";
 const HEX_X = 44;
 const HEX_Y = 39;
 const HEX_RADIUS = 25;
+const TEXT_RESOLUTION = 2;
 const pixel = (h: Hex) => ({
   x: 48 + HEX_X * (h.q + h.r / 2),
   y: 48 + h.r * HEX_Y,
@@ -73,10 +74,11 @@ export class MainScene extends Phaser.Scene {
       this.add
         .text(x, y - 9, labels[b.id], {
           fontFamily: "system-ui",
-          fontSize: "7px",
+          fontSize: "8px",
           fontStyle: "bold",
           color: "#203226",
         })
+        .setResolution(TEXT_RESOLUTION)
         .setOrigin(0.5);
       if (b.id === "forest") {
         g.fillStyle(0x315537);
@@ -135,11 +137,13 @@ export class MainScene extends Phaser.Scene {
           5,
         );
         this.markers.add(
-          this.add.text(x + 7, y - 10, "IN", {
-            fontFamily: "system-ui",
-            fontSize: "4px",
-            color: "#21372a",
-          }),
+          this.add
+            .text(x + 7, y - 10, "IN", {
+              fontFamily: "system-ui",
+              fontSize: "6px",
+              color: "#21372a",
+            })
+            .setResolution(TEXT_RESOLUTION),
         );
       }
       this.drawSlots(
@@ -152,11 +156,13 @@ export class MainScene extends Phaser.Scene {
         3,
       );
       this.markers.add(
-        this.add.text(x + 7, b.recipe.input ? y + 9 : y + 3, "OUT", {
-          fontFamily: "system-ui",
-          fontSize: "4px",
-          color: "#21372a",
-        }),
+        this.add
+          .text(x + 7, b.recipe.input ? y + 9 : y + 3, "OUT", {
+            fontFamily: "system-ui",
+            fontSize: "6px",
+            color: "#21372a",
+          })
+          .setResolution(TEXT_RESOLUTION),
       );
     }
 
@@ -177,20 +183,28 @@ export class MainScene extends Phaser.Scene {
       const label = this.add
         .text(x, y, String(p.id), {
           fontFamily: "system-ui",
-          fontSize: "6px",
+          fontSize: "7px",
           color: "#ffffff",
         })
+        .setResolution(TEXT_RESOLUTION)
         .setOrigin(0.5);
       if (!p.assignment) label.setColor("#24362b");
       this.markers.add([dot, label]);
       if (p.trip?.picked)
         this.markers.add(
-          this.add.text(
-            x + 4,
-            y - 7,
-            { wood: "H", plank: "B", woodenTool: "W" }[p.trip.good],
-            { fontSize: "6px", color: "#fff2a3", backgroundColor: "#263c2d" },
-          ),
+          this.add
+            .text(
+              x + 4,
+              y - 7,
+              { wood: "H", plank: "B", woodenTool: "W" }[p.trip.good],
+              {
+                fontFamily: "system-ui",
+                fontSize: "7px",
+                color: "#fff2a3",
+                backgroundColor: "#263c2d",
+              },
+            )
+            .setResolution(TEXT_RESOLUTION),
         );
     }
   }

@@ -154,7 +154,9 @@ export function tick(w: World): void {
     const b = building(w, p.assignment.building);
     if (
       p.assignment.role === "carrier" ||
-      (b.recipe?.input && b.input < b.recipe.amount)
+      (p.assignment.role === "worker" &&
+        b.recipe?.input &&
+        b.input + incoming(w, b.id) < CONFIG.inputCapacity)
     )
       requestInput(w, p, b);
   }

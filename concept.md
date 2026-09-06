@@ -37,7 +37,8 @@ Nichts produziert automatisch. Jede Produktion braucht mindestens einen zugewies
 Für verarbeitende Arbeitsstätten gilt:
 
 - Jede produktive Arbeitsstätte hat genau einen verantwortlichen Produktionsarbeiter.
-- Der Produktionsarbeiter beschafft fehlende Rohstoffe selbst, bringt sie zur Arbeitsstätte zurück und produziert dort die nächste Ware.
+- Der Produktionsarbeiter beschafft Rohstoffe selbst, bringt sie zur Arbeitsstätte zurück und produziert dort die nächste Ware.
+- Solange noch Input-Slots frei sind, beschafft der Produktionsarbeiter weiter passende Rohstoffe, wenn er gerade nicht produziert. Das gilt ausdrücklich auch dann, wenn eine Produktion wegen vollem Output blockiert ist.
 - Jeder Produktionsstätte können zusätzlich bis zu 2 Träger zugewiesen werden, die ausschließlich Rohstoffe für diese Arbeitsstätte beschaffen.
 
 Für den PoC gilt ein einheitliches Rezeptprinzip:
@@ -51,7 +52,7 @@ Beispiel:
 - Der Arbeiter der Schreinerei beschafft 2 Bretter und produziert daraus 1 Holzwerkzeug.
 - Produzierte Waren bleiben lokal an der jeweiligen Arbeitsstätte liegen, bis sie von einem zuständigen Abholer eingesammelt werden.
 
-Der Arbeiter sucht für einen fehlenden Rohstoff eine verfügbare Quelle und bewegt sich über den kürzesten Weg im Graphen dorthin und wieder zurück.
+Der Arbeiter sucht für einen Rohstoff eine verfügbare Quelle und bewegt sich über den kürzesten Weg im Graphen dorthin und wieder zurück.
 
 Für den ersten Stand wird angenommen, dass eine Figur pro Weg genau 1 Einheit Ware tragen kann. Diese Tragkapazität ist bewusst als einfache PoC-Regel gewählt und kann später erweitert werden.
 
@@ -75,7 +76,7 @@ Jeder Produktionsstätte können bis zu 2 Träger zugewiesen werden.
 
 Träger sind keine globalen Warenkuriere, sondern unterstützen genau die Arbeitsstätte, der sie zugeordnet sind. Ihre einzige Aufgabe besteht darin, die von dieser Produktionsstätte benötigten Rohstoffe an verfügbaren Quellen abzuholen und zur Arbeitsstätte zu bringen.
 
-Der verantwortliche Produktionsarbeiter bleibt trotzdem grundsätzlich selbst zur Rohstoffbeschaffung fähig. Träger dienen als Unterstützung, damit der Arbeiter häufiger an seiner Arbeitsstätte produzieren kann.
+Der verantwortliche Produktionsarbeiter bleibt selbst zur Rohstoffbeschaffung fähig und nutzt freie Input-Kapazität ebenfalls für Nachschub, sobald er gerade nicht produzieren kann oder muss. Träger dienen als Unterstützung, damit der Arbeiter häufiger an seiner Arbeitsstätte produzieren kann.
 
 Für die erste Version gilt auch für Träger eine Tragkapazität von 1 Einheit pro Weg.
 
@@ -100,7 +101,7 @@ Für alle Gebäude- und Rohstoffknoten außer dem Lager gelten getrennte Kapazit
 - Das Output-Inventar kann maximal 3 Einheiten aufnehmen.
 - Inputs und Outputs teilen sich keine gemeinsame Kapazität.
 - Ein Produktionsvorgang startet nur, wenn im Output-Inventar noch Platz für den entstehenden Output vorhanden ist.
-- Ein voller Output verhindert weitere Produktion, bis Output abgeholt wurde.
+- Ein voller Output verhindert weitere Produktion, bis Output abgeholt wurde, verhindert aber nicht das weitere Auffüllen freier Input-Slots durch Arbeiter oder Träger.
 - Das Lager ist die einzige aktuelle Ausnahme und besitzt unbegrenzte Kapazität.
 - Auf der Karte werden die begrenzten Input- und Output-Kapazitäten als feste Ressourcen-Slots direkt an der jeweiligen Produktionsstätte dargestellt. Vorhandene Waren füllen diese Slots sichtbar; nach Abholung oder Verbrauch werden sie wieder leer. Reservierte, aber noch nicht physisch vorhandene Waren füllen keinen Slot.
 - Für das unbegrenzte Lager werden keine Kapazitäts-Slots dargestellt, damit keine künstliche Obergrenze suggeriert wird.
@@ -164,7 +165,7 @@ Die Fachlogik soll so modelliert werden, dass Rohstoffarbeiter, Produktionsarbei
 
 - Alle acht Personen starten frei; die Besetzung wird vom Spieler eingestellt.
 - Bei gleichen Entfernungen entscheidet die feste Reihenfolge der Gebäude über die Quelle. Zuweisungen verwenden die erste freie Person; Reduktionen lösen die zuletzt zugewiesene passende Person.
-- Ein Abholauftrag reserviert eine vorhandene Wareneinheit und einen Input-Platz am Ziel. Träger füllen den Input bis zur Kapazitätsgrenze auf. Produktionsarbeiter beschaffen nur fehlende Rezeptzutaten.
+- Ein Abholauftrag reserviert eine vorhandene Wareneinheit und einen Input-Platz am Ziel. Träger und untätige Produktionsarbeiter füllen den Input bis zur Kapazitätsgrenze auf; bereits eingehende Lieferungen zählen dabei gegen die freien Slots.
 - Während eines Transports bleibt der ursprüngliche Output-Platz bis zur Ablieferung reserviert. Bei Freisetzung wird eine bereits getragene Ware sofort in diesen Platz an der Quelle zurückgebucht. Die Person läuft von ihrer aktuellen Position zum HQ. Diese vereinfachte Rückbuchung betrifft nur Waren, niemals Personen.
 - Produktionsinputs bleiben bis zum Abschluss im Input-Inventar gebunden und werden dann verbraucht. Bei Freisetzung wird der Arbeitsfortschritt verworfen; die Inputs bleiben erhalten. Ein laufender Produktionsvorgang reserviert einen Output-Platz, damit auch zwei Waldarbeiter die Kapazität gemeinsam einhalten.
 - Bewegung erfolgt zuerst. Eine Person kann in ihrer Ankunftsrunde Waren übergeben und einen Arbeitsfortschritt erhalten. Neu geplante Wege beginnen erst in der folgenden Runde.
