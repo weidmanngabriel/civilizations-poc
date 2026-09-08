@@ -3,6 +3,7 @@ import { MainScene } from "./game/MainScene";
 import { createWorld } from "./simulation/scenario";
 import { mountControls } from "./ui/controls";
 import "./style.css";
+import "./map-interaction.css";
 
 const preventPageZoom = (): void => {
   document.addEventListener(
