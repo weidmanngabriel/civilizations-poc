@@ -2,66 +2,93 @@
 
 ## Technology stack
 
-The prototype is built as a browser-first TypeScript application.
+The prototype is a browser-first TypeScript application.
 
 - **Language:** TypeScript
 - **Build tooling:** Vite
 - **Game framework:** Phaser 4
-- **Target:** modern web browsers, deployable as a static site (for example via GitHub Pages)
-- **Mobile baseline:** the game must remain usable on modern phones; iPhone 13 Mini (375 × 812 CSS px) is the reference test device.
+- **Target:** modern web browsers, deployed as a static site through GitHub Pages
+- **Mobile baseline:** iPhone 13 Mini (375 × 812 CSS px)
 
 ## Architectural principle
 
-The simulation core must stay independent from Phaser.
-
-Phaser is responsible for presentation and interaction concerns such as rendering, camera, sprites, animation, input and scene handling. Product logic belongs in plain TypeScript modules so that it can be tested without rendering and replaced or reused independently of the game framework.
-
-Preferred high-level split:
+The simulation core stays independent from Phaser.
 
 ```text
 src/
   simulation/   # world state, entities, economy, logistics, rules
-  game/         # Phaser scenes, rendering, input, visual adapters
-  ui/           # browser/game UI where useful
+  game/         # Phaser rendering, camera, map input
+  ui/           # DOM controls and information panels
 ```
 
-Dependencies should flow from presentation toward the simulation, not the other way around. Code in `simulation/` must not import Phaser.
+Dependencies flow from presentation toward the simulation. `src/simulation/` must not import Phaser.
 
-## Why Phaser 4
+Phaser is responsible for presentation and map interaction. Product logic remains in plain TypeScript modules so it can be tested independently and reused if the renderer changes later.
 
-Phaser 4 provides the browser-oriented 2D game infrastructure needed for the prototype without forcing simulation logic into a large engine-specific architecture. It gives us established solutions for rendering, camera, asset loading, animation and input while preserving a straightforward TypeScript codebase.
+## Simulation core
 
-This fits the project's current goal: build a small, understandable proof of concept first and keep the path open for a substantially richer agent-based economy simulation later.
+`src/simulation/model.ts` defines generic people, assignments, transport trips, recipes, buildings and world state. Roles remain data rather than subclasses. A person may carry the global `woodcutter` job independently of a specific forest assignment.
 
-## Scope of this decision
+`scenario.ts` owns the fixed **21 × 13** offset-layout hex map, building positions, eight-person start and economy configuration. Buildings occupy one tile. The map starts with several small groups of passive forest tiles and no active forest building.
 
-This is an architectural baseline, not a commitment to model the final game around Phaser concepts. If requirements later justify a different renderer or runtime, the independent simulation layer should minimize migration cost.
+`hex.ts` provides axial neighbors and BFS pathfinding over road, forest and building tiles. Grass, mountain and river are blocked.
 
-## Implemented PoC 1
+`simulation.ts` owns deterministic in-place ticks, assignment changes, population changes, global woodcutter appointment, reservations, recipes, finite forest depletion, forest claiming/relocation and status derivation. No timers or renderer imports occur in the core.
 
-- `src/simulation/model.ts` defines generic people, assignments, transport trips, recipes, buildings and world state. Roles remain data, not subclasses. A person can additionally carry the global `woodcutter` job independently of a specific forest assignment.
-- `scenario.ts` owns the fixed **21 × 13** offset-layout hex map, axial building coordinates, eight-person start and economy configuration. Buildings still occupy one tile, while the road network deliberately separates production stages by longer routes and includes branches/loops. The map starts with several small groups of walkable passive forest tiles and **no active forest building**.
-- `hex.ts` provides axial neighbors and BFS over road, forest and building tiles. Grass, mountain and river tiles remain blocked.
-- `simulation.ts` owns deterministic in-place ticks, assignment changes, population changes, global woodcutter appointment, reservations, recipes, finite forest depletion, forest claiming/relocation and status derivation. No timers or renderer imports occur in the core.
-- Each tick moves every person at most once, handles arrivals and transfers, advances production once, retires depleted forests, assigns waiting woodcutters to available forests, then plans new transport trips. Stable person/building order resolves normal non-random ties.
-- Trips represent reservations directly; no separate job queue exists. Unpicked trips reserve existing output, all trips reserve destination capacity, and picked trips retain a source output slot until delivery. Cancellation returns carried cargo to the original source without reviving a depleted forest.
-- Production inputs are consumed at completion and remain in the building while work is in progress. No other system consumes input inventory. Cancelling work resets progress while preserving materials. In-progress work reserves output capacity.
-- Production workers prioritize production whenever enough input and output capacity are available. They only plan their own input trips when production cannot currently proceed (for example because input is insufficient or output is full), and then continue filling free input slots up to capacity. Already incoming trips count against destination input capacity.
-- Woodcutters are appointed globally rather than assigned manually to a forest. Each appointed woodcutter independently selects one nearest reachable unoccupied active forest or passive forest tile. Equal-distance choices use the seeded PRNG in `World.rngState`, preserving deterministic replay. A passive tile becomes a dynamic `forest-N` building when claimed.
-- Every active forest starts with `CONFIG.forestYield` (= 10) units and has exactly one worker slot. At most one woodcutter can therefore work at a forest at a time. A vacated, non-depleted active forest can later be claimed by another woodcutter.
-- Once a forest reaches zero remaining yield, it retires **immediately** and its tile becomes road even if produced wood remains there. The retired building record remains internally so local output and in-flight transport references stay valid. Retired forest output remains a legal logistics source until collected.
-- If more woodcutters exist than available forests, the excess woodcutters remain appointed and wait/return toward HQ until a forest becomes available.
-- `game/MainScene.ts` renders the 21 × 13 world into a 1000 × 570 Phaser canvas using a denser hex projection, plus numbered person markers and live input/output capacity slots. Passive forests, newly activated forests and retired road tiles redraw directly from world state. Active forest tree graphics use `max(0.35, remaining / forestYield)` opacity, so declining timber is visible without making the forest unreadable. Remaining wood from retired forests continues to render as resource slots at the old location.
-- The Phaser camera owns map navigation. Desktop uses wheel zoom and pointer drag. Zoom is clamped to **0.7×–3.5×** and is anchored under the pointer so the inspected map area stays in place while zooming.
-- `game/mobileTouch.ts` handles mobile map interaction directly on the Phaser canvas with native non-passive `TouchEvent` listeners in capture mode. This intentionally bypasses iOS Safari's browser gesture handling and Phaser's touch-pointer path for the map: one finger pans and two fingers pinch-zoom the Phaser camera while the page itself stays fixed.
-- Browser/page zoom is intentionally suppressed for the app: the viewport is fixed on mobile, desktop `Ctrl/Cmd` zoom shortcuts are prevented in-app, and iOS gesture/multi-touch page zoom is prevented explicitly. One-finger page scrolling outside the map remains available.
-- The Phaser game keeps its **1000 × 570** render canvas and scales it responsively with `FIT`. On the iPhone 13 Mini this backing canvas is displayed at roughly one third of its logical width, which already gives the map a high effective pixel density. Camera zoom transforms Phaser `Graphics` before rasterization rather than CSS-enlarging a pre-rendered map bitmap.
-- Phaser map labels use higher-resolution text textures (`setResolution(3)`) and practical minimum font sizes to stay readable during responsive scaling and camera zoom.
-- `src/map-interaction.css` isolates touch behavior to the map (`touch-action: none`, contained overscroll) while normal controls use `touch-action: manipulation`.
-- `ui/controls.ts` implements native DOM buttons and building/person panels. Rendering reads the same world after each user command. Woodcutters have a global +/- control; dynamic forest cards are informational rather than assignment controls.
-- Automatic simulation ticks and presentation refreshes are deliberately decoupled. Presentation is scheduled through its own `requestAnimationFrame` loop and follows the display refresh cadence with a **60 FPS maximum**. A dirty flag prevents redundant redraws when the world has not changed; on displays above 60 Hz an accumulated frame budget keeps the average presentation rate close to 60 FPS without exceeding one redraw per animation frame. During autoplay only lightweight metrics, stable top-level control state and the Phaser map are refreshed; the large building/person panels are not rebuilt with `innerHTML` until a user command or pause triggers a full refresh. **Max FPS** still advances one simulation round per `requestAnimationFrame`, independently from presentation.
-- Vite injects `process.env.BUILD_TIME` as an ISO timestamp at build time. `main.ts` formats it explicitly in the `Europe/Berlin` timezone and appends it to the top PoC label. Because the timestamp is baked into the deployed bundle, the live page always shows the time of the currently deployed build.
-- The optional autoplay repeatedly calls the same deterministic `tick()` used by the manual next-round button. The normal UI exposes **1–10 FPS** through an interval timer. A separate **Max FPS** toggle disables that slider and advances one simulation round per `requestAnimationFrame`, allowing the browser/display loop to drive the fastest interactive rate without changing simulation rules.
-- TypeScript 5.9 is used because its JavaScript compiler also works in restricted runtimes that cannot run the native TypeScript 7 compiler.
-- `npm test` uses Node's test runner through `tsx`. `npm run build` checks types then creates `dist/` with Vite. No external fonts or graphic assets are required.
-- `.github/workflows/deploy.yml` tests and builds on pushes to `main`, then deploys the artifact to GitHub Pages. Branch pushes do not trigger this workflow. Pages must use the GitHub Actions publishing source. Vite's base is `/civilizations-poc/`.
+Each tick moves each person at most once, handles arrivals and transfers, advances production, retires depleted forests, reallocates waiting woodcutters and finally plans new transport trips. Stable person/building order plus seeded randomness keep replay deterministic.
+
+Trips represent reservations directly. Unpicked trips reserve source output; all trips reserve destination capacity; picked trips retain their source output slot until delivery. Cancelling a carried trip returns the cargo to its original source without reviving retired forests.
+
+Production inputs remain inside the building until completion. In-progress production reserves output capacity. Production workers prioritize production and only fetch inputs themselves when production is blocked. Carriers only fetch inputs for their assigned workplace.
+
+## Forest logic
+
+Woodcutters are appointed globally. Each independently chooses the nearest reachable unoccupied active or passive forest. Equal-distance choices use the seeded PRNG in `World.rngState`.
+
+A passive forest tile becomes a dynamic `forest-N` building when claimed. Every active forest starts with `CONFIG.forestYield = 10`, has one worker slot and produces one wood after five work rounds. Forest opacity follows `max(0.35, remaining / forestYield)`.
+
+At zero yield the forest retires immediately and its tile becomes road. The retired building record remains internally while residual output or transport references exist. The woodcutter then seeks another forest without teleporting.
+
+## Map rendering and interaction
+
+`game/MainScene.ts` renders the 21 × 13 world into a logical **1000 × 570** Phaser canvas. Passive forests, active forests, retired road tiles, people and resource slots are derived directly from world state.
+
+The Phaser camera owns map navigation. Desktop uses wheel zoom and pointer drag. Mobile uses `game/mobileTouch.ts`, which installs native non-passive `TouchEvent` listeners on the canvas so one-finger pan and two-finger pinch work reliably on iOS Safari. Camera zoom is clamped to **0.7×–3.5×**.
+
+Browser/page zoom is intentionally suppressed inside the app while normal page scrolling outside the map remains available.
+
+Building interaction is map-first. A short click/tap on a visible building performs hit detection in world coordinates and selects that building; drag/pan and pinch gestures do not select. The selected building is highlighted on the map. Phaser emits only the selected `BuildingId`; the DOM UI owns all controls and status rendering.
+
+## DOM UI
+
+`ui/controls.ts` owns the top metrics, simulation controls, selected-building panel and debug people table.
+
+The former permanent population controls and building cards below the map are removed. Instead:
+
+- selecting the **HQ** opens global population and woodcutter controls;
+- selecting **Sägewerk**, **Schreinerei** or **Lager** shows recipe/inventory/status and worker/carrier assignment controls where applicable;
+- selecting an **active forest** shows remaining yield, local output and status without manual assignment buttons;
+- the global people/transport table remains below the map as a development/debug aid.
+
+The selected-building panel is a compact DOM panel attached directly to the map area and remains usable on the iPhone 13 Mini baseline.
+
+During autoplay the large DOM structures are not rebuilt every animation frame. Lightweight metrics, selection values and disabled states are updated in place while the map redraw follows the presentation loop. Full panel/table reconstruction happens on user commands, pause or a new selection. This avoids replacing buttons while the user is interacting with them.
+
+## Time and presentation
+
+Simulation ticks and presentation refreshes are decoupled.
+
+- Manual step: one deterministic `tick()`.
+- Normal autoplay: **1–10 FPS** through an interval timer.
+- Max FPS: one simulation round per `requestAnimationFrame`.
+- Presentation refresh: its own `requestAnimationFrame` loop, capped at an average **60 FPS** with a dirty flag.
+
+The rules do not change with speed.
+
+## Build and deployment
+
+Vite injects `process.env.BUILD_TIME` as an ISO timestamp. `main.ts` renders it in the `Europe/Berlin` timezone beside the PoC label so the live deployment can be identified immediately.
+
+TypeScript 5.9 is used in the project toolchain. `npm test` runs Node tests through `tsx`; `npm run build` performs type checking and the Vite production build.
+
+`.github/workflows/deploy.yml` tests and builds pushes to `main`, then deploys GitHub Pages. Branch pushes do not deploy. Vite base path is `/civilizations-poc/`.
