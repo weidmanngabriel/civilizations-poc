@@ -17,15 +17,16 @@ Ziel des ersten Proof of Concept ist es, den Kern der personenbasierten Produkti
 
 ## Zeit und Bewegung
 
-Der PoC läuft rundenbasiert.
+Die Simulation läuft intern in diskreten Schritten. Diese Schritte sind eine technische Grundlage und werden im normalen Spiel nicht als Runden gezählt oder angezeigt.
 
-- Jede begehbare Kante kostet aktuell eine Runde.
-- Jede Person bewegt sich pro Runde höchstens um eine Kante.
+- Jede begehbare Kante kostet aktuell einen Simulationsschritt.
+- Jede Person bewegt sich pro Schritt höchstens um eine Kante.
 - Der kürzeste erreichbare Weg wird über das Hex-Netz bestimmt.
-- Produktion dauert fünf Arbeitsrunden.
-- Runden können manuell oder automatisch ausgeführt werden.
-- Normaler Autolauf: **1–10 FPS**.
-- Zusätzlich gibt es **Max FPS**, bei dem eine Simulationsrunde pro Browser-Animationsframe ausgeführt wird.
+- Produktion dauert fünf Arbeitsschritte.
+- Das Spiel startet automatisch mit **5 FPS**.
+- Normaler Lauf: **1–10 FPS**.
+- **Pausieren** stoppt die Simulation. Nur im pausierten Zustand erscheint **„Nächster Schritt“**, womit genau ein Simulationsschritt ausgeführt wird.
+- Zusätzlich gibt es **Max FPS**, bei dem ein Simulationsschritt pro Browser-Animationsframe ausgeführt wird.
 
 ## Produktionskette
 
@@ -33,9 +34,9 @@ Nichts produziert ohne konkrete Person.
 
 Aktuelle Kette:
 
-- Wald: 5 Arbeitsrunden → 1 Holz.
-- Sägewerk: 2 Holz → 1 Brett in 5 Arbeitsrunden.
-- Schreinerei: 2 Bretter → 1 Holzwerkzeug in 5 Arbeitsrunden.
+- Wald: 5 Arbeitsschritte → 1 Holz.
+- Sägewerk: 2 Holz → 1 Brett in 5 Arbeitsschritten.
+- Schreinerei: 2 Bretter → 1 Holzwerkzeug in 5 Arbeitsschritten.
 - Lager: Träger sammeln fertige Holzwerkzeuge ein.
 
 Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt aktuell genau eine Ware pro Transportweg.
@@ -92,9 +93,9 @@ Die Karte ist die primäre und dauerhaft bildschirmfüllende Bedienoberfläche.
 - Status und Steuerungen liegen als kompakte Overlays über der Karte.
 - Die frühere große Überschrift, Intro, Kartenüberschrift, Legende und Footer entfallen aus der normalen Ansicht.
 
-Oben liegt ein kleines HUD mit Build-Version und Kernwerten wie Runde, Bevölkerung, freie Personen und Werkzeugbestand.
+Oben liegt ein kleines HUD mit Build-Version und Kernwerten wie Bevölkerung, freie Personen und Werkzeugbestand. Ein Rundenzähler wird nicht angezeigt.
 
-Unten liegt die Simulationssteuerung mit Rundenschritt, Autolauf, FPS-Regler und Max-FPS-Toggle.
+Unten liegt die Simulationssteuerung mit Pausieren/Fortsetzen, FPS-Regler und Max-FPS-Toggle. Der Button **„Nächster Schritt“** ist ausschließlich während einer Pause sichtbar.
 
 Ein ausgewähltes Gebäude öffnet sein Detailpanel als Bottom-Overlay über der unteren Steuerung.
 
@@ -157,7 +158,7 @@ Das Spiel muss dauerhaft auch auf Smartphones bedienbar bleiben. Referenzgerät 
 
 ## Simulationsreihenfolge
 
-Pro Runde gilt weiterhin:
+Pro Simulationsschritt gilt weiterhin:
 
 1. Personen bewegen sich höchstens einmal.
 2. Ankünfte, Abholungen und Lieferungen werden verarbeitet.
@@ -165,7 +166,7 @@ Pro Runde gilt weiterhin:
 4. Erschöpfte Wälder verschwinden und Holzfäller suchen neue Standorte.
 5. Neue Beschaffungsaufträge werden geplant.
 
-Neu geplante Wege beginnen erst in der folgenden Runde. Produktionsinputs bleiben bis zur Fertigstellung im Gebäude. Bei Freisetzung verfällt laufender Arbeitsfortschritt, vorhandene Materialien bleiben erhalten.
+Neu geplante Wege beginnen erst im folgenden Schritt. Produktionsinputs bleiben bis zur Fertigstellung im Gebäude. Bei Freisetzung verfällt laufender Arbeitsfortschritt, vorhandene Materialien bleiben erhalten.
 
 ## Noch nicht Teil des PoC
 

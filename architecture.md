@@ -45,7 +45,7 @@ Production inputs remain inside the building until completion. In-progress produ
 
 Woodcutters are appointed globally. Each independently chooses the nearest reachable unoccupied active or passive forest. Equal-distance choices use the seeded PRNG in `World.rngState`.
 
-A passive forest tile becomes a dynamic `forest-N` building when claimed. Every active forest starts with `CONFIG.forestYield = 10`, has one worker slot and produces one wood after five work rounds. Forest opacity follows `max(0.35, remaining / forestYield)`.
+A passive forest tile becomes a dynamic `forest-N` building when claimed. Every active forest starts with `CONFIG.forestYield = 10`, has one worker slot and produces one wood after five simulation steps. Forest opacity follows `max(0.35, remaining / forestYield)`.
 
 At zero yield the forest retires immediately and its tile becomes road. The retired building record remains internally while residual output or transport references exist. The woodcutter then seeks another forest without teleporting.
 
@@ -67,8 +67,9 @@ Building interaction is map-first. A short click/tap on a visible building perfo
 
 The map remains visible behind every normal control surface:
 
-- a compact top overlay shows build/version and core metrics;
-- a bottom overlay contains round/autoplay/FPS controls;
+- a compact top overlay shows build/version and core metrics without exposing the internal tick counter;
+- a bottom overlay contains pause/resume, FPS and Max-FPS controls;
+- while paused, the bottom overlay additionally shows **Nächster Schritt** for one deterministic tick;
 - selecting the **HQ** opens population and woodcutter controls in a bottom panel;
 - selecting **Sägewerk**, **Schreinerei** or **Lager** shows recipe/inventory/status and worker/carrier assignment controls where applicable;
 - selecting an **active forest** shows remaining yield, local output and status without manual assignment buttons;
@@ -80,11 +81,13 @@ During autoplay large DOM structures are not rebuilt every animation frame. Ligh
 
 ## Time and presentation
 
-Simulation ticks and presentation refreshes are decoupled.
+Simulation ticks and presentation refreshes are decoupled. Ticks remain an internal deterministic unit and are no longer presented as gameplay rounds.
 
-- Manual step: one deterministic `tick()`.
+- Default state: running at **5 FPS**.
 - Normal autoplay: **1–10 FPS** through an interval timer.
-- Max FPS: one simulation round per `requestAnimationFrame`.
+- Pause: stops simulation timers and exposes a single-step control.
+- Single step: exactly one deterministic `tick()` while paused.
+- Max FPS: one simulation tick per `requestAnimationFrame`.
 - Presentation refresh: its own `requestAnimationFrame` loop, capped at an average **60 FPS** with a dirty flag.
 
 The rules do not change with speed.

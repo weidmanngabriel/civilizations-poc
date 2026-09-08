@@ -22,7 +22,7 @@ type BuildingSelectedDetail = { id: BuildingId };
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
-  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Sägewerk, Schreinerei und Lager."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div class="bottom-bar"><div class="round-controls"><button id="next" class="primary">Runde +1</button><button id="autoplay" aria-pressed="false">Autolauf starten</button><label class="speed-control">FPS <input id="fps" type="range" min="1" max="10" step="1" value="1" aria-label="Autolauf in Runden pro Sekunde"><output id="fps-value">1 FPS</output></label><button id="max-fps" aria-pressed="false">Max FPS</button></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
+  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Sägewerk, Schreinerei und Lager."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div class="bottom-bar"><div class="round-controls"><button id="next" class="primary" hidden>Nächster Schritt</button><button id="autoplay" aria-pressed="true">Pausieren</button><label class="speed-control">FPS <input id="fps" type="range" min="1" max="10" step="1" value="5" aria-label="Simulationsschritte pro Sekunde"><output id="fps-value">5 FPS</output></label><button id="max-fps" aria-pressed="false">Max FPS</button></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
 
   let autoplayTimer: number | undefined;
   let autoplayFrame: number | undefined;
@@ -120,7 +120,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
 
     const recipe = b.forestRemaining !== undefined
-      ? `1 Holz / ${CONFIG.duration} Runden · Vorrat <span data-field="forest-remaining"></span>/${CONFIG.forestYield}`
+      ? `1 Holz / ${CONFIG.duration} Schritte · Vorrat <span data-field="forest-remaining"></span>/${CONFIG.forestYield}`
       : b.recipe?.input
         ? `${b.recipe.amount} ${GOODS[b.recipe.input]} → 1 ${GOODS[b.recipe.output]}`
         : b.recipe
@@ -136,7 +136,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   }
 
   const refreshLiveState = () => {
-    document.querySelector("#metrics")!.innerHTML = `<div><small>RUNDE</small><strong>${w.round}</strong></div><div><small>BEV.</small><strong>${w.people.length}</strong></div><div><small>FREI</small><strong>${freePeople(w).length}</strong></div><div><small>WERKZEUGE</small><strong>${building(w, "warehouse").output}</strong></div>`;
+    document.querySelector("#metrics")!.innerHTML = `<div><small>BEV.</small><strong>${w.people.length}</strong></div><div><small>FREI</small><strong>${freePeople(w).length}</strong></div><div><small>WERKZEUGE</small><strong>${building(w, "warehouse").output}</strong></div>`;
     updateSelectionLiveState();
     renderMap();
   };
@@ -152,11 +152,12 @@ export function mountControls(w: World, renderMap: () => void): void {
     presentationDirty = false;
   };
 
-  const runRound = () => {
+  const runStep = () => {
     tick(w);
     refresh();
   };
 
+  const nextButton = document.querySelector("#next") as HTMLButtonElement;
   const autoplayButton = document.querySelector("#autoplay") as HTMLButtonElement;
   const fpsInput = document.querySelector("#fps") as HTMLInputElement;
   const fpsValue = document.querySelector("#fps-value") as HTMLOutputElement;
@@ -197,8 +198,9 @@ export function mountControls(w: World, renderMap: () => void): void {
     autoplayTimer = undefined;
     autoplayFrame = undefined;
     stopPresentationLoop();
-    autoplayButton.textContent = "Autolauf starten";
+    autoplayButton.textContent = "Fortsetzen";
     autoplayButton.setAttribute("aria-pressed", "false");
+    nextButton.hidden = false;
   };
 
   const startAutoplay = () => {
@@ -216,8 +218,9 @@ export function mountControls(w: World, renderMap: () => void): void {
         markPresentationDirty();
       }, 1000 / Number(fpsInput.value));
     }
-    autoplayButton.textContent = "Autolauf pausieren";
+    autoplayButton.textContent = "Pausieren";
     autoplayButton.setAttribute("aria-pressed", "true");
+    nextButton.hidden = true;
     startPresentationLoop();
   };
 
@@ -231,7 +234,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     debugToggle.setAttribute("aria-pressed", String(open));
   };
 
-  document.querySelector("#next")!.addEventListener("click", runRound);
+  nextButton.addEventListener("click", runStep);
   autoplayButton.addEventListener("click", () => {
     if (!isRunning()) startAutoplay();
     else {
@@ -275,4 +278,5 @@ export function mountControls(w: World, renderMap: () => void): void {
   });
 
   refresh();
+  startAutoplay();
 }
