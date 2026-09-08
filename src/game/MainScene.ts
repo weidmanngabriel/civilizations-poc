@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { Building, Good, Hex, World } from "../simulation/model";
+import type { Building, BuildingId, Good, Hex, World } from "../simulation/model";
 import { key } from "../simulation/hex";
 import { CONFIG } from "../simulation/scenario";
 
@@ -11,6 +11,9 @@ const MIN_FOREST_ALPHA = 0.35;
 const MIN_CAMERA_ZOOM = 0.7;
 const MAX_CAMERA_ZOOM = 3.5;
 const WHEEL_ZOOM_SENSITIVITY = 0.0015;
+const TAP_MAX_DISTANCE = 8;
+const BUILDING_SELECTED_EVENT = "poc-building-selected";
+const BUILDING_SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
 const pixel = (h: Hex) => ({
   x: 48 + HEX_X * (h.q + h.r / 2),
   y: 48 + h.r * HEX_Y,
@@ -36,6 +39,8 @@ export class MainScene extends Phaser.Scene {
   private mapLabels?: Phaser.GameObjects.Container;
   private markers?: Phaser.GameObjects.Container;
   private activePointers = new Map<number, PointerPosition>();
+  private pointerDown = new Map<number, PointerPosition>();
+  private selectedBuildingId?: BuildingId;
 
   constructor(private world: World) {
     super("main");
@@ -46,6 +51,14 @@ export class MainScene extends Phaser.Scene {
     this.mapLabels = this.add.container(0, 0);
     this.markers = this.add.container(0, 0);
     this.setupCameraControls();
+    const clearSelection = () => {
+      this.selectedBuildingId = undefined;
+      this.renderWorld();
+    };
+    window.addEventListener(BUILDING_SELECTION_CLEARED_EVENT, clearSelection);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener(BUILDING_SELECTION_CLEARED_EVENT, clearSelection);
+    });
     this.renderWorld();
   }
 
@@ -60,6 +73,31 @@ export class MainScene extends Phaser.Scene {
     const worldAfter = camera.getWorldPoint(screenX, screenY);
     camera.scrollX += worldBefore.x - worldAfter.x;
     camera.scrollY += worldBefore.y - worldAfter.y;
+  }
+
+  public selectBuildingAtScreenPoint(screenX: number, screenY: number): void {
+    const worldPoint = this.cameras.main.getWorldPoint(screenX, screenY);
+    const candidate = this.world.buildings
+      .filter((building) => !building.retired)
+      .map((building) => ({
+        building,
+        distance: Phaser.Math.Distance.Between(
+          worldPoint.x,
+          worldPoint.y,
+          pixel(building.position).x,
+          pixel(building.position).y,
+        ),
+      }))
+      .filter(({ distance }) => distance <= HEX_RADIUS + 5)
+      .sort((a, b) => a.distance - b.distance)[0];
+    if (!candidate) return;
+    this.selectedBuildingId = candidate.building.id;
+    this.renderWorld();
+    window.dispatchEvent(
+      new CustomEvent(BUILDING_SELECTED_EVENT, {
+        detail: { id: candidate.building.id },
+      }),
+    );
   }
 
   private setupCameraControls(): void {
@@ -87,7 +125,9 @@ export class MainScene extends Phaser.Scene {
     );
 
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      this.activePointers.set(pointer.id, { x: pointer.x, y: pointer.y });
+      const position = { x: pointer.x, y: pointer.y };
+      this.activePointers.set(pointer.id, position);
+      this.pointerDown.set(pointer.id, position);
     });
 
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
@@ -133,7 +173,17 @@ export class MainScene extends Phaser.Scene {
     });
 
     const releasePointer = (pointer: Phaser.Input.Pointer) => {
+      const start = this.pointerDown.get(pointer.id);
+      const wasSinglePointer = this.activePointers.size === 1;
       this.activePointers.delete(pointer.id);
+      this.pointerDown.delete(pointer.id);
+      if (
+        start &&
+        wasSinglePointer &&
+        Phaser.Math.Distance.Between(start.x, start.y, pointer.x, pointer.y) <=
+          TAP_MAX_DISTANCE
+      )
+        this.selectBuildingAtScreenPoint(pointer.x, pointer.y);
     };
     this.input.on("pointerup", releasePointer);
     this.input.on("pointerupoutside", releasePointer);
@@ -222,6 +272,10 @@ export class MainScene extends Phaser.Scene {
         g.fillStyle(0x785d3e);
         g.fillRect(x - 5, y - 20, 10, 6);
         g.fillTriangle(x - 7, y - 20, x, y - 26, x + 7, y - 20);
+      }
+      if (b.id === this.selectedBuildingId) {
+        g.lineStyle(3, 0xf4e5a4, 0.95);
+        g.strokeCircle(x, y, HEX_RADIUS - 2);
       }
     }
   }
