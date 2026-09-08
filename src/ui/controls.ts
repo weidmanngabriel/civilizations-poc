@@ -14,7 +14,7 @@ import {
 import { CONFIG } from "../simulation/scenario";
 import { same } from "../simulation/hex";
 
-const MAX_FPS_PRESENTATION_INTERVAL_MS = 100;
+const AUTOPLAY_PRESENTATION_INTERVAL_MS = 250;
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -22,10 +22,9 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   let autoplayTimer: number | undefined;
   let autoplayFrame: number | undefined;
-  let lastMaxFpsPresentation = 0;
-  const activeControlPointers = new Set<number>();
+  let lastPresentation = 0;
 
-  const refresh = () => {
+  const refreshLiveState = () => {
     document.querySelector("#metrics")!.innerHTML =
       `<div><small>RUNDE</small><strong>${w.round}</strong></div><div><small>BEVÖLKERUNG</small><strong>${w.people.length}</strong></div><div><small>FREI</small><strong>${freePeople(w).length}</strong></div><div><small>WERKZEUGE IM LAGER</small><strong>${building(w, "warehouse").output}</strong></div>`;
     document.querySelector("#population-count")!.textContent = String(w.people.length);
@@ -35,6 +34,10 @@ export function mountControls(w: World, renderMap: () => void): void {
     );
     (document.querySelector("#woodcutter-minus") as HTMLButtonElement).disabled = woodcutters(w).length === 0;
     (document.querySelector("#woodcutter-plus") as HTMLButtonElement).disabled = freePeople(w).length === 0;
+    renderMap();
+  };
+
+  const refreshPanels = () => {
     document.querySelector("#buildings")!.innerHTML = w.buildings
       .filter((b) => b.id !== "hq" && !b.retired)
       .map((b, index) => {
@@ -56,23 +59,16 @@ export function mountControls(w: World, renderMap: () => void): void {
       .join("");
     document.querySelector("#people")!.innerHTML =
       `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => `<tr><td>${p.id}</td><td>${p.woodcutter ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald") : p.assignment ? `${building(w, p.assignment.building).name} · ${p.assignment.role === "worker" ? "Arbeiter" : "Träger"}` : "Frei"}</td><td>${p.trip ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}` : p.progress ? `${p.woodcutter ? "Fällt Holz" : "Produziert"} · ${p.progress}/5` : p.path.length ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : "Auf dem Rückweg zum HQ") : p.assignment ? "An der Arbeitsstätte" : p.woodcutter ? "Wartet auf Wald" : "Am HQ"}</td></tr>`).join("")}</tbody></table>`;
-    renderMap();
   };
 
-  const refreshIfControlsIdle = (): boolean => {
-    if (activeControlPointers.size) return false;
-    refresh();
-    return true;
+  const refresh = () => {
+    refreshLiveState();
+    refreshPanels();
   };
 
   const runRound = () => {
     tick(w);
     refresh();
-  };
-
-  const runAutoplayRound = () => {
-    tick(w);
-    refreshIfControlsIdle();
   };
 
   const autoplayButton = document.querySelector("#autoplay") as HTMLButtonElement;
@@ -81,6 +77,12 @@ export function mountControls(w: World, renderMap: () => void): void {
   const maxFpsButton = document.querySelector("#max-fps") as HTMLButtonElement;
 
   const isRunning = () => autoplayTimer !== undefined || autoplayFrame !== undefined;
+
+  const maybeRefreshPresentation = (timestamp = performance.now()) => {
+    if (timestamp - lastPresentation < AUTOPLAY_PRESENTATION_INTERVAL_MS) return;
+    lastPresentation = timestamp;
+    refreshLiveState();
+  };
 
   const stopAutoplay = () => {
     if (autoplayTimer !== undefined) window.clearInterval(autoplayTimer);
@@ -93,20 +95,19 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const startAutoplay = () => {
     stopAutoplay();
+    lastPresentation = 0;
     if (maxFpsButton.getAttribute("aria-pressed") === "true") {
-      lastMaxFpsPresentation = performance.now();
       const frame = (timestamp: number) => {
         tick(w);
-        if (
-          timestamp - lastMaxFpsPresentation >= MAX_FPS_PRESENTATION_INTERVAL_MS &&
-          refreshIfControlsIdle()
-        )
-          lastMaxFpsPresentation = timestamp;
+        maybeRefreshPresentation(timestamp);
         autoplayFrame = window.requestAnimationFrame(frame);
       };
       autoplayFrame = window.requestAnimationFrame(frame);
     } else {
-      autoplayTimer = window.setInterval(runAutoplayRound, 1000 / Number(fpsInput.value));
+      autoplayTimer = window.setInterval(() => {
+        tick(w);
+        maybeRefreshPresentation();
+      }, 1000 / Number(fpsInput.value));
     }
     autoplayButton.textContent = "Autolauf pausieren";
     autoplayButton.setAttribute("aria-pressed", "true");
@@ -117,18 +118,6 @@ export function mountControls(w: World, renderMap: () => void): void {
       fpsValue.value = `${fpsInput.value} FPS`;
     if (isRunning()) startAutoplay();
   };
-
-  app.addEventListener(
-    "pointerdown",
-    (event) => {
-      const target = event.target as HTMLElement;
-      if (target.closest("button, input, summary")) activeControlPointers.add(event.pointerId);
-    },
-    true,
-  );
-  const releaseControlPointer = (event: PointerEvent) => activeControlPointers.delete(event.pointerId);
-  window.addEventListener("pointerup", releaseControlPointer, true);
-  window.addEventListener("pointercancel", releaseControlPointer, true);
 
   document.querySelector("#next")!.addEventListener("click", runRound);
   autoplayButton.addEventListener("click", () => {
