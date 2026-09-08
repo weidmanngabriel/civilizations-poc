@@ -2,18 +2,24 @@ import Phaser from "phaser";
 
 const MIN_CAMERA_ZOOM = 0.7;
 const MAX_CAMERA_ZOOM = 3.5;
+const TAP_MAX_DISTANCE = 18;
 
 type Point = { x: number; y: number };
+type SelectableScene = Phaser.Scene & {
+  selectBuildingAtScreenPoint?: (screenX: number, screenY: number) => void;
+};
 
 const clampZoom = (zoom: number): number =>
   Phaser.Math.Clamp(zoom, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM);
 
 export function installMobileMapTouchControls(
   game: Phaser.Game,
-  scene: Phaser.Scene,
+  scene: SelectableScene,
 ): void {
   const canvas = game.canvas;
   let previousTouches = new Map<number, Point>();
+  let tapStart: Point | undefined;
+  let tapMoved = false;
 
   const toGamePoint = (clientX: number, clientY: number): Point => {
     const rect = canvas.getBoundingClientRect();
@@ -38,6 +44,13 @@ export function installMobileMapTouchControls(
   const onTouchStart = (event: TouchEvent): void => {
     captureTouch(event);
     previousTouches = snapshotTouches(event.touches);
+    if (event.touches.length === 1) {
+      tapStart = [...previousTouches.values()][0];
+      tapMoved = false;
+    } else {
+      tapStart = undefined;
+      tapMoved = true;
+    }
   };
 
   const onTouchMove = (event: TouchEvent): void => {
@@ -48,6 +61,8 @@ export function installMobileMapTouchControls(
     const current = Array.from(nextTouches.entries());
 
     if (current.length >= 2) {
+      tapStart = undefined;
+      tapMoved = true;
       const first = current[0];
       const second = current[1];
       if (!first || !second) return;
@@ -93,6 +108,8 @@ export function installMobileMapTouchControls(
       if (!only) return;
       const [id, now] = only;
       const before = previousTouches.get(id);
+      if (tapStart && Phaser.Math.Distance.Between(tapStart.x, tapStart.y, now.x, now.y) > TAP_MAX_DISTANCE)
+        tapMoved = true;
       if (before) {
         camera.scrollX -= (now.x - before.x) / camera.zoom;
         camera.scrollY -= (now.y - before.y) / camera.zoom;
@@ -104,7 +121,13 @@ export function installMobileMapTouchControls(
 
   const onTouchEnd = (event: TouchEvent): void => {
     captureTouch(event);
+    if (event.touches.length === 0 && tapStart && !tapMoved)
+      scene.selectBuildingAtScreenPoint?.(tapStart.x, tapStart.y);
     previousTouches = snapshotTouches(event.touches);
+    if (event.touches.length === 0) {
+      tapStart = undefined;
+      tapMoved = false;
+    }
   };
 
   const touchOptions: AddEventListenerOptions = {
