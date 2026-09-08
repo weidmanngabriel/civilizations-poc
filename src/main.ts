@@ -27,8 +27,8 @@ const preventPageZoom = (): void => {
 };
 
 const showBuildVersion = (): void => {
-  const eyebrow = document.querySelector<HTMLElement>(".eyebrow");
-  if (!eyebrow) return;
+  const versionLabel = document.querySelector<HTMLElement>("#build-version");
+  if (!versionLabel) return;
 
   const buildDate = new Date(process.env.BUILD_TIME ?? "");
   if (Number.isNaN(buildDate.getTime())) return;
@@ -44,7 +44,7 @@ const showBuildVersion = (): void => {
     hour12: false,
   }).format(buildDate);
 
-  eyebrow.textContent = `${eyebrow.textContent} · VERSION ${version}`;
+  versionLabel.textContent = `POC 01 · ${version}`;
 };
 
 preventPageZoom();
@@ -57,12 +57,15 @@ showBuildVersion();
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: "game",
-  width: 1000,
-  height: 570,
   backgroundColor: "#304d35",
   scene: [scene],
   input: { activePointers: 3 },
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+  scale: {
+    mode: Phaser.Scale.RESIZE,
+    width: window.innerWidth,
+    height: window.innerHeight,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
   render: { antialias: true },
 });
 
