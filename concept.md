@@ -173,6 +173,7 @@ Die Bedienung zeigt unter anderem:
 - Dynamische Waldkarten als Statusanzeige ohne eigene Arbeiter-Zuweisungsbuttons.
 - Eine aufklappbare Personenliste mit Zuweisung, Holzfällerstatus, Wegen und Transportaufträgen.
 - Manuellen Rundenschritt, Autolauf 1–10 FPS und Max-FPS-Toggle.
+- Oben neben `DAS ACHTE WELTWUNDER / POC 01` steht eine Versionszeit mit Datum und Uhrzeit des aktuell ausgelieferten Builds in deutscher Lokalzeit (`Europe/Berlin`). Damit lässt sich auf jedem Gerät sofort erkennen, ob der neueste Deploy bereits geladen ist.
 
 ### Kartenbedienung und mobile Nutzung
 
@@ -182,9 +183,10 @@ Das Spiel muss dauerhaft auch auf Smartphones bedienbar bleiben. Referenzgerät 
 - Die Karte besitzt einen eigenen Kamerazoom von **0,7× bis 3,5×**.
 - Auf Desktop wird die Karte mit dem Mausrad gezoomt.
 - Auf Touchgeräten wird die Karte mit einer Zwei-Finger-Pinch-Geste gezoomt.
+- Auf iOS Safari wird die Touch-Geste direkt auf dem Canvas abgefangen und als Kamera-Geste verarbeitet, damit Safari sie nicht als Seiten-Zoom übernimmt.
 - Die Karte lässt sich mit einem Finger beziehungsweise gedrücktem Zeiger verschieben.
 - Der Zoom bleibt am Mauszeiger beziehungsweise an der Mitte der Pinch-Geste verankert, damit der betrachtete Kartenausschnitt beim Zoomen nicht wegspringt.
-- Touch-Gesten werden nur innerhalb der Karte abgefangen. Außerhalb der Karte bleibt normales vertikales Scrollen der Webseite möglich.
+- Touch-Gesten werden nur innerhalb der Karte als Kartensteuerung abgefangen. Außerhalb der Karte bleibt normales vertikales Scrollen der Webseite möglich; Mehrfinger-Seitenzoom bleibt gesperrt.
 - Die Map-Grafik soll beim Reinzoomen scharf bleiben. Daher erfolgt der Zoom über die Phaser-Kamera und nicht über CSS-Vergrößerung eines bereits gerasterten Gesamtbildes. Das 1000 Pixel breite Render-Canvas wird auf kleinen Displays deutlich kleiner dargestellt und besitzt dadurch bereits eine hohe effektive Pixeldichte.
 
 ### Bauarbeiter als spätere Erweiterung
