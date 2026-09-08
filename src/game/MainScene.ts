@@ -6,8 +6,11 @@ import { CONFIG } from "../simulation/scenario";
 const HEX_X = 44;
 const HEX_Y = 39;
 const HEX_RADIUS = 25;
-const TEXT_RESOLUTION = 2;
+const TEXT_RESOLUTION = 3;
 const MIN_FOREST_ALPHA = 0.35;
+const MIN_CAMERA_ZOOM = 0.7;
+const MAX_CAMERA_ZOOM = 3.5;
+const WHEEL_ZOOM_SENSITIVITY = 0.0015;
 const pixel = (h: Hex) => ({
   x: 48 + HEX_X * (h.q + h.r / 2),
   y: 48 + h.r * HEX_Y,
@@ -26,10 +29,13 @@ const goodColors: Record<Good, number> = {
   woodenTool: 0xc8d8d0,
 };
 
+type PointerPosition = { x: number; y: number };
+
 export class MainScene extends Phaser.Scene {
   private mapGraphics?: Phaser.GameObjects.Graphics;
   private mapLabels?: Phaser.GameObjects.Container;
   private markers?: Phaser.GameObjects.Container;
+  private activePointers = new Map<number, PointerPosition>();
 
   constructor(private world: World) {
     super("main");
@@ -39,7 +45,96 @@ export class MainScene extends Phaser.Scene {
     this.mapGraphics = this.add.graphics();
     this.mapLabels = this.add.container(0, 0);
     this.markers = this.add.container(0, 0);
+    this.setupCameraControls();
     this.renderWorld();
+  }
+
+  private clampZoom(zoom: number): number {
+    return Phaser.Math.Clamp(zoom, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM);
+  }
+
+  private zoomAt(screenX: number, screenY: number, zoom: number): void {
+    const camera = this.cameras.main;
+    const worldBefore = camera.getWorldPoint(screenX, screenY);
+    camera.setZoom(this.clampZoom(zoom));
+    const worldAfter = camera.getWorldPoint(screenX, screenY);
+    camera.scrollX += worldBefore.x - worldAfter.x;
+    camera.scrollY += worldBefore.y - worldAfter.y;
+  }
+
+  private setupCameraControls(): void {
+    this.input.addPointer(2);
+
+    const canvas = this.game.canvas;
+    const preventCanvasWheel = (event: WheelEvent) => event.preventDefault();
+    canvas.addEventListener("wheel", preventCanvasWheel, { passive: false });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      canvas.removeEventListener("wheel", preventCanvasWheel);
+    });
+
+    this.input.on(
+      "wheel",
+      (
+        pointer: Phaser.Input.Pointer,
+        _currentlyOver: Phaser.GameObjects.GameObject[],
+        _deltaX: number,
+        deltaY: number,
+      ) => {
+        const camera = this.cameras.main;
+        const zoom = camera.zoom * Math.exp(-deltaY * WHEEL_ZOOM_SENSITIVITY);
+        this.zoomAt(pointer.x, pointer.y, zoom);
+      },
+    );
+
+    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      this.activePointers.set(pointer.id, { x: pointer.x, y: pointer.y });
+    });
+
+    this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
+      const previous = this.activePointers.get(pointer.id);
+      if (!previous) return;
+
+      const oldPositions = [...this.activePointers.values()];
+      this.activePointers.set(pointer.id, { x: pointer.x, y: pointer.y });
+      const newPositions = [...this.activePointers.values()];
+      const camera = this.cameras.main;
+
+      if (oldPositions.length >= 2 && newPositions.length >= 2) {
+        const oldA = oldPositions[0];
+        const oldB = oldPositions[1];
+        const newA = newPositions[0];
+        const newB = newPositions[1];
+        const oldDistance = Phaser.Math.Distance.Between(oldA.x, oldA.y, oldB.x, oldB.y);
+        const newDistance = Phaser.Math.Distance.Between(newA.x, newA.y, newB.x, newB.y);
+        if (oldDistance <= 0) return;
+
+        const oldCenter = {
+          x: (oldA.x + oldB.x) / 2,
+          y: (oldA.y + oldB.y) / 2,
+        };
+        const newCenter = {
+          x: (newA.x + newB.x) / 2,
+          y: (newA.y + newB.y) / 2,
+        };
+        const anchorWorld = camera.getWorldPoint(oldCenter.x, oldCenter.y);
+        camera.setZoom(this.clampZoom(camera.zoom * (newDistance / oldDistance)));
+        const movedAnchorWorld = camera.getWorldPoint(newCenter.x, newCenter.y);
+        camera.scrollX += anchorWorld.x - movedAnchorWorld.x;
+        camera.scrollY += anchorWorld.y - movedAnchorWorld.y;
+        return;
+      }
+
+      if (newPositions.length === 1) {
+        camera.scrollX -= (pointer.x - previous.x) / camera.zoom;
+        camera.scrollY -= (pointer.y - previous.y) / camera.zoom;
+      }
+    });
+
+    const releasePointer = (pointer: Phaser.Input.Pointer) => {
+      this.activePointers.delete(pointer.id);
+    };
+    this.input.on("pointerup", releasePointer);
+    this.input.on("pointerupoutside", releasePointer);
   }
 
   private drawTree(
