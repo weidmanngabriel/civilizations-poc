@@ -1,0 +1,16 @@
+#game {
+  touch-action: none;
+  overscroll-behavior: contain;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#game canvas {
+  touch-action: none;
+}
+
+button,
+input,
+summary {
+  touch-action: manipulation;
+}

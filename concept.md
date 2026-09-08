@@ -174,6 +174,19 @@ Die Bedienung zeigt unter anderem:
 - Eine aufklappbare Personenliste mit Zuweisung, Holzfällerstatus, Wegen und Transportaufträgen.
 - Manuellen Rundenschritt, Autolauf 1–10 FPS und Max-FPS-Toggle.
 
+### Kartenbedienung und mobile Nutzung
+
+Das Spiel muss dauerhaft auch auf Smartphones bedienbar bleiben. Referenzgerät für den mobilen PoC ist ein **iPhone 13 Mini mit 375 × 812 CSS-Pixeln**.
+
+- Die Webseite selbst wird nicht als Zoomfläche benutzt; Browser-/Seiten-Zoom soll innerhalb der App unterbunden werden.
+- Die Karte besitzt einen eigenen Kamerazoom von **0,7× bis 3,5×**.
+- Auf Desktop wird die Karte mit dem Mausrad gezoomt.
+- Auf Touchgeräten wird die Karte mit einer Zwei-Finger-Pinch-Geste gezoomt.
+- Die Karte lässt sich mit einem Finger beziehungsweise gedrücktem Zeiger verschieben.
+- Der Zoom bleibt am Mauszeiger beziehungsweise an der Mitte der Pinch-Geste verankert, damit der betrachtete Kartenausschnitt beim Zoomen nicht wegspringt.
+- Touch-Gesten werden nur innerhalb der Karte abgefangen. Außerhalb der Karte bleibt normales vertikales Scrollen der Webseite möglich.
+- Die Map-Grafik soll beim Reinzoomen scharf bleiben. Daher erfolgt der Zoom über die Phaser-Kamera und nicht über CSS-Vergrößerung eines bereits gerasterten Gesamtbildes. Das 1000 Pixel breite Render-Canvas wird auf kleinen Displays deutlich kleiner dargestellt und besitzt dadurch bereits eine hohe effektive Pixeldichte.
+
 ### Bauarbeiter als spätere Erweiterung
 
 Bauarbeiter bilden einen getrennten Logistikfall. Sie sollen später Materialien aus einem globaleren Radius beschaffen und zu Baustellen bringen. Die genaue Zahl gleichzeitig erlaubter Bauarbeiter pro Baustelle ist noch offen.
