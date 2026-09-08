@@ -115,13 +115,6 @@ export function installMobileMapTouchControls(
   canvas.addEventListener("touchmove", onTouchMove, touchOptions);
   canvas.addEventListener("touchend", onTouchEnd, touchOptions);
   canvas.addEventListener("touchcancel", onTouchEnd, touchOptions);
-
-  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-    canvas.removeEventListener("touchstart", onTouchStart, touchOptions);
-    canvas.removeEventListener("touchmove", onTouchMove, touchOptions);
-    canvas.removeEventListener("touchend", onTouchEnd, touchOptions);
-    canvas.removeEventListener("touchcancel", onTouchEnd, touchOptions);
-  });
 }
 
 export function preventMobilePageZoom(): void {
