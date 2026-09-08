@@ -14,7 +14,8 @@ import {
 import { CONFIG } from "../simulation/scenario";
 import { same } from "../simulation/hex";
 
-const AUTOPLAY_PRESENTATION_INTERVAL_MS = 250;
+const MAX_PRESENTATION_FPS = 60;
+const PRESENTATION_INTERVAL_MS = 1000 / MAX_PRESENTATION_FPS;
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -22,7 +23,10 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   let autoplayTimer: number | undefined;
   let autoplayFrame: number | undefined;
-  let lastPresentation = 0;
+  let presentationFrame: number | undefined;
+  let lastPresentationFrame = 0;
+  let presentationBudget = PRESENTATION_INTERVAL_MS;
+  let presentationDirty = true;
 
   const refreshLiveState = () => {
     document.querySelector("#metrics")!.innerHTML =
@@ -64,6 +68,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   const refresh = () => {
     refreshLiveState();
     refreshPanels();
+    presentationDirty = false;
   };
 
   const runRound = () => {
@@ -78,10 +83,43 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const isRunning = () => autoplayTimer !== undefined || autoplayFrame !== undefined;
 
-  const maybeRefreshPresentation = (timestamp = performance.now()) => {
-    if (timestamp - lastPresentation < AUTOPLAY_PRESENTATION_INTERVAL_MS) return;
-    lastPresentation = timestamp;
-    refreshLiveState();
+  const markPresentationDirty = () => {
+    presentationDirty = true;
+  };
+
+  const stopPresentationLoop = () => {
+    if (presentationFrame !== undefined) window.cancelAnimationFrame(presentationFrame);
+    presentationFrame = undefined;
+    lastPresentationFrame = 0;
+    presentationBudget = PRESENTATION_INTERVAL_MS;
+  };
+
+  const startPresentationLoop = () => {
+    stopPresentationLoop();
+    presentationDirty = true;
+    const frame = (timestamp: number) => {
+      if (!isRunning()) {
+        presentationFrame = undefined;
+        return;
+      }
+
+      if (lastPresentationFrame) {
+        presentationBudget += Math.min(
+          timestamp - lastPresentationFrame,
+          PRESENTATION_INTERVAL_MS * 2,
+        );
+      }
+      lastPresentationFrame = timestamp;
+
+      if (presentationDirty && presentationBudget >= PRESENTATION_INTERVAL_MS) {
+        refreshLiveState();
+        presentationDirty = false;
+        presentationBudget %= PRESENTATION_INTERVAL_MS;
+      }
+
+      presentationFrame = window.requestAnimationFrame(frame);
+    };
+    presentationFrame = window.requestAnimationFrame(frame);
   };
 
   const stopAutoplay = () => {
@@ -89,28 +127,29 @@ export function mountControls(w: World, renderMap: () => void): void {
     if (autoplayFrame !== undefined) window.cancelAnimationFrame(autoplayFrame);
     autoplayTimer = undefined;
     autoplayFrame = undefined;
+    stopPresentationLoop();
     autoplayButton.textContent = "Autolauf starten";
     autoplayButton.setAttribute("aria-pressed", "false");
   };
 
   const startAutoplay = () => {
     stopAutoplay();
-    lastPresentation = 0;
     if (maxFpsButton.getAttribute("aria-pressed") === "true") {
-      const frame = (timestamp: number) => {
+      const frame = () => {
         tick(w);
-        maybeRefreshPresentation(timestamp);
+        markPresentationDirty();
         autoplayFrame = window.requestAnimationFrame(frame);
       };
       autoplayFrame = window.requestAnimationFrame(frame);
     } else {
       autoplayTimer = window.setInterval(() => {
         tick(w);
-        maybeRefreshPresentation();
+        markPresentationDirty();
       }, 1000 / Number(fpsInput.value));
     }
     autoplayButton.textContent = "Autolauf pausieren";
     autoplayButton.setAttribute("aria-pressed", "true");
+    startPresentationLoop();
   };
 
   const updateFps = () => {
