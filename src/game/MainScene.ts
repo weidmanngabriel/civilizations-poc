@@ -104,6 +104,8 @@ export class MainScene extends Phaser.Scene {
         const oldB = oldPositions[1];
         const newA = newPositions[0];
         const newB = newPositions[1];
+        if (!oldA || !oldB || !newA || !newB) return;
+
         const oldDistance = Phaser.Math.Distance.Between(oldA.x, oldA.y, oldB.x, oldB.y);
         const newDistance = Phaser.Math.Distance.Between(newA.x, newA.y, newB.x, newB.y);
         if (oldDistance <= 0) return;
