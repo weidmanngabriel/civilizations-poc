@@ -51,28 +51,32 @@ At zero yield the forest retires immediately and its tile becomes road. The reti
 
 ## Map rendering and interaction
 
-`game/MainScene.ts` renders the 21 × 13 world into a logical **1000 × 570** Phaser canvas. Passive forests, active forests, retired road tiles, people and resource slots are derived directly from world state.
+`game/MainScene.ts` renders the 21 × 13 world. The Phaser game now uses `Phaser.Scale.RESIZE`, so the game canvas always follows the full browser viewport instead of being constrained to the former 1000 × 570 page element.
+
+The app is a fullscreen game surface: `html`, `body`, `#app`, `main` and `#game` fill the viewport and the page itself does not scroll. UI is layered over the map rather than reserving layout space around it.
 
 The Phaser camera owns map navigation. Desktop uses wheel zoom and pointer drag. Mobile uses `game/mobileTouch.ts`, which installs native non-passive `TouchEvent` listeners on the canvas so one-finger pan and two-finger pinch work reliably on iOS Safari. Camera zoom is clamped to **0.7×–3.5×**.
 
-Browser/page zoom is intentionally suppressed inside the app while normal page scrolling outside the map remains available.
+Browser/page zoom is intentionally suppressed inside the app.
 
 Building interaction is map-first. A short click/tap on a visible building performs hit detection in world coordinates and selects that building; drag/pan and pinch gestures do not select. The selected building is highlighted on the map. Phaser emits only the selected `BuildingId`; the DOM UI owns all controls and status rendering.
 
 ## DOM UI
 
-`ui/controls.ts` owns the top metrics, simulation controls, selected-building panel and debug people table.
+`ui/controls.ts` owns all HUD and overlay controls.
 
-The former permanent population controls and building cards below the map are removed. Instead:
+The map remains visible behind every normal control surface:
 
-- selecting the **HQ** opens global population and woodcutter controls;
+- a compact top overlay shows build/version and core metrics;
+- a bottom overlay contains round/autoplay/FPS controls;
+- selecting the **HQ** opens population and woodcutter controls in a bottom panel;
 - selecting **Sägewerk**, **Schreinerei** or **Lager** shows recipe/inventory/status and worker/carrier assignment controls where applicable;
 - selecting an **active forest** shows remaining yield, local output and status without manual assignment buttons;
-- the global people/transport table remains below the map as a development/debug aid.
+- the global people/transport table is hidden by default and opens through a dedicated Debug overlay.
 
-The selected-building panel is a compact DOM panel attached directly to the map area and remains usable on the iPhone 13 Mini baseline.
+The former header, explanatory copy, legend, footer and scrolling debug section are no longer part of the normal layout. Safe-area CSS insets keep the overlays usable on phones with notches/home indicators. The iPhone 13 Mini remains the mobile baseline.
 
-During autoplay the large DOM structures are not rebuilt every animation frame. Lightweight metrics, selection values and disabled states are updated in place while the map redraw follows the presentation loop. Full panel/table reconstruction happens on user commands, pause or a new selection. This avoids replacing buttons while the user is interacting with them.
+During autoplay large DOM structures are not rebuilt every animation frame. Lightweight metrics, selection values and disabled states are updated in place while the map redraw follows the presentation loop. Full panel/table reconstruction happens on user commands, pause or a new selection. This avoids replacing buttons while the user is interacting with them.
 
 ## Time and presentation
 
@@ -87,7 +91,7 @@ The rules do not change with speed.
 
 ## Build and deployment
 
-Vite injects `process.env.BUILD_TIME` as an ISO timestamp. `main.ts` renders it in the `Europe/Berlin` timezone beside the PoC label so the live deployment can be identified immediately.
+Vite injects `process.env.BUILD_TIME` as an ISO timestamp. `main.ts` renders it in the `Europe/Berlin` timezone in the top HUD so the live deployment can be identified immediately.
 
 TypeScript 5.9 is used in the project toolchain. `npm test` runs Node tests through `tsx`; `npm run build` performs type checking and the Vite production build.
 

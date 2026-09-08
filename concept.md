@@ -85,9 +85,18 @@ Langfristig soll Bevölkerung über normale Spielsysteme wie Nachwuchs und Tod e
 
 ## Kartenbasierte Bedienung
 
-Die Karte ist die primäre Bedienoberfläche.
+Die Karte ist die primäre und dauerhaft bildschirmfüllende Bedienoberfläche.
 
-Die früher dauerhaft unter der Karte angezeigten Karten für Bevölkerung und Arbeitsstätten werden nicht mehr verwendet. Stattdessen wählt der Spieler ein Gebäude direkt per Klick oder Tap aus. Die aktuelle Auswahl wird auf der Karte hervorgehoben und öffnet ein kompaktes Detailpanel direkt an der Karte.
+- Die Karte belegt immer den gesamten Browser-Viewport.
+- Es gibt keine normale scrollende Seite mehr um die Karte herum.
+- Status und Steuerungen liegen als kompakte Overlays über der Karte.
+- Die frühere große Überschrift, Intro, Kartenüberschrift, Legende und Footer entfallen aus der normalen Ansicht.
+
+Oben liegt ein kleines HUD mit Build-Version und Kernwerten wie Runde, Bevölkerung, freie Personen und Werkzeugbestand.
+
+Unten liegt die Simulationssteuerung mit Rundenschritt, Autolauf, FPS-Regler und Max-FPS-Toggle.
+
+Ein ausgewähltes Gebäude öffnet sein Detailpanel als Bottom-Overlay über der unteren Steuerung.
 
 ### Hauptquartier
 
@@ -131,19 +140,20 @@ Es gibt dort keine manuelle Holzfäller-Zuweisung; diese bleibt global und autom
 
 ### Debug-Personenliste
 
-Die globale Liste aller Personen und Transportaufträge bleibt zunächst unterhalb der Karte. Sie ist ausdrücklich ein Entwicklungs-/Debug-Werkzeug und kein Vorbild für die spätere Hauptbedienung.
+Die globale Liste aller Personen und Transportaufträge bleibt als Entwicklungswerkzeug erhalten, ist aber standardmäßig verborgen. Ein Debug-Button öffnet sie als Overlay über der Karte; sie belegt keinen dauerhaften Bildschirmbereich mehr.
 
 ## Desktop und Mobile
 
 Das Spiel muss dauerhaft auch auf Smartphones bedienbar bleiben. Referenzgerät ist ein **iPhone 13 Mini mit 375 × 812 CSS-Pixeln**.
 
-- Browser-/Seitenzoom wird innerhalb der App unterdrückt.
+- Browser-/Seitenzoom wird unterdrückt.
+- Die Karte belegt `100vw × 100dvh` beziehungsweise den jeweils verfügbaren Viewport.
 - Kartenzoom: **0,7× bis 3,5×**.
 - Desktop: Mausrad zum Zoomen, Pointer-Drag zum Verschieben.
 - Touch: ein Finger verschiebt, zwei Finger zoomen.
 - Ein kurzer Tap wählt ein Gebäude aus; eine erkennbare Ziehbewegung gilt als Pan und löst keine Auswahl aus.
 - Auf iOS Safari werden Gesten direkt am Canvas verarbeitet, damit die Karte statt der Webseite gezoomt wird.
-- Außerhalb der Karte bleibt normales vertikales Seitenscrollen möglich.
+- Overlays berücksichtigen Safe-Area-Abstände für Notch und Home-Indikator.
 
 ## Simulationsreihenfolge
 
