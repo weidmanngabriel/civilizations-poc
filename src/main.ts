@@ -31,7 +31,6 @@ new Phaser.Game({
   parent: "game",
   width: 1000,
   height: 570,
-  resolution: Math.min(window.devicePixelRatio || 1, 2),
   backgroundColor: "#304d35",
   scene: [scene],
   input: { activePointers: 3 },
