@@ -185,7 +185,7 @@ Das Spiel muss dauerhaft auch auf Smartphones bedienbar bleiben. Referenzgerät 
 - Die Karte lässt sich mit einem Finger beziehungsweise gedrücktem Zeiger verschieben.
 - Der Zoom bleibt am Mauszeiger beziehungsweise an der Mitte der Pinch-Geste verankert, damit der betrachtete Kartenausschnitt beim Zoomen nicht wegspringt.
 - Touch-Gesten werden nur innerhalb der Karte abgefangen. Außerhalb der Karte bleibt normales vertikales Scrollen der Webseite möglich.
-- Die Map-Grafik soll beim Reinzoomen scharf bleiben. Daher erfolgt der Zoom über die Phaser-Kamera und nicht über CSS-Vergrößerung eines bereits gerasterten Gesamtbildes; High-DPI-Geräte erhalten zusätzlich eine erhöhte Renderauflösung.
+- Die Map-Grafik soll beim Reinzoomen scharf bleiben. Daher erfolgt der Zoom über die Phaser-Kamera und nicht über CSS-Vergrößerung eines bereits gerasterten Gesamtbildes. Das 1000 Pixel breite Render-Canvas wird auf kleinen Displays deutlich kleiner dargestellt und besitzt dadurch bereits eine hohe effektive Pixeldichte.
 
 ### Bauarbeiter als spätere Erweiterung
 
