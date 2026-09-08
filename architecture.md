@@ -8,6 +8,7 @@ The prototype is built as a browser-first TypeScript application.
 - **Build tooling:** Vite
 - **Game framework:** Phaser 4
 - **Target:** modern web browsers, deployable as a static site (for example via GitHub Pages)
+- **Mobile baseline:** the game must remain usable on modern phones; iPhone 13 Mini (375 × 812 CSS px) is the reference test device.
 
 ## Architectural principle
 
@@ -51,7 +52,11 @@ This is an architectural baseline, not a commitment to model the final game arou
 - Once a forest reaches zero remaining yield, it retires **immediately** and its tile becomes road even if produced wood remains there. The retired building record remains internally so local output and in-flight transport references stay valid. Retired forest output remains a legal logistics source until collected.
 - If more woodcutters exist than available forests, the excess woodcutters remain appointed and wait/return toward HQ until a forest becomes available.
 - `game/MainScene.ts` renders the 21 × 13 world into a 1000 × 570 Phaser canvas using a denser hex projection, plus numbered person markers and live input/output capacity slots. Passive forests, newly activated forests and retired road tiles redraw directly from world state. Active forest tree graphics use `max(0.35, remaining / forestYield)` opacity, so declining timber is visible without making the forest unreadable. Remaining wood from retired forests continues to render as resource slots at the old location.
-- Phaser map labels use higher-resolution text textures (`setResolution(2)`) and practical minimum font sizes to avoid blurry small text when the responsive canvas is scaled.
+- The Phaser camera owns map navigation. Desktop uses wheel zoom; touch uses two-finger pinch zoom and one-finger drag. Zoom is clamped to **0.7×–3.5×** and is anchored under the pointer/pinch center so the inspected map area stays in place while zooming.
+- Browser/page zoom is intentionally suppressed for the game surface: the viewport is fixed on mobile, desktop `Ctrl/Cmd` zoom shortcuts are prevented in-app, and touch gestures are captured only on the Phaser map so the rest of the page can still scroll normally.
+- The Phaser renderer uses up to **2× device pixel ratio** for a sharper backing buffer on Retina/high-DPI screens without forcing the full native 3× iPhone render cost. Map geometry remains Phaser vector graphics, so camera zoom rerasterizes geometry instead of enlarging a pre-scaled bitmap.
+- Phaser map labels use higher-resolution text textures (`setResolution(3)`) and practical minimum font sizes to stay readable during responsive scaling and camera zoom.
+- `src/map-interaction.css` isolates touch behavior to the map (`touch-action: none`, contained overscroll) while normal controls use `touch-action: manipulation`.
 - `ui/controls.ts` implements native DOM buttons and building/person panels. Rendering reads the same world after each user command. Woodcutters have a global +/- control; dynamic forest cards are informational rather than assignment controls.
 - The optional autoplay repeatedly calls the same deterministic `tick()` used by the manual next-round button. The normal UI exposes **1–10 FPS** through an interval timer. A separate **Max FPS** toggle disables that slider and advances one simulation round per `requestAnimationFrame`, allowing the browser/display loop to drive the fastest interactive rate without changing simulation rules.
 - TypeScript 5.9 is used because its JavaScript compiler also works in restricted runtimes that cannot run the native TypeScript 7 compiler.
