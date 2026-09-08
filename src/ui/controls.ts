@@ -14,12 +14,16 @@ import {
 import { CONFIG } from "../simulation/scenario";
 import { same } from "../simulation/hex";
 
+const MAX_FPS_PRESENTATION_INTERVAL_MS = 100;
+
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
   app.innerHTML = `<main><header><div><p class="eyebrow">DAS ACHTE WELTWUNDER / POC 01</p><h1>Ein Dorf kommt in Gang.</h1><p class="intro">Verteile die Menschen. Verbinde die Wirtschaft. Eine Runde nach der anderen.</p></div><span class="badge">Produktionslogistik</span></header><section class="toolbar"><div id="metrics"></div><div class="round-controls"><button id="next" class="primary">Nächste Runde <span aria-hidden="true">→</span></button><button id="autoplay" aria-pressed="false">Autolauf starten</button><label class="speed-control">Geschwindigkeit <input id="fps" type="range" min="1" max="10" step="1" value="1" aria-label="Autolauf in Runden pro Sekunde"><output id="fps-value">1 FPS</output></label><button id="max-fps" aria-pressed="false">Max FPS</button></div></section><section class="map-panel"><div class="map-heading"><span>Das erste Dorf</span><span>Wald → Sägewerk → Schreinerei → Lager</span></div><div id="game" role="img" aria-label="Große Hex-Karte mit Hauptquartier, Waldflächen, Sägewerk, Schreinerei und Lager. Personen bewegen sich auf Wegen, Wald- und Gebäudefeldern."></div><div class="legend"><span><i class="worker"></i> Arbeiter / Holzfäller</span><span><i class="carrier"></i> Träger</span><span><i class="free"></i> Frei</span><span>Fracht: H Holz · B Brett · W Werkzeug</span><span>Jeder Wald liefert 10 Holz und verblasst mit sinkendem Vorrat.</span><span>Wiese, Berg und Fluss sind gesperrt.</span></div></section><section class="population"><div><strong>Bevölkerung</strong><small>Debug · Entfernen nur bei freien Personen am HQ</small></div><div class="stepper"><button id="population-minus" aria-label="Bevölkerung verringern">−</button><output id="population-count"></output><button id="population-plus" aria-label="Bevölkerung erhöhen">+</button></div></section><section class="population"><div><strong>Holzfäller</strong><small>Jeder sucht einen eigenen freien Wald</small></div><div class="stepper"><button id="woodcutter-minus" aria-label="Holzfäller verringern">−</button><output id="woodcutter-count"></output><button id="woodcutter-plus" aria-label="Holzfäller erhöhen">+</button></div></section><section class="section-title"><h2>Arbeitsstätten</h2><p>Besetzung: zugewiesen / Maximum · aktiv nach Ankunft</p></section><div id="buildings" class="cards"></div><p class="hint">Zum Start gibt es keinen aktiven Wald. Ernenne Holzfäller; jeder sucht automatisch einen eigenen Waldstandort. Erschöpfte Wälder verschwinden sofort, Restholz bleibt liegen.</p><details><summary>Personen und Transportaufträge</summary><div id="people"></div></details><footer>PoC 1 · Jede Wegkante kostet eine Runde. Produktion benötigt fünf Arbeitsrunden.</footer></main>`;
 
   let autoplayTimer: number | undefined;
   let autoplayFrame: number | undefined;
+  let lastMaxFpsPresentation = 0;
+  const activeControlPointers = new Set<number>();
 
   const refresh = () => {
     document.querySelector("#metrics")!.innerHTML =
@@ -55,9 +59,20 @@ export function mountControls(w: World, renderMap: () => void): void {
     renderMap();
   };
 
+  const refreshIfControlsIdle = (): boolean => {
+    if (activeControlPointers.size) return false;
+    refresh();
+    return true;
+  };
+
   const runRound = () => {
     tick(w);
     refresh();
+  };
+
+  const runAutoplayRound = () => {
+    tick(w);
+    refreshIfControlsIdle();
   };
 
   const autoplayButton = document.querySelector("#autoplay") as HTMLButtonElement;
@@ -79,13 +94,19 @@ export function mountControls(w: World, renderMap: () => void): void {
   const startAutoplay = () => {
     stopAutoplay();
     if (maxFpsButton.getAttribute("aria-pressed") === "true") {
-      const frame = () => {
-        runRound();
+      lastMaxFpsPresentation = performance.now();
+      const frame = (timestamp: number) => {
+        tick(w);
+        if (
+          timestamp - lastMaxFpsPresentation >= MAX_FPS_PRESENTATION_INTERVAL_MS &&
+          refreshIfControlsIdle()
+        )
+          lastMaxFpsPresentation = timestamp;
         autoplayFrame = window.requestAnimationFrame(frame);
       };
       autoplayFrame = window.requestAnimationFrame(frame);
     } else {
-      autoplayTimer = window.setInterval(runRound, 1000 / Number(fpsInput.value));
+      autoplayTimer = window.setInterval(runAutoplayRound, 1000 / Number(fpsInput.value));
     }
     autoplayButton.textContent = "Autolauf pausieren";
     autoplayButton.setAttribute("aria-pressed", "true");
@@ -97,10 +118,25 @@ export function mountControls(w: World, renderMap: () => void): void {
     if (isRunning()) startAutoplay();
   };
 
+  app.addEventListener(
+    "pointerdown",
+    (event) => {
+      const target = event.target as HTMLElement;
+      if (target.closest("button, input, summary")) activeControlPointers.add(event.pointerId);
+    },
+    true,
+  );
+  const releaseControlPointer = (event: PointerEvent) => activeControlPointers.delete(event.pointerId);
+  window.addEventListener("pointerup", releaseControlPointer, true);
+  window.addEventListener("pointercancel", releaseControlPointer, true);
+
   document.querySelector("#next")!.addEventListener("click", runRound);
   autoplayButton.addEventListener("click", () => {
     if (!isRunning()) startAutoplay();
-    else stopAutoplay();
+    else {
+      stopAutoplay();
+      refresh();
+    }
   });
   fpsInput.addEventListener("input", updateFps);
   maxFpsButton.addEventListener("click", () => {
