@@ -1,5 +1,4 @@
 import type { Building, Hex, Tile, World } from "./model";
-import { neighbors } from "./hex";
 
 export const CONFIG = {
   population: 8,
@@ -25,7 +24,12 @@ const at = (col: number, row: number): Hex => ({
   r: row,
 });
 
-const compactFootprint = (center: Hex): Hex[] => [center, ...neighbors(center)];
+const compactFootprint = (center: Hex): Hex[] => [
+  { ...center },
+  { q: center.q + 1, r: center.r },
+  { q: center.q, r: center.r + 1 },
+  { q: center.q + 1, r: center.r + 1 },
+];
 
 export function createWorld(population: number = CONFIG.population): World {
   const hqPosition = at(6, 20);
