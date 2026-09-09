@@ -34,13 +34,14 @@ const BUILDING_SELECTED_EVENT = "poc-building-selected";
 const TILE_SELECTED_EVENT = "poc-tile-selected";
 const BUILDING_SELECTION_REQUESTED_EVENT = "poc-building-selection-requested";
 const SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
+const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 
 type BuildingSelectedDetail = { id: BuildingId };
 type TileSelectedDetail = { position: Hex };
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
-  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div class="bottom-bar"><div class="round-controls"><button id="next" class="primary" hidden>Nächster Schritt</button><button id="autoplay" aria-pressed="true">Pausieren</button><label class="speed-control">FPS <input id="fps" type="range" min="1" max="10" step="1" value="5" aria-label="Simulationsschritte pro Sekunde"><output id="fps-value">5 FPS</output></label><button id="max-fps" aria-pressed="false">Max FPS</button></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
+  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div class="bottom-bar"><div class="round-controls"><button id="next" class="primary" hidden>Nächster Schritt</button><button id="autoplay" aria-pressed="true">Pausieren</button><label class="speed-control">FPS <input id="fps" type="range" min="1" max="10" step="1" value="5" aria-label="Simulationsschritte pro Sekunde"><output id="fps-value">5 FPS</output></label><button id="max-fps" aria-pressed="false">Max FPS</button></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
 
   let autoplayTimer: number | undefined;
   let autoplayFrame: number | undefined;
@@ -51,8 +52,12 @@ export function mountControls(w: World, renderMap: () => void): void {
   let selectedBuildingId: BuildingId | undefined;
   let selectedTile: Hex | undefined;
   let merchantTargetSelection: number | undefined;
+  let merchantSelectionWasRunning = false;
 
+  const main = app.querySelector<HTMLElement>("main")!;
   const selectionPanel = document.querySelector<HTMLElement>("#selection-panel")!;
+  const merchantTargetOverlay = document.querySelector<HTMLElement>("#merchant-target-overlay")!;
+  const merchantTargetCancel = document.querySelector<HTMLButtonElement>("#merchant-target-cancel")!;
   const debugPanel = document.querySelector<HTMLElement>("#debug-panel")!;
   const debugToggle = document.querySelector<HTMLButtonElement>("#debug-toggle")!;
 
@@ -74,13 +79,10 @@ export function mountControls(w: World, renderMap: () => void): void {
     if (b.kind !== "warehouse") return "";
     const merchants = assigned(w, b.id, "merchant");
     if (!merchants.length) return "";
-    const targets = w.buildings.filter(
-      (candidate) => candidate.kind === "warehouse" && !candidate.retired && candidate.id !== b.id,
-    );
     return `<div class="inventory">${merchants.map((p) => {
-      const targetOptions = targets.map((target) => `<option value="${target.id}" ${p.merchantRoute?.target === target.id ? "selected" : ""}>${target.name}</option>`).join("");
       const goodOptions = (Object.keys(GOODS) as Good[]).map((good) => `<option value="${good}" ${p.merchantRoute?.good === good ? "selected" : ""}>${GOODS[good]}</option>`).join("");
-      return `<div><span>Händler ${p.id}</span><strong>${p.trip ? (p.trip.picked ? "unterwegs zum Ziel" : "holt Ware") : p.path.length ? "auf Rückweg" : p.merchantRoute?.target ? "bereit" : "Route fehlt"}</strong></div><label class="recipe">Ware <select data-route-good="${p.id}">${goodOptions}</select></label><label class="recipe">Ziel <select data-route-target="${p.id}"><option value="">– Ziellager wählen –</option>${targetOptions}</select></label><div class="stepper"><button data-action="merchant-map-target" data-person="${p.id}">${merchantTargetSelection === p.id ? "Jetzt Ziellager antippen …" : "Ziel auf Karte wählen"}</button></div>`;
+      const routeStatus = p.merchantRoute?.target ? "Ziel eingestellt" : "Kein Ziel eingestellt";
+      return `<div><span>Händler ${p.id}</span><strong>${p.trip ? (p.trip.picked ? "unterwegs zum Ziel" : "holt Ware") : p.path.length ? "auf Rückweg" : routeStatus}</strong></div><label class="recipe">Ware <select data-route-good="${p.id}">${goodOptions}</select></label><div class="merchant-route-status"><span>Ziel</span><strong>${routeStatus}</strong></div><div class="stepper"><button data-action="merchant-map-target" data-person="${p.id}">Ziellager wählen</button></div>`;
     }).join("")}</div>`;
   };
 
@@ -208,7 +210,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const refreshPanels = () => {
     renderSelectionPanel();
-    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => `<tr><td>${p.id}</td><td>${p.woodcutter ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald") : p.assignment ? `${building(w, p.assignment.building).name} · ${roleLabel(p.assignment.role)}` : "Frei"}</td><td>${p.trip ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}` : p.assignment?.role === "merchant" && p.merchantRoute?.target ? `${GOODS[p.merchantRoute.good]} → ${building(w, p.merchantRoute.target).name}${p.path.length ? " · Rückweg" : ""}` : p.progress ? `${p.woodcutter ? "Fällt Holz" : "Produziert"} · ${p.progress}/5` : p.path.length ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : "Auf dem Rückweg zum HQ") : p.assignment ? "An der Arbeitsstätte" : p.woodcutter ? "Wartet auf Wald" : "Am HQ"}</td></tr>`).join("")}</tbody></table>`;
+    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => `<tr><td>${p.id}</td><td>${p.woodcutter ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald") : p.assignment ? `${building(w, p.assignment.building).name} · ${roleLabel(p.assignment.role)}` : "Frei"}</td><td>${p.trip ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}` : p.assignment?.role === "merchant" && p.merchantRoute?.target ? `${GOODS[p.merchantRoute.good]} → Ziellager${p.path.length ? " · Rückweg" : ""}` : p.progress ? `${p.woodcutter ? "Fällt Holz" : "Produziert"} · ${p.progress}/5` : p.path.length ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : "Auf dem Rückweg zum HQ") : p.assignment ? "An der Arbeitsstätte" : p.woodcutter ? "Wartet auf Wald" : "Am HQ"}</td></tr>`).join("")}</tbody></table>`;
   };
 
   const refresh = () => {
@@ -280,6 +282,33 @@ export function mountControls(w: World, renderMap: () => void): void {
     debugToggle.setAttribute("aria-pressed", String(open));
   };
 
+  const leaveMerchantTargetMode = () => {
+    if (merchantTargetSelection === undefined) return;
+    merchantTargetSelection = undefined;
+    main.classList.remove("merchant-target-mode");
+    merchantTargetOverlay.hidden = true;
+    window.dispatchEvent(new CustomEvent(MERCHANT_TARGET_MODE_EVENT, { detail: { active: false } }));
+    renderSelectionPanel();
+    if (merchantSelectionWasRunning) startAutoplay();
+    merchantSelectionWasRunning = false;
+  };
+
+  const enterMerchantTargetMode = (personId: number) => {
+    const merchant = w.people.find((p) => p.id === personId);
+    const sourceId = merchant?.assignment?.role === "merchant" ? merchant.assignment.building : undefined;
+    if (!merchant || !sourceId) return;
+    merchantSelectionWasRunning = isRunning();
+    if (merchantSelectionWasRunning) stopAutoplay();
+    merchantTargetSelection = personId;
+    setDebugOpen(false);
+    main.classList.add("merchant-target-mode");
+    merchantTargetOverlay.hidden = false;
+    window.dispatchEvent(new CustomEvent(MERCHANT_TARGET_MODE_EVENT, {
+      detail: { active: true, sourceId },
+    }));
+    renderSelectionPanel();
+  };
+
   nextButton.addEventListener("click", runStep);
   autoplayButton.addEventListener("click", () => {
     if (!isRunning()) startAutoplay();
@@ -296,6 +325,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   });
   debugToggle.addEventListener("click", () => setDebugOpen(debugPanel.hidden));
   document.querySelector("#debug-close")!.addEventListener("click", () => setDebugOpen(false));
+  merchantTargetCancel.addEventListener("click", leaveMerchantTargetMode);
 
   selectionPanel.addEventListener("change", (event) => {
     const select = event.target as HTMLSelectElement;
@@ -303,13 +333,6 @@ export function mountControls(w: World, renderMap: () => void): void {
       const personId = Number(select.dataset.routeGood);
       const p = w.people.find((person) => person.id === personId);
       setMerchantRoute(w, personId, p?.merchantRoute?.target, select.value as Good);
-      refresh();
-      return;
-    }
-    if (select.dataset.routeTarget) {
-      const personId = Number(select.dataset.routeTarget);
-      const p = w.people.find((person) => person.id === personId);
-      setMerchantRoute(w, personId, select.value || undefined, p?.merchantRoute?.good);
       refresh();
     }
   });
@@ -321,14 +344,12 @@ export function mountControls(w: World, renderMap: () => void): void {
     if (action === "close") {
       selectedBuildingId = undefined;
       selectedTile = undefined;
-      merchantTargetSelection = undefined;
       renderSelectionPanel();
       window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
       return;
     }
     if (action === "merchant-map-target") {
-      merchantTargetSelection = Number(button.dataset.person);
-      renderSelectionPanel();
+      enterMerchantTargetMode(Number(button.dataset.person));
       return;
     }
     if (action === "build" && selectedTile) {
@@ -351,7 +372,6 @@ export function mountControls(w: World, renderMap: () => void): void {
       if (selected && window.confirm(`${selected.name} wirklich abreißen? Gelagerte Waren gehen verloren.`)) {
         removeBuilding(w, selectedBuildingId);
         selectedBuildingId = undefined;
-        merchantTargetSelection = undefined;
         window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
         refresh();
       }
@@ -372,7 +392,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       const target = w.buildings.find((b) => b.id === id);
       if (merchant && sourceId && target?.kind === "warehouse" && id !== sourceId) {
         setMerchantRoute(w, merchant.id, id, merchant.merchantRoute?.good);
-        merchantTargetSelection = undefined;
+        leaveMerchantTargetMode();
         selectedTile = undefined;
         selectedBuildingId = sourceId;
         window.dispatchEvent(new CustomEvent(BUILDING_SELECTION_REQUESTED_EVENT, { detail: { id: sourceId } }));

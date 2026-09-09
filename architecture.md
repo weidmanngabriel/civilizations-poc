@@ -97,7 +97,9 @@ The Phaser camera owns map navigation. Desktop uses wheel zoom and pointer drag.
 
 Map interaction is selection-first. A short click/tap selects a building when one occupies the hit tile; otherwise it selects the tile itself. Drag/pan and pinch do not select. Phaser emits building/tile selection events while the DOM UI owns build, road, assignment and demolition controls.
 
-When a merchant route is in map-target-selection mode, the next tap on another warehouse is consumed as the route destination instead of changing the normal selected building. The warehouse panel then remains focused on the merchant's source warehouse.
+Merchant destination selection is a dedicated modal map state. `ui/controls.ts` pauses the simulation, hides normal interactive controls and emits `poc-merchant-target-mode` with the merchant's source warehouse. `MainScene` stores the current camera scroll and zoom, consumes normal map selections, and accepts only another active warehouse as a valid tap target. The existing map remains visible under a light **22% dark overlay**; valid destination warehouses are redrawn above that layer with a strong bright ring. Pan and zoom remain enabled so distant warehouses can still be reached. Leaving the mode by selection or cancel restores the saved camera position and zoom exactly.
+
+The previous simulation running state is also restored: a running simulation resumes after target selection, while a simulation that was already paused stays paused.
 
 ## DOM UI
 
@@ -108,8 +110,9 @@ When a merchant route is in map-target-selection mode, the next tap on another w
 - while paused: **Nächster Schritt** for one deterministic tick;
 - HQ selection: population and woodcutter controls;
 - production building selection: recipe, inventory, worker/carrier controls and demolition;
-- warehouse selection: all three local good stocks, carriers, merchants, per-merchant good/destination route controls and demolition;
-- merchant destination can be chosen from the warehouse list or by tapping another warehouse on the map;
+- warehouse selection: all three local good stocks, carriers, merchants, per-merchant good selection, route status and demolition;
+- merchant destination is configured only through **Ziellager wählen**; there is no warehouse dropdown;
+- during merchant target selection, the normal selection panel, simulation controls and debug panel are hidden and a compact **Ziellager wählen / Abbrechen** overlay is shown;
 - active forest selection: remaining yield/output only;
 - empty grass/road tile selection: instant building choices plus road build/remove where applicable;
 - debug overlay: people and transport tasks.

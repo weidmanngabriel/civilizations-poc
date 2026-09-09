@@ -12,10 +12,12 @@ const MIN_CAMERA_ZOOM = 0.7;
 const MAX_CAMERA_ZOOM = 3.5;
 const WHEEL_ZOOM_SENSITIVITY = 0.0015;
 const TAP_MAX_DISTANCE = 8;
+const TARGET_MODE_DIM_ALPHA = 0.22;
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
 const TILE_SELECTED_EVENT = "poc-tile-selected";
 const BUILDING_SELECTION_REQUESTED_EVENT = "poc-building-selection-requested";
 const SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
+const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const pixel = (h: Hex) => ({
   x: 48 + HEX_X * (h.q + h.r / 2),
   y: 48 + h.r * HEX_Y,
@@ -35,15 +37,21 @@ const goodColors: Record<Good, number> = {
 };
 
 type PointerPosition = { x: number; y: number };
+type CameraSnapshot = { scrollX: number; scrollY: number; zoom: number };
+type MerchantTargetModeDetail = { active: boolean; sourceId?: BuildingId };
 
 export class MainScene extends Phaser.Scene {
   private mapGraphics?: Phaser.GameObjects.Graphics;
   private mapLabels?: Phaser.GameObjects.Container;
   private markers?: Phaser.GameObjects.Container;
+  private targetModeOverlay?: Phaser.GameObjects.Graphics;
+  private targetModeHighlights?: Phaser.GameObjects.Container;
   private activePointers = new Map<number, PointerPosition>();
   private pointerDown = new Map<number, PointerPosition>();
   private selectedBuildingId?: BuildingId;
   private selectedTile?: Hex;
+  private merchantTargetSourceId?: BuildingId;
+  private cameraBeforeMerchantTarget?: CameraSnapshot;
 
   constructor(private world: World) {
     super("main");
@@ -53,6 +61,8 @@ export class MainScene extends Phaser.Scene {
     this.mapGraphics = this.add.graphics();
     this.mapLabels = this.add.container(0, 0);
     this.markers = this.add.container(0, 0);
+    this.targetModeOverlay = this.add.graphics();
+    this.targetModeHighlights = this.add.container(0, 0);
     this.setupCameraControls();
     const clearSelection = () => {
       this.selectedBuildingId = undefined;
@@ -64,11 +74,38 @@ export class MainScene extends Phaser.Scene {
       this.selectedTile = undefined;
       this.renderWorld();
     };
+    const setMerchantTargetMode = (event: Event) => {
+      const detail = (event as CustomEvent<MerchantTargetModeDetail>).detail;
+      const camera = this.cameras.main;
+      if (detail.active && detail.sourceId) {
+        if (!this.merchantTargetSourceId) {
+          this.cameraBeforeMerchantTarget = {
+            scrollX: camera.scrollX,
+            scrollY: camera.scrollY,
+            zoom: camera.zoom,
+          };
+        }
+        this.merchantTargetSourceId = detail.sourceId;
+      } else {
+        this.merchantTargetSourceId = undefined;
+        if (this.cameraBeforeMerchantTarget) {
+          camera.setZoom(this.cameraBeforeMerchantTarget.zoom);
+          camera.setScroll(
+            this.cameraBeforeMerchantTarget.scrollX,
+            this.cameraBeforeMerchantTarget.scrollY,
+          );
+          this.cameraBeforeMerchantTarget = undefined;
+        }
+      }
+      this.renderWorld();
+    };
     window.addEventListener(SELECTION_CLEARED_EVENT, clearSelection);
     window.addEventListener(BUILDING_SELECTION_REQUESTED_EVENT, selectRequestedBuilding);
+    window.addEventListener(MERCHANT_TARGET_MODE_EVENT, setMerchantTargetMode);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       window.removeEventListener(SELECTION_CLEARED_EVENT, clearSelection);
       window.removeEventListener(BUILDING_SELECTION_REQUESTED_EVENT, selectRequestedBuilding);
+      window.removeEventListener(MERCHANT_TARGET_MODE_EVENT, setMerchantTargetMode);
     });
     this.renderWorld();
   }
@@ -101,6 +138,19 @@ export class MainScene extends Phaser.Scene {
       }))
       .filter(({ distance }) => distance <= HEX_RADIUS + 5)
       .sort((a, b) => a.distance - b.distance)[0];
+
+    if (this.merchantTargetSourceId) {
+      if (
+        candidate?.building.kind === "warehouse" &&
+        candidate.building.id !== this.merchantTargetSourceId
+      ) {
+        window.dispatchEvent(new CustomEvent(BUILDING_SELECTED_EVENT, {
+          detail: { id: candidate.building.id },
+        }));
+      }
+      return;
+    }
+
     if (candidate) {
       this.selectedBuildingId = candidate.building.id;
       this.selectedTile = undefined;
@@ -276,6 +326,44 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  private drawMerchantTargetMode(): void {
+    if (!this.targetModeOverlay || !this.targetModeHighlights) return;
+    this.targetModeOverlay.clear();
+    this.targetModeHighlights.removeAll(true);
+    if (!this.merchantTargetSourceId) return;
+
+    const xs = this.world.tiles.map((tile) => pixel(tile).x);
+    const ys = this.world.tiles.map((tile) => pixel(tile).y);
+    const minX = Math.min(...xs) - HEX_RADIUS * 2;
+    const maxX = Math.max(...xs) + HEX_RADIUS * 2;
+    const minY = Math.min(...ys) - HEX_RADIUS * 2;
+    const maxY = Math.max(...ys) + HEX_RADIUS * 2;
+    this.targetModeOverlay.fillStyle(0x102018, TARGET_MODE_DIM_ALPHA);
+    this.targetModeOverlay.fillRect(minX, minY, maxX - minX, maxY - minY);
+
+    const highlights = this.add.graphics();
+    this.targetModeHighlights.add(highlights);
+    for (const warehouse of this.world.buildings.filter(
+      (b) => !b.retired && b.kind === "warehouse" && b.id !== this.merchantTargetSourceId,
+    )) {
+      const { x, y } = pixel(warehouse.position);
+      highlights.fillStyle(0xf5e8b8, 0.18);
+      highlights.fillCircle(x, y, HEX_RADIUS + 4);
+      highlights.lineStyle(4, 0xfff1a8, 1);
+      highlights.strokeCircle(x, y, HEX_RADIUS + 1);
+      highlights.fillStyle(0x785d3e, 1);
+      highlights.fillRect(x - 5, y - 20, 10, 6);
+      highlights.fillTriangle(x - 7, y - 20, x, y - 26, x + 7, y - 20);
+      this.targetModeHighlights.add(this.add.text(x, y - 9, "LAGER", {
+        fontFamily: "system-ui",
+        fontSize: "8px",
+        fontStyle: "bold",
+        color: "#fff4bf",
+        backgroundColor: "#314333",
+      }).setResolution(TEXT_RESOLUTION).setOrigin(0.5));
+    }
+  }
+
   renderWorld(): void {
     if (!this.markers) return;
     this.drawMap();
@@ -311,5 +399,6 @@ export class MainScene extends Phaser.Scene {
           fontFamily: "system-ui", fontSize: "7px", color: "#fff2a3", backgroundColor: "#263c2d",
         }).setResolution(TEXT_RESOLUTION));
     }
+    this.drawMerchantTargetMode();
   }
 }
