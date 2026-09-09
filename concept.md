@@ -36,18 +36,21 @@ Bei 1× entsprechen die bisherigen Spielzeiten ungefähr dem vorherigen 5-FPS-St
 
 ## Bewegung und organische Wege
 
-Personen bewegen sich nicht mehr nach der Regel „ein Tick = eine Kachel“. Jede Person sammelt stattdessen kontinuierlich Bewegungsfortschritt.
+Das Hex-Grid dient der Wegfindung und der Terrainlogik, nicht mehr als sichtbare Sprungbewegung. Personen bewegen sich kontinuierlich zwischen den Mittelpunkten der von der Wegfindung bestimmten Kacheln.
 
 - Grundtempo auf Wiese, Wald und Gebäudekacheln: **5 Kacheln pro Simulationssekunde**.
 - Ein Weg macht Bewegung **30 % schneller**.
+- Jeder Simulationsschritt verschiebt eine Person nur um den entsprechenden Teil einer Kantenstrecke.
+- Erst beim Erreichen des nächsten Kachelmittelpunkts gilt die Kachel logisch als betreten; dort werden Ankunft und Verkehr registriert.
 - Nicht verbrauchter Bewegungsfortschritt bleibt während eines laufenden Wegs erhalten.
 - Die Wegfindung berücksichtigt die unterschiedlichen Bewegungskosten. Ein vorhandener Weg kann daher attraktiver sein als eine kürzere Route über Wiese.
+- Die sichtbare Zwischenposition stammt direkt aus dem deterministischen Simulationsfortschritt; es gibt keine unabhängige Render-Tween-Logik.
 
 ### Automatische Wegbildung
 
 Wege entstehen durch tatsächliche Nutzung der Landschaft:
 
-- Jede Überquerung einer Wiesen-Kachel wird gezählt.
+- Jede vollständige Überquerung beziehungsweise Ankunft auf einer Wiesen-Kachel wird gezählt.
 - Erreicht eine Wiesen-Kachel **8 Überquerungen innerhalb der letzten 8 Simulationssekunden**, wird sie automatisch zu einem Weg.
 - Ein automatisch entstandener Weg bleibt bestehen.
 - Sobald sich ein neuer Weg bildet, werden laufende Routen neu bewertet, damit Personen den Geschwindigkeitsvorteil nutzen können.
@@ -218,8 +221,8 @@ Referenzgerät für Mobile ist ein **iPhone 13 Mini mit 375 × 812 CSS-Pixeln**.
 
 Pro festem Simulationsschritt:
 
-1. Bewegungsfortschritt wird vergeben und mögliche Kachelwechsel werden ausgeführt.
-2. Wiesenverkehr wird registriert; neue Wege können entstehen und Routen neu geplant werden.
+1. Bewegungsfortschritt wird vergeben; Personen bewegen sich kontinuierlich entlang der aktuellen Kante und schließen bei ausreichendem Fortschritt Kachelankünfte ab.
+2. Wiesenverkehr wird bei abgeschlossenen Kachelankünften registriert; neue Wege können entstehen und Routen neu geplant werden.
 3. Ankünfte, Abholungen und Lieferungen werden verarbeitet.
 4. Produktion schreitet fort beziehungsweise wird abgeschlossen.
 5. Erschöpfte Wälder verschwinden und Holzfäller suchen neue Standorte.

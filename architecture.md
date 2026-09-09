@@ -31,6 +31,8 @@ Dependencies flow from presentation toward the simulation. `src/simulation/` mus
 
 `simulation.ts` owns deterministic in-place simulation steps, assignment changes, reservations, production, forest claiming/depletion, building placement/demolition, road editing, organic road formation, merchant routes and status derivation. No renderer imports or real-time timers occur in the core.
 
+`movement.ts` derives each person's continuous fractional world position from deterministic simulation state: the last reached tile centre, the next tile waypoint and `Person.movement`. Phaser consumes that position but does not invent frame-time interpolation.
+
 ## Fixed simulation time
 
 The simulation quantum is **1/60 simulated second**. `tick()` always advances exactly this fixed amount and increments the internal `World.round` counter. The counter is technical state and is not shown as a game round.
@@ -64,7 +66,9 @@ Blocked terrain:
 - mountain,
 - river.
 
-Movement is accumulated per person in `Person.movement`. Normal terrain costs `1.0` movement. A road costs `1 / 1.3`, producing a **30% speed increase** without changing the fixed simulation tick.
+Tiles are navigation waypoints, not the visible movement unit. `Person.position` is the last reached tile centre, `Person.path[0]` is the next waypoint and `Person.movement` is the already travelled partial distance along that edge. `personWorldPosition()` converts those values into a fractional axial coordinate every simulation refresh, so people move continuously between tile centres while pathfinding and arrivals stay grid-based.
+
+Normal terrain costs `1.0` movement. A road costs `1 / 1.3`, producing a **30% speed increase** without changing the fixed simulation tick. Because the same edge cost controls both route choice and fractional progress, road movement is visibly faster as well as logically faster.
 
 Weighted paths are used for normal movement and source choice so established roads can outweigh a slightly shorter grass route. The warehouse collection radius deliberately uses `findPathBySteps()` so its five-tile rule is not enlarged by road speed.
 
@@ -86,7 +90,7 @@ The map therefore begins as landscape and develops routes from repeated actual t
 
 Each deterministic tick executes roughly:
 
-1. add movement progress and move agents whose next edge can be paid;
+1. add partial edge movement and complete waypoint crossings when enough distance has accumulated;
 2. record grass traversals and create roads when thresholds are reached;
 3. reroute current tasks if a new road changed navigation costs;
 4. process arrivals, pickup and delivery;
@@ -153,6 +157,8 @@ At zero yield the forest retires immediately and its tile becomes **grass**. Res
 ## Map rendering and interaction
 
 `game/MainScene.ts` renders the world through Phaser. `Phaser.Scale.RESIZE` keeps the canvas fitted to the full browser viewport.
+
+People are drawn at the continuous fractional position supplied by `simulation/movement.ts`. There is no Phaser tween or renderer-owned movement timer; pause and simulation speed therefore affect movement exactly like production and logistics.
 
 The Phaser camera owns map navigation:
 
