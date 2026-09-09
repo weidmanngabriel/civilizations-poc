@@ -1,10 +1,7 @@
 export type Good = "wood" | "plank" | "woodenTool";
-export type BuildingId =
-  | "hq"
-  | `forest-${number}`
-  | "sawmill"
-  | "carpenter"
-  | "warehouse";
+export type BuildingId = string;
+export type BuildingKind = "hq" | "forest" | "sawmill" | "carpenter" | "warehouse";
+export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest">;
 export type Role = "worker" | "carrier";
 export interface Hex {
   q: number;
@@ -19,8 +16,10 @@ export interface Recipe {
   output: Good;
   duration: number;
 }
+export type Inventory = Record<Good, number>;
 export interface Building {
   id: BuildingId;
+  kind: BuildingKind;
   name: string;
   position: Hex;
   workers: number;
@@ -28,6 +27,8 @@ export interface Building {
   recipe?: Recipe;
   input: number;
   output: number;
+  inventory?: Inventory;
+  baseTerrain?: "grass" | "road";
   forestRemaining?: number;
   retired?: boolean;
 }
@@ -51,6 +52,7 @@ export interface World {
   round: number;
   nextId: number;
   nextForestId: number;
+  nextBuildingId: number;
   rngState: number;
   people: Person[];
   buildings: Building[];
