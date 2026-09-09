@@ -190,17 +190,27 @@ Flow:
 ```text
 UI chooses building kind
 → BUILD_MODE_EVENT
-→ MainScene tracks hover tile
+→ MainScene shows the initial ghost at the previously selected tile
+→ desktop pointer hover or a short map tap updates the ghost position
+→ BUILD_POSITION_SELECTED_EVENT reports the preview position to the DOM UI
 → simulation canPlaceBuilding() validates footprint + ring
 → Phaser draws dim layer + green/red ghost + clearance ring
-→ click/tap emits BUILD_POSITION_SELECTED_EVENT
-→ UI calls buildWithFootprint()
+→ UI enables "Bauen" only for a currently valid position
+→ "Bauen" calls buildWithFootprint()
 → success exits mode and selects building
 ```
 
-Pan and zoom stay enabled. Normal selection and ordinary controls are suppressed while placement mode is active.
+Input responsibilities are deliberately separated:
 
-On touch input, preview and final placement use a screen-space offset above the finger so the selected footprint is not hidden by the finger.
+- desktop hover may move the ghost,
+- a short touch tap moves the ghost to the tapped tile,
+- one-finger touch drag pans the camera and never moves the ghost,
+- two-finger touch gestures zoom/pan and never move the ghost,
+- tapping/clicking the map never creates the building directly,
+- only the DOM `Bauen` button confirms placement,
+- `Abbrechen` exits without changing the world.
+
+The `Bauen` button is recalculated against `canPlaceBuilding()` as the preview or world changes, and `buildWithFootprint()` validates once more when confirmation occurs. This prevents presentation state from bypassing simulation rules.
 
 The existing merchant destination mode remains separate. It pauses simulation, stores camera state, dims the map, highlights valid warehouses and restores camera/running state after selection or cancel.
 
@@ -217,7 +227,7 @@ The existing merchant destination mode remains separate. It pauses simulation, s
 - empty grass/road tile: building choices and manual road action,
 - debug overlay: people and transport tasks.
 
-When the player chooses a building type, the normal selection panel and bottom controls are hidden and a compact placement overlay with an explicit cancel button is shown.
+When the player chooses a building type, the normal selection panel and bottom controls are hidden and a compact placement overlay is shown. The overlay explicitly says **“Tippen, um das Gebäude zu verschieben.”** and contains `Bauen` plus `Abbrechen` actions.
 
 ## Presentation performance
 

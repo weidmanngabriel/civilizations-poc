@@ -50,10 +50,13 @@ Gebäude werden nicht mehr sofort auf der zuvor angeklickten Kachel gebaut.
 4. Ein halbtransparenter Gebäude-Ghost snappt auf das Hex-Grid.
 5. Der komplette Footprint wird dargestellt.
 6. Gültige Positionen werden grün, ungültige rot hervorgehoben; der notwendige freie Ring wird zusätzlich sichtbar umrandet.
-7. Klick oder Tap bestätigt nur eine gültige Position.
-8. Ein sichtbarer „Abbrechen“-Button beendet den Modus ohne Bau.
+7. **Ein kurzer Tap auf die Karte verschiebt auf Touch-Geräten nur den Ghost.**
+8. **Ziehen verschiebt weiterhin ausschließlich die Karte; Pinch-Zoom bleibt unverändert.**
+9. Ein klarer Hinweis im Overlay erklärt: „Tippen, um das Gebäude zu verschieben.“
+10. Der Bau wird ausschließlich über den sichtbaren **„Bauen“**-Button bestätigt. Dieser ist nur aktiv, wenn die aktuelle Position gültig ist.
+11. Ein sichtbarer **„Abbrechen“**-Button beendet den Modus ohne Bau.
 
-Pan und Zoom bleiben im Baumodus verfügbar. Auf Touch-Geräten wird der Ghost oberhalb des Fingers angezeigt, damit die Zielkacheln sichtbar bleiben.
+Auf Desktop kann der Ghost weiterhin der Mausposition folgen. Auch dort ist „Bauen“ die explizite Bestätigung; ein Karten-Klick baut nicht unmittelbar.
 
 ## Zeit und Spielgeschwindigkeit
 
@@ -188,7 +191,8 @@ Referenzgerät ist ein iPhone 13 Mini mit 375 × 812 CSS-Pixeln.
 - Kartenzoom: 0,7× bis 3,5×.
 - Desktop: Mausrad-Zoom und Pointer-Drag.
 - Touch: ein Finger verschiebt, zwei Finger zoomen.
-- Kurzer Tap wählt oder bestätigt im Baumodus; erkennbare Ziehbewegung gilt als Pan.
+- Im Baumodus verschiebt ein kurzer Tap nur den Ghost; Ziehen bleibt Pan.
+- Der Bau wird im Baumodus ausschließlich mit „Bauen“ bestätigt oder mit „Abbrechen“ verworfen.
 - Overlays berücksichtigen Safe Areas.
 
 ## Simulationsreihenfolge

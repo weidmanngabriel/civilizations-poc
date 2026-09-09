@@ -28,7 +28,6 @@ const MAX_CAMERA_ZOOM = 3.5;
 const WHEEL_ZOOM_SENSITIVITY = 0.0015;
 const TAP_MAX_DISTANCE = 8;
 const TARGET_MODE_DIM_ALPHA = 0.22;
-const TOUCH_GHOST_OFFSET = 54;
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
 const TILE_SELECTED_EVENT = "poc-tile-selected";
 const BUILDING_SELECTION_REQUESTED_EVENT = "poc-building-selection-requested";
@@ -131,6 +130,7 @@ export class MainScene extends Phaser.Scene {
         : undefined;
       this.selectedBuildingId = undefined;
       this.selectedTile = undefined;
+      if (this.buildHover) this.emitBuildPosition();
       this.renderWorld();
     };
 
@@ -184,25 +184,26 @@ export class MainScene extends Phaser.Scene {
       .sort((a, b) => a.distance - b.distance)[0]?.tile;
   }
 
-  private updateBuildHover(screenX: number, screenY: number): void {
+  private emitBuildPosition(): void {
+    if (!this.buildHover) return;
+    window.dispatchEvent(new CustomEvent(BUILD_POSITION_SELECTED_EVENT, {
+      detail: { position: { ...this.buildHover } },
+    }));
+  }
+
+  private updateBuildHover(screenX: number, screenY: number, notify = false): void {
     if (!this.buildKind) return;
     const tile = this.nearestTileAtScreenPoint(screenX, screenY);
     const next = tile ? { q: tile.q, r: tile.r } : undefined;
     if ((!next && !this.buildHover) || (next && this.buildHover && same(next, this.buildHover))) return;
     this.buildHover = next;
+    if (notify) this.emitBuildPosition();
     this.renderWorld();
   }
 
   private selectAtScreenPoint(screenX: number, screenY: number): void {
     if (this.buildKind) {
-      const tile = this.nearestTileAtScreenPoint(screenX, screenY);
-      if (tile) {
-        this.buildHover = { q: tile.q, r: tile.r };
-        window.dispatchEvent(new CustomEvent(BUILD_POSITION_SELECTED_EVENT, {
-          detail: { position: this.buildHover },
-        }));
-        this.renderWorld();
-      }
+      this.updateBuildHover(screenX, screenY, true);
       return;
     }
 
@@ -279,22 +280,20 @@ export class MainScene extends Phaser.Scene {
         pointer.y,
         this.cameras.main.zoom * Math.exp(-deltaY * WHEEL_ZOOM_SENSITIVITY),
       );
-      this.updateBuildHover(pointer.x, pointer.y);
+      if (this.buildKind) this.updateBuildHover(pointer.x, pointer.y, true);
     });
 
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       const position = { x: pointer.x, y: pointer.y };
       this.activePointers.set(pointer.id, position);
       this.pointerDown.set(pointer.id, position);
-      if (this.buildKind)
-        this.updateBuildHover(pointer.x, pointer.y - (this.isTouch(pointer) ? TOUCH_GHOST_OFFSET : 0));
     });
 
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
-      const previewY = pointer.y - (this.isTouch(pointer) ? TOUCH_GHOST_OFFSET : 0);
       const previous = this.activePointers.get(pointer.id);
       if (!previous) {
-        this.updateBuildHover(pointer.x, previewY);
+        if (this.buildKind && !this.isTouch(pointer))
+          this.updateBuildHover(pointer.x, pointer.y, true);
         return;
       }
       const oldPositions = [...this.activePointers.values()];
@@ -321,7 +320,8 @@ export class MainScene extends Phaser.Scene {
         camera.scrollX -= (pointer.x - previous.x) / camera.zoom;
         camera.scrollY -= (pointer.y - previous.y) / camera.zoom;
       }
-      this.updateBuildHover(pointer.x, previewY);
+      if (this.buildKind && !this.isTouch(pointer))
+        this.updateBuildHover(pointer.x, pointer.y, true);
     });
 
     const releasePointer = (pointer: Phaser.Input.Pointer) => {
@@ -334,8 +334,7 @@ export class MainScene extends Phaser.Scene {
         wasSinglePointer &&
         Phaser.Math.Distance.Between(start.x, start.y, pointer.x, pointer.y) <= TAP_MAX_DISTANCE
       ) {
-        const offset = this.buildKind && this.isTouch(pointer) ? TOUCH_GHOST_OFFSET : 0;
-        this.selectAtScreenPoint(pointer.x, pointer.y - offset);
+        this.selectAtScreenPoint(pointer.x, pointer.y);
       }
     };
     this.input.on("pointerup", releasePointer);
