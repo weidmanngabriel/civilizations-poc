@@ -9,6 +9,7 @@ export interface Hex {
 }
 export interface Tile extends Hex {
   terrain: "grass" | "road" | "forest" | "mountain" | "river" | "building";
+  trafficTicks?: number[];
 }
 export interface Recipe {
   input?: Good;
@@ -51,6 +52,7 @@ export interface Person {
   woodcutter?: boolean;
   active: boolean;
   progress: number;
+  movement: number;
   path: Hex[];
   trip?: Trip;
 }
