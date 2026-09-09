@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createWorld } from "../src/simulation/scenario";
 import {
   assigned,
+  buildAt,
   building,
   changeAssignment,
   changeWoodcutters,
@@ -12,9 +13,9 @@ import {
 
 function activeSawmillWorker() {
   const world = createWorld();
-  const sawmill = building(world, "sawmill");
-  changeAssignment(world, "sawmill", "worker", 1);
-  const worker = assigned(world, "sawmill", "worker")[0]!;
+  const sawmill = buildAt(world, { q: 7, r: 4 }, "sawmill")!;
+  changeAssignment(world, sawmill.id, "worker", 1);
+  const worker = assigned(world, sawmill.id, "worker")[0]!;
   worker.position = { ...sawmill.position };
   worker.path = [];
   worker.active = true;
@@ -44,7 +45,7 @@ test("production worker keeps producing while input and output space allow it", 
   assert.equal(worker.progress, 0);
   assert.deepEqual(worker.trip, {
     source: forest.id,
-    target: "sawmill",
+    target: sawmill.id,
     good: "wood",
     picked: false,
   });
@@ -62,7 +63,7 @@ test("production worker keeps filling free input slots while output is full", ()
   assert.equal(worker.progress, 0);
   assert.deepEqual(worker.trip, {
     source: forest.id,
-    target: "sawmill",
+    target: sawmill.id,
     good: "wood",
     picked: false,
   });
