@@ -39,19 +39,17 @@ Buildings may additionally carry a `footprint` containing all occupied Hex posit
 
 ## Fixed simulation time
 
-The simulation quantum is 1/60 simulated second. `tick()` always advances exactly this fixed amount.
+At displayed 1×, the simulation keeps its fixed **60 Hz** update cadence. `tick()` is still called about 60 times per real second, so movement receives a fresh deterministic state every display frame on a typical 60 Hz screen.
 
-Per simulated second:
+The slower game pace is implemented in the balance constants instead of reducing tick cadence:
 
-- 60 tick calls = 1 simulated second,
-- normal production duration is about 60 ticks,
-- base movement earns `10 / 60` tile-distance per tick.
+- normal production duration: 240 ticks, about 4 real seconds at 1×,
+- base movement: `2.5 / 60` tile-distance per tick, or 2.5 tiles/second at 1×,
+- organic-road traffic window: 1920 ticks, or 32 seconds at 1×.
 
-The grid is now about twice as dense as before, so 10 tiles/simulated-second preserves the intended spatial scale while rendering remains independent.
+These values are exactly one quarter of the previous movement rate / four times the previous durations, so gameplay remains 75% slower while the state update frequency remains fine-grained.
 
-The UI uses a `requestAnimationFrame` accumulator. Real frame time is multiplied by the selected relative speed (`0.5`, `1`, `2`, `3`) and by a global base-game-speed factor of **0.25**, then consumed in fixed 1/60-second quanta. At displayed 1×, one real second therefore advances 0.25 simulated seconds. Rendering stays on the browser animation loop and is not slowed. Pausing stops simulation advancement while Phaser continues to render and accept camera input.
-
-The current implementation applies the 0.25 factor once after `mountControls()` by remapping the speed buttons' internal `data-sim-speed` values while leaving their visible labels relative (`0.5×`, `1×`, `2×`, `3×`). This keeps the simulation core unchanged and preserves the fixed tick rate.
+The UI still uses a `requestAnimationFrame` accumulator and the relative speed choices `0.5`, `1`, `2`, `3`. Rendering stays on the browser animation loop and is independent from simulation speed. Pausing stops simulation advancement while Phaser continues to render and accept camera input.
 
 ## Navigation and movement
 
@@ -74,7 +72,7 @@ The warehouse collection radius uses `findPathBySteps()` so faster roads do not 
 Grass records recent traversal timestamps in `Tile.trafficTicks`.
 
 - threshold: 8 traversals,
-- rolling window: 8 simulated seconds / 480 ticks,
+- rolling window: 32 seconds at 1× / 1920 ticks,
 - on threshold: grass becomes road immediately,
 - current tasks reroute so agents can exploit new roads.
 
@@ -125,9 +123,9 @@ Production inputs remain inside the building until completion. In-progress produ
 
 Current recipes at 1×:
 
-- forest: 1 wood / ~1 simulated second (~4 real seconds),
-- sawmill: 2 wood → 1 plank / ~1 simulated second (~4 real seconds),
-- carpenter: 2 plank → 1 wooden tool / ~1 simulated second (~4 real seconds).
+- forest: 1 wood / ~4 seconds,
+- sawmill: 2 wood → 1 plank / ~4 seconds,
+- carpenter: 2 plank → 1 wooden tool / ~4 seconds.
 
 ## Warehouse and logistics model
 
@@ -234,6 +232,8 @@ When the player chooses a building type, the normal selection panel and bottom c
 ## Presentation performance
 
 Phaser's renderer continues on the browser animation loop, normally up to display refresh. Simulation advancement is decoupled through the fixed-step accumulator.
+
+At 1× the accumulator consumes fixed steps at the full 60 Hz cadence. Slower gameplay is expressed through smaller per-tick movement and longer tick-based durations, avoiding the visible 15 Hz stepping that occurred when the 0.25 factor was applied to the accumulator itself.
 
 A frame delta is capped before entering the accumulator to avoid large catch-up bursts after suspended/backgrounded tabs. A frame also caps the number of fixed simulation steps processed at once.
 
