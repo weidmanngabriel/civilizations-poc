@@ -23,6 +23,7 @@ export interface Building {
   kind: BuildingKind;
   name: string;
   position: Hex;
+  footprint?: Hex[];
   workers: number;
   carriers: number;
   merchants?: number;
@@ -31,6 +32,7 @@ export interface Building {
   output: number;
   inventory?: Inventory;
   baseTerrain?: "grass" | "road";
+  baseTerrains?: Record<string, "grass" | "road">;
   forestRemaining?: number;
   retired?: boolean;
 }
