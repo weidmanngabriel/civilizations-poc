@@ -1,5 +1,15 @@
-import type { Building, BuildingId, Good, Hex, Person, Role, Tile, World } from "./model";
-import { findPath, key, same } from "./hex";
+import type {
+  BuildableBuildingKind,
+  Building,
+  BuildingId,
+  Good,
+  Hex,
+  Person,
+  Role,
+  Tile,
+  World,
+} from "./model";
+import { findPath, same } from "./hex";
 import { CONFIG } from "./scenario";
 
 export const building = (w: World, id: BuildingId): Building =>
@@ -12,13 +22,16 @@ export const woodcutters = (w: World): Person[] =>
   w.people.filter((p) => p.woodcutter);
 export const freePeople = (w: World): Person[] =>
   w.people.filter((p) => !p.assignment && !p.woodcutter);
-const incoming = (w: World, id: BuildingId) =>
-  w.people.filter((p) => p.trip?.target === id).length;
+const incoming = (w: World, id: BuildingId, good?: Good) =>
+  w.people.filter(
+    (p) => p.trip?.target === id && (!good || p.trip.good === good),
+  ).length;
 const heldOutput = (w: World, id: BuildingId) =>
   w.people.filter((p) => p.trip?.source === id && p.trip.picked).length;
-const available = (w: World, b: Building) =>
-  b.output -
-  w.people.filter((p) => p.trip?.source === b.id && !p.trip.picked).length;
+const reservedAtSource = (w: World, id: BuildingId, good: Good) =>
+  w.people.filter(
+    (p) => p.trip?.source === id && p.trip.good === good && !p.trip.picked,
+  ).length;
 const producing = (w: World, id: BuildingId) =>
   w.people.filter((p) => p.assignment?.building === id && p.progress > 0)
     .length;
@@ -30,11 +43,59 @@ const route = (w: World, p: Person, b: Building) => {
 const tileAt = (w: World, position: Hex): Tile =>
   w.tiles.find((tile) => same(tile, position))!;
 
+export const warehouseStock = (b: Building, good: Good): number =>
+  b.kind === "warehouse" ? (b.inventory?.[good] ?? 0) : 0;
+export const totalWarehouseStock = (w: World, good: Good): number =>
+  w.buildings
+    .filter((b) => !b.retired && b.kind === "warehouse")
+    .reduce((sum, b) => sum + warehouseStock(b, good), 0);
+
+const sourceStock = (b: Building, good: Good): number => {
+  if (b.kind === "warehouse") return warehouseStock(b, good);
+  return b.recipe?.output === good ? b.output : 0;
+};
+const available = (w: World, b: Building, good: Good) =>
+  sourceStock(b, good) - reservedAtSource(w, b.id, good);
+const warehouseHasSpace = (w: World, b: Building, good: Good) =>
+  warehouseStock(b, good) + incoming(w, b.id, good) <
+  CONFIG.warehouseCapacityPerGood;
+
+function returnCargoToSource(w: World, p: Person): void {
+  if (!p.trip?.picked) return;
+  const source = w.buildings.find((b) => b.id === p.trip!.source);
+  if (!source) return;
+  if (source.kind === "warehouse") {
+    source.inventory ??= { wood: 0, plank: 0, woodenTool: 0 };
+    source.inventory[p.trip.good] += CONFIG.carryCapacity;
+  } else {
+    source.output += CONFIG.carryCapacity;
+  }
+}
+
 function cancel(w: World, p: Person): void {
-  if (p.trip?.picked) building(w, p.trip.source).output += CONFIG.carryCapacity;
+  returnCargoToSource(w, p);
   p.trip = undefined;
   p.progress = 0;
   p.path = [];
+}
+
+function rerouteCurrentTask(w: World, p: Person): void {
+  if (p.trip) {
+    const target = w.buildings.find(
+      (b) => b.id === (p.trip!.picked ? p.trip!.target : p.trip!.source),
+    );
+    if (target) route(w, p, target);
+    else p.path = [];
+    return;
+  }
+  if (p.assignment) {
+    const target = w.buildings.find((b) => b.id === p.assignment!.building);
+    if (target) route(w, p, target);
+    else p.path = [];
+    return;
+  }
+  const hq = w.buildings.find((b) => b.id === "hq");
+  if (hq && !same(p.position, hq.position)) route(w, p, hq);
 }
 
 export function changeAssignment(
@@ -132,6 +193,7 @@ function activateForest(w: World, tile: Tile): Building {
   const number = w.nextForestId++;
   const forest: Building = {
     id: `forest-${number}`,
+    kind: "forest",
     name: `Wald ${number}`,
     position: { q: tile.q, r: tile.r },
     workers: 1,
@@ -182,35 +244,45 @@ export function changeWoodcutters(w: World, delta: 1 | -1): boolean {
   return true;
 }
 
+type SourceCandidate = { source: Building; good: Good; path: Hex[] };
+
 function requestInput(w: World, p: Person, b: Building): void {
-  const good: Good | undefined =
-    b.id === "warehouse" ? "woodenTool" : b.recipe?.input;
+  const goods: Good[] = b.kind === "warehouse"
+    ? ["wood", "plank", "woodenTool"]
+    : b.recipe?.input
+      ? [b.recipe.input]
+      : [];
+  if (!goods.length) return;
   if (
-    !good ||
-    (b.id !== "warehouse" &&
-      b.input + incoming(w, b.id) >= CONFIG.inputCapacity)
+    b.kind !== "warehouse" &&
+    b.input + incoming(w, b.id) >= CONFIG.inputCapacity
   )
     return;
-  const sources = w.buildings
-    .filter(
-      (s) =>
-        (!s.retired || (s.forestRemaining === 0 && s.output > 0)) &&
-        s.recipe?.output === good &&
-        available(w, s) > 0 &&
-        (b.id !== "warehouse" || s.id === "carpenter"),
-    )
-    .map((source) => ({
-      source,
-      path: findPath(w.tiles, p.position, source.position),
-    }))
-    .filter(
-      (s): s is { source: Building; path: NonNullable<typeof s.path> } =>
-        s.path !== null,
-    )
-    .sort((a, b) => a.path.length - b.path.length);
+
+  const sources: SourceCandidate[] = [];
+  for (const good of goods) {
+    if (b.kind === "warehouse" && !warehouseHasSpace(w, b, good)) continue;
+    for (const source of w.buildings) {
+      if (
+        source.id === b.id ||
+        source.retired && !(source.forestRemaining === 0 && source.output > 0) ||
+        available(w, source, good) <= 0 ||
+        (b.kind === "warehouse" && source.kind === "warehouse")
+      )
+        continue;
+      const path = findPath(w.tiles, p.position, source.position);
+      if (path) sources.push({ source, good, path });
+    }
+  }
+  sources.sort((a, b) => a.path.length - b.path.length);
   const source = sources[0];
   if (!source) return;
-  p.trip = { source: source.source.id, target: b.id, good, picked: false };
+  p.trip = {
+    source: source.source.id,
+    target: b.id,
+    good: source.good,
+    picked: false,
+  };
   p.path = source.path;
 }
 
@@ -236,6 +308,102 @@ function assignWaitingWoodcutters(w: World): void {
   }
 }
 
+const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | "position" | "baseTerrain"> => {
+  if (kind === "sawmill")
+    return {
+      kind,
+      name: "Sägewerk",
+      workers: 1,
+      carriers: 2,
+      input: 0,
+      output: 0,
+      recipe: { input: "wood", amount: 2, output: "plank", duration: CONFIG.duration },
+    };
+  if (kind === "carpenter")
+    return {
+      kind,
+      name: "Schreinerei",
+      workers: 1,
+      carriers: 2,
+      input: 0,
+      output: 0,
+      recipe: { input: "plank", amount: 2, output: "woodenTool", duration: CONFIG.duration },
+    };
+  return {
+    kind,
+    name: "Lager",
+    workers: 0,
+    carriers: 2,
+    input: 0,
+    output: 0,
+    inventory: { wood: 0, plank: 0, woodenTool: 0 },
+  };
+};
+
+export function buildAt(
+  w: World,
+  position: Hex,
+  kind: BuildableBuildingKind,
+): Building | undefined {
+  const tile = w.tiles.find((candidate) => same(candidate, position));
+  if (!tile || (tile.terrain !== "grass" && tile.terrain !== "road")) return;
+  const baseTerrain = tile.terrain;
+  const number = w.nextBuildingId++;
+  const b: Building = {
+    ...buildingDefinition(kind),
+    id: `${kind}-${number}`,
+    position: { q: tile.q, r: tile.r },
+    baseTerrain,
+  };
+  w.buildings.push(b);
+  tile.terrain = "building";
+  for (const p of w.people) rerouteCurrentTask(w, p);
+  return b;
+}
+
+export function removeBuilding(w: World, id: BuildingId): boolean {
+  const index = w.buildings.findIndex((b) => b.id === id);
+  if (index < 0) return false;
+  const removed = w.buildings[index]!;
+  if (removed.kind === "hq" || removed.kind === "forest") return false;
+
+  for (const p of w.people) {
+    const affectedTrip = p.trip?.source === id || p.trip?.target === id;
+    if (affectedTrip) cancel(w, p);
+    if (p.assignment?.building === id) {
+      p.assignment = undefined;
+      p.active = false;
+      p.progress = 0;
+      route(w, p, building(w, "hq"));
+    } else if (affectedTrip) {
+      rerouteCurrentTask(w, p);
+    }
+  }
+
+  w.buildings.splice(index, 1);
+  tileAt(w, removed.position).terrain = removed.baseTerrain ?? "grass";
+  for (const p of w.people) {
+    if (same(p.position, removed.position)) continue;
+    if (p.path.some((step) => same(step, removed.position))) rerouteCurrentTask(w, p);
+  }
+  return true;
+}
+
+export function setRoad(w: World, position: Hex, enabled: boolean): boolean {
+  const tile = w.tiles.find((candidate) => same(candidate, position));
+  if (!tile) return false;
+  if (enabled) {
+    if (tile.terrain !== "grass") return false;
+    tile.terrain = "road";
+  } else {
+    if (tile.terrain !== "road" || w.people.some((p) => same(p.position, tile)))
+      return false;
+    tile.terrain = "grass";
+  }
+  for (const p of w.people) rerouteCurrentTask(w, p);
+  return true;
+}
+
 /** One deterministic round: move everyone once, handle arrivals, work, then plan. */
 export function tick(w: World): void {
   w.round++;
@@ -251,12 +419,19 @@ export function tick(w: World): void {
       if (!p.trip.picked) {
         const source = building(w, p.trip.source);
         if (!same(p.position, source.position)) continue;
-        source.output -= CONFIG.carryCapacity;
+        if (source.kind === "warehouse") {
+          source.inventory![p.trip.good] -= CONFIG.carryCapacity;
+        } else {
+          source.output -= CONFIG.carryCapacity;
+        }
         p.trip.picked = true;
         route(w, p, b);
       } else if (same(p.position, b.position)) {
-        if (b.id === "warehouse") b.output += CONFIG.carryCapacity;
-        else b.input += CONFIG.carryCapacity;
+        if (b.kind === "warehouse") {
+          b.inventory![p.trip.good] += CONFIG.carryCapacity;
+        } else {
+          b.input += CONFIG.carryCapacity;
+        }
         p.trip = undefined;
       }
     } else if (same(p.position, b.position)) p.active = true;
@@ -313,10 +488,10 @@ export const GOODS: Record<Good, string> = {
 
 export function status(w: World, b: Building): string {
   const workers = assigned(w, b.id, "worker");
-  if (b.id === "hq") return "Sammelpunkt für freie Personen";
-  if (b.id === "warehouse")
+  if (b.kind === "hq") return "Sammelpunkt für freie Personen";
+  if (b.kind === "warehouse")
     return assigned(w, b.id, "carrier").length
-      ? "Träger sammeln Holzwerkzeuge"
+      ? "Träger sammeln Waren aus Produktionsorten"
       : "Keine Träger zugewiesen";
   if (b.forestRemaining !== undefined) {
     if (b.retired) return "Erschöpft";
