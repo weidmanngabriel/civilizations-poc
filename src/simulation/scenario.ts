@@ -3,6 +3,7 @@ import type { Building, Hex, Tile, World } from "./model";
 export const CONFIG = {
   population: 8,
   simulationHz: 60,
+  decisionIntervalTicks: 60,
   duration: 240,
   baseMovementTilesPerSecond: 2.5,
   movementPerTick: 2.5 / 60,
