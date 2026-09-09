@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createWorld } from "../src/simulation/scenario";
-import { findPath } from "../src/simulation/hex";
+import { findPathBySteps } from "../src/simulation/hex";
 import {
   assigned,
   buildAt,
@@ -12,17 +12,17 @@ import {
 } from "../src/simulation/simulation";
 import type { Hex, World } from "../src/simulation/model";
 
-function reachableRoad(w: World, origin: Hex): Hex {
+function reachableBuildableTile(w: World, origin: Hex): Hex {
   const candidate = w.tiles
-    .filter((tile) => tile.terrain === "road")
-    .map((tile) => ({ tile, path: findPath(w.tiles, origin, tile) }))
+    .filter((tile) => tile.terrain === "grass" || tile.terrain === "road")
+    .map((tile) => ({ tile, path: findPathBySteps(w.tiles, origin, tile) }))
     .filter((entry) => entry.path && entry.path.length >= 2)
     .sort((a, b) => a.path!.length - b.path!.length)[0];
   assert.ok(candidate);
   return { q: candidate.tile.q, r: candidate.tile.r };
 }
 
-function runUntil(w: World, predicate: () => boolean, limit = 200): void {
+function runUntil(w: World, predicate: () => boolean, limit = 1000): void {
   for (let i = 0; i < limit && !predicate(); i++) tick(w);
   assert.ok(predicate(), "condition was not reached within tick limit");
 }
@@ -30,13 +30,14 @@ function runUntil(w: World, predicate: () => boolean, limit = 200): void {
 test("merchant moves one configured good between two warehouses and returns empty", () => {
   const w = createWorld();
   const source = buildAt(w, { q: 14, r: 11 }, "warehouse")!;
-  const target = buildAt(w, reachableRoad(w, source.position), "warehouse")!;
+  const target = buildAt(w, reachableBuildableTile(w, source.position), "warehouse")!;
   source.inventory!.wood = 2;
 
   assert.equal(changeAssignment(w, source.id, "merchant", 1), true);
   const merchant = assigned(w, source.id, "merchant")[0]!;
   merchant.position = { ...source.position };
   merchant.path = [];
+  merchant.movement = 0;
   merchant.active = true;
   assert.equal(setMerchantRoute(w, merchant.id, target.id, "wood"), true);
 
@@ -64,7 +65,7 @@ test("merchant moves one configured good between two warehouses and returns empt
 test("merchant waits when destination is full and target demolition clears the route", () => {
   const w = createWorld();
   const source = buildAt(w, { q: 14, r: 11 }, "warehouse")!;
-  const target = buildAt(w, reachableRoad(w, source.position), "warehouse")!;
+  const target = buildAt(w, reachableBuildableTile(w, source.position), "warehouse")!;
   source.inventory!.plank = 1;
   target.inventory!.plank = 20;
 
@@ -72,6 +73,7 @@ test("merchant waits when destination is full and target demolition clears the r
   const merchant = assigned(w, source.id, "merchant")[0]!;
   merchant.position = { ...source.position };
   merchant.path = [];
+  merchant.movement = 0;
   merchant.active = true;
   setMerchantRoute(w, merchant.id, target.id, "plank");
 
