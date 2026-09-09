@@ -2,34 +2,58 @@
 
 ## PoC 1: Produktionslogistik auf einem Hex-Grid
 
-Ziel des ersten Proof of Concept ist es, den Kern der personenbasierten Produktionslogistik zu testen. Waren liegen physisch an Orten, Personen bewegen sie sichtbar über die Karte, und Laufwege sollen spielerisch relevant sein.
+Ziel des ersten Proof of Concept ist eine personenbasierte Produktions- und Logistiksimulation. Waren liegen physisch an Orten, Personen bewegen sie sichtbar über die Karte, und räumliche Planung soll einen direkten spielerischen Effekt haben.
 
-## Kartenstruktur
+## Karte und Terrain
 
-- Jedes Kartenfeld ist ein Hexfeld.
-- Gebäude belegen jeweils genau ein Hexfeld.
-- Weg-, Wald- und Gebäudekacheln sind begehbar.
-- Wiesen, Berge und Flüsse sind aktuell nicht begehbar.
-- Die feste Startkarte umfasst **21 × 13 Hexfelder**.
-- Zu Beginn ist **nur das Hauptquartier** gebaut. Lager, Sägewerke und Schreinereien werden vom Spieler platziert.
-- Zu Beginn gibt es keinen aktiven Wald als Arbeitsstätte. Mehrere kleine Gruppen passiver Waldkacheln sind über die Karte verteilt.
-- Das Straßennetz enthält bewusst längere Wege, Abzweigungen und Umwege.
-- Lager, Sägewerke und Schreinereien können frei auf leeren Wiesen- oder Wegkacheln platziert werden.
-- Der Bau erfolgt im aktuellen PoC sofort und ohne Baukosten oder Bauarbeiter.
-- Wiesen können zu Wegen gemacht werden. Wege können wieder zu Wiese entfernt werden, solange keine Person auf der Kachel steht.
+- Die Welt ist ein festes **21 × 13 Hex-Grid**.
+- Gebäude belegen jeweils genau eine Kachel.
+- Zu Beginn existiert **nur das Hauptquartier** als Gebäude.
+- Mehrere kleine Gruppen passiver Waldkacheln sind auf der Karte verteilt.
+- Zu Beginn gibt es **keine Wege**.
+- **Wiese, Wald, Wege und Gebäudekacheln sind begehbar.**
+- **Wasser und Berge sind nicht begehbar.**
+- Lager, Sägewerke und Schreinereien können auf freien Wiesen- oder Wegkacheln sofort und kostenlos gebaut werden.
+- Das HQ und aktive Wälder können nicht manuell abgerissen werden.
 
-## Zeit und Bewegung
+## Zeit und Spielgeschwindigkeit
 
-Die Simulation läuft intern in diskreten Schritten. Diese Schritte sind eine technische Grundlage und werden im normalen Spiel nicht als Runden gezählt oder angezeigt.
+Die Simulation besitzt einen festen internen Zeitschritt von **60 Simulationsschritten pro Sekunde bei 1×**. Dieser technische Takt wird dem Spieler nicht als Rundenzähler oder FPS-Wert gezeigt.
 
-- Jede begehbare Kante kostet aktuell einen Simulationsschritt.
-- Jede Person bewegt sich pro Schritt höchstens um eine Kante.
-- Der kürzeste erreichbare Weg wird über das Hex-Netz bestimmt.
-- Produktion dauert fünf Arbeitsschritte.
-- Das Spiel startet automatisch mit **5 FPS**.
-- Normaler Lauf: **1–10 FPS**.
-- **Pausieren** stoppt die Simulation. Nur im pausierten Zustand erscheint **„Nächster Schritt“**, womit genau ein Simulationsschritt ausgeführt wird.
-- Zusätzlich gibt es **Max FPS**, bei dem ein Simulationsschritt pro Browser-Animationsframe ausgeführt wird.
+Die Darstellung läuft unabhängig davon über den normalen Browser-/Phaser-Renderloop mit bis zu 60 FPS.
+
+Der Spieler steuert nur die **gesamte Simulationsgeschwindigkeit**:
+
+- **0,5×**
+- **1×** – Standard
+- **2×**
+- **3×**
+- **Pause**
+
+Die Geschwindigkeit wirkt auf die komplette Simulation: Bewegung, Produktion, Holzabbau, Transporte und Händler. Es gibt keinen FPS-Regler, keinen Max-FPS-Modus und keinen „Nächster Schritt“-Button mehr.
+
+Bei 1× entsprechen die bisherigen Spielzeiten ungefähr dem vorherigen 5-FPS-Stand: Ein normaler Produktionsvorgang dauert etwa **1 Sekunde Simulationszeit**.
+
+## Bewegung und organische Wege
+
+Personen bewegen sich nicht mehr nach der Regel „ein Tick = eine Kachel“. Jede Person sammelt stattdessen kontinuierlich Bewegungsfortschritt.
+
+- Grundtempo auf Wiese, Wald und Gebäudekacheln: **5 Kacheln pro Simulationssekunde**.
+- Ein Weg macht Bewegung **30 % schneller**.
+- Nicht verbrauchter Bewegungsfortschritt bleibt während eines laufenden Wegs erhalten.
+- Die Wegfindung berücksichtigt die unterschiedlichen Bewegungskosten. Ein vorhandener Weg kann daher attraktiver sein als eine kürzere Route über Wiese.
+
+### Automatische Wegbildung
+
+Wege entstehen durch tatsächliche Nutzung der Landschaft:
+
+- Jede Überquerung einer Wiesen-Kachel wird gezählt.
+- Erreicht eine Wiesen-Kachel **8 Überquerungen innerhalb der letzten 8 Simulationssekunden**, wird sie automatisch zu einem Weg.
+- Ein automatisch entstandener Weg bleibt bestehen.
+- Sobald sich ein neuer Weg bildet, werden laufende Routen neu bewertet, damit Personen den Geschwindigkeitsvorteil nutzen können.
+- Die bestehende manuelle Weg-Bauen-/Entfernen-Funktion bleibt im PoC zusätzlich verfügbar.
+
+Damit verstärken sich häufig genutzte Routen selbst: Verkehr erzeugt Wege, Wege beschleunigen Verkehr, und die Wegfindung bevorzugt dadurch etablierte Verbindungen.
 
 ## Produktionskette
 
@@ -37,12 +61,12 @@ Nichts produziert ohne konkrete Person.
 
 Aktuelle Kette:
 
-- Wald: 5 Arbeitsschritte → 1 Holz.
-- Sägewerk: 2 Holz → 1 Brett in 5 Arbeitsschritten.
-- Schreinerei: 2 Bretter → 1 Holzwerkzeug in 5 Arbeitsschritten.
+- Wald: ca. 1 Simulationssekunde → 1 Holz.
+- Sägewerk: 2 Holz → 1 Brett in ca. 1 Simulationssekunde.
+- Schreinerei: 2 Bretter → 1 Holzwerkzeug in ca. 1 Simulationssekunde.
 - Lager: Träger sammeln verfügbare Waren aus nahe gelegenen Produktions- und Rohstofforten ein.
 
-Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt aktuell genau eine Ware pro Transportweg.
+Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt aktuell genau eine Einheit pro Transportweg.
 
 Sägewerk und Schreinerei besitzen jeweils einen Produktionsarbeiter-Slot und bis zu zwei Träger. Der Produktionsarbeiter produziert bevorzugt und beschafft nur dann selbst Rohstoffe, wenn die Produktion blockiert ist. Träger beschaffen ausschließlich die Inputs ihrer zugewiesenen Arbeitsstätte.
 
@@ -53,219 +77,152 @@ Produktions- und Rohstofforte besitzen getrennte Kapazitäten:
 - Input: maximal 10 Einheiten.
 - Output: maximal 3 Einheiten.
 
-Lager besitzen stattdessen einen echten lokalen Bestand pro Warentyp:
+Lager besitzen einen lokalen Bestand pro Warentyp:
 
-- maximal **20 Holz**,
-- maximal **20 Bretter**,
-- maximal **20 Holzwerkzeuge**.
+- maximal 20 Holz,
+- maximal 20 Bretter,
+- maximal 20 Holzwerkzeuge.
 
-Ein Produktionsvorgang startet nur, wenn Platz für den späteren Output reserviert werden kann. Bereits geplante Transporte zählen gegen die Zielkapazität. Eine vorhandene Ware wird beim Abholauftrag reserviert, damit sie nicht mehrfach verplant werden kann.
+Ein Produktionsvorgang startet nur, wenn Platz für den späteren Output reserviert werden kann. Bereits geplante Transporte zählen gegen die Zielkapazität. Eine vorhandene Ware wird beim Abholauftrag reserviert, damit sie nicht mehrfach verplant wird.
 
-Lager-Träger sammeln Waren nur aus einem **Umkreis von maximal 5 tatsächlich begehbaren Kachelschritten** um ihr Lager. Maßgeblich ist der kürzeste Weg vom Lager zur Warenquelle, nicht die geometrische Luftlinie. Eine Quelle mit einem notwendigen Weg von mehr als fünf Schritten wird von diesem Lager nicht automatisch eingesammelt.
+Lager-Träger sammeln Waren nur aus einem **Umkreis von maximal 5 tatsächlich begehbaren Kachelschritten** um ihr Lager. Diese Reichweite wird weiterhin in Kachelschritten und nicht in Bewegungszeit gemessen; ein schnellerer Weg vergrößert den Sammelradius also nicht.
 
 Waren in Lagern sind normale physische Warenquellen. Benötigt ein Sägewerk Holz oder eine Schreinerei Bretter, dürfen deren Arbeiter oder Träger die Ware aus einem erreichbaren Lager holen. Für diese bedarfsgetriebene Beschaffung gilt die 5-Schritte-Grenze nicht.
 
-Lager-Träger holen Waren weiterhin **niemals aus einem anderen Lager**. Dadurch entstehen keine automatischen Lager-zu-Lager-Umlagerungen. Ein Lager wird nur geleert, wenn eine Ware an einem Produktionsort tatsächlich benötigt wird oder wenn ein Händler eine ausdrücklich eingerichtete Handelsroute bedient.
+Lager-Träger holen Waren **niemals aus einem anderen Lager**. Dadurch entstehen keine automatischen Lager-zu-Lager-Umlagerungen.
 
 Wird ein Transport während des Tragens abgebrochen, kehrt die Ware zur ursprünglichen Quelle zurück, sofern diese noch existiert.
 
 ## Händler und Handelsrouten
 
-Händler sind eine eigene Rolle am Lager. Sie bilden die bewusste Ausnahme zur Regel, dass Lager-Träger niemals Lager-zu-Lager transportieren.
+Händler sind eine eigene Rolle am Lager und die bewusste Ausnahme zur Lager-zu-Lager-Regel.
 
-- Ein Lager kann aktuell bis zu **zwei Händler** haben.
+- Ein Lager kann bis zu zwei Händler haben.
 - Jeder Händler gehört zu genau einem Startlager.
 - Pro Händler wird genau eine Route konfiguriert.
-- Eine Route besteht aus einem Ziellager und genau einem Warentyp: Holz, Bretter oder Holzwerkzeuge.
-- Der Warentyp wird direkt beim Händler gewählt.
-- Das Ziellager wird ausschließlich über einen eigenen **Ziellager-wählen-Modus** auf der Karte gesetzt; es gibt dafür kein Dropdown.
-- Handelsrouten unterliegen **nicht** der 5-Kachel-Grenze der Lager-Träger.
-- Der Händler transportiert pro Fahrt genau **eine Einheit**.
+- Eine Route besteht aus einem Ziellager und einem Warentyp: Holz, Bretter oder Holzwerkzeuge.
+- Die Route unterliegt nicht dem 5-Kachel-Radius der Lager-Träger.
+- Der Händler transportiert pro Fahrt genau eine Einheit.
 
-Ablauf einer Route:
+Ablauf:
 
-1. Der Händler wartet am Startlager.
-2. Ist die konfigurierte Ware verfügbar und das Ziellager nicht voll, wird genau eine Einheit reserviert.
-3. Der Händler nimmt die Einheit auf und läuft zum Ziellager.
-4. Dort legt er die Ware ab.
-5. Danach läuft er **leer zurück** zum Startlager.
-6. Anschließend beginnt der Zyklus erneut.
+1. Händler wartet am Startlager.
+2. Ware und Zielkapazität werden reserviert.
+3. Händler bringt eine Einheit zum Ziellager.
+4. Händler läuft leer zurück.
+5. Der Zyklus beginnt erneut.
 
-Ist im Startlager nichts verfügbar, das Ziellager voll oder nicht erreichbar, wartet der Händler. Es gibt aktuell keinen Rücktransport einer zweiten Ware, keine Preise und keinen Tauschhandel.
-
-Wird das Ziellager abgerissen, verliert die Route ihr Ziel und der Händler bleibt seinem Startlager zugewiesen. Wird das Startlager abgerissen, wird der Händler frei und kehrt Richtung HQ zurück. Laufende Transporte werden wie andere Transporte sauber abgebrochen.
+Es gibt aktuell keinen Rücktransport einer zweiten Ware, keine Preise und keinen Tauschhandel.
 
 ### Ziellager-wählen-Modus
 
-Die Wahl des Ziellagers ist bewusst als eigener Kartenmodus gestaltet und orientiert sich am Originalspiel:
+Das Ziellager wird direkt auf der Karte gewählt:
 
-- Beim Start wird die laufende Simulation automatisch pausiert.
-- War das Spiel bereits pausiert, bleibt dieser Zustand nach Ende der Auswahl bestehen.
-- War das Spiel vorher aktiv, läuft es nach Ende der Auswahl automatisch weiter.
-- Die Karte bleibt sichtbar und wird nur **leicht** abgedunkelt, damit Orientierung und Umgebung weiterhin erkennbar bleiben.
-- Nur gültige Ziellager bleiben visuell stark hervorgehoben.
-- Das Startlager selbst ist kein gültiges Ziel.
-- Andere Gebäude, Kacheln, Bauaktionen und normale UI-Steuerungen sind währenddessen nicht auswählbar.
-- Verschieben und Zoomen der Karte bleibt erlaubt, damit auch weiter entfernte Lager gewählt werden können.
-- Sichtbar bleibt ein klarer Hinweis **„Ziellager wählen“** mit **„Abbrechen“**.
-- Ein Tap auf ein gültiges Lager setzt das Ziel und beendet den Modus sofort.
-- Ein Tap auf ein ungültiges Ziel bewirkt nichts.
-- Beim Start der Auswahl werden Kameraposition und Zoom gespeichert.
-- Nach Auswahl oder Abbruch springt die Kamera exakt auf diese gespeicherte Position und Zoomstufe zurück.
+- Die Simulation pausiert während der Auswahl.
+- Nur gültige Ziellager werden deutlich hervorgehoben.
+- Andere Kartenaktionen sind gesperrt; Pan und Zoom bleiben möglich.
+- Auswahl oder Abbruch stellt Kameraposition und Zoom wieder her.
+- War die Simulation vorher aktiv, läuft sie danach mit der zuvor gewählten Geschwindigkeit weiter.
+- War sie vorher pausiert, bleibt sie pausiert.
 
 ## Gebäude bauen und abreißen
 
-Ein Klick auf eine freie Wiesen- oder Wegkachel öffnet die lokalen Bauoptionen.
-
-Aktuell frei baubar:
+Frei baubar sind:
 
 - Lager,
 - Sägewerk,
 - Schreinerei.
 
-HQ und Wälder sind nicht frei baubar.
-
-Normale Produktionsgebäude und Lager können über ihr Gebäude-Panel wieder abgerissen werden. Vor dem Abriss erscheint eine Bestätigung. Beim Abriss:
+Beim Abriss eines normalen Gebäudes:
 
 - verschwindet das Gebäude sofort,
-- vorhandene Waren im Gebäude verfallen,
-- zugewiesene Arbeiter, Träger und Händler werden frei und kehren Richtung HQ zurück,
-- betroffene Transportaufträge und Handelsrouten werden abgebrochen beziehungsweise ungültige Ziele entfernt,
-- die Kachel wird auf ihren vorherigen Untergrund zurückgesetzt.
-
-Das HQ und aktive Wälder können nicht manuell abgerissen werden.
+- lokale Waren verfallen,
+- zugewiesene Personen werden frei und laufen zum HQ,
+- betroffene Transporte und Handelsrouten werden bereinigt,
+- die Kachel erhält ihren vorherigen Untergrund zurück.
 
 ## Holzfäller und Wälder
 
-Holzfäller sind ein globaler Beruf und werden keinem bestimmten Wald manuell zugewiesen.
+Holzfäller sind ein globaler Beruf und werden keinem Wald manuell zugewiesen.
 
-- Jeder freie Mensch kann zum Holzfäller ernannt werden.
-- Jeder Holzfäller sucht selbständig einen eigenen freien Wald.
+- Jeder freie Mensch kann Holzfäller werden.
+- Jeder Holzfäller sucht selbständig einen erreichbaren freien Wald.
 - Pro aktivem Wald arbeitet maximal ein Holzfäller.
-- Der nächstgelegene erreichbare freie Wald wird gewählt.
-- Bei mehreren gleich weit entfernten Kandidaten entscheidet ein reproduzierbarer Seed-Zufall.
+- Bei gleichwertigen Kandidaten entscheidet ein reproduzierbarer Seed-Zufall.
 - Passive Waldkacheln werden beim Anspruch zu aktiven Wald-Arbeitsstätten.
 - Ein Holzfäller ohne verfügbaren Wald bleibt Holzfäller und wartet beziehungsweise kehrt zum HQ zurück.
 
-Jeder aktive Wald besitzt **10 Holzvorrat** und maximal 3 lokalen Output. Sinkt der Vorrat, verblasst die Darstellung proportional, aber nie unter 35 %, solange der Wald existiert.
+Jeder aktive Wald besitzt **10 Holzvorrat** und maximal 3 lokalen Output. Die Darstellung verblasst proportional zum Restvorrat, aber nie unter 35 %, solange der Wald existiert.
 
-Nach der zehnten produzierten Holzeinheit verschwindet der Wald sofort. Seine Kachel wird Weg. Bereits produziertes Restholz bleibt an dieser Position liegen und kann weiterhin abgeholt werden. Der Holzfäller sucht anschließend ohne Teleportation den nächsten Wald.
+Nach der zehnten produzierten Holzeinheit verschwindet der Wald sofort. Seine Kachel wird wieder **Wiese**. Bereits produziertes Restholz bleibt an dieser Position liegen und kann weiterhin abgeholt werden. Ein Weg entsteht dort nur dann, wenn die normale Verkehrsregel erfüllt wird.
 
 ## Bevölkerung und Hauptquartier
 
 Der PoC startet mit acht Personen. Das ist kein dauerhaftes Bevölkerungslimit.
 
-Freie Personen sammeln sich am Hauptquartier. Freigesetzte Personen laufen von ihrer aktuellen Position zurück zum HQ; neue Zuweisungen können sie unterwegs umlenken. Eine Person zählt erst nach ihrer Ankunft als aktiv an einer stationären Arbeitsstätte.
+Freie Personen sammeln sich am HQ. Freigesetzte Personen laufen von ihrer aktuellen Position zurück; neue Zuweisungen können sie unterwegs umlenken. Eine Person zählt erst nach ihrer Ankunft als aktiv an einer stationären Arbeitsstätte.
 
-Die Debug-Bevölkerungssteuerung erzeugt oder entfernt Personen weiterhin direkt:
+Die Debug-Bevölkerungssteuerung erzeugt oder entfernt Personen direkt:
 
 - `+1`: neue freie Person am HQ.
 - `-1`: entfernt nur eine freie Person, die sich tatsächlich am HQ befindet.
 
-Langfristig soll Bevölkerung über normale Spielsysteme wie Nachwuchs und Tod entstehen beziehungsweise sinken.
+## Bedienung
 
-## Kartenbasierte Bedienung
+Die Karte ist dauerhaft bildschirmfüllend. Status und Steuerungen liegen als kompakte Overlays darüber.
 
-Die Karte ist die primäre und dauerhaft bildschirmfüllende Bedienoberfläche.
+- Kurzer Klick/Tap auf Gebäude: Gebäudedialog.
+- Kurzer Klick/Tap auf freie Kachel: lokale Bau- und Wegoptionen.
+- Unten: Pause/Fortsetzen und `0,5× / 1× / 2× / 3×`.
+- Oben: Build-Version und Kernmetriken.
+- Debug-Personenliste bleibt standardmäßig verborgen.
 
-- Die Karte belegt immer den gesamten Browser-Viewport.
-- Es gibt keine normale scrollende Seite mehr um die Karte herum.
-- Status und Steuerungen liegen als kompakte Overlays über der Karte.
-- Ein kurzer Klick/Tap auf ein Gebäude öffnet dessen Detailpanel.
-- Ein kurzer Klick/Tap auf eine freie Kachel öffnet die lokalen Bau- und Wegoptionen.
+### HQ
 
-Oben liegt ein kleines HUD mit Build-Version und Kernwerten wie Bevölkerung, freie Personen und Werkzeugbestand. Ein Rundenzähler wird nicht angezeigt.
-
-Unten liegt die Simulationssteuerung mit Pausieren/Fortsetzen, FPS-Regler und Max-FPS-Toggle. Der Button **„Nächster Schritt“** ist ausschließlich während einer Pause sichtbar.
-
-### Hauptquartier
-
-Das HQ enthält die globalen Personalsteuerungen:
-
-- aktuelle Bevölkerung und freie Personen,
+- Bevölkerung und freie Personen,
 - Bevölkerung `− / +`,
 - Holzfäller `− / +`,
 - globaler Status.
 
-### Sägewerk und Schreinerei
-
-Die Gebäudeansicht zeigt:
+### Produktionsgebäude
 
 - Rezept,
 - Input und Output,
 - Produktionsstatus,
 - Produktionsarbeiter `− / +`,
 - Träger `− / +`,
-- aktive gegenüber nur zugewiesenen Personen,
-- Abrissfunktion mit Bestätigung.
+- Abriss.
 
 ### Lager
 
-Die Lageransicht zeigt:
-
-- Holzbestand,
-- Brettbestand,
-- Holzwerkzeugbestand,
-- jeweils Kapazität 20,
-- Status,
+- Bestände je Warentyp,
 - Lager-Träger `− / +`,
 - Händler `− / +`,
-- je Händler den transportierten Warentyp,
-- je Händler nur den einfachen Zielstatus **„Ziel eingestellt“** oder **„Kein Ziel eingestellt“**,
-- je Händler den Button **„Ziellager wählen“**, der den eigenen Auswahlmodus startet,
-- Abrissfunktion mit Bestätigung.
-
-Es gibt bewusst keine Liste oder Dropdown-Auswahl von Lagern mehr, da die Lager im aktuellen PoC keine unterscheidenden Namen haben und die Karte selbst die sinnvollere räumliche Auswahloberfläche ist.
-
-### Aktive Wälder
-
-Ein aktiver Wald zeigt verbleibenden Holzvorrat, lokalen Holz-Output und Arbeitsstatus. Es gibt dort keine manuelle Holzfäller-Zuweisung und keine Abrissfunktion.
-
-### Debug-Personenliste
-
-Die globale Liste aller Personen und Transportaufträge bleibt als Entwicklungswerkzeug erhalten, ist aber standardmäßig verborgen. Händler und ihre Route werden dort ebenfalls sichtbar gemacht.
+- Warentyp und Zielstatus je Händler,
+- „Ziellager wählen“,
+- Abriss.
 
 ## Desktop und Mobile
 
-Das Spiel muss dauerhaft auch auf Smartphones bedienbar bleiben. Referenzgerät ist ein **iPhone 13 Mini mit 375 × 812 CSS-Pixeln**.
+Referenzgerät für Mobile ist ein **iPhone 13 Mini mit 375 × 812 CSS-Pixeln**.
 
 - Browser-/Seitenzoom wird unterdrückt.
-- Die Karte belegt `100vw × 100dvh` beziehungsweise den jeweils verfügbaren Viewport.
-- Kartenzoom: **0,7× bis 3,5×**.
-- Desktop: Mausrad zum Zoomen, Pointer-Drag zum Verschieben.
+- Karte belegt den gesamten Viewport.
+- Kartenzoom: 0,7× bis 3,5×.
+- Desktop: Mausrad-Zoom und Pointer-Drag.
 - Touch: ein Finger verschiebt, zwei Finger zoomen.
-- Ein kurzer Tap wählt Gebäude oder Kachel aus; eine erkennbare Ziehbewegung gilt als Pan und löst keine Auswahl aus.
-- Auf iOS Safari werden Gesten direkt am Canvas verarbeitet, damit die Karte statt der Webseite gezoomt wird.
-- Overlays berücksichtigen Safe-Area-Abstände für Notch und Home-Indikator.
+- Ein kurzer Tap wählt; eine erkennbare Ziehbewegung gilt als Pan.
+- Overlays berücksichtigen Safe Areas.
 
 ## Simulationsreihenfolge
 
-Pro Simulationsschritt gilt weiterhin:
+Pro festem Simulationsschritt:
 
-1. Personen bewegen sich höchstens einmal.
-2. Ankünfte, Abholungen und Lieferungen werden verarbeitet.
-3. Produktion schreitet fort beziehungsweise wird abgeschlossen.
-4. Erschöpfte Wälder verschwinden und Holzfäller suchen neue Standorte.
-5. Neue Beschaffungs- und Handelsaufträge werden geplant.
+1. Bewegungsfortschritt wird vergeben und mögliche Kachelwechsel werden ausgeführt.
+2. Wiesenverkehr wird registriert; neue Wege können entstehen und Routen neu geplant werden.
+3. Ankünfte, Abholungen und Lieferungen werden verarbeitet.
+4. Produktion schreitet fort beziehungsweise wird abgeschlossen.
+5. Erschöpfte Wälder verschwinden und Holzfäller suchen neue Standorte.
+6. Neue Beschaffungs- und Handelsaufträge werden geplant.
 
-Neu geplante Wege beginnen erst im folgenden Schritt. Produktionsinputs bleiben bis zur Fertigstellung im Gebäude. Bei Freisetzung verfällt laufender Arbeitsfortschritt, vorhandene Materialien bleiben erhalten.
-
-## Noch nicht Teil des PoC
-
-- Bauarbeiter und Baustellenlogistik
-- Baukosten und Bauzeiten
-- Bedürfnisse wie Hunger und Schlaf
-- Familien, Kinder und Wohnen
-- natürliche Geburten und Todesfälle
-- Kampf und Diplomatie
-- Preise, Tauschhandel und Handelsbeziehungen zwischen Fraktionen
-- Rückfracht auf Händler-Routen
-- Berufserfahrung und Freischaltungen
-- unterschiedliche Bewegungskosten oder Geschwindigkeiten je Gelände
-- Karren oder andere Transportmittel
-
-## Leitprinzip
-
-Rohstoffarbeiter, Produktionsarbeiter, unterstützende Träger, Lager-Träger, Händler und spätere Bauarbeiter dürfen unterschiedliche Beschaffungsregeln besitzen, sollen aber dasselbe grundlegende Waren-, Weg-, Reservierungs- und Bewegungssystem verwenden.
-
-Die Bedienung folgt demselben Prinzip: globale Entscheidungen gehören zum HQ beziehungsweise zu übergeordneten Ansichten; lokale Entscheidungen und Informationen gehören direkt zum betroffenen Gebäude oder zur ausgewählten Kachel auf der Karte.
+Alle Regeln bleiben deterministisch und hängen von Simulationszeit statt Darstellungs-FPS ab.
