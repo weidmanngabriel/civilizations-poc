@@ -27,7 +27,7 @@ Dependencies flow from presentation toward the simulation. `src/simulation/` mus
 
 `src/simulation/model.ts` defines generic people, assignments, transport trips, recipes, buildings, building kinds, local inventories and world state. Buildings have stable string IDs plus a separate `kind`, so multiple warehouses, sawmills and carpenter shops can exist without special-case IDs.
 
-`scenario.ts` owns the fixed **21 × 13** offset-layout hex map, initial buildings, eight-person start and economy configuration. Buildings occupy one tile. The map starts with several small groups of passive forest tiles and no active forest building.
+`scenario.ts` owns the fixed **21 × 13** offset-layout hex map, eight-person start and economy configuration. Buildings occupy one tile. The initial world now contains only the HQ; warehouses, sawmills and carpenter shops are placed by the player. The map still starts with several small groups of passive forest tiles and no active forest building.
 
 `hex.ts` provides axial neighbors and BFS pathfinding over road, forest and building tiles. Grass, mountain and river are blocked.
 
@@ -43,9 +43,11 @@ Production inputs remain inside the building until completion. In-progress produ
 
 Warehouses have a local inventory keyed by good type rather than a single output counter. Current capacity is **20 units per good type** (`wood`, `plank`, `woodenTool`). Capacity reservations are tracked per good.
 
-Warehouse carriers collect available output from non-warehouse sources. They never create warehouse-to-warehouse trips. Warehouses are nevertheless valid sources for production demand: a sawmill or carpenter worker/carrier may fetch the required input from a warehouse when it is the chosen reachable source.
+Warehouse carriers collect available output from non-warehouse sources only when the source lies within **5 reachable path steps** of their warehouse. The radius is measured from warehouse tile to source tile using the same BFS pathfinding as movement, not geometric distance. They never create warehouse-to-warehouse trips.
 
-This keeps warehouses as physical buffers in the logistics network without creating meaningless stock shuffling between warehouses.
+Warehouses are nevertheless valid sources for production demand without this 5-step restriction: a sawmill or carpenter worker/carrier may fetch the required input from any reachable warehouse when it is the chosen source.
+
+This keeps warehouses as local physical buffers in the logistics network without creating meaningless stock shuffling or map-wide warehouse collection routes.
 
 ## Dynamic buildings and terrain editing
 
