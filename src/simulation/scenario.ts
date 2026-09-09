@@ -2,7 +2,13 @@ import type { Building, Tile, World } from "./model";
 
 export const CONFIG = {
   population: 8,
-  duration: 5,
+  simulationHz: 60,
+  duration: 60,
+  baseMovementTilesPerSecond: 5,
+  movementPerTick: 5 / 60,
+  roadSpeedMultiplier: 1.3,
+  trafficThreshold: 8,
+  trafficWindowTicks: 8 * 60,
   carryCapacity: 1,
   inputCapacity: 10,
   outputCapacity: 3,
@@ -29,17 +35,8 @@ export function createWorld(population: number = CONFIG.population): World {
       carriers: 0,
       input: 0,
       output: 0,
-      baseTerrain: "road",
+      baseTerrain: "grass",
     },
-  ];
-
-  const roads = [
-    [3, 1], [4, 1], [5, 1], [5, 2], [5, 3], [6, 4], [7, 4], [8, 4], [9, 4],
-    [3, 9], [4, 9], [4, 8], [5, 8], [5, 7], [6, 7], [6, 6], [6, 5],
-    [10, 4], [11, 4], [11, 5], [12, 5], [12, 6], [13, 6], [14, 6], [14, 7], [15, 7], [16, 7],
-    [7, 7], [8, 7], [8, 6], [9, 6], [9, 5],
-    [16, 8], [17, 8], [17, 9], [18, 9], [18, 10], [19, 10],
-    [15, 8], [15, 9], [16, 9], [16, 10], [17, 10], [17, 11], [18, 11], [19, 11],
   ];
 
   const forestTiles = [
@@ -72,15 +69,13 @@ export function createWorld(population: number = CONFIG.population): World {
           (b) => b.position.q === position.q && b.position.r === position.r,
         )
           ? "building"
-          : inList(roads)
-            ? "road"
-            : inList(river)
-              ? "river"
-              : inList(mountains)
-                ? "mountain"
-                : inList(forestTiles)
-                  ? "forest"
-                  : "grass",
+          : inList(river)
+            ? "river"
+            : inList(mountains)
+              ? "mountain"
+              : inList(forestTiles)
+                ? "forest"
+                : "grass",
       });
     }
 
@@ -97,6 +92,7 @@ export function createWorld(population: number = CONFIG.population): World {
       position: { ...buildings[0]!.position },
       active: false,
       progress: 0,
+      movement: 0,
       path: [],
     })),
   };
