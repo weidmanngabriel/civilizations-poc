@@ -13,7 +13,9 @@ Ziel des ersten Proof of Concept ist es, den Kern der personenbasierten Produkti
 - Die feste Startkarte umfasst **21 × 13 Hexfelder** mit Hauptquartier, Sägewerk, Schreinerei und Lager.
 - Zu Beginn gibt es keinen aktiven Wald als Arbeitsstätte. Mehrere kleine Gruppen passiver Waldkacheln sind über die Karte verteilt.
 - Das Straßennetz enthält bewusst längere Wege, Abzweigungen und Umwege.
-- Freie Gebäudeplatzierung gehört noch nicht zum PoC.
+- Lager, Sägewerke und Schreinereien können zusätzlich frei auf leeren Wiesen- oder Wegkacheln platziert werden.
+- Der Bau erfolgt im aktuellen PoC sofort und ohne Baukosten oder Bauarbeiter.
+- Wiesen können zu Wegen gemacht werden. Wege können wieder zu Wiese entfernt werden, solange keine Person auf der Kachel steht.
 
 ## Zeit und Bewegung
 
@@ -37,23 +39,54 @@ Aktuelle Kette:
 - Wald: 5 Arbeitsschritte → 1 Holz.
 - Sägewerk: 2 Holz → 1 Brett in 5 Arbeitsschritten.
 - Schreinerei: 2 Bretter → 1 Holzwerkzeug in 5 Arbeitsschritten.
-- Lager: Träger sammeln fertige Holzwerkzeuge ein.
+- Lager: Träger sammeln verfügbare Waren aus Produktions- und Rohstofforten ein.
 
 Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt aktuell genau eine Ware pro Transportweg.
 
 Sägewerk und Schreinerei besitzen jeweils einen Produktionsarbeiter-Slot und bis zu zwei Träger. Der Produktionsarbeiter produziert bevorzugt und beschafft nur dann selbst Rohstoffe, wenn die Produktion blockiert ist. Träger beschaffen ausschließlich die Inputs ihrer zugewiesenen Arbeitsstätte.
 
-## Inventare und Reservierungen
+## Inventare, Lager und Reservierungen
 
 Produktions- und Rohstofforte besitzen getrennte Kapazitäten:
 
 - Input: maximal 10 Einheiten.
 - Output: maximal 3 Einheiten.
-- Das Lager ist aktuell unbegrenzt.
+
+Lager besitzen stattdessen einen echten lokalen Bestand pro Warentyp:
+
+- maximal **20 Holz**,
+- maximal **20 Bretter**,
+- maximal **20 Holzwerkzeuge**.
 
 Ein Produktionsvorgang startet nur, wenn Platz für den späteren Output reserviert werden kann. Bereits geplante Transporte zählen gegen die Zielkapazität. Eine vorhandene Ware wird beim Abholauftrag reserviert, damit sie nicht mehrfach verplant werden kann.
 
-Wird ein Transport während des Tragens abgebrochen, kehrt die Ware zur ursprünglichen Quelle zurück.
+Waren in Lagern sind normale physische Warenquellen. Benötigt ein Sägewerk Holz oder eine Schreinerei Bretter, dürfen deren Arbeiter oder Träger die Ware aus einem erreichbaren Lager holen.
+
+Lager-Träger holen Waren dagegen **niemals aus einem anderen Lager**. Dadurch entstehen keine automatischen Lager-zu-Lager-Umlagerungen. Ein Lager wird nur geleert, wenn eine Ware an einem Produktionsort tatsächlich benötigt wird.
+
+Wird ein Transport während des Tragens abgebrochen, kehrt die Ware zur ursprünglichen Quelle zurück, sofern diese noch existiert.
+
+## Gebäude bauen und abreißen
+
+Ein Klick auf eine freie Wiesen- oder Wegkachel öffnet die lokalen Bauoptionen.
+
+Aktuell frei baubar:
+
+- Lager,
+- Sägewerk,
+- Schreinerei.
+
+HQ und Wälder sind nicht frei baubar.
+
+Normale Produktionsgebäude und Lager können über ihr Gebäude-Panel wieder abgerissen werden. Vor dem Abriss erscheint eine Bestätigung. Beim Abriss:
+
+- verschwindet das Gebäude sofort,
+- vorhandene Waren im Gebäude verfallen,
+- zugewiesene Arbeiter und Träger werden frei und kehren Richtung HQ zurück,
+- betroffene Transportaufträge werden abgebrochen,
+- die Kachel wird auf ihren vorherigen Untergrund zurückgesetzt.
+
+Das HQ und aktive Wälder können nicht manuell abgerissen werden.
 
 ## Holzfäller und Wälder
 
@@ -91,13 +124,12 @@ Die Karte ist die primäre und dauerhaft bildschirmfüllende Bedienoberfläche.
 - Die Karte belegt immer den gesamten Browser-Viewport.
 - Es gibt keine normale scrollende Seite mehr um die Karte herum.
 - Status und Steuerungen liegen als kompakte Overlays über der Karte.
-- Die frühere große Überschrift, Intro, Kartenüberschrift, Legende und Footer entfallen aus der normalen Ansicht.
+- Ein kurzer Klick/Tap auf ein Gebäude öffnet dessen Detailpanel.
+- Ein kurzer Klick/Tap auf eine freie Kachel öffnet die lokalen Bau- und Wegoptionen.
 
 Oben liegt ein kleines HUD mit Build-Version und Kernwerten wie Bevölkerung, freie Personen und Werkzeugbestand. Ein Rundenzähler wird nicht angezeigt.
 
 Unten liegt die Simulationssteuerung mit Pausieren/Fortsetzen, FPS-Regler und Max-FPS-Toggle. Der Button **„Nächster Schritt“** ist ausschließlich während einer Pause sichtbar.
-
-Ein ausgewähltes Gebäude öffnet sein Detailpanel als Bottom-Overlay über der unteren Steuerung.
 
 ### Hauptquartier
 
@@ -108,8 +140,6 @@ Das HQ enthält die globalen Personalsteuerungen:
 - Holzfäller `− / +`,
 - globaler Status.
 
-Damit liegen auch die Holzfäller-Controls beim HQ, obwohl Holzfäller später an dynamischen Waldstandorten arbeiten.
-
 ### Sägewerk und Schreinerei
 
 Die Gebäudeansicht zeigt:
@@ -119,29 +149,28 @@ Die Gebäudeansicht zeigt:
 - Produktionsstatus,
 - Produktionsarbeiter `− / +`,
 - Träger `− / +`,
-- aktive gegenüber nur zugewiesenen Personen.
+- aktive gegenüber nur zugewiesenen Personen,
+- Abrissfunktion mit Bestätigung.
 
 ### Lager
 
 Die Lageransicht zeigt:
 
-- aktuellen Werkzeugbestand,
+- Holzbestand,
+- Brettbestand,
+- Holzwerkzeugbestand,
+- jeweils Kapazität 20,
 - Status,
-- Lager-Träger `− / +`.
+- Lager-Träger `− / +`,
+- Abrissfunktion mit Bestätigung.
 
 ### Aktive Wälder
 
-Ein aktiver Wald zeigt:
-
-- verbleibenden Holzvorrat,
-- lokalen Holz-Output,
-- Arbeitsstatus.
-
-Es gibt dort keine manuelle Holzfäller-Zuweisung; diese bleibt global und automatisch.
+Ein aktiver Wald zeigt verbleibenden Holzvorrat, lokalen Holz-Output und Arbeitsstatus. Es gibt dort keine manuelle Holzfäller-Zuweisung und keine Abrissfunktion.
 
 ### Debug-Personenliste
 
-Die globale Liste aller Personen und Transportaufträge bleibt als Entwicklungswerkzeug erhalten, ist aber standardmäßig verborgen. Ein Debug-Button öffnet sie als Overlay über der Karte; sie belegt keinen dauerhaften Bildschirmbereich mehr.
+Die globale Liste aller Personen und Transportaufträge bleibt als Entwicklungswerkzeug erhalten, ist aber standardmäßig verborgen.
 
 ## Desktop und Mobile
 
@@ -152,7 +181,7 @@ Das Spiel muss dauerhaft auch auf Smartphones bedienbar bleiben. Referenzgerät 
 - Kartenzoom: **0,7× bis 3,5×**.
 - Desktop: Mausrad zum Zoomen, Pointer-Drag zum Verschieben.
 - Touch: ein Finger verschiebt, zwei Finger zoomen.
-- Ein kurzer Tap wählt ein Gebäude aus; eine erkennbare Ziehbewegung gilt als Pan und löst keine Auswahl aus.
+- Ein kurzer Tap wählt Gebäude oder Kachel aus; eine erkennbare Ziehbewegung gilt als Pan und löst keine Auswahl aus.
 - Auf iOS Safari werden Gesten direkt am Canvas verarbeitet, damit die Karte statt der Webseite gezoomt wird.
 - Overlays berücksichtigen Safe-Area-Abstände für Notch und Home-Indikator.
 
@@ -171,13 +200,12 @@ Neu geplante Wege beginnen erst im folgenden Schritt. Produktionsinputs bleiben 
 ## Noch nicht Teil des PoC
 
 - Bauarbeiter und Baustellenlogistik
+- Baukosten und Bauzeiten
 - Bedürfnisse wie Hunger und Schlaf
 - Familien, Kinder und Wohnen
 - natürliche Geburten und Todesfälle
 - Kampf, Diplomatie und Handel
 - Berufserfahrung und Freischaltungen
-- freie Gebäudeplatzierung
-- allgemeines Einsammeln beliebiger Waren durch Lager-Träger
 - unterschiedliche Bewegungskosten oder Geschwindigkeiten je Gelände
 - Karren oder andere Transportmittel
 
@@ -185,4 +213,4 @@ Neu geplante Wege beginnen erst im folgenden Schritt. Produktionsinputs bleiben 
 
 Rohstoffarbeiter, Produktionsarbeiter, unterstützende Träger, Lager-Träger und spätere Bauarbeiter dürfen unterschiedliche Beschaffungsregeln besitzen, sollen aber dasselbe grundlegende Waren-, Weg- und Bewegungssystem verwenden.
 
-Die Bedienung soll diesem Prinzip folgen: globale Entscheidungen gehören zum HQ beziehungsweise zu übergeordneten Ansichten; lokale Entscheidungen und Informationen gehören direkt zum betroffenen Gebäude auf der Karte.
+Die Bedienung folgt demselben Prinzip: globale Entscheidungen gehören zum HQ beziehungsweise zu übergeordneten Ansichten; lokale Entscheidungen und Informationen gehören direkt zum betroffenen Gebäude oder zur ausgewählten Kachel auf der Karte.
