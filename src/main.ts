@@ -47,29 +47,11 @@ const showBuildVersion = (): void => {
   versionLabel.textContent = `POC 01 · ${version}`;
 };
 
-const stabilizeTileDialogPointerActions = (): void => {
-  const selectionPanel = document.querySelector<HTMLElement>("#selection-panel");
-  if (!selectionPanel) return;
-
-  selectionPanel.addEventListener("pointerdown", (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-action]");
-    if (!button || button.disabled) return;
-    if (!["close", "build", "road"].includes(button.dataset.action ?? "")) return;
-
-    // Tile panels can be refreshed between pointerdown and the browser's click event
-    // while the simulation is running. Execute these tile actions immediately so
-    // replacing the panel DOM cannot swallow the interaction.
-    event.preventDefault();
-    button.click();
-  });
-};
-
 preventPageZoom();
 
 const world = createWorld();
 const scene = new MainScene(world);
 mountControls(world, () => scene.renderWorld());
-stabilizeTileDialogPointerActions();
 showBuildVersion();
 
 const game = new Phaser.Game({
