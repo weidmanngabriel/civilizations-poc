@@ -60,9 +60,9 @@ Auf Desktop kann der Ghost weiterhin der Mausposition folgen. Auch dort ist „B
 
 ## Zeit und Spielgeschwindigkeit
 
-Die Simulation besitzt einen festen internen Zeitschritt von **60 Simulationsschritten pro Simulationssekunde**. Rendering und Simulationsgeschwindigkeit bleiben voneinander getrennt.
+Die Simulation besitzt bei angezeigtem **1× weiterhin 60 feste Simulationsschritte pro realer Sekunde**. Rendering und Simulationsgeschwindigkeit bleiben voneinander getrennt.
 
-Das allgemeine Basistempo beträgt **25 % des bisherigen Tempos**. Bei angezeigtem 1× vergehen deshalb pro realer Sekunde nur 0,25 Simulationssekunden. Bewegung, Produktion, Abbau, Transporte und zeitbasierte Weltlogik werden gemeinsam verlangsamt; Rendering und Eingabe bleiben unverändert flüssig.
+Das allgemeine Spieltempo beträgt trotzdem nur **25 % des früheren Tempos**: Bewegungsfortschritt pro Tick wurde auf ein Viertel reduziert und Arbeits-/Produktionsdauern sowie andere Zeitfenster wurden vervierfacht. Dadurch bleiben die Zustände bei 1× mit 60 Hz fein aufgelöst, statt die Simulation nur noch 15-mal pro Sekunde zu aktualisieren.
 
 Der Spieler steuert die gesamte Simulation relativ zu diesem neuen Basistempo mit:
 
@@ -72,13 +72,13 @@ Der Spieler steuert die gesamte Simulation relativ zu diesem neuen Basistempo mi
 - 3×,
 - Pause.
 
-Es gibt keinen FPS-Regler, keinen Max-FPS-Modus und keinen „Nächster Schritt“-Button.
+Die Darstellungs-Framerate bleibt von diesen Geschwindigkeiten unabhängig. Es gibt keinen FPS-Regler, keinen Max-FPS-Modus und keinen „Nächster Schritt“-Button.
 
 ## Bewegung und organische Wege
 
 Das Hex-Grid dient Wegfindung und Terrainlogik; Personen bewegen sich kontinuierlich zwischen den Mittelpunkten der Wegkacheln.
 
-Durch die verdoppelte Rasterdichte beträgt das Grundtempo **10 Kacheln pro Simulationssekunde**. Beim neuen 1×-Basistempo entspricht das 2,5 Kacheln pro realer Sekunde. Das Verhältnis aller Simulationssysteme untereinander bleibt unverändert.
+Das Grundtempo beträgt bei 1× jetzt **2,5 Kacheln pro realer Sekunde**. Das sind 25 % des vorherigen Tempos von 10 Kacheln pro Sekunde, bei weiterhin 60 Bewegungsupdates pro Sekunde.
 
 - Ein Weg macht Bewegung 30 % schneller.
 - Die Wegfindung minimiert Reisezeit und berücksichtigt daher Wege.
@@ -87,7 +87,7 @@ Durch die verdoppelte Rasterdichte beträgt das Grundtempo **10 Kacheln pro Simu
 ### Automatische Wegbildung
 
 - Jede vollständige Ankunft auf einer Wiesen-Kachel wird gezählt.
-- 8 Überquerungen innerhalb der letzten 8 Simulationssekunden machen die Kachel dauerhaft zum Weg.
+- 8 Überquerungen innerhalb der letzten 32 Sekunden bei 1× machen die Kachel dauerhaft zum Weg.
 - Laufende Routen werden danach neu bewertet.
 - Manuelles Weg-Bauen und -Entfernen bleibt zusätzlich verfügbar.
 
@@ -95,9 +95,9 @@ Durch die verdoppelte Rasterdichte beträgt das Grundtempo **10 Kacheln pro Simu
 
 Nichts produziert ohne konkrete Person.
 
-- Wald: ca. 1 Simulationssekunde → 1 Holz.
-- Sägewerk: 2 Holz → 1 Brett in ca. 1 Simulationssekunde.
-- Schreinerei: 2 Bretter → 1 Holzwerkzeug in ca. 1 Simulationssekunde.
+- Wald: ca. 4 Sekunden bei 1× → 1 Holz.
+- Sägewerk: 2 Holz → 1 Brett in ca. 4 Sekunden bei 1×.
+- Schreinerei: 2 Bretter → 1 Holzwerkzeug in ca. 4 Sekunden bei 1×.
 - Lager: Träger sammeln verfügbare Waren aus nahe gelegenen Produktions- und Rohstofforten ein.
 
 Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt aktuell genau eine Einheit pro Transportweg.
