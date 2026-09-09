@@ -1,11 +1,12 @@
-import type { Building, Tile, World } from "./model";
+import type { Building, Hex, Tile, World } from "./model";
+import { neighbors } from "./hex";
 
 export const CONFIG = {
   population: 8,
   simulationHz: 60,
   duration: 60,
-  baseMovementTilesPerSecond: 5,
-  movementPerTick: 5 / 60,
+  baseMovementTilesPerSecond: 10,
+  movementPerTick: 10 / 60,
   roadSpeedMultiplier: 1.3,
   trafficThreshold: 8,
   trafficWindowTicks: 8 * 60,
@@ -13,24 +14,28 @@ export const CONFIG = {
   inputCapacity: 10,
   outputCapacity: 3,
   warehouseCapacityPerGood: 20,
-  warehouseCollectionRadius: 5,
+  warehouseCollectionRadius: 10,
   forestYield: 10,
-  mapColumns: 21,
-  mapRows: 13,
+  mapColumns: 41,
+  mapRows: 25,
 } as const;
 
-const at = (col: number, row: number) => ({
+const at = (col: number, row: number): Hex => ({
   q: col - Math.floor(row / 2),
   r: row,
 });
 
+const compactFootprint = (center: Hex): Hex[] => [center, ...neighbors(center)];
+
 export function createWorld(population: number = CONFIG.population): World {
+  const hqPosition = at(6, 20);
   const buildings: Building[] = [
     {
       id: "hq",
       kind: "hq",
       name: "Hauptquartier",
-      position: at(3, 10),
+      position: hqPosition,
+      footprint: compactFootprint(hqPosition),
       workers: 0,
       carriers: 0,
       input: 0,
@@ -40,34 +45,39 @@ export function createWorld(population: number = CONFIG.population): World {
   ];
 
   const forestTiles = [
-    [1, 0], [2, 0], [1, 1], [2, 1], [2, 2], [3, 2],
-    [6, 2], [7, 2], [8, 2], [7, 3], [8, 3],
-    [4, 10], [5, 10], [5, 11], [6, 11],
-    [13, 7], [13, 8], [14, 8], [14, 9],
-    [18, 12], [19, 12], [20, 12], [20, 11],
+    [2, 1], [3, 1], [4, 1], [2, 2], [3, 2], [4, 2], [5, 2],
+    [11, 4], [12, 4], [13, 4], [11, 5], [12, 5], [13, 5], [14, 5],
+    [5, 17], [6, 17], [7, 17], [5, 18], [6, 18], [7, 18],
+    [25, 13], [26, 13], [27, 13], [25, 14], [26, 14], [27, 14],
+    [34, 21], [35, 21], [36, 21], [37, 21], [35, 22], [36, 22],
+    [32, 5], [33, 5], [34, 5], [33, 6], [34, 6], [35, 6],
   ];
 
   const river = [
-    [9, 0], [10, 0], [11, 0], [11, 1], [12, 1], [12, 2], [13, 2], [13, 3], [14, 3], [14, 4], [15, 4], [15, 5],
-    [1, 6], [2, 6], [2, 7], [3, 7], [3, 8],
+    [18, 0], [19, 0], [20, 0], [20, 1], [21, 1], [21, 2], [22, 2], [22, 3],
+    [23, 3], [23, 4], [24, 4], [24, 5], [25, 5], [25, 6], [26, 6], [26, 7],
+    [27, 7], [27, 8], [28, 8], [28, 9], [29, 9], [29, 10], [30, 10], [30, 11],
+    [2, 11], [3, 11], [4, 11], [4, 12], [5, 12], [5, 13], [6, 13], [6, 14],
   ];
 
   const mountains = [
-    [9, 8], [10, 8], [10, 9], [11, 9], [11, 10], [12, 10], [12, 11],
-    [17, 2], [18, 2], [18, 3], [19, 3], [19, 4], [20, 4],
+    [18, 16], [19, 16], [20, 16], [19, 17], [20, 17], [21, 17], [20, 18], [21, 18], [22, 18],
+    [33, 9], [34, 9], [35, 9], [34, 10], [35, 10], [36, 10], [35, 11], [36, 11], [37, 11],
   ];
 
   const tiles: Tile[] = [];
   for (let row = 0; row < CONFIG.mapRows; row += 1)
     for (let col = 0; col < CONFIG.mapColumns; col += 1) {
       const position = at(col, row);
-      const inList = (list: number[][]) =>
-        list.some(([c, r]) => c === col && r === row);
+      const inList = (list: number[][]) => list.some(([c, r]) => c === col && r === row);
+      const occupiedByBuilding = buildings.some((building) =>
+        (building.footprint ?? [building.position]).some(
+          (occupied) => occupied.q === position.q && occupied.r === position.r,
+        ),
+      );
       tiles.push({
         ...position,
-        terrain: buildings.some(
-          (b) => b.position.q === position.q && b.position.r === position.r,
-        )
+        terrain: occupiedByBuilding
           ? "building"
           : inList(river)
             ? "river"
