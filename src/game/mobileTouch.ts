@@ -5,8 +5,9 @@ const MAX_CAMERA_ZOOM = 3.5;
 const TAP_MAX_DISTANCE = 18;
 
 type Point = { x: number; y: number };
-type SelectableScene = Phaser.Scene & {
-  selectBuildingAtScreenPoint?: (screenX: number, screenY: number) => void;
+type SelectableScene = Phaser.Scene;
+type SceneWithSelection = Phaser.Scene & {
+  selectAtScreenPoint?: (screenX: number, screenY: number) => void;
 };
 
 const clampZoom = (zoom: number): number =>
@@ -122,7 +123,7 @@ export function installMobileMapTouchControls(
   const onTouchEnd = (event: TouchEvent): void => {
     captureTouch(event);
     if (event.touches.length === 0 && tapStart && !tapMoved)
-      scene.selectBuildingAtScreenPoint?.(tapStart.x, tapStart.y);
+      (scene as SceneWithSelection).selectAtScreenPoint?.(tapStart.x, tapStart.y);
     previousTouches = snapshotTouches(event.touches);
     if (event.touches.length === 0) {
       tapStart = undefined;
