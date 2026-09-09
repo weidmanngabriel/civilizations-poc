@@ -77,7 +77,8 @@ Händler sind eine eigene Rolle am Lager. Sie bilden die bewusste Ausnahme zur R
 - Jeder Händler gehört zu genau einem Startlager.
 - Pro Händler wird genau eine Route konfiguriert.
 - Eine Route besteht aus einem Ziellager und genau einem Warentyp: Holz, Bretter oder Holzwerkzeuge.
-- Das Ziellager kann aus der Liste der vorhandenen Lager gewählt oder direkt durch Antippen eines anderen Lagers auf der Karte gesetzt werden.
+- Der Warentyp wird direkt beim Händler gewählt.
+- Das Ziellager wird ausschließlich über einen eigenen **Ziellager-wählen-Modus** auf der Karte gesetzt; es gibt dafür kein Dropdown.
 - Handelsrouten unterliegen **nicht** der 5-Kachel-Grenze der Lager-Träger.
 - Der Händler transportiert pro Fahrt genau **eine Einheit**.
 
@@ -93,6 +94,24 @@ Ablauf einer Route:
 Ist im Startlager nichts verfügbar, das Ziellager voll oder nicht erreichbar, wartet der Händler. Es gibt aktuell keinen Rücktransport einer zweiten Ware, keine Preise und keinen Tauschhandel.
 
 Wird das Ziellager abgerissen, verliert die Route ihr Ziel und der Händler bleibt seinem Startlager zugewiesen. Wird das Startlager abgerissen, wird der Händler frei und kehrt Richtung HQ zurück. Laufende Transporte werden wie andere Transporte sauber abgebrochen.
+
+### Ziellager-wählen-Modus
+
+Die Wahl des Ziellagers ist bewusst als eigener Kartenmodus gestaltet und orientiert sich am Originalspiel:
+
+- Beim Start wird die laufende Simulation automatisch pausiert.
+- War das Spiel bereits pausiert, bleibt dieser Zustand nach Ende der Auswahl bestehen.
+- War das Spiel vorher aktiv, läuft es nach Ende der Auswahl automatisch weiter.
+- Die Karte bleibt sichtbar und wird nur **leicht** abgedunkelt, damit Orientierung und Umgebung weiterhin erkennbar bleiben.
+- Nur gültige Ziellager bleiben visuell stark hervorgehoben.
+- Das Startlager selbst ist kein gültiges Ziel.
+- Andere Gebäude, Kacheln, Bauaktionen und normale UI-Steuerungen sind währenddessen nicht auswählbar.
+- Verschieben und Zoomen der Karte bleibt erlaubt, damit auch weiter entfernte Lager gewählt werden können.
+- Sichtbar bleibt ein klarer Hinweis **„Ziellager wählen“** mit **„Abbrechen“**.
+- Ein Tap auf ein gültiges Lager setzt das Ziel und beendet den Modus sofort.
+- Ein Tap auf ein ungültiges Ziel bewirkt nichts.
+- Beim Start der Auswahl werden Kameraposition und Zoom gespeichert.
+- Nach Auswahl oder Abbruch springt die Kamera exakt auf diese gespeicherte Position und Zoomstufe zurück.
 
 ## Gebäude bauen und abreißen
 
@@ -192,9 +211,11 @@ Die Lageransicht zeigt:
 - Lager-Träger `− / +`,
 - Händler `− / +`,
 - je Händler den transportierten Warentyp,
-- je Händler das Ziellager als Liste,
-- alternativ **„Ziel auf Karte wählen“**, worauf der nächste Tap auf ein anderes Lager dieses Ziel setzt,
+- je Händler nur den einfachen Zielstatus **„Ziel eingestellt“** oder **„Kein Ziel eingestellt“**,
+- je Händler den Button **„Ziellager wählen“**, der den eigenen Auswahlmodus startet,
 - Abrissfunktion mit Bestätigung.
+
+Es gibt bewusst keine Liste oder Dropdown-Auswahl von Lagern mehr, da die Lager im aktuellen PoC keine unterscheidenden Namen haben und die Karte selbst die sinnvollere räumliche Auswahloberfläche ist.
 
 ### Aktive Wälder
 
