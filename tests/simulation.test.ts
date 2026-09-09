@@ -10,15 +10,19 @@ import {
 } from "../src/simulation/hex";
 import {
   assigned,
+  buildAt,
   building,
   changeAssignment,
   changePopulation,
   changeWoodcutters,
   outputOccupied,
+  removeBuilding,
+  setRoad,
   tick,
+  warehouseStock,
   woodcutters,
 } from "../src/simulation/simulation";
-import type { BuildingId, World } from "../src/simulation/model";
+import type { BuildingId, Good, World } from "../src/simulation/model";
 
 const rounds = (w: World, n: number) => {
   for (let i = 0; i < n; i++) tick(w);
@@ -44,23 +48,37 @@ function woodcutterAtForest(w: World) {
 }
 
 function assertInvariants(w: World) {
+  const goods: Good[] = ["wood", "plank", "woodenTool"];
   for (const b of w.buildings) {
     assert.ok(b.input >= 0 && b.input <= CONFIG.inputCapacity);
     assert.ok(b.output >= 0);
-    if (b.id !== "warehouse")
+    if (b.kind !== "warehouse") {
       assert.ok(
         outputOccupied(w, b) <= CONFIG.outputCapacity,
         `${b.id}: output overflow`,
       );
-    assert.ok(
-      b.id === "warehouse" ||
+      assert.ok(
         b.input + w.people.filter((p) => p.trip?.target === b.id).length <=
           CONFIG.inputCapacity,
-    );
-    assert.ok(
-      w.people.filter((p) => p.trip?.source === b.id && !p.trip.picked)
-        .length <= b.output,
-    );
+      );
+      assert.ok(
+        w.people.filter((p) => p.trip?.source === b.id && !p.trip.picked)
+          .length <= b.output,
+      );
+    } else {
+      for (const good of goods) {
+        const stock = warehouseStock(b, good);
+        const incoming = w.people.filter(
+          (p) => p.trip?.target === b.id && p.trip.good === good,
+        ).length;
+        const reserved = w.people.filter(
+          (p) => p.trip?.source === b.id && p.trip.good === good && !p.trip.picked,
+        ).length;
+        assert.ok(stock >= 0 && stock <= CONFIG.warehouseCapacityPerGood);
+        assert.ok(stock + incoming <= CONFIG.warehouseCapacityPerGood);
+        assert.ok(reserved <= stock);
+      }
+    }
     if (b.forestRemaining !== undefined) {
       assert.ok(b.forestRemaining >= 0 && b.forestRemaining <= CONFIG.forestYield);
       assert.ok(assigned(w, b.id, "worker").length <= 1);
@@ -213,7 +231,7 @@ test("population removal only removes truly free people at HQ; IDs stay unique",
   assert.equal(w.people[0]!.id, 2);
 });
 
-test("whole economy repeatedly reaches unbounded warehouse, with conserved goods and legal movement", () => {
+test("warehouse stock is capped per good and remains part of the physical economy", () => {
   const w = createWorld();
   changeWoodcutters(w, 1);
   changeWoodcutters(w, 1);
@@ -223,28 +241,21 @@ test("whole economy repeatedly reaches unbounded warehouse, with conserved goods
   }
   changeAssignment(w, "warehouse", "carrier", 1);
   changeAssignment(w, "warehouse", "carrier", 1);
+  const weight = { wood: 1, plank: 2, woodenTool: 4 } as const;
   const timber = (world: World) =>
-    world.buildings.reduce(
-      (sum, b) =>
-        sum +
-        b.input * (b.id === "carpenter" ? 2 : 1) +
-        b.output *
-          (b.recipe?.output === "wood"
-            ? 1
-            : b.recipe?.output === "plank"
-              ? 2
-              : 4),
-      0,
-    ) +
+    world.buildings.reduce((sum, b) => {
+      const production = b.input * (b.kind === "carpenter" ? 2 : 1) +
+        b.output * (b.recipe?.output ? weight[b.recipe.output] : 0);
+      const inventory = b.kind === "warehouse"
+        ? warehouseStock(b, "wood") + warehouseStock(b, "plank") * 2 + warehouseStock(b, "woodenTool") * 4
+        : 0;
+      return sum + production + inventory;
+    }, 0) +
     world.people.reduce(
-      (sum, p) =>
-        sum +
-        (p.trip?.picked
-          ? { wood: 1, plank: 2, woodenTool: 4 }[p.trip.good]
-          : 0),
+      (sum, p) => sum + (p.trip?.picked ? weight[p.trip.good] : 0),
       0,
     );
-  let priorWarehouse = 0;
+  let priorTools = 0;
   for (let i = 0; i < 1500; i++) {
     const before = w.people.map((p) => ({ ...p.position }));
     const goodsBefore = timber(w);
@@ -261,10 +272,58 @@ test("whole economy repeatedly reaches unbounded warehouse, with conserved goods
       ),
     );
     assertInvariants(w);
-    assert.ok(building(w, "warehouse").output >= priorWarehouse);
-    priorWarehouse = building(w, "warehouse").output;
+    const tools = warehouseStock(building(w, "warehouse"), "woodenTool");
+    assert.ok(tools >= priorTools);
+    priorTools = tools;
   }
-  assert.ok(priorWarehouse > 10, `tools: ${priorWarehouse}`);
+  assert.ok(priorTools > 5, `tools: ${priorTools}`);
+  assert.ok(priorTools <= CONFIG.warehouseCapacityPerGood);
+});
+
+test("production can fetch needed goods from a warehouse", () => {
+  const w = createWorld();
+  const warehouse = building(w, "warehouse");
+  warehouse.inventory!.wood = 2;
+  changeAssignment(w, "sawmill", "carrier", 1);
+  const carrier = assigned(w, "sawmill", "carrier")[0]!;
+  carrier.position = { ...building(w, "sawmill").position };
+  carrier.path = [];
+  carrier.active = true;
+  tick(w);
+  assert.equal(carrier.trip?.source, "warehouse");
+  assert.equal(carrier.trip?.good, "wood");
+});
+
+test("warehouse carriers never move goods from one warehouse to another", () => {
+  const w = createWorld();
+  const source = building(w, "warehouse");
+  source.inventory!.wood = 5;
+  const road = w.tiles.find((t) => t.terrain === "road" && !w.buildings.some((b) => same(b.position, t)))!;
+  const target = buildAt(w, road, "warehouse")!;
+  changeAssignment(w, target.id, "carrier", 1);
+  const carrier = assigned(w, target.id, "carrier")[0]!;
+  carrier.position = { ...target.position };
+  carrier.path = [];
+  carrier.active = true;
+  tick(w);
+  assert.equal(carrier.trip, undefined);
+  assert.equal(source.inventory!.wood, 5);
+  assert.equal(target.inventory!.wood, 0);
+});
+
+test("buildings and roads can be placed and removed on empty tiles", () => {
+  const w = createWorld();
+  const grass = w.tiles.find((t) => t.terrain === "grass")!;
+  const position = { q: grass.q, r: grass.r };
+  const warehouse = buildAt(w, position, "warehouse");
+  assert.ok(warehouse);
+  assert.equal(grass.terrain, "building");
+  assert.equal(removeBuilding(w, warehouse!.id), true);
+  assert.equal(grass.terrain, "grass");
+  assert.equal(setRoad(w, position, true), true);
+  assert.equal(grass.terrain, "road");
+  assert.equal(setRoad(w, position, false), true);
+  assert.equal(grass.terrain, "grass");
 });
 
 test("deterministic replay and frequent reassignments preserve limits", () => {
