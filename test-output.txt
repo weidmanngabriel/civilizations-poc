@@ -1,0 +1,59 @@
+
+> civilizations-poc@1.0.0 test
+> tsx --test --test-concurrency=1 tests/*.test.ts
+
+✔ world starts without an active forest and passive forest tiles are walkable (5.096653ms)
+✔ each appointed woodcutter claims a different forest (27.616486ms)
+✔ a forest produces exactly ten wood, disappears immediately, and its woodcutter relocates (24.216186ms)
+✔ leftover wood remains collectible after the forest has disappeared (29.852007ms)
+✔ removing a woodcutter returns the person to the normal free-person flow (10.989761ms)
+✔ merchant moves one configured good between two warehouses and returns empty (47.297168ms)
+✔ merchant waits when destination is full and target demolition clears the route (26.007356ms)
+✔ six unique hex neighbors, reciprocal adjacency (1.361788ms)
+✔ grass is walkable while rivers and mountains remain barriers (0.350967ms)
+✔ roads reduce movement cost by thirty percent speed gain (0.156493ms)
+✔ world starts with only the HQ and no roads (3.648685ms)
+✔ arrival controls activation; release and reassignment never teleport (7.95066ms)
+✔ production takes one simulated second and consumes two inputs (1.592519ms)
+✔ one woodcutter occupies one forest and respects output capacity (17.187139ms)
+✔ repeated grass traversal creates a permanent road (0.920382ms)
+✔ one physical unit cannot be claimed twice; carried cancellation returns it (16.932111ms)
+✖ population removal only removes truly free people at HQ; IDs stay unique (15.532583ms)
+✔ production can fetch needed goods from a warehouse beyond the collection radius (2.501799ms)
+✔ warehouse carriers never move goods from one warehouse to another (37.10286ms)
+✔ warehouse collection is limited to five reachable steps (49.872735ms)
+✔ buildings and roads can still be placed and removed manually (1.141465ms)
+✔ deterministic replay and frequent reassignments preserve limits (590.50022ms)
+✔ production worker keeps producing while input and output space allow it (23.032803ms)
+✔ production worker keeps filling free input slots while output is full (12.213716ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 23
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1744.286101
+
+✖ failing tests:
+
+test at tests/simulation.test.ts:252:1
+✖ population removal only removes truly free people at HQ; IDs stay unique (15.532583ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/home/runner/work/civilizations-poc/civilizations-poc/tests/simulation.test.ts:258:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
