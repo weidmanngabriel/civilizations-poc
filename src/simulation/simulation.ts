@@ -328,7 +328,7 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): void {
     (b) => b.id === routeConfig.target && b.kind === "warehouse" && !b.retired,
   );
   if (!target) {
-    p.merchantRoute.target = undefined;
+    routeConfig.target = undefined;
     return;
   }
   if (!same(p.position, source.position)) {
