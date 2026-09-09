@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { Building, BuildingId, Good, Hex, World } from "../simulation/model";
 import { key, same } from "../simulation/hex";
+import { personWorldPosition } from "../simulation/movement";
 import { CONFIG } from "../simulation/scenario";
 
 const HEX_X = 44;
@@ -383,12 +384,13 @@ export class MainScene extends Phaser.Scene {
 
     const groups = new Map<string, number>();
     for (const p of this.world.people) {
+      const moving = p.path.length > 0;
       const k = key(p.position);
       const i = groups.get(k) ?? 0;
       groups.set(k, i + 1);
-      const pos = pixel(p.position);
-      const x = pos.x + ((i % 4) - 1.5) * 11;
-      const y = pos.y + 1 + Math.floor(i / 4) * 11;
+      const pos = pixel(personWorldPosition(this.world, p));
+      const x = pos.x + (moving ? ((p.id % 3) - 1) * 3 : ((i % 4) - 1.5) * 11);
+      const y = pos.y + (moving ? 1 : 1 + Math.floor(i / 4) * 11);
       const color = !p.assignment && !p.woodcutter ? 0xdde5db : p.assignment?.role === "worker" || p.woodcutter ? 0x234636 : 0x8b512e;
       const dot = this.add.circle(x, y, 5, color).setStrokeStyle(1, 0xffffff);
       const label = this.add.text(x, y, String(p.id), { fontFamily: "system-ui", fontSize: "7px", color: "#ffffff" }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
