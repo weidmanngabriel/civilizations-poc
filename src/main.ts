@@ -9,8 +9,6 @@ import { mountControls } from "./ui/controls";
 import "./style.css";
 import "./map-interaction.css";
 
-const BASE_GAME_SPEED = 0.25;
-
 const preventPageZoom = (): void => {
   document.addEventListener(
     "wheel",
@@ -26,19 +24,6 @@ const preventPageZoom = (): void => {
   });
 
   preventMobilePageZoom();
-};
-
-const applyBaseGameSpeed = (): void => {
-  const speedButtons = Array.from(
-    document.querySelectorAll<HTMLButtonElement>("[data-sim-speed]"),
-  );
-
-  for (const button of speedButtons) {
-    const relativeSpeed = Number(button.dataset.simSpeed);
-    button.dataset.simSpeed = String(relativeSpeed * BASE_GAME_SPEED);
-  }
-
-  speedButtons.find((button) => button.textContent === "1×")?.click();
 };
 
 const showBuildVersion = (): void => {
@@ -67,7 +52,6 @@ preventPageZoom();
 const world = createWorld();
 const scene = new MainScene(world);
 mountControls(world, () => scene.renderWorld());
-applyBaseGameSpeed();
 showBuildVersion();
 
 const game = new Phaser.Game({
