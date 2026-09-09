@@ -563,9 +563,16 @@ export function tick(w: World): void {
   const regularDecisionTick =
     (w.round - 1) % CONFIG.decisionIntervalTicks === 0;
   const immediateDecisionPeople = new Set<number>();
+  const movingAtTickStart = new Set(
+    w.people.filter((p) => p.path.length > 0).map((p) => p.id),
+  );
 
   if (movePeople(w)) {
     for (const p of w.people) rerouteCurrentTask(w, p);
+  }
+  for (const p of w.people) {
+    if (movingAtTickStart.has(p.id) && p.path.length === 0)
+      immediateDecisionPeople.add(p.id);
   }
 
   for (const p of w.people) {
@@ -595,9 +602,8 @@ export function tick(w: World): void {
         p.movement = 0;
         immediateDecisionPeople.add(p.id);
       }
-    } else if (same(p.position, home.position) && !p.active) {
+    } else if (same(p.position, home.position)) {
       p.active = true;
-      immediateDecisionPeople.add(p.id);
     }
   }
 
