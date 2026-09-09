@@ -65,9 +65,34 @@ Lager-Träger sammeln Waren nur aus einem **Umkreis von maximal 5 tatsächlich b
 
 Waren in Lagern sind normale physische Warenquellen. Benötigt ein Sägewerk Holz oder eine Schreinerei Bretter, dürfen deren Arbeiter oder Träger die Ware aus einem erreichbaren Lager holen. Für diese bedarfsgetriebene Beschaffung gilt die 5-Schritte-Grenze nicht.
 
-Lager-Träger holen Waren weiterhin **niemals aus einem anderen Lager**. Dadurch entstehen keine automatischen Lager-zu-Lager-Umlagerungen. Ein Lager wird nur geleert, wenn eine Ware an einem Produktionsort tatsächlich benötigt wird.
+Lager-Träger holen Waren weiterhin **niemals aus einem anderen Lager**. Dadurch entstehen keine automatischen Lager-zu-Lager-Umlagerungen. Ein Lager wird nur geleert, wenn eine Ware an einem Produktionsort tatsächlich benötigt wird oder wenn ein Händler eine ausdrücklich eingerichtete Handelsroute bedient.
 
 Wird ein Transport während des Tragens abgebrochen, kehrt die Ware zur ursprünglichen Quelle zurück, sofern diese noch existiert.
+
+## Händler und Handelsrouten
+
+Händler sind eine eigene Rolle am Lager. Sie bilden die bewusste Ausnahme zur Regel, dass Lager-Träger niemals Lager-zu-Lager transportieren.
+
+- Ein Lager kann aktuell bis zu **zwei Händler** haben.
+- Jeder Händler gehört zu genau einem Startlager.
+- Pro Händler wird genau eine Route konfiguriert.
+- Eine Route besteht aus einem Ziellager und genau einem Warentyp: Holz, Bretter oder Holzwerkzeuge.
+- Das Ziellager kann aus der Liste der vorhandenen Lager gewählt oder direkt durch Antippen eines anderen Lagers auf der Karte gesetzt werden.
+- Handelsrouten unterliegen **nicht** der 5-Kachel-Grenze der Lager-Träger.
+- Der Händler transportiert pro Fahrt genau **eine Einheit**.
+
+Ablauf einer Route:
+
+1. Der Händler wartet am Startlager.
+2. Ist die konfigurierte Ware verfügbar und das Ziellager nicht voll, wird genau eine Einheit reserviert.
+3. Der Händler nimmt die Einheit auf und läuft zum Ziellager.
+4. Dort legt er die Ware ab.
+5. Danach läuft er **leer zurück** zum Startlager.
+6. Anschließend beginnt der Zyklus erneut.
+
+Ist im Startlager nichts verfügbar, das Ziellager voll oder nicht erreichbar, wartet der Händler. Es gibt aktuell keinen Rücktransport einer zweiten Ware, keine Preise und keinen Tauschhandel.
+
+Wird das Ziellager abgerissen, verliert die Route ihr Ziel und der Händler bleibt seinem Startlager zugewiesen. Wird das Startlager abgerissen, wird der Händler frei und kehrt Richtung HQ zurück. Laufende Transporte werden wie andere Transporte sauber abgebrochen.
 
 ## Gebäude bauen und abreißen
 
@@ -85,8 +110,8 @@ Normale Produktionsgebäude und Lager können über ihr Gebäude-Panel wieder ab
 
 - verschwindet das Gebäude sofort,
 - vorhandene Waren im Gebäude verfallen,
-- zugewiesene Arbeiter und Träger werden frei und kehren Richtung HQ zurück,
-- betroffene Transportaufträge werden abgebrochen,
+- zugewiesene Arbeiter, Träger und Händler werden frei und kehren Richtung HQ zurück,
+- betroffene Transportaufträge und Handelsrouten werden abgebrochen beziehungsweise ungültige Ziele entfernt,
 - die Kachel wird auf ihren vorherigen Untergrund zurückgesetzt.
 
 Das HQ und aktive Wälder können nicht manuell abgerissen werden.
@@ -165,6 +190,10 @@ Die Lageransicht zeigt:
 - jeweils Kapazität 20,
 - Status,
 - Lager-Träger `− / +`,
+- Händler `− / +`,
+- je Händler den transportierten Warentyp,
+- je Händler das Ziellager als Liste,
+- alternativ **„Ziel auf Karte wählen“**, worauf der nächste Tap auf ein anderes Lager dieses Ziel setzt,
 - Abrissfunktion mit Bestätigung.
 
 ### Aktive Wälder
@@ -173,7 +202,7 @@ Ein aktiver Wald zeigt verbleibenden Holzvorrat, lokalen Holz-Output und Arbeits
 
 ### Debug-Personenliste
 
-Die globale Liste aller Personen und Transportaufträge bleibt als Entwicklungswerkzeug erhalten, ist aber standardmäßig verborgen.
+Die globale Liste aller Personen und Transportaufträge bleibt als Entwicklungswerkzeug erhalten, ist aber standardmäßig verborgen. Händler und ihre Route werden dort ebenfalls sichtbar gemacht.
 
 ## Desktop und Mobile
 
@@ -196,7 +225,7 @@ Pro Simulationsschritt gilt weiterhin:
 2. Ankünfte, Abholungen und Lieferungen werden verarbeitet.
 3. Produktion schreitet fort beziehungsweise wird abgeschlossen.
 4. Erschöpfte Wälder verschwinden und Holzfäller suchen neue Standorte.
-5. Neue Beschaffungsaufträge werden geplant.
+5. Neue Beschaffungs- und Handelsaufträge werden geplant.
 
 Neu geplante Wege beginnen erst im folgenden Schritt. Produktionsinputs bleiben bis zur Fertigstellung im Gebäude. Bei Freisetzung verfällt laufender Arbeitsfortschritt, vorhandene Materialien bleiben erhalten.
 
@@ -207,13 +236,15 @@ Neu geplante Wege beginnen erst im folgenden Schritt. Produktionsinputs bleiben 
 - Bedürfnisse wie Hunger und Schlaf
 - Familien, Kinder und Wohnen
 - natürliche Geburten und Todesfälle
-- Kampf, Diplomatie und Handel
+- Kampf und Diplomatie
+- Preise, Tauschhandel und Handelsbeziehungen zwischen Fraktionen
+- Rückfracht auf Händler-Routen
 - Berufserfahrung und Freischaltungen
 - unterschiedliche Bewegungskosten oder Geschwindigkeiten je Gelände
 - Karren oder andere Transportmittel
 
 ## Leitprinzip
 
-Rohstoffarbeiter, Produktionsarbeiter, unterstützende Träger, Lager-Träger und spätere Bauarbeiter dürfen unterschiedliche Beschaffungsregeln besitzen, sollen aber dasselbe grundlegende Waren-, Weg- und Bewegungssystem verwenden.
+Rohstoffarbeiter, Produktionsarbeiter, unterstützende Träger, Lager-Träger, Händler und spätere Bauarbeiter dürfen unterschiedliche Beschaffungsregeln besitzen, sollen aber dasselbe grundlegende Waren-, Weg-, Reservierungs- und Bewegungssystem verwenden.
 
 Die Bedienung folgt demselben Prinzip: globale Entscheidungen gehören zum HQ beziehungsweise zu übergeordneten Ansichten; lokale Entscheidungen und Informationen gehören direkt zum betroffenen Gebäude oder zur ausgewählten Kachel auf der Karte.

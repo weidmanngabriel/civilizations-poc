@@ -98,6 +98,12 @@ function rerouteCurrentTask(w: World, p: Person): void {
   if (hq && !same(p.position, hq.position)) route(w, p, hq);
 }
 
+const roleLimit = (b: Building, role: Role): number => {
+  if (role === "worker") return b.workers;
+  if (role === "carrier") return b.carriers;
+  return b.kind === "warehouse" ? (b.merchants ?? 0) : 0;
+};
+
 export function changeAssignment(
   w: World,
   id: BuildingId,
@@ -106,12 +112,13 @@ export function changeAssignment(
 ): boolean {
   const b = building(w, id),
     people = assigned(w, id, role),
-    limit = role === "worker" ? b.workers : b.carriers;
-  if (b.forestRemaining !== undefined) return false;
+    limit = roleLimit(b, role);
+  if (b.forestRemaining !== undefined || !limit) return false;
   if (delta === 1) {
     const p = freePeople(w)[0];
     if (!p || b.retired || people.length >= limit) return false;
     p.assignment = { building: id, role };
+    if (role === "merchant") p.merchantRoute = { good: "wood" };
     p.active = same(p.position, b.position);
     route(w, p, b);
     return true;
@@ -120,8 +127,31 @@ export function changeAssignment(
   if (!p) return false;
   cancel(w, p);
   p.assignment = undefined;
+  p.merchantRoute = undefined;
   p.active = false;
   route(w, p, building(w, "hq"));
+  return true;
+}
+
+export function setMerchantRoute(
+  w: World,
+  personId: number,
+  target: BuildingId | undefined,
+  good?: Good,
+): boolean {
+  const p = w.people.find((person) => person.id === personId);
+  if (!p?.assignment || p.assignment.role !== "merchant") return false;
+  const source = w.buildings.find((b) => b.id === p.assignment!.building);
+  if (!source || source.kind !== "warehouse") return false;
+  if (target) {
+    const destination = w.buildings.find((b) => b.id === target && !b.retired);
+    if (!destination || destination.kind !== "warehouse" || destination.id === source.id)
+      return false;
+  }
+  if (p.trip) cancel(w, p);
+  p.merchantRoute = { good: good ?? p.merchantRoute?.good ?? "wood", target };
+  p.active = same(p.position, source.position);
+  if (!p.active) route(w, p, source);
   return true;
 }
 
@@ -291,6 +321,34 @@ function requestInput(w: World, p: Person, b: Building): void {
   p.path = source.path;
 }
 
+function requestMerchantTransfer(w: World, p: Person, source: Building): void {
+  const routeConfig = p.merchantRoute;
+  if (!routeConfig?.target || source.kind !== "warehouse") return;
+  const target = w.buildings.find(
+    (b) => b.id === routeConfig.target && b.kind === "warehouse" && !b.retired,
+  );
+  if (!target) {
+    p.merchantRoute.target = undefined;
+    return;
+  }
+  if (!same(p.position, source.position)) {
+    route(w, p, source);
+    return;
+  }
+  if (
+    available(w, source, routeConfig.good) <= 0 ||
+    !warehouseHasSpace(w, target, routeConfig.good) ||
+    !findPath(w.tiles, source.position, target.position)
+  )
+    return;
+  p.trip = {
+    source: source.id,
+    target: target.id,
+    good: routeConfig.good,
+    picked: false,
+  };
+}
+
 function retireDepletedForests(w: World): void {
   for (const forest of w.buildings.filter(
     (b) => !b.retired && b.forestRemaining === 0,
@@ -339,6 +397,7 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
     name: "Lager",
     workers: 0,
     carriers: 2,
+    merchants: 2,
     input: 0,
     output: 0,
     inventory: { wood: 0, plank: 0, woodenTool: 0 },
@@ -375,8 +434,10 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
   for (const p of w.people) {
     const affectedTrip = p.trip?.source === id || p.trip?.target === id;
     if (affectedTrip) cancel(w, p);
+    if (p.merchantRoute?.target === id) p.merchantRoute.target = undefined;
     if (p.assignment?.building === id) {
       p.assignment = undefined;
+      p.merchantRoute = undefined;
       p.active = false;
       p.progress = 0;
       route(w, p, building(w, "hq"));
@@ -419,7 +480,7 @@ export function tick(w: World): void {
 
   for (const p of w.people) {
     if (p.path.length || !p.assignment) continue;
-    const b = building(w, p.assignment.building);
+    const home = building(w, p.assignment.building);
     if (p.trip) {
       if (!p.trip.picked) {
         const source = building(w, p.trip.source);
@@ -430,16 +491,18 @@ export function tick(w: World): void {
           source.output -= CONFIG.carryCapacity;
         }
         p.trip.picked = true;
-        route(w, p, b);
-      } else if (same(p.position, b.position)) {
-        if (b.kind === "warehouse") {
-          b.inventory![p.trip.good] += CONFIG.carryCapacity;
+        route(w, p, building(w, p.trip.target));
+      } else {
+        const target = building(w, p.trip.target);
+        if (!same(p.position, target.position)) continue;
+        if (target.kind === "warehouse") {
+          target.inventory![p.trip.good] += CONFIG.carryCapacity;
         } else {
-          b.input += CONFIG.carryCapacity;
+          target.input += CONFIG.carryCapacity;
         }
         p.trip = undefined;
       }
-    } else if (same(p.position, b.position)) p.active = true;
+    } else if (same(p.position, home.position)) p.active = true;
   }
 
   for (const p of w.people) {
@@ -474,6 +537,10 @@ export function tick(w: World): void {
     if (!p.assignment || !p.active || p.path.length || p.trip || p.progress > 0)
       continue;
     const b = building(w, p.assignment.building);
+    if (p.assignment.role === "merchant") {
+      requestMerchantTransfer(w, p, b);
+      continue;
+    }
     const recipe = b.recipe;
     const workerNeedsResupply =
       p.assignment.role === "worker" &&
@@ -494,10 +561,14 @@ export const GOODS: Record<Good, string> = {
 export function status(w: World, b: Building): string {
   const workers = assigned(w, b.id, "worker");
   if (b.kind === "hq") return "Sammelpunkt für freie Personen";
-  if (b.kind === "warehouse")
-    return assigned(w, b.id, "carrier").length
+  if (b.kind === "warehouse") {
+    const carriers = assigned(w, b.id, "carrier").length;
+    const merchants = assigned(w, b.id, "merchant").length;
+    if (merchants) return `${merchants} Händler · ${carriers} Lager-Träger`;
+    return carriers
       ? `Träger sammeln Waren im Umkreis von ${CONFIG.warehouseCollectionRadius} Schritten`
-      : "Keine Träger zugewiesen";
+      : "Keine Träger oder Händler zugewiesen";
+  }
   if (b.forestRemaining !== undefined) {
     if (b.retired) return "Erschöpft";
     const progress = workers
