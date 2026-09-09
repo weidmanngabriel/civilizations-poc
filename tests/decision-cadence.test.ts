@@ -68,7 +68,7 @@ test("delivery triggers the required follow-up decision immediately", () => {
 test("arrival at a merchant source triggers the next transfer immediately", () => {
   const world = createWorld();
   const source = buildAt(world, { q: 7, r: 4 }, "warehouse")!;
-  const target = buildAt(world, { q: 9, r: 4 }, "warehouse")!;
+  const target = buildAt(world, { q: 12, r: 4 }, "warehouse")!;
   source.inventory!.wood = 1;
   changeAssignment(world, source.id, "merchant", 1);
   const merchant = assigned(world, source.id, "merchant")[0]!;
