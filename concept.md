@@ -64,6 +64,8 @@ Die Simulation besitzt bei angezeigtem **1× weiterhin 60 feste Simulationsschri
 
 Das allgemeine Spieltempo beträgt trotzdem nur **25 % des früheren Tempos**: Bewegungsfortschritt pro Tick wurde auf ein Viertel reduziert und Arbeits-/Produktionsdauern sowie andere Zeitfenster wurden vervierfacht. Dadurch bleiben die Zustände bei 1× mit 60 Hz fein aufgelöst, statt die Simulation nur noch 15-mal pro Sekunde zu aktualisieren.
 
+Autonome **Neuentscheidungen** laufen nicht mit 60 Hz. Eine reguläre Entscheidungsrunde findet einmal pro Simulationssekunde, also alle 60 Simulationsschritte, statt. Bewegung, laufende Produktion und andere kontinuierliche Zustände bleiben bei 60 Hz. Notwendige Folgereaktionen auf konkrete Ereignisse wie Ankunft am Arbeitsplatz, Warenlieferung oder Produktionsabschluss werden sofort verarbeitet und warten nicht auf die nächste Entscheidungsrunde.
+
 Der Spieler steuert die gesamte Simulation relativ zu diesem neuen Basistempo mit:
 
 - 0,5×,
@@ -203,9 +205,9 @@ Pro festem Simulationsschritt:
 
 1. Bewegungsfortschritt vergeben und Kachelankünfte abschließen.
 2. Wiesenverkehr registrieren; neue Wege können entstehen und Routen neu geplant werden.
-3. Ankünfte, Abholungen und Lieferungen verarbeiten.
+3. Ankünfte, Abholungen und Lieferungen verarbeiten; notwendige direkte Folgereaktionen werden für denselben Tick markiert.
 4. Produktion fortschreiben oder abschließen.
-5. Erschöpfte Wälder entfernen und Holzfäller neu zuweisen.
-6. Neue Beschaffungs- und Handelsaufträge planen.
+5. Erschöpfte Wälder entfernen und betroffene Holzfäller sofort neu zuweisen.
+6. Neue Beschaffungs-, Händler- und Warteentscheidungen nur in der regulären 1-Hz-Entscheidungsrunde oder bei einer markierten Sofortreaktion planen.
 
 Alle Regeln bleiben deterministisch und hängen von Simulationszeit statt Darstellungs-FPS ab.
