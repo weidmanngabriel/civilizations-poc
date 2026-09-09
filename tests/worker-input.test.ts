@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createWorld } from "../src/simulation/scenario";
+import { createWorld, CONFIG } from "../src/simulation/scenario";
 import {
   assigned,
   buildAt,
@@ -18,6 +18,7 @@ function activeSawmillWorker() {
   const worker = assigned(world, sawmill.id, "worker")[0]!;
   worker.position = { ...sawmill.position };
   worker.path = [];
+  worker.movement = 0;
   worker.active = true;
   changeWoodcutters(world, 1);
   const woodcutter = woodcutters(world)[0]!;
@@ -30,7 +31,7 @@ test("production worker keeps producing while input and output space allow it", 
   sawmill.input = 10;
   forest.output = 1;
 
-  for (let i = 0; i < 5; i++) tick(world);
+  for (let i = 0; i < CONFIG.duration; i++) tick(world);
   assert.equal(sawmill.output, 1);
   assert.equal(sawmill.input, 8);
   assert.equal(worker.trip, undefined);
@@ -39,7 +40,7 @@ test("production worker keeps producing while input and output space allow it", 
   assert.equal(worker.progress, 1);
   assert.equal(worker.trip, undefined);
 
-  for (let i = 0; i < 9; i++) tick(world);
+  for (let i = 0; i < CONFIG.duration * 2 - 1; i++) tick(world);
   assert.equal(sawmill.output, 3);
   assert.equal(sawmill.input, 4);
   assert.equal(worker.progress, 0);

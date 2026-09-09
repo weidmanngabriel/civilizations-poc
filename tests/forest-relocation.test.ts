@@ -19,6 +19,7 @@ function activeWoodcutter() {
   const forest = building(world, worker.assignment!.building);
   worker.position = { ...forest.position };
   worker.path = [];
+  worker.movement = 0;
   worker.active = true;
   return { world, forest, worker };
 }
@@ -69,7 +70,7 @@ test("a forest produces exactly ten wood, disappears immediately, and its woodcu
   const nextForest = building(world, worker.assignment!.building);
   assert.equal(nextForest.forestRemaining, CONFIG.forestYield);
   const oldTile = world.tiles.find((tile) => same(tile, forest.position))!;
-  assert.equal(oldTile.terrain, "road");
+  assert.equal(oldTile.terrain, "grass");
 });
 
 test("leftover wood remains collectible after the forest has disappeared", () => {
@@ -85,6 +86,7 @@ test("leftover wood remains collectible after the forest has disappeared", () =>
   const carrier = assigned(world, sawmill.id, "carrier")[0]!;
   carrier.position = { ...sawmill.position };
   carrier.path = [];
+  carrier.movement = 0;
   carrier.active = true;
   tick(world);
 

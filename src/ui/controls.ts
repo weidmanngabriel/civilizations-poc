@@ -28,8 +28,8 @@ import {
 import { CONFIG } from "../simulation/scenario";
 import { same } from "../simulation/hex";
 
-const MAX_PRESENTATION_FPS = 60;
-const PRESENTATION_INTERVAL_MS = 1000 / MAX_PRESENTATION_FPS;
+const SIMULATION_STEP_MS = 1000 / CONFIG.simulationHz;
+const MAX_FRAME_DELTA_MS = 100;
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
 const TILE_SELECTED_EVENT = "poc-tile-selected";
 const BUILDING_SELECTION_REQUESTED_EVENT = "poc-building-selection-requested";
@@ -38,17 +38,16 @@ const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 
 type BuildingSelectedDetail = { id: BuildingId };
 type TileSelectedDetail = { position: Hex };
+type SimulationSpeed = 0.5 | 1 | 2 | 3;
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
-  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div class="bottom-bar"><div class="round-controls"><button id="next" class="primary" hidden>Nächster Schritt</button><button id="autoplay" aria-pressed="true">Pausieren</button><label class="speed-control">FPS <input id="fps" type="range" min="1" max="10" step="1" value="5" aria-label="Simulationsschritte pro Sekunde"><output id="fps-value">5 FPS</output></label><button id="max-fps" aria-pressed="false">Max FPS</button></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
+  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
 
-  let autoplayTimer: number | undefined;
   let autoplayFrame: number | undefined;
-  let presentationFrame: number | undefined;
-  let lastPresentationFrame = 0;
-  let presentationBudget = PRESENTATION_INTERVAL_MS;
-  let presentationDirty = true;
+  let lastAutoplayFrame = 0;
+  let simulationBudget = 0;
+  let simulationSpeed: SimulationSpeed = 1;
   let selectedBuildingId: BuildingId | undefined;
   let selectedTile: Hex | undefined;
   let merchantTargetSelection: number | undefined;
@@ -184,7 +183,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
 
     const recipe = b.forestRemaining !== undefined
-      ? `1 Holz / ${CONFIG.duration} Schritte · Vorrat <span data-field="forest-remaining"></span>/${CONFIG.forestYield}`
+      ? `1 Holz / ${b.recipe!.duration / CONFIG.simulationHz} s bei 1× · Vorrat <span data-field="forest-remaining"></span>/${CONFIG.forestYield}`
       : b.kind === "warehouse"
         ? "Lagert bis zu 20 Einheiten je Warentyp"
         : b.recipe?.input
@@ -204,79 +203,65 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const refreshLiveState = () => {
     document.querySelector("#metrics")!.innerHTML = `<div><small>BEV.</small><strong>${w.people.length}</strong></div><div><small>FREI</small><strong>${freePeople(w).length}</strong></div><div><small>WERKZEUGE</small><strong>${totalWarehouseStock(w, "woodenTool")}</strong></div>`;
-    updateSelectionLiveState();
+    if (selectedTile) renderSelectionPanel();
+    else updateSelectionLiveState();
     renderMap();
   };
 
   const refreshPanels = () => {
     renderSelectionPanel();
-    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => `<tr><td>${p.id}</td><td>${p.woodcutter ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald") : p.assignment ? `${building(w, p.assignment.building).name} · ${roleLabel(p.assignment.role)}` : "Frei"}</td><td>${p.trip ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}` : p.assignment?.role === "merchant" && p.merchantRoute?.target ? `${GOODS[p.merchantRoute.good]} → Ziellager${p.path.length ? " · Rückweg" : ""}` : p.progress ? `${p.woodcutter ? "Fällt Holz" : "Produziert"} · ${p.progress}/5` : p.path.length ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : "Auf dem Rückweg zum HQ") : p.assignment ? "An der Arbeitsstätte" : p.woodcutter ? "Wartet auf Wald" : "Am HQ"}</td></tr>`).join("")}</tbody></table>`;
+    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => `<tr><td>${p.id}</td><td>${p.woodcutter ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald") : p.assignment ? `${building(w, p.assignment.building).name} · ${roleLabel(p.assignment.role)}` : "Frei"}</td><td>${p.trip ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}` : p.assignment?.role === "merchant" && p.merchantRoute?.target ? `${GOODS[p.merchantRoute.good]} → Ziellager${p.path.length ? " · Rückweg" : ""}` : p.progress ? `${p.woodcutter ? "Fällt Holz" : "Produziert"} · ${Math.round((p.progress / CONFIG.duration) * 100)} %` : p.path.length ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : "Auf dem Rückweg zum HQ") : p.assignment ? "An der Arbeitsstätte" : p.woodcutter ? "Wartet auf Wald" : "Am HQ"}</td></tr>`).join("")}</tbody></table>`;
   };
 
   const refresh = () => {
     refreshLiveState();
     refreshPanels();
-    presentationDirty = false;
   };
-  const runStep = () => { tick(w); refresh(); };
 
-  const nextButton = document.querySelector("#next") as HTMLButtonElement;
   const autoplayButton = document.querySelector("#autoplay") as HTMLButtonElement;
-  const fpsInput = document.querySelector("#fps") as HTMLInputElement;
-  const fpsValue = document.querySelector("#fps-value") as HTMLOutputElement;
-  const maxFpsButton = document.querySelector("#max-fps") as HTMLButtonElement;
-  const isRunning = () => autoplayTimer !== undefined || autoplayFrame !== undefined;
-  const markPresentationDirty = () => { presentationDirty = true; };
+  const speedButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-sim-speed]"));
+  const isRunning = () => autoplayFrame !== undefined;
 
-  const stopPresentationLoop = () => {
-    if (presentationFrame !== undefined) window.cancelAnimationFrame(presentationFrame);
-    presentationFrame = undefined;
-    lastPresentationFrame = 0;
-    presentationBudget = PRESENTATION_INTERVAL_MS;
+  const setSimulationSpeed = (speed: SimulationSpeed) => {
+    simulationSpeed = speed;
+    for (const button of speedButtons)
+      button.setAttribute("aria-pressed", String(Number(button.dataset.simSpeed) === speed));
   };
-  const startPresentationLoop = () => {
-    stopPresentationLoop();
-    presentationDirty = true;
-    const frame = (timestamp: number) => {
-      if (!isRunning()) { presentationFrame = undefined; return; }
-      if (lastPresentationFrame) presentationBudget += Math.min(timestamp - lastPresentationFrame, PRESENTATION_INTERVAL_MS * 2);
-      lastPresentationFrame = timestamp;
-      if (presentationDirty && presentationBudget >= PRESENTATION_INTERVAL_MS) {
-        refreshLiveState();
-        presentationDirty = false;
-        presentationBudget %= PRESENTATION_INTERVAL_MS;
-      }
-      presentationFrame = window.requestAnimationFrame(frame);
-    };
-    presentationFrame = window.requestAnimationFrame(frame);
-  };
+
   const stopAutoplay = () => {
-    if (autoplayTimer !== undefined) window.clearInterval(autoplayTimer);
     if (autoplayFrame !== undefined) window.cancelAnimationFrame(autoplayFrame);
-    autoplayTimer = undefined;
     autoplayFrame = undefined;
-    stopPresentationLoop();
+    lastAutoplayFrame = 0;
+    simulationBudget = 0;
     autoplayButton.textContent = "Fortsetzen";
     autoplayButton.setAttribute("aria-pressed", "false");
-    nextButton.hidden = false;
   };
+
   const startAutoplay = () => {
-    stopAutoplay();
-    if (maxFpsButton.getAttribute("aria-pressed") === "true") {
-      const frame = () => { tick(w); markPresentationDirty(); autoplayFrame = window.requestAnimationFrame(frame); };
+    if (autoplayFrame !== undefined) window.cancelAnimationFrame(autoplayFrame);
+    lastAutoplayFrame = 0;
+    simulationBudget = 0;
+    const frame = (timestamp: number) => {
+      if (!lastAutoplayFrame) lastAutoplayFrame = timestamp;
+      const delta = Math.min(timestamp - lastAutoplayFrame, MAX_FRAME_DELTA_MS);
+      lastAutoplayFrame = timestamp;
+      simulationBudget += delta * simulationSpeed;
+      let changed = false;
+      let steps = 0;
+      while (simulationBudget + 1e-9 >= SIMULATION_STEP_MS && steps < CONFIG.simulationHz) {
+        tick(w);
+        simulationBudget -= SIMULATION_STEP_MS;
+        changed = true;
+        steps++;
+      }
+      if (changed) refreshLiveState();
       autoplayFrame = window.requestAnimationFrame(frame);
-    } else {
-      autoplayTimer = window.setInterval(() => { tick(w); markPresentationDirty(); }, 1000 / Number(fpsInput.value));
-    }
+    };
     autoplayButton.textContent = "Pausieren";
     autoplayButton.setAttribute("aria-pressed", "true");
-    nextButton.hidden = true;
-    startPresentationLoop();
+    autoplayFrame = window.requestAnimationFrame(frame);
   };
-  const updateFps = () => {
-    if (maxFpsButton.getAttribute("aria-pressed") !== "true") fpsValue.value = `${fpsInput.value} FPS`;
-    if (isRunning()) startAutoplay();
-  };
+
   const setDebugOpen = (open: boolean) => {
     debugPanel.hidden = !open;
     debugToggle.setAttribute("aria-pressed", String(open));
@@ -309,20 +294,15 @@ export function mountControls(w: World, renderMap: () => void): void {
     renderSelectionPanel();
   };
 
-  nextButton.addEventListener("click", runStep);
   autoplayButton.addEventListener("click", () => {
     if (!isRunning()) startAutoplay();
     else { stopAutoplay(); refresh(); }
   });
-  fpsInput.addEventListener("input", updateFps);
-  maxFpsButton.addEventListener("click", () => {
-    const wasRunning = isRunning();
-    const enabled = maxFpsButton.getAttribute("aria-pressed") !== "true";
-    maxFpsButton.setAttribute("aria-pressed", String(enabled));
-    fpsInput.disabled = enabled;
-    fpsValue.value = enabled ? "MAX" : `${fpsInput.value} FPS`;
-    if (wasRunning) startAutoplay();
-  });
+  for (const button of speedButtons) {
+    button.addEventListener("click", () => {
+      setSimulationSpeed(Number(button.dataset.simSpeed) as SimulationSpeed);
+    });
+  }
   debugToggle.addEventListener("click", () => setDebugOpen(debugPanel.hidden));
   document.querySelector("#debug-close")!.addEventListener("click", () => setDebugOpen(false));
   merchantTargetCancel.addEventListener("click", leaveMerchantTargetMode);

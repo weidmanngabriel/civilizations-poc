@@ -1,6 +1,6 @@
 # Civilizations PoC 1
 
-Ein rundenbasierter Wirtschaftsprototyp mit TypeScript, Vite und Phaser 4.
+Browserbasierter Wirtschafts- und Logistikprototyp mit TypeScript, Vite und Phaser 4.
 
 ## Lokal starten
 
@@ -13,28 +13,32 @@ npm run dev
 
 Die ausgegebene lokale Adresse mit `/civilizations-poc/` öffnen.
 
+Für Prüfung und Produktionsbuild:
+
 ```sh
 npm test
 npm run build
 npm run preview
 ```
 
-## Spielen
+## Aktueller Spielkern
 
-Acht freie Personen starten am Hauptquartier. Für eine vollständige Kette:
+Acht freie Personen starten am Hauptquartier. Zu Beginn gibt es keine Wege. Wiese und Wald sind begehbar; Wasser und Berge blockieren Bewegung.
 
-1. Zwei Arbeiter dem Wald zuweisen.
-2. Je einen Arbeiter und einen Träger Sägewerk und Schreinerei zuweisen.
-3. Zwei Träger dem Lager zuweisen.
-4. Mit **Nächste Runde** bewegen und produzieren lassen.
+Die Produktionskette lautet:
 
-Wald → Holz → Sägewerk → Bretter → Schreinerei → Holzwerkzeuge → Lager.
-Eine Kante benötigt eine Runde; Produktion benötigt fünf Arbeitsrunden. Jede Person trägt eine Einheit. Arbeiter holen fehlende Rohstoffe auch selbst. Wiesen, Berge und Fluss sind nicht begehbar.
+```text
+Wald → Holz → Sägewerk → Bretter → Schreinerei → Holzwerkzeuge → Lager
+```
 
-Besetzung lässt sich jederzeit ändern. Freigesetzte Personen laufen zum HQ und können unterwegs neu zugewiesen werden. Die Debug-Steuerung unter der Karte fügt freie Personen hinzu oder entfernt freie Personen am HQ. Neuladen setzt das Spiel zurück; Savegames und automatischer Rundenlauf sind nicht Teil dieses PoC.
+Lager, Sägewerke und Schreinereien werden direkt auf der Karte gebaut. Personen werden über das jeweilige Gebäude beziehungsweise global am HQ zugewiesen. Waren bleiben physisch an ihrem Ort und müssen sichtbar transportiert werden.
+
+Die Simulation läuft intern mit einem festen 60-Hz-Takt. Unten kann das gesamte Spiel mit **0,5× / 1× / 2× / 3×** beschleunigt oder pausiert werden. Rendering und Simulation sind voneinander getrennt.
+
+Personen laufen auf normalen Kacheln mit Grundtempo. Wege sind **30 % schneller**. Wenn eine Wiesen-Kachel innerhalb von acht Simulationssekunden achtmal überquert wird, entsteht dort automatisch ein dauerhafter Weg. Wege können im PoC zusätzlich weiterhin manuell gebaut oder entfernt werden.
 
 ## Dokumentation und Deployment
 
-`agents.md`, `architecture.md`, `concept.md` und `POC1_IMPLEMENTATION_PLAN.md` beschreiben Regeln und Umfang.
+`agents.md`, `architecture.md`, `concept.md` und `POC1_IMPLEMENTATION_PLAN.md` beschreiben Regeln und Umfang. `concept.md` und `architecture.md` bilden den aktuellen Produkt- und Technikstand ab.
 
-Der Workflow testet, baut und veröffentlicht ausschließlich bei Änderungen auf `main` (oder manuellem Start). Unter **Settings → Pages → Source** muss **GitHub Actions** ausgewählt sein. Ziel: https://weidmanngabriel.github.io/civilizations-poc/
+Der GitHub-Actions-Workflow testet und baut Änderungen auf `main` und veröffentlicht anschließend auf GitHub Pages.

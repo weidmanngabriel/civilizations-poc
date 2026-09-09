@@ -1,7 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createWorld, CONFIG } from "../src/simulation/scenario";
-import { findPath, key, neighbors, same, walkable } from "../src/simulation/hex";
+import {
+  findPath,
+  findPathBySteps,
+  key,
+  movementCost,
+  neighbors,
+  same,
+  walkable,
+} from "../src/simulation/hex";
 import {
   assigned,
   buildAt,
@@ -41,6 +49,7 @@ function workerAt(w: World, id: BuildingId) {
   const p = assigned(w, id, "worker").at(-1)!;
   p.position = { ...building(w, id).position };
   p.path = [];
+  p.movement = 0;
   p.active = true;
   return p;
 }
@@ -50,6 +59,7 @@ function carrierAt(w: World, id: BuildingId) {
   const p = assigned(w, id, "carrier").at(-1)!;
   p.position = { ...building(w, id).position };
   p.path = [];
+  p.movement = 0;
   p.active = true;
   return p;
 }
@@ -60,6 +70,7 @@ function woodcutterAtForest(w: World) {
   const forest = building(w, p.assignment!.building);
   p.position = { ...forest.position };
   p.path = [];
+  p.movement = 0;
   p.active = true;
   return { p, forest };
 }
@@ -98,13 +109,13 @@ function assertInvariants(w: World) {
   }
 }
 
-function roadAtDistance(w: World, origin: Hex, predicate: (distance: number) => boolean): Hex {
+function buildableAtDistance(w: World, origin: Hex, predicate: (distance: number) => boolean): Hex {
   const candidate = w.tiles
-    .filter((t) => t.terrain === "road")
-    .map((tile) => ({ tile, path: findPath(w.tiles, origin, tile) }))
+    .filter((t) => t.terrain === "grass" || t.terrain === "road")
+    .map((tile) => ({ tile, path: findPathBySteps(w.tiles, origin, tile) }))
     .filter((entry) => entry.path && predicate(entry.path.length))
     .sort((a, b) => a.path!.length - b.path!.length)[0];
-  assert.ok(candidate, "expected a reachable road at requested distance");
+  assert.ok(candidate, "expected a reachable buildable tile at requested distance");
   return { q: candidate.tile.q, r: candidate.tile.r };
 }
 
@@ -114,23 +125,39 @@ test("six unique hex neighbors, reciprocal adjacency", () => {
   for (const n of neighbors(h)) assert.ok(neighbors(n).some((x) => same(x, h)));
 });
 
-test("BFS shortest path respects barriers", () => {
+test("grass is walkable while rivers and mountains remain barriers", () => {
   const tiles = [
-    { q: 0, r: 0, terrain: "road" },
-    { q: 1, r: 0, terrain: "road" },
-    { q: 2, r: 0, terrain: "road" },
-    { q: 0, r: 1, terrain: "grass" },
+    { q: 0, r: 0, terrain: "grass" },
+    { q: 1, r: 0, terrain: "grass" },
+    { q: 2, r: 0, terrain: "grass" },
+    { q: 0, r: 1, terrain: "river" },
+    { q: 1, r: 1, terrain: "mountain" },
   ] as World["tiles"];
   assert.equal(findPath(tiles, tiles[0]!, tiles[2]!)!.length, 2);
   assert.equal(findPath(tiles, tiles[0]!, tiles[3]!), null);
+  assert.ok(walkable(tiles[0]!));
+  assert.equal(walkable(tiles[3]!), false);
+  assert.equal(walkable(tiles[4]!), false);
 });
 
-test("world starts with only the HQ and former production sites are roads", () => {
+test("roads reduce movement cost by thirty percent speed gain", () => {
+  const grass = { q: 0, r: 0, terrain: "grass" } as World["tiles"][number];
+  const road = { q: 0, r: 0, terrain: "road" } as World["tiles"][number];
+  assert.equal(movementCost(grass, CONFIG.roadSpeedMultiplier), 1);
+  assert.ok(
+    Math.abs(
+      movementCost(road, CONFIG.roadSpeedMultiplier) - 1 / CONFIG.roadSpeedMultiplier,
+    ) < 1e-9,
+  );
+});
+
+test("world starts with only the HQ and no roads", () => {
   const w = createWorld();
   assert.deepEqual(w.buildings.map((b) => b.kind), ["hq"]);
   assert.equal(w.people.length, CONFIG.population);
+  assert.equal(w.tiles.some((tile) => tile.terrain === "road"), false);
   for (const position of Object.values(CORE_POSITIONS))
-    assert.equal(w.tiles.find((t) => same(t, position))?.terrain, "road");
+    assert.equal(w.tiles.find((t) => same(t, position))?.terrain, "grass");
 });
 
 test("arrival controls activation; release and reassignment never teleport", () => {
@@ -142,27 +169,31 @@ test("arrival controls activation; release and reassignment never teleport", () 
   while (p.path.length) {
     const prev = { ...p.position };
     tick(w);
-    assert.ok(neighbors(prev).some((h) => same(h, p.position)));
+    assert.ok(
+      same(prev, p.position) || neighbors(prev).some((h) => same(h, p.position)),
+    );
   }
   assert.equal(p.active, true);
   changeAssignment(w, sawmill.id, "worker", -1);
   const pos = { ...p.position };
   tick(w);
-  assert.ok(neighbors(pos).some((h) => same(h, p.position)));
+  assert.ok(
+    same(pos, p.position) || neighbors(pos).some((h) => same(h, p.position)),
+  );
   const next = { ...p.position };
   changeAssignment(w, carpenter.id, "worker", 1);
   assert.deepEqual(p.position, next);
   assert.deepEqual(p.assignment, { building: carpenter.id, role: "worker" });
 });
 
-test("production takes five rounds and consumes two inputs", () => {
+test("production takes one simulated second and consumes two inputs", () => {
   const w = createWorld();
   const { sawmill } = placeCore(w);
   const p = workerAt(w, sawmill.id);
   sawmill.input = 2;
-  rounds(w, 4);
+  rounds(w, CONFIG.duration - 1);
   assert.equal(sawmill.output, 0);
-  assert.equal(p.progress, 4);
+  assert.equal(p.progress, CONFIG.duration - 1);
   tick(w);
   assert.equal(sawmill.output, 1);
   assert.equal(sawmill.input, 0);
@@ -172,11 +203,30 @@ test("one woodcutter occupies one forest and respects output capacity", () => {
   const w = createWorld();
   const { forest } = woodcutterAtForest(w);
   assert.equal(assigned(w, forest.id, "worker").length, 1);
-  rounds(w, 15);
+  rounds(w, CONFIG.duration * 3);
   assert.equal(forest.output, 3);
-  rounds(w, 10);
+  rounds(w, CONFIG.duration * 2);
   assert.equal(forest.output, 3);
   assertInvariants(w);
+});
+
+test("repeated grass traversal creates a permanent road", () => {
+  const w = createWorld(1);
+  const hq = building(w, "hq");
+  const tile = neighbors(hq.position)
+    .map((position) => w.tiles.find((candidate) => same(candidate, position)))
+    .find((candidate) => candidate?.terrain === "grass")!;
+  assert.ok(tile);
+  const p = w.people[0]!;
+
+  for (let i = 0; i < CONFIG.trafficThreshold; i += 1) {
+    p.position = { ...hq.position };
+    p.path = [{ q: tile.q, r: tile.r }];
+    p.movement = 1;
+    tick(w);
+  }
+
+  assert.equal(tile.terrain, "road");
 });
 
 test("one physical unit cannot be claimed twice; carried cancellation returns it", () => {
@@ -215,7 +265,7 @@ test("population removal only removes truly free people at HQ; IDs stay unique",
 test("production can fetch needed goods from a warehouse beyond the collection radius", () => {
   const w = createWorld();
   const { sawmill, warehouse } = placeCore(w);
-  const path = findPath(w.tiles, sawmill.position, warehouse.position)!;
+  const path = findPathBySteps(w.tiles, sawmill.position, warehouse.position)!;
   assert.ok(path.length > CONFIG.warehouseCollectionRadius);
   warehouse.inventory!.wood = 2;
   const carrier = carrierAt(w, sawmill.id);
@@ -228,7 +278,7 @@ test("warehouse carriers never move goods from one warehouse to another", () => 
   const w = createWorld();
   const source = buildAt(w, CORE_POSITIONS.warehouse, "warehouse")!;
   source.inventory!.wood = 5;
-  const targetPosition = roadAtDistance(w, source.position, (distance) => distance >= 1 && distance <= 5);
+  const targetPosition = buildableAtDistance(w, source.position, (distance) => distance >= 1 && distance <= 5);
   const target = buildAt(w, targetPosition, "warehouse")!;
   const carrier = carrierAt(w, target.id);
   tick(w);
@@ -240,7 +290,7 @@ test("warehouse carriers never move goods from one warehouse to another", () => 
 test("warehouse collection is limited to five reachable steps", () => {
   const nearWorld = createWorld();
   const nearWarehouse = buildAt(nearWorld, CORE_POSITIONS.warehouse, "warehouse")!;
-  const nearPosition = roadAtDistance(
+  const nearPosition = buildableAtDistance(
     nearWorld,
     nearWarehouse.position,
     (distance) => distance >= 1 && distance <= CONFIG.warehouseCollectionRadius,
@@ -253,14 +303,14 @@ test("warehouse collection is limited to five reachable steps", () => {
 
   const farWorld = createWorld();
   const farWarehouse = buildAt(farWorld, CORE_POSITIONS.warehouse, "warehouse")!;
-  const farPosition = roadAtDistance(
+  const farPosition = buildableAtDistance(
     farWorld,
     farWarehouse.position,
     (distance) => distance > CONFIG.warehouseCollectionRadius,
   );
   const farSource = buildAt(farWorld, farPosition, "sawmill")!;
   farSource.output = 1;
-  const farDistance = findPath(farWorld.tiles, farWarehouse.position, farSource.position)!.length;
+  const farDistance = findPathBySteps(farWorld.tiles, farWarehouse.position, farSource.position)!.length;
   assert.ok(farDistance > CONFIG.warehouseCollectionRadius);
   const farCarrier = carrierAt(farWorld, farWarehouse.id);
   tick(farWorld);
@@ -268,7 +318,7 @@ test("warehouse collection is limited to five reachable steps", () => {
   assert.equal(farSource.output, 1);
 });
 
-test("buildings and roads can be placed and removed on empty tiles", () => {
+test("buildings and roads can still be placed and removed manually", () => {
   const w = createWorld();
   const grass = w.tiles.find((t) => t.terrain === "grass")!;
   const position = { q: grass.q, r: grass.r };

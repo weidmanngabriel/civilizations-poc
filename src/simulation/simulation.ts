@@ -9,7 +9,13 @@ import type {
   Tile,
   World,
 } from "./model";
-import { findPath, same } from "./hex";
+import {
+  findPath,
+  findPathBySteps,
+  movementCost,
+  pathTravelCost,
+  same,
+} from "./hex";
 import { CONFIG } from "./scenario";
 
 export const building = (w: World, id: BuildingId): Building =>
@@ -38,7 +44,12 @@ const producing = (w: World, id: BuildingId) =>
 export const outputOccupied = (w: World, b: Building): number =>
   b.output + heldOutput(w, b.id) + producing(w, b.id);
 const route = (w: World, p: Person, b: Building) => {
-  p.path = findPath(w.tiles, p.position, b.position) ?? [];
+  p.path = findPath(
+    w.tiles,
+    p.position,
+    b.position,
+    CONFIG.roadSpeedMultiplier,
+  ) ?? [];
 };
 const tileAt = (w: World, position: Hex): Tile =>
   w.tiles.find((tile) => same(tile, position))!;
@@ -76,6 +87,7 @@ function cancel(w: World, p: Person): void {
   returnCargoToSource(w, p);
   p.trip = undefined;
   p.progress = 0;
+  p.movement = 0;
   p.path = [];
 }
 
@@ -120,6 +132,7 @@ export function changeAssignment(
     p.assignment = { building: id, role };
     if (role === "merchant") p.merchantRoute = { good: "wood" };
     p.active = same(p.position, b.position);
+    p.movement = 0;
     route(w, p, b);
     return true;
   }
@@ -151,6 +164,7 @@ export function setMerchantRoute(
   if (p.trip) cancel(w, p);
   p.merchantRoute = { good: good ?? p.merchantRoute?.good ?? "wood", target };
   p.active = same(p.position, source.position);
+  p.movement = 0;
   if (!p.active) route(w, p, source);
   return true;
 }
@@ -163,6 +177,7 @@ export function changePopulation(w: World, delta: 1 | -1): boolean {
       position: { ...hq.position },
       active: false,
       progress: 0,
+      movement: 0,
       path: [],
     });
     return true;
@@ -196,7 +211,12 @@ function forestCandidates(w: World, origin: Hex): ForestCandidate[] {
     .map((forest) => ({
       kind: "active" as const,
       forest,
-      path: findPath(w.tiles, origin, forest.position),
+      path: findPath(
+        w.tiles,
+        origin,
+        forest.position,
+        CONFIG.roadSpeedMultiplier,
+      ),
     }))
     .filter(
       (candidate): candidate is Extract<ForestCandidate, { kind: "active" }> =>
@@ -207,7 +227,7 @@ function forestCandidates(w: World, origin: Hex): ForestCandidate[] {
     .map((tile) => ({
       kind: "passive" as const,
       tile,
-      path: findPath(w.tiles, origin, tile),
+      path: findPath(w.tiles, origin, tile, CONFIG.roadSpeedMultiplier),
     }))
     .filter(
       (candidate): candidate is Extract<ForestCandidate, { kind: "passive" }> =>
@@ -215,8 +235,16 @@ function forestCandidates(w: World, origin: Hex): ForestCandidate[] {
     );
   const candidates = [...active, ...passive];
   if (!candidates.length) return [];
-  const distance = Math.min(...candidates.map((candidate) => candidate.path.length));
-  return candidates.filter((candidate) => candidate.path.length === distance);
+  const costs = candidates.map((candidate) =>
+    pathTravelCost(w.tiles, candidate.path, CONFIG.roadSpeedMultiplier),
+  );
+  const best = Math.min(...costs);
+  return candidates.filter(
+    (candidate) =>
+      Math.abs(
+        pathTravelCost(w.tiles, candidate.path, CONFIG.roadSpeedMultiplier) - best,
+      ) < 1e-9,
+  );
 }
 
 function activateForest(w: World, tile: Tile): Building {
@@ -235,6 +263,7 @@ function activateForest(w: World, tile: Tile): Building {
   };
   w.buildings.push(forest);
   tile.terrain = "building";
+  tile.trafficTicks = undefined;
   return forest;
 }
 
@@ -243,6 +272,7 @@ function assignWoodcutter(w: World, p: Person): boolean {
   if (!candidates.length) {
     p.assignment = undefined;
     p.active = false;
+    p.movement = 0;
     const hq = building(w, "hq");
     if (!same(p.position, hq.position)) route(w, p, hq);
     return false;
@@ -252,6 +282,7 @@ function assignWoodcutter(w: World, p: Person): boolean {
     choice.kind === "active" ? choice.forest : activateForest(w, choice.tile);
   p.assignment = { building: forest.id, role: "worker" };
   p.active = same(p.position, forest.position);
+  p.movement = 0;
   p.path = choice.path;
   return true;
 }
@@ -301,15 +332,24 @@ function requestInput(w: World, p: Person, b: Building): void {
       )
         continue;
       if (b.kind === "warehouse") {
-        const collectionPath = findPath(w.tiles, b.position, source.position);
+        const collectionPath = findPathBySteps(w.tiles, b.position, source.position);
         if (!collectionPath || collectionPath.length > CONFIG.warehouseCollectionRadius)
           continue;
       }
-      const path = findPath(w.tiles, p.position, source.position);
+      const path = findPath(
+        w.tiles,
+        p.position,
+        source.position,
+        CONFIG.roadSpeedMultiplier,
+      );
       if (path) sources.push({ source, good, path });
     }
   }
-  sources.sort((a, b) => a.path.length - b.path.length);
+  sources.sort(
+    (a, b) =>
+      pathTravelCost(w.tiles, a.path, CONFIG.roadSpeedMultiplier) -
+      pathTravelCost(w.tiles, b.path, CONFIG.roadSpeedMultiplier),
+  );
   const source = sources[0];
   if (!source) return;
   p.trip = {
@@ -319,6 +359,7 @@ function requestInput(w: World, p: Person, b: Building): void {
     picked: false,
   };
   p.path = source.path;
+  p.movement = 0;
 }
 
 function requestMerchantTransfer(w: World, p: Person, source: Building): void {
@@ -338,7 +379,7 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): void {
   if (
     available(w, source, routeConfig.good) <= 0 ||
     !warehouseHasSpace(w, target, routeConfig.good) ||
-    !findPath(w.tiles, source.position, target.position)
+    !findPath(w.tiles, source.position, target.position, CONFIG.roadSpeedMultiplier)
   )
     return;
   p.trip = {
@@ -354,11 +395,14 @@ function retireDepletedForests(w: World): void {
     (b) => !b.retired && b.forestRemaining === 0,
   )) {
     forest.retired = true;
-    tileAt(w, forest.position).terrain = "road";
+    const tile = tileAt(w, forest.position);
+    tile.terrain = "grass";
+    tile.trafficTicks = undefined;
     for (const person of assigned(w, forest.id, "worker")) {
       person.assignment = undefined;
       person.active = false;
       person.progress = 0;
+      person.movement = 0;
       person.path = [];
       if (person.woodcutter) assignWoodcutter(w, person);
     }
@@ -421,6 +465,7 @@ export function buildAt(
   };
   w.buildings.push(b);
   tile.terrain = "building";
+  tile.trafficTicks = undefined;
   for (const p of w.people) rerouteCurrentTask(w, p);
   return b;
 }
@@ -440,6 +485,7 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
       p.merchantRoute = undefined;
       p.active = false;
       p.progress = 0;
+      p.movement = 0;
       route(w, p, building(w, "hq"));
     } else if (affectedTrip) {
       rerouteCurrentTask(w, p);
@@ -447,7 +493,9 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
   }
 
   w.buildings.splice(index, 1);
-  tileAt(w, removed.position).terrain = removed.baseTerrain ?? "grass";
+  const restored = tileAt(w, removed.position);
+  restored.terrain = removed.baseTerrain ?? "grass";
+  restored.trafficTicks = undefined;
   for (const p of w.people) {
     if (same(p.position, removed.position)) continue;
     if (p.path.some((step) => same(step, removed.position))) rerouteCurrentTask(w, p);
@@ -466,16 +514,54 @@ export function setRoad(w: World, position: Hex, enabled: boolean): boolean {
       return false;
     tile.terrain = "grass";
   }
+  tile.trafficTicks = undefined;
   for (const p of w.people) rerouteCurrentTask(w, p);
   return true;
 }
 
-/** One deterministic round: move everyone once, handle arrivals, work, then plan. */
+function recordTraffic(w: World, tile: Tile): boolean {
+  if (tile.terrain !== "grass") return false;
+  const cutoff = w.round - CONFIG.trafficWindowTicks + 1;
+  const traffic = (tile.trafficTicks ?? []).filter((tick) => tick >= cutoff);
+  traffic.push(w.round);
+  if (traffic.length < CONFIG.trafficThreshold) {
+    tile.trafficTicks = traffic;
+    return false;
+  }
+  tile.terrain = "road";
+  tile.trafficTicks = undefined;
+  return true;
+}
+
+function movePeople(w: World): boolean {
+  let roadCreated = false;
+  for (const p of w.people) {
+    if (!p.path.length) {
+      p.movement = 0;
+      continue;
+    }
+    p.movement += CONFIG.movementPerTick;
+    let moves = 0;
+    while (p.path.length && moves < 4) {
+      const next = p.path[0]!;
+      const tile = tileAt(w, next);
+      const cost = movementCost(tile, CONFIG.roadSpeedMultiplier);
+      if (p.movement + 1e-9 < cost) break;
+      p.movement = Math.max(0, p.movement - cost);
+      p.path.shift();
+      p.position = { ...next };
+      if (recordTraffic(w, tile)) roadCreated = true;
+      moves++;
+    }
+  }
+  return roadCreated;
+}
+
+/** One deterministic 1/60-second simulation step. */
 export function tick(w: World): void {
   w.round++;
-  for (const p of w.people) {
-    const next = p.path.shift();
-    if (next) p.position = { ...next };
+  if (movePeople(w)) {
+    for (const p of w.people) rerouteCurrentTask(w, p);
   }
 
   for (const p of w.people) {
@@ -491,6 +577,7 @@ export function tick(w: World): void {
           source.output -= CONFIG.carryCapacity;
         }
         p.trip.picked = true;
+        p.movement = 0;
         route(w, p, building(w, p.trip.target));
       } else {
         const target = building(w, p.trip.target);
@@ -501,6 +588,7 @@ export function tick(w: World): void {
           target.input += CONFIG.carryCapacity;
         }
         p.trip = undefined;
+        p.movement = 0;
       }
     } else if (same(p.position, home.position)) p.active = true;
   }
@@ -573,7 +661,7 @@ export function status(w: World, b: Building): string {
     if (b.retired) return "Erschöpft";
     const progress = workers
       .filter((p) => p.progress > 0)
-      .map((p) => `${p.progress}/${b.recipe!.duration}`);
+      .map((p) => `${Math.round((p.progress / b.recipe!.duration) * 100)} %`);
     if (progress.length) return `Holzabbau: ${progress.join(" · ")}`;
     if (!workers.length) return "Kein Holzfäller am Wald";
     if (outputOccupied(w, b) >= CONFIG.outputCapacity)
@@ -583,7 +671,7 @@ export function status(w: World, b: Building): string {
   }
   const progress = workers
     .filter((p) => p.progress > 0)
-    .map((p) => `${p.progress}/${b.recipe!.duration}`);
+    .map((p) => `${Math.round((p.progress / b.recipe!.duration) * 100)} %`);
   if (progress.length) return `Produktion: ${progress.join(" · ")}`;
   if (!workers.length) return "Kein Arbeiter zugewiesen";
   if (outputOccupied(w, b) >= CONFIG.outputCapacity)
