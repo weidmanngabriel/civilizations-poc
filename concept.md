@@ -10,10 +10,11 @@ Ziel des ersten Proof of Concept ist es, den Kern der personenbasierten Produkti
 - Gebäude belegen jeweils genau ein Hexfeld.
 - Weg-, Wald- und Gebäudekacheln sind begehbar.
 - Wiesen, Berge und Flüsse sind aktuell nicht begehbar.
-- Die feste Startkarte umfasst **21 × 13 Hexfelder** mit Hauptquartier, Sägewerk, Schreinerei und Lager.
+- Die feste Startkarte umfasst **21 × 13 Hexfelder**.
+- Zu Beginn ist **nur das Hauptquartier** gebaut. Lager, Sägewerke und Schreinereien werden vom Spieler platziert.
 - Zu Beginn gibt es keinen aktiven Wald als Arbeitsstätte. Mehrere kleine Gruppen passiver Waldkacheln sind über die Karte verteilt.
 - Das Straßennetz enthält bewusst längere Wege, Abzweigungen und Umwege.
-- Lager, Sägewerke und Schreinereien können zusätzlich frei auf leeren Wiesen- oder Wegkacheln platziert werden.
+- Lager, Sägewerke und Schreinereien können frei auf leeren Wiesen- oder Wegkacheln platziert werden.
 - Der Bau erfolgt im aktuellen PoC sofort und ohne Baukosten oder Bauarbeiter.
 - Wiesen können zu Wegen gemacht werden. Wege können wieder zu Wiese entfernt werden, solange keine Person auf der Kachel steht.
 
@@ -39,7 +40,7 @@ Aktuelle Kette:
 - Wald: 5 Arbeitsschritte → 1 Holz.
 - Sägewerk: 2 Holz → 1 Brett in 5 Arbeitsschritten.
 - Schreinerei: 2 Bretter → 1 Holzwerkzeug in 5 Arbeitsschritten.
-- Lager: Träger sammeln verfügbare Waren aus Produktions- und Rohstofforten ein.
+- Lager: Träger sammeln verfügbare Waren aus nahe gelegenen Produktions- und Rohstofforten ein.
 
 Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt aktuell genau eine Ware pro Transportweg.
 
@@ -60,9 +61,11 @@ Lager besitzen stattdessen einen echten lokalen Bestand pro Warentyp:
 
 Ein Produktionsvorgang startet nur, wenn Platz für den späteren Output reserviert werden kann. Bereits geplante Transporte zählen gegen die Zielkapazität. Eine vorhandene Ware wird beim Abholauftrag reserviert, damit sie nicht mehrfach verplant werden kann.
 
-Waren in Lagern sind normale physische Warenquellen. Benötigt ein Sägewerk Holz oder eine Schreinerei Bretter, dürfen deren Arbeiter oder Träger die Ware aus einem erreichbaren Lager holen.
+Lager-Träger sammeln Waren nur aus einem **Umkreis von maximal 5 tatsächlich begehbaren Kachelschritten** um ihr Lager. Maßgeblich ist der kürzeste Weg vom Lager zur Warenquelle, nicht die geometrische Luftlinie. Eine Quelle mit einem notwendigen Weg von mehr als fünf Schritten wird von diesem Lager nicht automatisch eingesammelt.
 
-Lager-Träger holen Waren dagegen **niemals aus einem anderen Lager**. Dadurch entstehen keine automatischen Lager-zu-Lager-Umlagerungen. Ein Lager wird nur geleert, wenn eine Ware an einem Produktionsort tatsächlich benötigt wird.
+Waren in Lagern sind normale physische Warenquellen. Benötigt ein Sägewerk Holz oder eine Schreinerei Bretter, dürfen deren Arbeiter oder Träger die Ware aus einem erreichbaren Lager holen. Für diese bedarfsgetriebene Beschaffung gilt die 5-Schritte-Grenze nicht.
+
+Lager-Träger holen Waren weiterhin **niemals aus einem anderen Lager**. Dadurch entstehen keine automatischen Lager-zu-Lager-Umlagerungen. Ein Lager wird nur geleert, wenn eine Ware an einem Produktionsort tatsächlich benötigt wird.
 
 Wird ein Transport während des Tragens abgebrochen, kehrt die Ware zur ursprünglichen Quelle zurück, sofern diese noch existiert.
 

@@ -4,6 +4,7 @@ import { createWorld, CONFIG } from "../src/simulation/scenario";
 import { findPath, same, walkable } from "../src/simulation/hex";
 import {
   assigned,
+  buildAt,
   building,
   changeAssignment,
   changeWoodcutters,
@@ -79,9 +80,10 @@ test("leftover wood remains collectible after the forest has disappeared", () =>
   assert.equal(forest.retired, true);
   assert.equal(forest.output, 1);
 
-  changeAssignment(world, "sawmill", "carrier", 1);
-  const carrier = assigned(world, "sawmill", "carrier")[0]!;
-  carrier.position = { ...building(world, "sawmill").position };
+  const sawmill = buildAt(world, { q: 7, r: 4 }, "sawmill")!;
+  changeAssignment(world, sawmill.id, "carrier", 1);
+  const carrier = assigned(world, sawmill.id, "carrier")[0]!;
+  carrier.position = { ...sawmill.position };
   carrier.path = [];
   carrier.active = true;
   tick(world);
