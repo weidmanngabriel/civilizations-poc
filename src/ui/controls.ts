@@ -203,8 +203,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const refreshLiveState = () => {
     document.querySelector("#metrics")!.innerHTML = `<div><small>BEV.</small><strong>${w.people.length}</strong></div><div><small>FREI</small><strong>${freePeople(w).length}</strong></div><div><small>WERKZEUGE</small><strong>${totalWarehouseStock(w, "woodenTool")}</strong></div>`;
-    if (selectedTile) renderSelectionPanel();
-    else updateSelectionLiveState();
+    if (!selectedTile) updateSelectionLiveState();
     renderMap();
   };
 
