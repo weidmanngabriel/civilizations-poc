@@ -251,9 +251,10 @@ test("one physical unit cannot be claimed twice; carried cancellation returns it
 
 test("population removal only removes truly free people at HQ; IDs stay unique", () => {
   const w = createWorld(1);
+  const hq = building(w, "hq");
   changeWoodcutters(w, 1);
   assert.equal(changePopulation(w, -1), false);
-  tick(w);
+  while (same(w.people[0]!.position, hq.position)) tick(w);
   changeWoodcutters(w, -1);
   assert.equal(changePopulation(w, -1), false);
   while (w.people[0]!.path.length) tick(w);
