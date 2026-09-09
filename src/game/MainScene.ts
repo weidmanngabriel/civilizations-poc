@@ -126,7 +126,9 @@ export class MainScene extends Phaser.Scene {
     const setBuildMode = (event: Event) => {
       const detail = (event as CustomEvent<BuildModeDetail>).detail;
       this.buildKind = detail.active ? detail.kind : undefined;
-      this.buildHover = undefined;
+      this.buildHover = detail.active && this.selectedTile
+        ? { ...this.selectedTile }
+        : undefined;
       this.selectedBuildingId = undefined;
       this.selectedTile = undefined;
       this.renderWorld();
