@@ -25,13 +25,13 @@ Dependencies flow from presentation toward the simulation. `src/simulation/` mus
 
 ## Simulation core
 
-`src/simulation/model.ts` defines generic people, assignments, transport trips, recipes, buildings, building kinds, local inventories and world state. Buildings have stable string IDs plus a separate `kind`, so multiple warehouses, sawmills and carpenter shops can exist without special-case IDs.
+`src/simulation/model.ts` defines generic people, assignments, transport trips, merchant routes, recipes, buildings, building kinds, local inventories and world state. Buildings have stable string IDs plus a separate `kind`, so multiple warehouses, sawmills and carpenter shops can exist without special-case IDs.
 
 `scenario.ts` owns the fixed **21 × 13** offset-layout hex map, eight-person start and economy configuration. Buildings occupy one tile. The initial world now contains only the HQ; warehouses, sawmills and carpenter shops are placed by the player. The map still starts with several small groups of passive forest tiles and no active forest building.
 
 `hex.ts` provides axial neighbors and BFS pathfinding over road, forest and building tiles. Grass, mountain and river are blocked.
 
-`simulation.ts` owns deterministic in-place ticks, assignment changes, population changes, global woodcutter appointment, reservations, recipes, finite forest depletion, forest claiming/relocation, building placement/demolition, road editing and status derivation. No timers or renderer imports occur in the core.
+`simulation.ts` owns deterministic in-place ticks, assignment changes, population changes, global woodcutter appointment, reservations, recipes, finite forest depletion, forest claiming/relocation, building placement/demolition, road editing, merchant routes and status derivation. No timers or renderer imports occur in the core.
 
 Each tick moves each person at most once, handles arrivals and transfers, advances production, retires depleted forests, reallocates waiting woodcutters and finally plans new transport trips. Stable person/building order plus seeded randomness keep replay deterministic.
 
@@ -48,6 +48,28 @@ Warehouse carriers collect available output from non-warehouse sources only when
 Warehouses are nevertheless valid sources for production demand without this 5-step restriction: a sawmill or carpenter worker/carrier may fetch the required input from any reachable warehouse when it is the chosen source.
 
 This keeps warehouses as local physical buffers in the logistics network without creating meaningless stock shuffling or map-wide warehouse collection routes.
+
+### Merchant routes
+
+Merchants are a separate warehouse role and are the only automatic mechanism that intentionally moves goods from one warehouse to another. A warehouse currently supports up to **two merchants**.
+
+Each merchant belongs to one source warehouse and has an individual route configuration consisting of one destination warehouse and one good type. The route has no five-step radius. The merchant uses the normal `Trip` structure, reservations and BFS movement rather than a separate trade inventory.
+
+A merchant loop is:
+
+```text
+wait at source warehouse
+→ reserve exactly 1 configured good and destination capacity
+→ pick up 1 unit
+→ walk to destination
+→ deliver 1 unit
+→ walk back empty to source
+→ repeat
+```
+
+If the source has no configured good, the destination is full or the destination is unreachable, the merchant waits at the source. There is currently no return cargo or price/barter system. If either warehouse is demolished, affected transport is cancelled; deleting the destination clears the route target, while deleting the source frees the merchant.
+
+Normal warehouse carriers remain unchanged and never transport from one warehouse to another.
 
 ## Dynamic buildings and terrain editing
 
@@ -75,6 +97,8 @@ The Phaser camera owns map navigation. Desktop uses wheel zoom and pointer drag.
 
 Map interaction is selection-first. A short click/tap selects a building when one occupies the hit tile; otherwise it selects the tile itself. Drag/pan and pinch do not select. Phaser emits building/tile selection events while the DOM UI owns build, road, assignment and demolition controls.
 
+When a merchant route is in map-target-selection mode, the next tap on another warehouse is consumed as the route destination instead of changing the normal selected building. The warehouse panel then remains focused on the merchant's source warehouse.
+
 ## DOM UI
 
 `ui/controls.ts` owns all HUD and overlay controls.
@@ -84,7 +108,8 @@ Map interaction is selection-first. A short click/tap selects a building when on
 - while paused: **Nächster Schritt** for one deterministic tick;
 - HQ selection: population and woodcutter controls;
 - production building selection: recipe, inventory, worker/carrier controls and demolition;
-- warehouse selection: all three local good stocks, carriers and demolition;
+- warehouse selection: all three local good stocks, carriers, merchants, per-merchant good/destination route controls and demolition;
+- merchant destination can be chosen from the warehouse list or by tapping another warehouse on the map;
 - active forest selection: remaining yield/output only;
 - empty grass/road tile selection: instant building choices plus road build/remove where applicable;
 - debug overlay: people and transport tasks.

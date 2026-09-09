@@ -2,6 +2,7 @@ import type {
   BuildableBuildingKind,
   Building,
   BuildingId,
+  Good,
   Hex,
   Role,
   World,
@@ -16,6 +17,7 @@ import {
   freePeople,
   GOODS,
   removeBuilding,
+  setMerchantRoute,
   setRoad,
   status,
   tick,
@@ -48,6 +50,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   let presentationDirty = true;
   let selectedBuildingId: BuildingId | undefined;
   let selectedTile: Hex | undefined;
+  let merchantTargetSelection: number | undefined;
 
   const selectionPanel = document.querySelector<HTMLElement>("#selection-panel")!;
   const debugPanel = document.querySelector<HTMLElement>("#debug-panel")!;
@@ -55,11 +58,30 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const canRemovePopulation = () =>
     freePeople(w).some((p) => same(p.position, building(w, "hq").position));
+  const roleLabel = (role: Role) =>
+    role === "worker" ? "Arbeiter" : role === "carrier" ? "Träger" : "Händler";
 
   const assignmentControl = (b: Building, role: Role, limit: number): string => {
     if (b.forestRemaining !== undefined || !limit) return "";
-    const roleLabel = role === "worker" ? "Arbeiter" : "Träger";
-    return `<div class="assignment"><div>${roleLabel}<small><span data-field="${role}-active"></span> aktiv</small></div><div class="stepper"><button data-action="assignment" data-building="${b.id}" data-role="${role}" data-delta="-1" aria-label="${b.name}: ${roleLabel} verringern">−</button><output data-field="${role}-count"></output><button data-action="assignment" data-building="${b.id}" data-role="${role}" data-delta="1" aria-label="${b.name}: ${roleLabel} erhöhen">+</button></div></div>`;
+    const label = roleLabel(role);
+    const detail = role === "merchant"
+      ? "Handelsroute je Händler"
+      : `<span data-field="${role}-active"></span> aktiv`;
+    return `<div class="assignment"><div>${label}<small>${detail}</small></div><div class="stepper"><button data-action="assignment" data-building="${b.id}" data-role="${role}" data-delta="-1" aria-label="${b.name}: ${label} verringern">−</button><output data-field="${role}-count"></output><button data-action="assignment" data-building="${b.id}" data-role="${role}" data-delta="1" aria-label="${b.name}: ${label} erhöhen">+</button></div></div>`;
+  };
+
+  const merchantControls = (b: Building): string => {
+    if (b.kind !== "warehouse") return "";
+    const merchants = assigned(w, b.id, "merchant");
+    if (!merchants.length) return "";
+    const targets = w.buildings.filter(
+      (candidate) => candidate.kind === "warehouse" && !candidate.retired && candidate.id !== b.id,
+    );
+    return `<div class="inventory">${merchants.map((p) => {
+      const targetOptions = targets.map((target) => `<option value="${target.id}" ${p.merchantRoute?.target === target.id ? "selected" : ""}>${target.name}</option>`).join("");
+      const goodOptions = (Object.keys(GOODS) as Good[]).map((good) => `<option value="${good}" ${p.merchantRoute?.good === good ? "selected" : ""}>${GOODS[good]}</option>`).join("");
+      return `<div><span>Händler ${p.id}</span><strong>${p.trip ? (p.trip.picked ? "unterwegs zum Ziel" : "holt Ware") : p.path.length ? "auf Rückweg" : p.merchantRoute?.target ? "bereit" : "Route fehlt"}</strong></div><label class="recipe">Ware <select data-route-good="${p.id}">${goodOptions}</select></label><label class="recipe">Ziel <select data-route-target="${p.id}"><option value="">– Ziellager wählen –</option>${targetOptions}</select></label><div class="stepper"><button data-action="merchant-map-target" data-person="${p.id}">${merchantTargetSelection === p.id ? "Jetzt Ziellager antippen …" : "Ziel auf Karte wählen"}</button></div>`;
+    }).join("")}</div>`;
   };
 
   const setField = (name: string, value: string) => {
@@ -105,11 +127,12 @@ export function mountControls(w: World, renderMap: () => void): void {
       setField("output", `${b.output}/${CONFIG.outputCapacity}`);
     }
 
-    for (const role of ["worker", "carrier"] as const) {
-      const limit = role === "worker" ? b.workers : b.carriers;
+    for (const role of ["worker", "carrier", "merchant"] as const) {
+      const limit = role === "worker" ? b.workers : role === "carrier" ? b.carriers : (b.merchants ?? 0);
       if (!limit) continue;
       const people = assigned(w, b.id, role);
-      setField(`${role}-active`, String(people.filter((p) => p.active).length));
+      if (role !== "merchant")
+        setField(`${role}-active`, String(people.filter((p) => p.active).length));
       setField(`${role}-count`, `${people.length}/${limit}`);
       const minus = selectionPanel.querySelector<HTMLButtonElement>(`button[data-action="assignment"][data-role="${role}"][data-delta="-1"]`);
       const plus = selectionPanel.querySelector<HTMLButtonElement>(`button[data-action="assignment"][data-role="${role}"][data-delta="1"]`);
@@ -171,8 +194,9 @@ export function mountControls(w: World, renderMap: () => void): void {
         ? `<div><span>Holz</span><strong data-field="warehouse-wood"></strong></div><div><span>Bretter</span><strong data-field="warehouse-plank"></strong></div><div><span>Holzwerkzeuge</span><strong data-field="warehouse-tool"></strong></div>`
         : `${b.recipe?.input ? `<div><span>${GOODS[b.recipe.input]} · Input</span><strong data-field="input"></strong></div>` : ""}<div><span>${b.recipe ? GOODS[b.recipe.output] : "Output"} · Output</span><strong data-field="output"></strong></div>`;
     const demolish = b.kind === "forest" ? "" : `<button data-action="demolish" class="danger">Abreißen</button>`;
+    const merchantAssignment = b.kind === "warehouse" ? assignmentControl(b, "merchant", b.merchants ?? 0) : "";
 
-    selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">${recipe}</p>${assignmentControl(b, "worker", b.workers)}${assignmentControl(b, "carrier", b.carriers)}<div class="inventory">${inventory}</div><p class="status" data-field="status"></p>${demolish}`;
+    selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">${recipe}</p>${assignmentControl(b, "worker", b.workers)}${assignmentControl(b, "carrier", b.carriers)}${merchantAssignment}<div class="inventory">${inventory}</div>${merchantControls(b)}<p class="status" data-field="status"></p>${demolish}`;
     updateSelectionLiveState();
   }
 
@@ -184,7 +208,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const refreshPanels = () => {
     renderSelectionPanel();
-    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => `<tr><td>${p.id}</td><td>${p.woodcutter ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald") : p.assignment ? `${building(w, p.assignment.building).name} · ${p.assignment.role === "worker" ? "Arbeiter" : "Träger"}` : "Frei"}</td><td>${p.trip ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}` : p.progress ? `${p.woodcutter ? "Fällt Holz" : "Produziert"} · ${p.progress}/5` : p.path.length ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : "Auf dem Rückweg zum HQ") : p.assignment ? "An der Arbeitsstätte" : p.woodcutter ? "Wartet auf Wald" : "Am HQ"}</td></tr>`).join("")}</tbody></table>`;
+    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => `<tr><td>${p.id}</td><td>${p.woodcutter ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald") : p.assignment ? `${building(w, p.assignment.building).name} · ${roleLabel(p.assignment.role)}` : "Frei"}</td><td>${p.trip ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}` : p.assignment?.role === "merchant" && p.merchantRoute?.target ? `${GOODS[p.merchantRoute.good]} → ${building(w, p.merchantRoute.target).name}${p.path.length ? " · Rückweg" : ""}` : p.progress ? `${p.woodcutter ? "Fällt Holz" : "Produziert"} · ${p.progress}/5` : p.path.length ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : "Auf dem Rückweg zum HQ") : p.assignment ? "An der Arbeitsstätte" : p.woodcutter ? "Wartet auf Wald" : "Am HQ"}</td></tr>`).join("")}</tbody></table>`;
   };
 
   const refresh = () => {
@@ -273,6 +297,23 @@ export function mountControls(w: World, renderMap: () => void): void {
   debugToggle.addEventListener("click", () => setDebugOpen(debugPanel.hidden));
   document.querySelector("#debug-close")!.addEventListener("click", () => setDebugOpen(false));
 
+  selectionPanel.addEventListener("change", (event) => {
+    const select = event.target as HTMLSelectElement;
+    if (select.dataset.routeGood) {
+      const personId = Number(select.dataset.routeGood);
+      const p = w.people.find((person) => person.id === personId);
+      setMerchantRoute(w, personId, p?.merchantRoute?.target, select.value as Good);
+      refresh();
+      return;
+    }
+    if (select.dataset.routeTarget) {
+      const personId = Number(select.dataset.routeTarget);
+      const p = w.people.find((person) => person.id === personId);
+      setMerchantRoute(w, personId, select.value || undefined, p?.merchantRoute?.good);
+      refresh();
+    }
+  });
+
   selectionPanel.addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-action]");
     if (!button || button.disabled) return;
@@ -280,8 +321,14 @@ export function mountControls(w: World, renderMap: () => void): void {
     if (action === "close") {
       selectedBuildingId = undefined;
       selectedTile = undefined;
+      merchantTargetSelection = undefined;
       renderSelectionPanel();
       window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
+      return;
+    }
+    if (action === "merchant-map-target") {
+      merchantTargetSelection = Number(button.dataset.person);
+      renderSelectionPanel();
       return;
     }
     if (action === "build" && selectedTile) {
@@ -304,6 +351,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       if (selected && window.confirm(`${selected.name} wirklich abreißen? Gelagerte Waren gehen verloren.`)) {
         removeBuilding(w, selectedBuildingId);
         selectedBuildingId = undefined;
+        merchantTargetSelection = undefined;
         window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
         refresh();
       }
@@ -317,11 +365,27 @@ export function mountControls(w: World, renderMap: () => void): void {
   });
 
   window.addEventListener(BUILDING_SELECTED_EVENT, (event) => {
+    const id = (event as CustomEvent<BuildingSelectedDetail>).detail.id;
+    if (merchantTargetSelection !== undefined) {
+      const merchant = w.people.find((p) => p.id === merchantTargetSelection);
+      const sourceId = merchant?.assignment?.building;
+      const target = w.buildings.find((b) => b.id === id);
+      if (merchant && sourceId && target?.kind === "warehouse" && id !== sourceId) {
+        setMerchantRoute(w, merchant.id, id, merchant.merchantRoute?.good);
+        merchantTargetSelection = undefined;
+        selectedTile = undefined;
+        selectedBuildingId = sourceId;
+        window.dispatchEvent(new CustomEvent(BUILDING_SELECTION_REQUESTED_EVENT, { detail: { id: sourceId } }));
+        refresh();
+      }
+      return;
+    }
     selectedTile = undefined;
-    selectedBuildingId = (event as CustomEvent<BuildingSelectedDetail>).detail.id;
+    selectedBuildingId = id;
     renderSelectionPanel();
   });
   window.addEventListener(TILE_SELECTED_EVENT, (event) => {
+    if (merchantTargetSelection !== undefined) return;
     selectedBuildingId = undefined;
     selectedTile = (event as CustomEvent<TileSelectedDetail>).detail.position;
     renderSelectionPanel();

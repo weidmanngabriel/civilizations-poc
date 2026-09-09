@@ -2,7 +2,7 @@ export type Good = "wood" | "plank" | "woodenTool";
 export type BuildingId = string;
 export type BuildingKind = "hq" | "forest" | "sawmill" | "carpenter" | "warehouse";
 export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest">;
-export type Role = "worker" | "carrier";
+export type Role = "worker" | "carrier" | "merchant";
 export interface Hex {
   q: number;
   r: number;
@@ -24,6 +24,7 @@ export interface Building {
   position: Hex;
   workers: number;
   carriers: number;
+  merchants?: number;
   recipe?: Recipe;
   input: number;
   output: number;
@@ -38,10 +39,15 @@ export interface Trip {
   good: Good;
   picked: boolean;
 }
+export interface MerchantRoute {
+  target?: BuildingId;
+  good: Good;
+}
 export interface Person {
   id: number;
   position: Hex;
   assignment?: { building: BuildingId; role: Role };
+  merchantRoute?: MerchantRoute;
   woodcutter?: boolean;
   active: boolean;
   progress: number;
