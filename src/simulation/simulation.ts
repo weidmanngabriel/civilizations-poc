@@ -560,8 +560,19 @@ function movePeople(w: World): boolean {
 /** One deterministic 1/60-second simulation step. */
 export function tick(w: World): void {
   w.round++;
+  const regularDecisionTick =
+    (w.round - 1) % CONFIG.decisionIntervalTicks === 0;
+  const immediateDecisionPeople = new Set<number>();
+  const movingAtTickStart = new Set(
+    w.people.filter((p) => p.path.length > 0).map((p) => p.id),
+  );
+
   if (movePeople(w)) {
     for (const p of w.people) rerouteCurrentTask(w, p);
+  }
+  for (const p of w.people) {
+    if (movingAtTickStart.has(p.id) && p.path.length === 0)
+      immediateDecisionPeople.add(p.id);
   }
 
   for (const p of w.people) {
@@ -589,8 +600,11 @@ export function tick(w: World): void {
         }
         p.trip = undefined;
         p.movement = 0;
+        immediateDecisionPeople.add(p.id);
       }
-    } else if (same(p.position, home.position)) p.active = true;
+    } else if (same(p.position, home.position)) {
+      p.active = true;
+    }
   }
 
   for (const p of w.people) {
@@ -614,14 +628,18 @@ export function tick(w: World): void {
         b.output++;
         if (b.forestRemaining !== undefined) b.forestRemaining--;
         p.progress = 0;
+        immediateDecisionPeople.add(p.id);
       }
     }
   }
 
   retireDepletedForests(w);
-  assignWaitingWoodcutters(w);
+  if (regularDecisionTick) assignWaitingWoodcutters(w);
+
+  if (!regularDecisionTick && immediateDecisionPeople.size === 0) return;
 
   for (const p of w.people) {
+    if (!regularDecisionTick && !immediateDecisionPeople.has(p.id)) continue;
     if (!p.assignment || !p.active || p.path.length || p.trip || p.progress > 0)
       continue;
     const b = building(w, p.assignment.building);

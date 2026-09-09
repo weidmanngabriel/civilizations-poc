@@ -49,6 +49,8 @@ The slower game pace is implemented in the balance constants instead of reducing
 
 These values are exactly one quarter of the previous movement rate / four times the previous durations, so gameplay remains 75% slower while the state update frequency remains fine-grained.
 
+Autonomous planning is intentionally slower than the fixed simulation step. `CONFIG.decisionIntervalTicks` is 60, so idle source selection, merchant planning and retries for waiting woodcutters run once per simulated second. The first fixed tick is also a decision tick so newly configured actors can react immediately at startup. Event-driven transitions bypass that cadence: arriving at an assigned workplace, completing a delivery and completing production mark the affected person for an immediate follow-up decision in the same tick. Forest depletion directly reassigns its woodcutter. Movement, pickup, delivery, production progress and reservation state therefore remain responsive without performing expensive path/source searches 60 times per second.
+
 The UI still uses a `requestAnimationFrame` accumulator and the relative speed choices `0.5`, `1`, `2`, `3`. Rendering stays on the browser animation loop and is independent from simulation speed. Pausing stops simulation advancement while Phaser continues to render and accept camera input.
 
 ## Navigation and movement
@@ -249,6 +251,8 @@ Placement has dedicated coverage for:
 - mandatory one-tile free ring,
 - rejection when the ring contains blocked terrain,
 - restoration of every footprint tile after demolition.
+
+Decision-cadence coverage verifies that idle autonomous planning does not re-run between one-second decision boundaries and that a delivery can trigger its required follow-up decision immediately without waiting for the next boundary.
 
 Other simulation tests continue to cover movement, production, forest relocation, merchant routes, reservations and logistics invariants.
 
