@@ -41,15 +41,17 @@ Buildings may additionally carry a `footprint` containing all occupied Hex posit
 
 The simulation quantum is 1/60 simulated second. `tick()` always advances exactly this fixed amount.
 
-At 1×:
+Per simulated second:
 
 - 60 tick calls = 1 simulated second,
 - normal production duration is about 60 ticks,
 - base movement earns `10 / 60` tile-distance per tick.
 
-The grid is now about twice as dense as before, so 10 tiles/second keeps approximate visible world movement comparable to the earlier 5 tiles/second on the coarse grid.
+The grid is now about twice as dense as before, so 10 tiles/simulated-second preserves the intended spatial scale while rendering remains independent.
 
-The UI uses a `requestAnimationFrame` accumulator. Real frame time is multiplied by selected simulation speed (`0.5`, `1`, `2`, `3`) and consumed in fixed 1/60-second quanta. Rendering remains independent from simulation speed. Pausing stops simulation advancement while Phaser continues to render and accept camera input.
+The UI uses a `requestAnimationFrame` accumulator. Real frame time is multiplied by the selected relative speed (`0.5`, `1`, `2`, `3`) and by a global base-game-speed factor of **0.25**, then consumed in fixed 1/60-second quanta. At displayed 1×, one real second therefore advances 0.25 simulated seconds. Rendering stays on the browser animation loop and is not slowed. Pausing stops simulation advancement while Phaser continues to render and accept camera input.
+
+The current implementation applies the 0.25 factor once after `mountControls()` by remapping the speed buttons' internal `data-sim-speed` values while leaving their visible labels relative (`0.5×`, `1×`, `2×`, `3×`). This keeps the simulation core unchanged and preserves the fixed tick rate.
 
 ## Navigation and movement
 
@@ -123,9 +125,9 @@ Production inputs remain inside the building until completion. In-progress produ
 
 Current recipes at 1×:
 
-- forest: 1 wood / ~1 second,
-- sawmill: 2 wood → 1 plank / ~1 second,
-- carpenter: 2 plank → 1 wooden tool / ~1 second.
+- forest: 1 wood / ~1 simulated second (~4 real seconds),
+- sawmill: 2 wood → 1 plank / ~1 simulated second (~4 real seconds),
+- carpenter: 2 plank → 1 wooden tool / ~1 simulated second (~4 real seconds).
 
 ## Warehouse and logistics model
 
