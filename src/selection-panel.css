@@ -26,6 +26,14 @@
 }
 .selection-panel .recipe { margin: 7px 0 5px; }
 .selection-panel .assignment { border-top: 1px solid #e1e4d8; }
+.selection-panel > .stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.selection-panel > .stepper button { flex: 1 1 130px; }
+.selection-panel .danger { margin-top: 10px; }
 .selection-panel .inventory {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -21,25 +21,39 @@ src/
   ui/           # DOM controls and information panels
 ```
 
-Dependencies flow from presentation toward the simulation. `src/simulation/` must not import Phaser.
-
-Phaser is responsible for presentation and map interaction. Product logic remains in plain TypeScript modules so it can be tested independently and reused if the renderer changes later.
+Dependencies flow from presentation toward the simulation. `src/simulation/` must not import Phaser. Phaser is responsible for presentation and map interaction; product logic remains in plain TypeScript modules so it can be tested independently.
 
 ## Simulation core
 
-`src/simulation/model.ts` defines generic people, assignments, transport trips, recipes, buildings and world state. Roles remain data rather than subclasses. A person may carry the global `woodcutter` job independently of a specific forest assignment.
+`src/simulation/model.ts` defines generic people, assignments, transport trips, recipes, buildings, building kinds, local inventories and world state. Buildings have stable string IDs plus a separate `kind`, so multiple warehouses, sawmills and carpenter shops can exist without special-case IDs.
 
-`scenario.ts` owns the fixed **21 × 13** offset-layout hex map, building positions, eight-person start and economy configuration. Buildings occupy one tile. The map starts with several small groups of passive forest tiles and no active forest building.
+`scenario.ts` owns the fixed **21 × 13** offset-layout hex map, initial buildings, eight-person start and economy configuration. Buildings occupy one tile. The map starts with several small groups of passive forest tiles and no active forest building.
 
 `hex.ts` provides axial neighbors and BFS pathfinding over road, forest and building tiles. Grass, mountain and river are blocked.
 
-`simulation.ts` owns deterministic in-place ticks, assignment changes, population changes, global woodcutter appointment, reservations, recipes, finite forest depletion, forest claiming/relocation and status derivation. No timers or renderer imports occur in the core.
+`simulation.ts` owns deterministic in-place ticks, assignment changes, population changes, global woodcutter appointment, reservations, recipes, finite forest depletion, forest claiming/relocation, building placement/demolition, road editing and status derivation. No timers or renderer imports occur in the core.
 
 Each tick moves each person at most once, handles arrivals and transfers, advances production, retires depleted forests, reallocates waiting woodcutters and finally plans new transport trips. Stable person/building order plus seeded randomness keep replay deterministic.
 
-Trips represent reservations directly. Unpicked trips reserve source output; all trips reserve destination capacity; picked trips retain their source output slot until delivery. Cancelling a carried trip returns the cargo to its original source without reviving retired forests.
+Trips represent reservations directly. Unpicked trips reserve source stock; planned deliveries reserve destination capacity. A picked trip physically carries one unit. Cancelling a carried trip returns it to the original source when that source still exists.
 
-Production inputs remain inside the building until completion. In-progress production reserves output capacity. Production workers prioritize production and only fetch inputs themselves when production is blocked. Carriers only fetch inputs for their assigned workplace.
+Production inputs remain inside the building until completion. In-progress production reserves output capacity. Production workers prioritize production and only fetch inputs themselves when production is blocked. Carriers assigned to production buildings only fetch that building's required input.
+
+## Warehouse and logistics model
+
+Warehouses have a local inventory keyed by good type rather than a single output counter. Current capacity is **20 units per good type** (`wood`, `plank`, `woodenTool`). Capacity reservations are tracked per good.
+
+Warehouse carriers collect available output from non-warehouse sources. They never create warehouse-to-warehouse trips. Warehouses are nevertheless valid sources for production demand: a sawmill or carpenter worker/carrier may fetch the required input from a warehouse when it is the chosen reachable source.
+
+This keeps warehouses as physical buffers in the logistics network without creating meaningless stock shuffling between warehouses.
+
+## Dynamic buildings and terrain editing
+
+Buildable kinds are currently **warehouse, sawmill and carpenter**. Building is instant and free for the PoC. A new building may be placed on an empty grass or road tile; the underlying terrain is remembered so demolition can restore it.
+
+The HQ and active forests are not player-demolishable. Demolishing a normal building removes its local goods, cancels affected transport tasks, frees assigned people and restores the underlying terrain. People formerly assigned to the building return toward the HQ.
+
+Grass can be changed to road and road back to grass. A road tile occupied by a person cannot be removed, preventing an agent from being stranded on a newly blocked tile. Terrain mutations re-plan affected/current paths against the changed navigation graph.
 
 ## Forest logic
 
@@ -51,37 +65,35 @@ At zero yield the forest retires immediately and its tile becomes road. The reti
 
 ## Map rendering and interaction
 
-`game/MainScene.ts` renders the 21 × 13 world. The Phaser game now uses `Phaser.Scale.RESIZE`, so the game canvas always follows the full browser viewport instead of being constrained to the former 1000 × 570 page element.
+`game/MainScene.ts` renders the 21 × 13 world. The Phaser game uses `Phaser.Scale.RESIZE`, so the canvas follows the full browser viewport.
 
-The app is a fullscreen game surface: `html`, `body`, `#app`, `main` and `#game` fill the viewport and the page itself does not scroll. UI is layered over the map rather than reserving layout space around it.
+The app is a fullscreen game surface: `html`, `body`, `#app`, `main` and `#game` fill the viewport and the page itself does not scroll. UI is layered over the map.
 
-The Phaser camera owns map navigation. Desktop uses wheel zoom and pointer drag. Mobile uses `game/mobileTouch.ts`, which installs native non-passive `TouchEvent` listeners on the canvas so one-finger pan and two-finger pinch work reliably on iOS Safari. Camera zoom is clamped to **0.7×–3.5×**.
+The Phaser camera owns map navigation. Desktop uses wheel zoom and pointer drag. Mobile uses native non-passive touch listeners so one-finger pan and two-finger pinch work reliably on iOS Safari. Camera zoom is clamped to **0.7×–3.5×**. Browser/page zoom is suppressed inside the app.
 
-Browser/page zoom is intentionally suppressed inside the app.
-
-Building interaction is map-first. A short click/tap on a visible building performs hit detection in world coordinates and selects that building; drag/pan and pinch gestures do not select. The selected building is highlighted on the map. Phaser emits only the selected `BuildingId`; the DOM UI owns all controls and status rendering.
+Map interaction is selection-first. A short click/tap selects a building when one occupies the hit tile; otherwise it selects the tile itself. Drag/pan and pinch do not select. Phaser emits building/tile selection events while the DOM UI owns build, road, assignment and demolition controls.
 
 ## DOM UI
 
 `ui/controls.ts` owns all HUD and overlay controls.
 
-The map remains visible behind every normal control surface:
+- top overlay: build/version and core metrics;
+- bottom overlay: pause/resume, FPS and Max-FPS controls;
+- while paused: **Nächster Schritt** for one deterministic tick;
+- HQ selection: population and woodcutter controls;
+- production building selection: recipe, inventory, worker/carrier controls and demolition;
+- warehouse selection: all three local good stocks, carriers and demolition;
+- active forest selection: remaining yield/output only;
+- empty grass/road tile selection: instant building choices plus road build/remove where applicable;
+- debug overlay: people and transport tasks.
 
-- a compact top overlay shows build/version and core metrics without exposing the internal tick counter;
-- a bottom overlay contains pause/resume, FPS and Max-FPS controls;
-- while paused, the bottom overlay additionally shows **Nächster Schritt** for one deterministic tick;
-- selecting the **HQ** opens population and woodcutter controls in a bottom panel;
-- selecting **Sägewerk**, **Schreinerei** or **Lager** shows recipe/inventory/status and worker/carrier assignment controls where applicable;
-- selecting an **active forest** shows remaining yield, local output and status without manual assignment buttons;
-- the global people/transport table is hidden by default and opens through a dedicated Debug overlay.
+Demolition uses a browser confirmation dialog before the destructive mutation is executed.
 
-The former header, explanatory copy, legend, footer and scrolling debug section are no longer part of the normal layout. Safe-area CSS insets keep the overlays usable on phones with notches/home indicators. The iPhone 13 Mini remains the mobile baseline.
-
-During autoplay large DOM structures are not rebuilt every animation frame. Lightweight metrics, selection values and disabled states are updated in place while the map redraw follows the presentation loop. Full panel/table reconstruction happens on user commands, pause or a new selection. This avoids replacing buttons while the user is interacting with them.
+During autoplay large DOM structures are not rebuilt every animation frame. Lightweight metrics, selection values and disabled states are updated in place while the map redraw follows the presentation loop. Full panel/table reconstruction happens on user commands, pause or a new selection.
 
 ## Time and presentation
 
-Simulation ticks and presentation refreshes are decoupled. Ticks remain an internal deterministic unit and are no longer presented as gameplay rounds.
+Simulation ticks and presentation refreshes are decoupled.
 
 - Default state: running at **5 FPS**.
 - Normal autoplay: **1–10 FPS** through an interval timer.
@@ -94,7 +106,7 @@ The rules do not change with speed.
 
 ## Build and deployment
 
-Vite injects `process.env.BUILD_TIME` as an ISO timestamp. `main.ts` renders it in the `Europe/Berlin` timezone in the top HUD so the live deployment can be identified immediately.
+Vite injects `process.env.BUILD_TIME` as an ISO timestamp. `main.ts` renders it in the `Europe/Berlin` timezone in the top HUD.
 
 TypeScript 5.9 is used in the project toolchain. `npm test` runs Node tests through `tsx`; `npm run build` performs type checking and the Vite production build.
 

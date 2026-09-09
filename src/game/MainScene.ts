@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { Building, BuildingId, Good, Hex, World } from "../simulation/model";
-import { key } from "../simulation/hex";
+import { key, same } from "../simulation/hex";
 import { CONFIG } from "../simulation/scenario";
 
 const HEX_X = 44;
@@ -13,7 +13,9 @@ const MAX_CAMERA_ZOOM = 3.5;
 const WHEEL_ZOOM_SENSITIVITY = 0.0015;
 const TAP_MAX_DISTANCE = 8;
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
-const BUILDING_SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
+const TILE_SELECTED_EVENT = "poc-tile-selected";
+const BUILDING_SELECTION_REQUESTED_EVENT = "poc-building-selection-requested";
+const SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
 const pixel = (h: Hex) => ({
   x: 48 + HEX_X * (h.q + h.r / 2),
   y: 48 + h.r * HEX_Y,
@@ -41,6 +43,7 @@ export class MainScene extends Phaser.Scene {
   private activePointers = new Map<number, PointerPosition>();
   private pointerDown = new Map<number, PointerPosition>();
   private selectedBuildingId?: BuildingId;
+  private selectedTile?: Hex;
 
   constructor(private world: World) {
     super("main");
@@ -53,11 +56,19 @@ export class MainScene extends Phaser.Scene {
     this.setupCameraControls();
     const clearSelection = () => {
       this.selectedBuildingId = undefined;
+      this.selectedTile = undefined;
       this.renderWorld();
     };
-    window.addEventListener(BUILDING_SELECTION_CLEARED_EVENT, clearSelection);
+    const selectRequestedBuilding = (event: Event) => {
+      this.selectedBuildingId = (event as CustomEvent<{ id: BuildingId }>).detail.id;
+      this.selectedTile = undefined;
+      this.renderWorld();
+    };
+    window.addEventListener(SELECTION_CLEARED_EVENT, clearSelection);
+    window.addEventListener(BUILDING_SELECTION_REQUESTED_EVENT, selectRequestedBuilding);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      window.removeEventListener(BUILDING_SELECTION_CLEARED_EVENT, clearSelection);
+      window.removeEventListener(SELECTION_CLEARED_EVENT, clearSelection);
+      window.removeEventListener(BUILDING_SELECTION_REQUESTED_EVENT, selectRequestedBuilding);
     });
     this.renderWorld();
   }
@@ -75,7 +86,7 @@ export class MainScene extends Phaser.Scene {
     camera.scrollY += worldBefore.y - worldAfter.y;
   }
 
-  public selectBuildingAtScreenPoint(screenX: number, screenY: number): void {
+  private selectAtScreenPoint(screenX: number, screenY: number): void {
     const worldPoint = this.cameras.main.getWorldPoint(screenX, screenY);
     const candidate = this.world.buildings
       .filter((building) => !building.retired)
@@ -90,19 +101,35 @@ export class MainScene extends Phaser.Scene {
       }))
       .filter(({ distance }) => distance <= HEX_RADIUS + 5)
       .sort((a, b) => a.distance - b.distance)[0];
-    if (!candidate) return;
-    this.selectedBuildingId = candidate.building.id;
+    if (candidate) {
+      this.selectedBuildingId = candidate.building.id;
+      this.selectedTile = undefined;
+      this.renderWorld();
+      window.dispatchEvent(new CustomEvent(BUILDING_SELECTED_EVENT, { detail: { id: candidate.building.id } }));
+      return;
+    }
+
+    const tileCandidate = this.world.tiles
+      .map((tile) => ({
+        tile,
+        distance: Phaser.Math.Distance.Between(
+          worldPoint.x,
+          worldPoint.y,
+          pixel(tile).x,
+          pixel(tile).y,
+        ),
+      }))
+      .filter(({ distance }) => distance <= HEX_RADIUS + 2)
+      .sort((a, b) => a.distance - b.distance)[0];
+    if (!tileCandidate) return;
+    this.selectedBuildingId = undefined;
+    this.selectedTile = { q: tileCandidate.tile.q, r: tileCandidate.tile.r };
     this.renderWorld();
-    window.dispatchEvent(
-      new CustomEvent(BUILDING_SELECTED_EVENT, {
-        detail: { id: candidate.building.id },
-      }),
-    );
+    window.dispatchEvent(new CustomEvent(TILE_SELECTED_EVENT, { detail: { position: this.selectedTile } }));
   }
 
   private setupCameraControls(): void {
     this.input.addPointer(2);
-
     const canvas = this.game.canvas;
     const preventCanvasWheel = (event: WheelEvent) => event.preventDefault();
     canvas.addEventListener("wheel", preventCanvasWheel, { passive: false });
@@ -110,19 +137,9 @@ export class MainScene extends Phaser.Scene {
       canvas.removeEventListener("wheel", preventCanvasWheel);
     });
 
-    this.input.on(
-      "wheel",
-      (
-        pointer: Phaser.Input.Pointer,
-        _currentlyOver: Phaser.GameObjects.GameObject[],
-        _deltaX: number,
-        deltaY: number,
-      ) => {
-        const camera = this.cameras.main;
-        const zoom = camera.zoom * Math.exp(-deltaY * WHEEL_ZOOM_SENSITIVITY);
-        this.zoomAt(pointer.x, pointer.y, zoom);
-      },
-    );
+    this.input.on("wheel", (pointer: Phaser.Input.Pointer, _over: Phaser.GameObjects.GameObject[], _dx: number, deltaY: number) => {
+      this.zoomAt(pointer.x, pointer.y, this.cameras.main.zoom * Math.exp(-deltaY * WHEEL_ZOOM_SENSITIVITY));
+    });
 
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       const position = { x: pointer.x, y: pointer.y };
@@ -133,31 +150,19 @@ export class MainScene extends Phaser.Scene {
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
       const previous = this.activePointers.get(pointer.id);
       if (!previous) return;
-
       const oldPositions = [...this.activePointers.values()];
       this.activePointers.set(pointer.id, { x: pointer.x, y: pointer.y });
       const newPositions = [...this.activePointers.values()];
       const camera = this.cameras.main;
-
       if (oldPositions.length >= 2 && newPositions.length >= 2) {
-        const oldA = oldPositions[0];
-        const oldB = oldPositions[1];
-        const newA = newPositions[0];
-        const newB = newPositions[1];
+        const [oldA, oldB] = oldPositions;
+        const [newA, newB] = newPositions;
         if (!oldA || !oldB || !newA || !newB) return;
-
         const oldDistance = Phaser.Math.Distance.Between(oldA.x, oldA.y, oldB.x, oldB.y);
         const newDistance = Phaser.Math.Distance.Between(newA.x, newA.y, newB.x, newB.y);
         if (oldDistance <= 0) return;
-
-        const oldCenter = {
-          x: (oldA.x + oldB.x) / 2,
-          y: (oldA.y + oldB.y) / 2,
-        };
-        const newCenter = {
-          x: (newA.x + newB.x) / 2,
-          y: (newA.y + newB.y) / 2,
-        };
+        const oldCenter = { x: (oldA.x + oldB.x) / 2, y: (oldA.y + oldB.y) / 2 };
+        const newCenter = { x: (newA.x + newB.x) / 2, y: (newA.y + newB.y) / 2 };
         const anchorWorld = camera.getWorldPoint(oldCenter.x, oldCenter.y);
         camera.setZoom(this.clampZoom(camera.zoom * (newDistance / oldDistance)));
         const movedAnchorWorld = camera.getWorldPoint(newCenter.x, newCenter.y);
@@ -165,7 +170,6 @@ export class MainScene extends Phaser.Scene {
         camera.scrollY += anchorWorld.y - movedAnchorWorld.y;
         return;
       }
-
       if (newPositions.length === 1) {
         camera.scrollX -= (pointer.x - previous.x) / camera.zoom;
         camera.scrollY -= (pointer.y - previous.y) / camera.zoom;
@@ -177,24 +181,14 @@ export class MainScene extends Phaser.Scene {
       const wasSinglePointer = this.activePointers.size === 1;
       this.activePointers.delete(pointer.id);
       this.pointerDown.delete(pointer.id);
-      if (
-        start &&
-        wasSinglePointer &&
-        Phaser.Math.Distance.Between(start.x, start.y, pointer.x, pointer.y) <=
-          TAP_MAX_DISTANCE
-      )
-        this.selectBuildingAtScreenPoint(pointer.x, pointer.y);
+      if (start && wasSinglePointer && Phaser.Math.Distance.Between(start.x, start.y, pointer.x, pointer.y) <= TAP_MAX_DISTANCE)
+        this.selectAtScreenPoint(pointer.x, pointer.y);
     };
     this.input.on("pointerup", releasePointer);
     this.input.on("pointerupoutside", releasePointer);
   }
 
-  private drawTree(
-    g: Phaser.GameObjects.Graphics,
-    x: number,
-    y: number,
-    alpha = 1,
-  ): void {
+  private drawTree(g: Phaser.GameObjects.Graphics, x: number, y: number, alpha = 1): void {
     g.fillStyle(0x29452f, alpha);
     g.fillTriangle(x - 5, y + 5, x, y - 7, x + 5, y + 5);
     g.fillStyle(0x5b442d, alpha);
@@ -202,11 +196,11 @@ export class MainScene extends Phaser.Scene {
   }
 
   private buildingLabel(b: Building): string {
-    if (b.forestRemaining !== undefined) return "WALD";
-    if (b.id === "hq") return "HQ";
-    if (b.id === "sawmill") return "SÄGEWERK";
-    if (b.id === "carpenter") return "SCHREINEREI";
-    if (b.id === "warehouse") return "LAGER";
+    if (b.kind === "forest") return "WALD";
+    if (b.kind === "hq") return "HQ";
+    if (b.kind === "sawmill") return "SÄGEWERK";
+    if (b.kind === "carpenter") return "SCHREINEREI";
+    if (b.kind === "warehouse") return "LAGER";
     return b.name.toUpperCase();
   }
 
@@ -215,21 +209,20 @@ export class MainScene extends Phaser.Scene {
     const g = this.mapGraphics;
     g.clear();
     this.mapLabels.removeAll(true);
-
     for (const tile of this.world.tiles) {
       const { x, y } = pixel(tile);
-      const points = Array.from(
-        { length: 6 },
-        (_, i) =>
-          new Phaser.Math.Vector2(
-            x + HEX_RADIUS * Math.cos(((60 * i - 30) * Math.PI) / 180),
-            y + HEX_RADIUS * Math.sin(((60 * i - 30) * Math.PI) / 180),
-          ),
-      );
+      const points = Array.from({ length: 6 }, (_, i) => new Phaser.Math.Vector2(
+        x + HEX_RADIUS * Math.cos(((60 * i - 30) * Math.PI) / 180),
+        y + HEX_RADIUS * Math.sin(((60 * i - 30) * Math.PI) / 180),
+      ));
       g.fillStyle(colors[tile.terrain]);
       g.fillPoints(points, true);
       g.lineStyle(1, 0x20392c, 0.45);
       g.strokePoints(points, true);
+      if (this.selectedTile && same(tile, this.selectedTile)) {
+        g.lineStyle(3, 0xf4e5a4, 0.95);
+        g.strokePoints(points, true);
+      }
       if (tile.terrain === "mountain") {
         g.fillStyle(0xb4bab0);
         g.fillTriangle(x - 9, y + 7, x, y - 9, x + 9, y + 7);
@@ -251,23 +244,11 @@ export class MainScene extends Phaser.Scene {
 
     for (const b of this.world.buildings.filter((building) => !building.retired)) {
       const { x, y } = pixel(b.position);
-      this.mapLabels.add(
-        this.add
-          .text(x, y - 9, this.buildingLabel(b), {
-            fontFamily: "system-ui",
-            fontSize: "8px",
-            fontStyle: "bold",
-            color: "#203226",
-          })
-          .setResolution(TEXT_RESOLUTION)
-          .setOrigin(0.5),
-      );
+      this.mapLabels.add(this.add.text(x, y - 9, this.buildingLabel(b), {
+        fontFamily: "system-ui", fontSize: "8px", fontStyle: "bold", color: "#203226",
+      }).setResolution(TEXT_RESOLUTION).setOrigin(0.5));
       if (b.forestRemaining !== undefined) {
-        const alpha = Math.max(
-          MIN_FOREST_ALPHA,
-          b.forestRemaining / CONFIG.forestYield,
-        );
-        this.drawTree(g, x, y - 17, alpha);
+        this.drawTree(g, x, y - 17, Math.max(MIN_FOREST_ALPHA, b.forestRemaining / CONFIG.forestYield));
       } else {
         g.fillStyle(0x785d3e);
         g.fillRect(x - 5, y - 20, 10, 6);
@@ -280,15 +261,7 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
-  private drawSlots(
-    g: Phaser.GameObjects.Graphics,
-    x: number,
-    y: number,
-    count: number,
-    capacity: number,
-    good: Good,
-    columns: number,
-  ): void {
+  private drawSlots(g: Phaser.GameObjects.Graphics, x: number, y: number, count: number, capacity: number, good: Good, columns: number): void {
     const size = 3;
     const gap = 1;
     for (let i = 0; i < capacity; i += 1) {
@@ -307,54 +280,17 @@ export class MainScene extends Phaser.Scene {
     if (!this.markers) return;
     this.drawMap();
     this.markers.removeAll(true);
-
     const slots = this.add.graphics();
     this.markers.add(slots);
-    for (const b of this.world.buildings.filter(
-      (building) =>
-        !building.retired ||
-        (building.forestRemaining === 0 && building.output > 0),
-    )) {
+    for (const b of this.world.buildings.filter((building) => !building.retired || (building.forestRemaining === 0 && building.output > 0))) {
       if (!b.recipe) continue;
       const { x, y } = pixel(b.position);
       if (b.recipe.input) {
-        this.drawSlots(
-          slots,
-          x + 7,
-          y - 5,
-          b.input,
-          CONFIG.inputCapacity,
-          b.recipe.input,
-          5,
-        );
-        this.markers.add(
-          this.add
-            .text(x + 7, y - 10, "IN", {
-              fontFamily: "system-ui",
-              fontSize: "6px",
-              color: "#21372a",
-            })
-            .setResolution(TEXT_RESOLUTION),
-        );
+        this.drawSlots(slots, x + 7, y - 5, b.input, CONFIG.inputCapacity, b.recipe.input, 5);
+        this.markers.add(this.add.text(x + 7, y - 10, "IN", { fontFamily: "system-ui", fontSize: "6px", color: "#21372a" }).setResolution(TEXT_RESOLUTION));
       }
-      this.drawSlots(
-        slots,
-        x + 7,
-        b.recipe.input ? y + 5 : y - 1,
-        b.output,
-        CONFIG.outputCapacity,
-        b.recipe.output,
-        3,
-      );
-      this.markers.add(
-        this.add
-          .text(x + 7, b.recipe.input ? y + 9 : y + 3, "OUT", {
-            fontFamily: "system-ui",
-            fontSize: "6px",
-            color: "#21372a",
-          })
-          .setResolution(TEXT_RESOLUTION),
-      );
+      this.drawSlots(slots, x + 7, b.recipe.input ? y + 5 : y - 1, b.output, CONFIG.outputCapacity, b.recipe.output, 3);
+      this.markers.add(this.add.text(x + 7, b.recipe.input ? y + 9 : y + 3, "OUT", { fontFamily: "system-ui", fontSize: "6px", color: "#21372a" }).setResolution(TEXT_RESOLUTION));
     }
 
     const groups = new Map<string, number>();
@@ -365,38 +301,15 @@ export class MainScene extends Phaser.Scene {
       const pos = pixel(p.position);
       const x = pos.x + ((i % 4) - 1.5) * 11;
       const y = pos.y + 1 + Math.floor(i / 4) * 11;
-      const color = !p.assignment && !p.woodcutter
-        ? 0xdde5db
-        : p.assignment?.role === "worker" || p.woodcutter
-          ? 0x234636
-          : 0x8b512e;
+      const color = !p.assignment && !p.woodcutter ? 0xdde5db : p.assignment?.role === "worker" || p.woodcutter ? 0x234636 : 0x8b512e;
       const dot = this.add.circle(x, y, 5, color).setStrokeStyle(1, 0xffffff);
-      const label = this.add
-        .text(x, y, String(p.id), {
-          fontFamily: "system-ui",
-          fontSize: "7px",
-          color: "#ffffff",
-        })
-        .setResolution(TEXT_RESOLUTION)
-        .setOrigin(0.5);
+      const label = this.add.text(x, y, String(p.id), { fontFamily: "system-ui", fontSize: "7px", color: "#ffffff" }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
       if (!p.assignment && !p.woodcutter) label.setColor("#24362b");
       this.markers.add([dot, label]);
       if (p.trip?.picked)
-        this.markers.add(
-          this.add
-            .text(
-              x + 4,
-              y - 7,
-              { wood: "H", plank: "B", woodenTool: "W" }[p.trip.good],
-              {
-                fontFamily: "system-ui",
-                fontSize: "7px",
-                color: "#fff2a3",
-                backgroundColor: "#263c2d",
-              },
-            )
-            .setResolution(TEXT_RESOLUTION),
-        );
+        this.markers.add(this.add.text(x + 4, y - 7, { wood: "H", plank: "B", woodenTool: "W" }[p.trip.good], {
+          fontFamily: "system-ui", fontSize: "7px", color: "#fff2a3", backgroundColor: "#263c2d",
+        }).setResolution(TEXT_RESOLUTION));
     }
   }
 }

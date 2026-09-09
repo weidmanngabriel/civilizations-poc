@@ -1,14 +1,26 @@
-import type { Building, BuildingId, Role, World } from "../simulation/model";
+import type {
+  BuildableBuildingKind,
+  Building,
+  BuildingId,
+  Hex,
+  Role,
+  World,
+} from "../simulation/model";
 import {
   assigned,
+  buildAt,
   building,
   changeAssignment,
   changePopulation,
   changeWoodcutters,
   freePeople,
   GOODS,
+  removeBuilding,
+  setRoad,
   status,
   tick,
+  totalWarehouseStock,
+  warehouseStock,
   woodcutters,
 } from "../simulation/simulation";
 import { CONFIG } from "../simulation/scenario";
@@ -17,12 +29,16 @@ import { same } from "../simulation/hex";
 const MAX_PRESENTATION_FPS = 60;
 const PRESENTATION_INTERVAL_MS = 1000 / MAX_PRESENTATION_FPS;
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
+const TILE_SELECTED_EVENT = "poc-tile-selected";
+const BUILDING_SELECTION_REQUESTED_EVENT = "poc-building-selection-requested";
+const SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
 
 type BuildingSelectedDetail = { id: BuildingId };
+type TileSelectedDetail = { position: Hex };
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
-  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Sägewerk, Schreinerei und Lager."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div class="bottom-bar"><div class="round-controls"><button id="next" class="primary" hidden>Nächster Schritt</button><button id="autoplay" aria-pressed="true">Pausieren</button><label class="speed-control">FPS <input id="fps" type="range" min="1" max="10" step="1" value="5" aria-label="Simulationsschritte pro Sekunde"><output id="fps-value">5 FPS</output></label><button id="max-fps" aria-pressed="false">Max FPS</button></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
+  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div class="bottom-bar"><div class="round-controls"><button id="next" class="primary" hidden>Nächster Schritt</button><button id="autoplay" aria-pressed="true">Pausieren</button><label class="speed-control">FPS <input id="fps" type="range" min="1" max="10" step="1" value="5" aria-label="Simulationsschritte pro Sekunde"><output id="fps-value">5 FPS</output></label><button id="max-fps" aria-pressed="false">Max FPS</button></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
 
   let autoplayTimer: number | undefined;
   let autoplayFrame: number | undefined;
@@ -31,6 +47,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   let presentationBudget = PRESENTATION_INTERVAL_MS;
   let presentationDirty = true;
   let selectedBuildingId: BuildingId | undefined;
+  let selectedTile: Hex | undefined;
 
   const selectionPanel = document.querySelector<HTMLElement>("#selection-panel")!;
   const debugPanel = document.querySelector<HTMLElement>("#debug-panel")!;
@@ -60,8 +77,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
 
     setField("status", status(w, b));
-
-    if (b.id === "hq") {
+    if (b.kind === "hq") {
       setField("population-count", String(w.people.length));
       setField("free-count", String(freePeople(w).length));
       setField("woodcutter-count", String(woodcutters(w).length));
@@ -80,8 +96,14 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
 
-    if (b.recipe?.input) setField("input", `${b.input}/${CONFIG.inputCapacity}`);
-    setField("output", `${b.output}/${b.recipe ? CONFIG.outputCapacity : "∞"}`);
+    if (b.kind === "warehouse") {
+      setField("warehouse-wood", `${warehouseStock(b, "wood")}/${CONFIG.warehouseCapacityPerGood}`);
+      setField("warehouse-plank", `${warehouseStock(b, "plank")}/${CONFIG.warehouseCapacityPerGood}`);
+      setField("warehouse-tool", `${warehouseStock(b, "woodenTool")}/${CONFIG.warehouseCapacityPerGood}`);
+    } else {
+      if (b.recipe?.input) setField("input", `${b.input}/${CONFIG.inputCapacity}`);
+      setField("output", `${b.output}/${CONFIG.outputCapacity}`);
+    }
 
     for (const role of ["worker", "carrier"] as const) {
       const limit = role === "worker" ? b.workers : b.carriers;
@@ -97,6 +119,24 @@ export function mountControls(w: World, renderMap: () => void): void {
   };
 
   function renderSelectionPanel(): void {
+    if (selectedTile) {
+      const tile = w.tiles.find((candidate) => same(candidate, selectedTile!));
+      if (!tile) {
+        selectedTile = undefined;
+        selectionPanel.hidden = true;
+        return;
+      }
+      const buildable = tile.terrain === "grass" || tile.terrain === "road";
+      const roadAction = tile.terrain === "grass"
+        ? `<button data-action="road" data-enabled="true">Weg bauen</button>`
+        : tile.terrain === "road"
+          ? `<button data-action="road" data-enabled="false" ${w.people.some((p) => same(p.position, tile)) ? "disabled" : ""}>Weg entfernen</button>`
+          : "";
+      selectionPanel.hidden = false;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>KACHEL</small><h3>${tile.terrain === "grass" ? "Wiese" : tile.terrain === "road" ? "Weg" : tile.terrain === "forest" ? "Wald" : tile.terrain === "mountain" ? "Berg" : tile.terrain === "river" ? "Fluss" : "Belegt"}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div>${buildable ? `<p class="recipe">Sofort bauen</p><div class="stepper"><button data-action="build" data-kind="warehouse">Lager</button><button data-action="build" data-kind="sawmill">Sägewerk</button><button data-action="build" data-kind="carpenter">Schreinerei</button></div>` : `<p class="recipe">Auf dieser Kachel kann aktuell nicht gebaut werden.</p>`}${roadAction ? `<div class="stepper">${roadAction}</div>` : ""}`;
+      return;
+    }
+
     if (!selectedBuildingId) {
       selectionPanel.hidden = true;
       selectionPanel.innerHTML = "";
@@ -112,31 +152,32 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
 
     selectionPanel.hidden = false;
-
-    if (b.id === "hq") {
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Sammelpunkt und globale Personalsteuerung</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> frei</small></div><div class="stepper"><button data-action="population" data-delta="-1" aria-label="Bevölkerung verringern">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1" aria-label="Bevölkerung erhöhen">+</button></div></div><div class="assignment"><div>Holzfäller<small>Jeder sucht selbständig einen freien Wald</small></div><div class="stepper"><button data-action="woodcutter" data-delta="-1" aria-label="Holzfäller verringern">−</button><output data-field="woodcutter-count"></output><button data-action="woodcutter" data-delta="1" aria-label="Holzfäller erhöhen">+</button></div></div><p class="status" data-field="status"></p>`;
+    if (b.kind === "hq") {
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Sammelpunkt und globale Personalsteuerung</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> frei</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><div class="assignment"><div>Holzfäller<small>Jeder sucht selbständig einen freien Wald</small></div><div class="stepper"><button data-action="woodcutter" data-delta="-1">−</button><output data-field="woodcutter-count"></output><button data-action="woodcutter" data-delta="1">+</button></div></div><p class="status" data-field="status"></p>`;
       updateSelectionLiveState();
       return;
     }
 
     const recipe = b.forestRemaining !== undefined
       ? `1 Holz / ${CONFIG.duration} Schritte · Vorrat <span data-field="forest-remaining"></span>/${CONFIG.forestYield}`
-      : b.recipe?.input
-        ? `${b.recipe.amount} ${GOODS[b.recipe.input]} → 1 ${GOODS[b.recipe.output]}`
-        : b.recipe
-          ? "Produktion"
-          : "Sammelt fertige Holzwerkzeuge";
-
+      : b.kind === "warehouse"
+        ? "Lagert bis zu 20 Einheiten je Warentyp"
+        : b.recipe?.input
+          ? `${b.recipe.amount} ${GOODS[b.recipe.input]} → 1 ${GOODS[b.recipe.output]}`
+          : "Produktion";
     const inventory = b.forestRemaining !== undefined
       ? `<div><span>Holz · Output</span><strong data-field="output"></strong></div>`
-      : `${b.recipe?.input ? `<div><span>${GOODS[b.recipe.input]} · Input</span><strong data-field="input"></strong></div>` : ""}<div><span>${b.recipe ? GOODS[b.recipe.output] : "Holzwerkzeuge"} · ${b.recipe ? "Output" : "Bestand"}</span><strong data-field="output"></strong></div>`;
+      : b.kind === "warehouse"
+        ? `<div><span>Holz</span><strong data-field="warehouse-wood"></strong></div><div><span>Bretter</span><strong data-field="warehouse-plank"></strong></div><div><span>Holzwerkzeuge</span><strong data-field="warehouse-tool"></strong></div>`
+        : `${b.recipe?.input ? `<div><span>${GOODS[b.recipe.input]} · Input</span><strong data-field="input"></strong></div>` : ""}<div><span>${b.recipe ? GOODS[b.recipe.output] : "Output"} · Output</span><strong data-field="output"></strong></div>`;
+    const demolish = b.kind === "forest" ? "" : `<button data-action="demolish" class="danger">Abreißen</button>`;
 
-    selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">${recipe}</p>${assignmentControl(b, "worker", b.workers)}${assignmentControl(b, "carrier", b.carriers)}<div class="inventory">${inventory}</div><p class="status" data-field="status"></p>`;
+    selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">${recipe}</p>${assignmentControl(b, "worker", b.workers)}${assignmentControl(b, "carrier", b.carriers)}<div class="inventory">${inventory}</div><p class="status" data-field="status"></p>${demolish}`;
     updateSelectionLiveState();
   }
 
   const refreshLiveState = () => {
-    document.querySelector("#metrics")!.innerHTML = `<div><small>BEV.</small><strong>${w.people.length}</strong></div><div><small>FREI</small><strong>${freePeople(w).length}</strong></div><div><small>WERKZEUGE</small><strong>${building(w, "warehouse").output}</strong></div>`;
+    document.querySelector("#metrics")!.innerHTML = `<div><small>BEV.</small><strong>${w.people.length}</strong></div><div><small>FREI</small><strong>${freePeople(w).length}</strong></div><div><small>WERKZEUGE</small><strong>${totalWarehouseStock(w, "woodenTool")}</strong></div>`;
     updateSelectionLiveState();
     renderMap();
   };
@@ -151,11 +192,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     refreshPanels();
     presentationDirty = false;
   };
-
-  const runStep = () => {
-    tick(w);
-    refresh();
-  };
+  const runStep = () => { tick(w); refresh(); };
 
   const nextButton = document.querySelector("#next") as HTMLButtonElement;
   const autoplayButton = document.querySelector("#autoplay") as HTMLButtonElement;
@@ -171,15 +208,11 @@ export function mountControls(w: World, renderMap: () => void): void {
     lastPresentationFrame = 0;
     presentationBudget = PRESENTATION_INTERVAL_MS;
   };
-
   const startPresentationLoop = () => {
     stopPresentationLoop();
     presentationDirty = true;
     const frame = (timestamp: number) => {
-      if (!isRunning()) {
-        presentationFrame = undefined;
-        return;
-      }
+      if (!isRunning()) { presentationFrame = undefined; return; }
       if (lastPresentationFrame) presentationBudget += Math.min(timestamp - lastPresentationFrame, PRESENTATION_INTERVAL_MS * 2);
       lastPresentationFrame = timestamp;
       if (presentationDirty && presentationBudget >= PRESENTATION_INTERVAL_MS) {
@@ -191,7 +224,6 @@ export function mountControls(w: World, renderMap: () => void): void {
     };
     presentationFrame = window.requestAnimationFrame(frame);
   };
-
   const stopAutoplay = () => {
     if (autoplayTimer !== undefined) window.clearInterval(autoplayTimer);
     if (autoplayFrame !== undefined) window.cancelAnimationFrame(autoplayFrame);
@@ -202,33 +234,23 @@ export function mountControls(w: World, renderMap: () => void): void {
     autoplayButton.setAttribute("aria-pressed", "false");
     nextButton.hidden = false;
   };
-
   const startAutoplay = () => {
     stopAutoplay();
     if (maxFpsButton.getAttribute("aria-pressed") === "true") {
-      const frame = () => {
-        tick(w);
-        markPresentationDirty();
-        autoplayFrame = window.requestAnimationFrame(frame);
-      };
+      const frame = () => { tick(w); markPresentationDirty(); autoplayFrame = window.requestAnimationFrame(frame); };
       autoplayFrame = window.requestAnimationFrame(frame);
     } else {
-      autoplayTimer = window.setInterval(() => {
-        tick(w);
-        markPresentationDirty();
-      }, 1000 / Number(fpsInput.value));
+      autoplayTimer = window.setInterval(() => { tick(w); markPresentationDirty(); }, 1000 / Number(fpsInput.value));
     }
     autoplayButton.textContent = "Pausieren";
     autoplayButton.setAttribute("aria-pressed", "true");
     nextButton.hidden = true;
     startPresentationLoop();
   };
-
   const updateFps = () => {
     if (maxFpsButton.getAttribute("aria-pressed") !== "true") fpsValue.value = `${fpsInput.value} FPS`;
     if (isRunning()) startAutoplay();
   };
-
   const setDebugOpen = (open: boolean) => {
     debugPanel.hidden = !open;
     debugToggle.setAttribute("aria-pressed", String(open));
@@ -237,10 +259,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   nextButton.addEventListener("click", runStep);
   autoplayButton.addEventListener("click", () => {
     if (!isRunning()) startAutoplay();
-    else {
-      stopAutoplay();
-      refresh();
-    }
+    else { stopAutoplay(); refresh(); }
   });
   fpsInput.addEventListener("input", updateFps);
   maxFpsButton.addEventListener("click", () => {
@@ -260,8 +279,34 @@ export function mountControls(w: World, renderMap: () => void): void {
     const action = button.dataset.action;
     if (action === "close") {
       selectedBuildingId = undefined;
+      selectedTile = undefined;
       renderSelectionPanel();
-      window.dispatchEvent(new CustomEvent("poc-building-selection-cleared"));
+      window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
+      return;
+    }
+    if (action === "build" && selectedTile) {
+      const created = buildAt(w, selectedTile, button.dataset.kind as BuildableBuildingKind);
+      if (created) {
+        selectedTile = undefined;
+        selectedBuildingId = created.id;
+        window.dispatchEvent(new CustomEvent(BUILDING_SELECTION_REQUESTED_EVENT, { detail: { id: created.id } }));
+      }
+      refresh();
+      return;
+    }
+    if (action === "road" && selectedTile) {
+      setRoad(w, selectedTile, button.dataset.enabled === "true");
+      refresh();
+      return;
+    }
+    if (action === "demolish" && selectedBuildingId) {
+      const selected = w.buildings.find((b) => b.id === selectedBuildingId);
+      if (selected && window.confirm(`${selected.name} wirklich abreißen? Gelagerte Waren gehen verloren.`)) {
+        removeBuilding(w, selectedBuildingId);
+        selectedBuildingId = undefined;
+        window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
+        refresh();
+      }
       return;
     }
     const delta = Number(button.dataset.delta) as 1 | -1;
@@ -272,8 +317,13 @@ export function mountControls(w: World, renderMap: () => void): void {
   });
 
   window.addEventListener(BUILDING_SELECTED_EVENT, (event) => {
-    const detail = (event as CustomEvent<BuildingSelectedDetail>).detail;
-    selectedBuildingId = detail.id;
+    selectedTile = undefined;
+    selectedBuildingId = (event as CustomEvent<BuildingSelectedDetail>).detail.id;
+    renderSelectionPanel();
+  });
+  window.addEventListener(TILE_SELECTED_EVENT, (event) => {
+    selectedBuildingId = undefined;
+    selectedTile = (event as CustomEvent<TileSelectedDetail>).detail.position;
     renderSelectionPanel();
   });
 

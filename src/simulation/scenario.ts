@@ -6,6 +6,7 @@ export const CONFIG = {
   carryCapacity: 1,
   inputCapacity: 10,
   outputCapacity: 3,
+  warehouseCapacityPerGood: 20,
   forestYield: 10,
   mapColumns: 21,
   mapRows: 13,
@@ -20,21 +21,25 @@ export function createWorld(population: number = CONFIG.population): World {
   const buildings: Building[] = [
     {
       id: "hq",
+      kind: "hq",
       name: "Hauptquartier",
       position: at(3, 10),
       workers: 0,
       carriers: 0,
       input: 0,
       output: 0,
+      baseTerrain: "road",
     },
     {
       id: "sawmill",
+      kind: "sawmill",
       name: "Sägewerk",
       position: at(9, 4),
       workers: 1,
       carriers: 2,
       input: 0,
       output: 0,
+      baseTerrain: "road",
       recipe: {
         input: "wood",
         amount: 2,
@@ -44,12 +49,14 @@ export function createWorld(population: number = CONFIG.population): World {
     },
     {
       id: "carpenter",
+      kind: "carpenter",
       name: "Schreinerei",
       position: at(16, 7),
       workers: 1,
       carriers: 2,
       input: 0,
       output: 0,
+      baseTerrain: "road",
       recipe: {
         input: "plank",
         amount: 2,
@@ -59,12 +66,15 @@ export function createWorld(population: number = CONFIG.population): World {
     },
     {
       id: "warehouse",
+      kind: "warehouse",
       name: "Lager",
       position: at(19, 11),
       workers: 0,
       carriers: 2,
       input: 0,
       output: 0,
+      inventory: { wood: 0, plank: 0, woodenTool: 0 },
+      baseTerrain: "road",
     },
   ];
 
@@ -123,6 +133,7 @@ export function createWorld(population: number = CONFIG.population): World {
     round: 0,
     nextId: population + 1,
     nextForestId: 1,
+    nextBuildingId: 1,
     rngState: 0x1a2b3c4d,
     buildings,
     tiles,
