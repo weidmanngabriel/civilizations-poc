@@ -9,14 +9,12 @@ import type {
 } from "../simulation/model";
 import {
   assigned,
-  buildAt,
   building,
   changeAssignment,
   changePopulation,
   changeWoodcutters,
   freePeople,
   GOODS,
-  removeBuilding,
   setMerchantRoute,
   setRoad,
   status,
@@ -25,6 +23,10 @@ import {
   warehouseStock,
   woodcutters,
 } from "../simulation/simulation";
+import {
+  buildWithFootprint,
+  removeBuildingWithFootprint,
+} from "../simulation/buildingPlacement";
 import { CONFIG } from "../simulation/scenario";
 import { same } from "../simulation/hex";
 
@@ -35,14 +37,23 @@ const TILE_SELECTED_EVENT = "poc-tile-selected";
 const BUILDING_SELECTION_REQUESTED_EVENT = "poc-building-selection-requested";
 const SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
+const BUILD_MODE_EVENT = "poc-build-mode";
+const BUILD_POSITION_SELECTED_EVENT = "poc-build-position-selected";
 
 type BuildingSelectedDetail = { id: BuildingId };
 type TileSelectedDetail = { position: Hex };
+type BuildPositionSelectedDetail = { position: Hex };
 type SimulationSpeed = 0.5 | 1 | 2 | 3;
+
+const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
+  warehouse: "Lager",
+  sawmill: "Sägewerk",
+  carpenter: "Schreinerei",
+};
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
-  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
+  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span>Ghost verschieben und antippen. Grün ist gültig, rot blockiert. Rund um das Gebäude muss eine freie Kachel bleiben.</span></div><button id="build-placement-cancel" class="danger">Abbrechen</button></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
 
   let autoplayFrame: number | undefined;
   let lastAutoplayFrame = 0;
@@ -52,11 +63,15 @@ export function mountControls(w: World, renderMap: () => void): void {
   let selectedTile: Hex | undefined;
   let merchantTargetSelection: number | undefined;
   let merchantSelectionWasRunning = false;
+  let buildPlacementKind: BuildableBuildingKind | undefined;
 
   const main = app.querySelector<HTMLElement>("main")!;
   const selectionPanel = document.querySelector<HTMLElement>("#selection-panel")!;
   const merchantTargetOverlay = document.querySelector<HTMLElement>("#merchant-target-overlay")!;
   const merchantTargetCancel = document.querySelector<HTMLButtonElement>("#merchant-target-cancel")!;
+  const buildPlacementOverlay = document.querySelector<HTMLElement>("#build-placement-overlay")!;
+  const buildPlacementCancel = document.querySelector<HTMLButtonElement>("#build-placement-cancel")!;
+  const buildPlacementTitle = document.querySelector<HTMLElement>("#build-placement-title")!;
   const debugPanel = document.querySelector<HTMLElement>("#debug-panel")!;
   const debugToggle = document.querySelector<HTMLButtonElement>("#debug-toggle")!;
 
@@ -129,7 +144,11 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
 
     for (const role of ["worker", "carrier", "merchant"] as const) {
-      const limit = role === "worker" ? b.workers : role === "carrier" ? b.carriers : (b.merchants ?? 0);
+      const limit = role === "worker"
+        ? b.workers
+        : role === "carrier"
+          ? b.carriers
+          : (b.merchants ?? 0);
       if (!limit) continue;
       const people = assigned(w, b.id, role);
       if (role !== "merchant")
@@ -143,6 +162,11 @@ export function mountControls(w: World, renderMap: () => void): void {
   };
 
   function renderSelectionPanel(): void {
+    if (buildPlacementKind || merchantTargetSelection !== undefined) {
+      selectionPanel.hidden = true;
+      return;
+    }
+
     if (selectedTile) {
       const tile = w.tiles.find((candidate) => same(candidate, selectedTile!));
       if (!tile) {
@@ -157,7 +181,7 @@ export function mountControls(w: World, renderMap: () => void): void {
           ? `<button data-action="road" data-enabled="false" ${w.people.some((p) => same(p.position, tile)) ? "disabled" : ""}>Weg entfernen</button>`
           : "";
       selectionPanel.hidden = false;
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>KACHEL</small><h3>${tile.terrain === "grass" ? "Wiese" : tile.terrain === "road" ? "Weg" : tile.terrain === "forest" ? "Wald" : tile.terrain === "mountain" ? "Berg" : tile.terrain === "river" ? "Fluss" : "Belegt"}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div>${buildable ? `<p class="recipe">Sofort bauen</p><div class="stepper"><button data-action="build" data-kind="warehouse">Lager</button><button data-action="build" data-kind="sawmill">Sägewerk</button><button data-action="build" data-kind="carpenter">Schreinerei</button></div>` : `<p class="recipe">Auf dieser Kachel kann aktuell nicht gebaut werden.</p>`}${roadAction ? `<div class="stepper">${roadAction}</div>` : ""}`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>KACHEL</small><h3>${tile.terrain === "grass" ? "Wiese" : tile.terrain === "road" ? "Weg" : tile.terrain === "forest" ? "Wald" : tile.terrain === "mountain" ? "Berg" : tile.terrain === "river" ? "Fluss" : "Belegt"}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div>${buildable ? `<p class="recipe">Gebäude wählen. Danach wird es direkt auf der Karte platziert.</p><div class="stepper"><button data-action="build" data-kind="warehouse">Lager</button><button data-action="build" data-kind="sawmill">Sägewerk</button><button data-action="build" data-kind="carpenter">Schreinerei</button></div>` : `<p class="recipe">Auf dieser Kachel kann aktuell nicht gebaut werden.</p>`}${roadAction ? `<div class="stepper">${roadAction}</div>` : ""}`;
       return;
     }
 
@@ -194,8 +218,12 @@ export function mountControls(w: World, renderMap: () => void): void {
       : b.kind === "warehouse"
         ? `<div><span>Holz</span><strong data-field="warehouse-wood"></strong></div><div><span>Bretter</span><strong data-field="warehouse-plank"></strong></div><div><span>Holzwerkzeuge</span><strong data-field="warehouse-tool"></strong></div>`
         : `${b.recipe?.input ? `<div><span>${GOODS[b.recipe.input]} · Input</span><strong data-field="input"></strong></div>` : ""}<div><span>${b.recipe ? GOODS[b.recipe.output] : "Output"} · Output</span><strong data-field="output"></strong></div>`;
-    const demolish = b.kind === "forest" ? "" : `<button data-action="demolish" class="danger">Abreißen</button>`;
-    const merchantAssignment = b.kind === "warehouse" ? assignmentControl(b, "merchant", b.merchants ?? 0) : "";
+    const demolish = b.kind === "forest"
+      ? ""
+      : `<button data-action="demolish" class="danger">Abreißen</button>`;
+    const merchantAssignment = b.kind === "warehouse"
+      ? assignmentControl(b, "merchant", b.merchants ?? 0)
+      : "";
 
     selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">${recipe}</p>${assignmentControl(b, "worker", b.workers)}${assignmentControl(b, "carrier", b.carriers)}${merchantAssignment}<div class="inventory">${inventory}</div>${merchantControls(b)}<p class="status" data-field="status"></p>${demolish}`;
     updateSelectionLiveState();
@@ -247,7 +275,10 @@ export function mountControls(w: World, renderMap: () => void): void {
       simulationBudget += delta * simulationSpeed;
       let changed = false;
       let steps = 0;
-      while (simulationBudget + 1e-9 >= SIMULATION_STEP_MS && steps < CONFIG.simulationHz) {
+      while (
+        simulationBudget + 1e-9 >= SIMULATION_STEP_MS &&
+        steps < CONFIG.simulationHz
+      ) {
         tick(w);
         simulationBudget -= SIMULATION_STEP_MS;
         changed = true;
@@ -266,12 +297,37 @@ export function mountControls(w: World, renderMap: () => void): void {
     debugToggle.setAttribute("aria-pressed", String(open));
   };
 
+  const leaveBuildPlacementMode = () => {
+    if (!buildPlacementKind) return;
+    buildPlacementKind = undefined;
+    main.classList.remove("merchant-target-mode");
+    buildPlacementOverlay.hidden = true;
+    window.dispatchEvent(new CustomEvent(BUILD_MODE_EVENT, { detail: { active: false } }));
+    renderSelectionPanel();
+  };
+
+  const enterBuildPlacementMode = (kind: BuildableBuildingKind) => {
+    buildPlacementKind = kind;
+    selectedTile = undefined;
+    selectedBuildingId = undefined;
+    setDebugOpen(false);
+    main.classList.add("merchant-target-mode");
+    buildPlacementTitle.textContent = `${BUILDING_NAMES[kind]} platzieren`;
+    buildPlacementOverlay.hidden = false;
+    window.dispatchEvent(new CustomEvent(BUILD_MODE_EVENT, {
+      detail: { active: true, kind },
+    }));
+    renderSelectionPanel();
+  };
+
   const leaveMerchantTargetMode = () => {
     if (merchantTargetSelection === undefined) return;
     merchantTargetSelection = undefined;
     main.classList.remove("merchant-target-mode");
     merchantTargetOverlay.hidden = true;
-    window.dispatchEvent(new CustomEvent(MERCHANT_TARGET_MODE_EVENT, { detail: { active: false } }));
+    window.dispatchEvent(new CustomEvent(MERCHANT_TARGET_MODE_EVENT, {
+      detail: { active: false },
+    }));
     renderSelectionPanel();
     if (merchantSelectionWasRunning) startAutoplay();
     merchantSelectionWasRunning = false;
@@ -279,7 +335,9 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const enterMerchantTargetMode = (personId: number) => {
     const merchant = w.people.find((p) => p.id === personId);
-    const sourceId = merchant?.assignment?.role === "merchant" ? merchant.assignment.building : undefined;
+    const sourceId = merchant?.assignment?.role === "merchant"
+      ? merchant.assignment.building
+      : undefined;
     if (!merchant || !sourceId) return;
     merchantSelectionWasRunning = isRunning();
     if (merchantSelectionWasRunning) stopAutoplay();
@@ -295,7 +353,10 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   autoplayButton.addEventListener("click", () => {
     if (!isRunning()) startAutoplay();
-    else { stopAutoplay(); refresh(); }
+    else {
+      stopAutoplay();
+      refresh();
+    }
   });
   for (const button of speedButtons) {
     button.addEventListener("click", () => {
@@ -305,6 +366,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   debugToggle.addEventListener("click", () => setDebugOpen(debugPanel.hidden));
   document.querySelector("#debug-close")!.addEventListener("click", () => setDebugOpen(false));
   merchantTargetCancel.addEventListener("click", leaveMerchantTargetMode);
+  buildPlacementCancel.addEventListener("click", leaveBuildPlacementMode);
 
   selectionPanel.addEventListener("change", (event) => {
     const select = event.target as HTMLSelectElement;
@@ -331,14 +393,8 @@ export function mountControls(w: World, renderMap: () => void): void {
       enterMerchantTargetMode(Number(button.dataset.person));
       return;
     }
-    if (action === "build" && selectedTile) {
-      const created = buildAt(w, selectedTile, button.dataset.kind as BuildableBuildingKind);
-      if (created) {
-        selectedTile = undefined;
-        selectedBuildingId = created.id;
-        window.dispatchEvent(new CustomEvent(BUILDING_SELECTION_REQUESTED_EVENT, { detail: { id: created.id } }));
-      }
-      refresh();
+    if (action === "build") {
+      enterBuildPlacementMode(button.dataset.kind as BuildableBuildingKind);
       return;
     }
     if (action === "road" && selectedTile) {
@@ -348,8 +404,11 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
     if (action === "demolish" && selectedBuildingId) {
       const selected = w.buildings.find((b) => b.id === selectedBuildingId);
-      if (selected && window.confirm(`${selected.name} wirklich abreißen? Gelagerte Waren gehen verloren.`)) {
-        removeBuilding(w, selectedBuildingId);
+      if (
+        selected &&
+        window.confirm(`${selected.name} wirklich abreißen? Gelagerte Waren gehen verloren.`)
+      ) {
+        removeBuildingWithFootprint(w, selectedBuildingId);
         selectedBuildingId = undefined;
         window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
         refresh();
@@ -359,11 +418,35 @@ export function mountControls(w: World, renderMap: () => void): void {
     const delta = Number(button.dataset.delta) as 1 | -1;
     if (action === "population") changePopulation(w, delta);
     if (action === "woodcutter") changeWoodcutters(w, delta);
-    if (action === "assignment") changeAssignment(w, button.dataset.building as BuildingId, button.dataset.role as Role, delta);
+    if (action === "assignment")
+      changeAssignment(
+        w,
+        button.dataset.building as BuildingId,
+        button.dataset.role as Role,
+        delta,
+      );
+    refresh();
+  });
+
+  window.addEventListener(BUILD_POSITION_SELECTED_EVENT, (event) => {
+    if (!buildPlacementKind) return;
+    const position = (event as CustomEvent<BuildPositionSelectedDetail>).detail.position;
+    const created = buildWithFootprint(w, position, buildPlacementKind);
+    if (!created) {
+      renderMap();
+      return;
+    }
+    leaveBuildPlacementMode();
+    selectedTile = undefined;
+    selectedBuildingId = created.id;
+    window.dispatchEvent(new CustomEvent(BUILDING_SELECTION_REQUESTED_EVENT, {
+      detail: { id: created.id },
+    }));
     refresh();
   });
 
   window.addEventListener(BUILDING_SELECTED_EVENT, (event) => {
+    if (buildPlacementKind) return;
     const id = (event as CustomEvent<BuildingSelectedDetail>).detail.id;
     if (merchantTargetSelection !== undefined) {
       const merchant = w.people.find((p) => p.id === merchantTargetSelection);
@@ -374,7 +457,9 @@ export function mountControls(w: World, renderMap: () => void): void {
         leaveMerchantTargetMode();
         selectedTile = undefined;
         selectedBuildingId = sourceId;
-        window.dispatchEvent(new CustomEvent(BUILDING_SELECTION_REQUESTED_EVENT, { detail: { id: sourceId } }));
+        window.dispatchEvent(new CustomEvent(BUILDING_SELECTION_REQUESTED_EVENT, {
+          detail: { id: sourceId },
+        }));
         refresh();
       }
       return;
@@ -383,8 +468,9 @@ export function mountControls(w: World, renderMap: () => void): void {
     selectedBuildingId = id;
     renderSelectionPanel();
   });
+
   window.addEventListener(TILE_SELECTED_EVENT, (event) => {
-    if (merchantTargetSelection !== undefined) return;
+    if (merchantTargetSelection !== undefined || buildPlacementKind) return;
     selectedBuildingId = undefined;
     selectedTile = (event as CustomEvent<TileSelectedDetail>).detail.position;
     renderSelectionPanel();
