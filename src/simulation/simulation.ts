@@ -270,6 +270,11 @@ function requestInput(w: World, p: Person, b: Building): void {
         (b.kind === "warehouse" && source.kind === "warehouse")
       )
         continue;
+      if (b.kind === "warehouse") {
+        const collectionPath = findPath(w.tiles, b.position, source.position);
+        if (!collectionPath || collectionPath.length > CONFIG.warehouseCollectionRadius)
+          continue;
+      }
       const path = findPath(w.tiles, p.position, source.position);
       if (path) sources.push({ source, good, path });
     }
@@ -491,7 +496,7 @@ export function status(w: World, b: Building): string {
   if (b.kind === "hq") return "Sammelpunkt für freie Personen";
   if (b.kind === "warehouse")
     return assigned(w, b.id, "carrier").length
-      ? "Träger sammeln Waren aus Produktionsorten"
+      ? `Träger sammeln Waren im Umkreis von ${CONFIG.warehouseCollectionRadius} Schritten`
       : "Keine Träger zugewiesen";
   if (b.forestRemaining !== undefined) {
     if (b.retired) return "Erschöpft";
