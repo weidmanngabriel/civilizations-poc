@@ -6,63 +6,89 @@ Ziel des ersten Proof of Concept ist eine personenbasierte Produktions- und Logi
 
 ## Karte und Terrain
 
-- Die Welt ist ein festes **21 × 13 Hex-Grid**.
-- Gebäude belegen jeweils genau eine Kachel.
-- Zu Beginn existiert **nur das Hauptquartier** als Gebäude.
-- Mehrere kleine Gruppen passiver Waldkacheln sind auf der Karte verteilt.
-- Zu Beginn gibt es **keine Wege**.
-- **Wiese, Wald, Wege und Gebäudekacheln sind begehbar.**
-- **Wasser und Berge sind nicht begehbar.**
-- Lager, Sägewerke und Schreinereien können auf freien Wiesen- oder Wegkacheln sofort und kostenlos gebaut werden.
-- Das HQ und aktive Wälder können nicht manuell abgerissen werden.
+- Die Welt ist ein festes **41 × 25 Hex-Grid**.
+- Die Hexfelder sind ungefähr halb so groß dargestellt wie im früheren 21 × 13 Raster. Dadurch bleibt die sichtbare Welt ähnlich groß, enthält aber deutlich mehr räumliche Auflösung.
+- Zu Beginn existiert nur das Hauptquartier als Gebäude.
+- Mehrere kleine Gruppen passiver Waldkacheln sind über die Karte verteilt.
+- Zu Beginn gibt es keine Wege.
+- Wiese, Wald, Wege und Gebäudekacheln sind begehbar.
+- Wasser und Berge sind nicht begehbar.
+
+## Gebäude und Platzierung
+
+Gebäude sind keine Ein-Kachel-Objekte mehr. Jeder Gebäudetyp besitzt einen festen zusammenhängenden **Footprint** aus mehreren Hexfeldern.
+
+Aktuelle Größen:
+
+- Hauptquartier: 4 Kacheln,
+- Lager: 4 Kacheln,
+- Sägewerk: 6 Kacheln,
+- Schreinerei: 4 Kacheln.
+
+Ein Gebäude bleibt logisch eine einzelne Entity mit einer Ankerposition. Klick oder Tap auf eine beliebige belegte Kachel selektiert dieselbe Gebäude-Entity.
+
+### Platzierungsregel
+
+Ein Gebäude darf nur platziert werden, wenn:
+
+1. jede Kachel seines Footprints innerhalb der Karte liegt,
+2. jede Footprint-Kachel freie Wiese oder Weg ist,
+3. auf keiner Footprint-Kachel eine Person steht,
+4. **um den kompletten Footprint mindestens ein Ring aus einer freien Kachel bestehen bleibt**.
+
+Der freie Ring muss ebenfalls innerhalb der Karte liegen und aus Wiese oder Weg bestehen. Gebäude können dadurch weder direkt aneinander noch direkt an Wald, Wasser, Berge oder den Kartenrand gesetzt werden.
+
+Wege dürfen vom Footprint überbaut werden. Der vorherige Untergrund jeder belegten Kachel wird gespeichert und beim Abriss wiederhergestellt.
+
+### Baumodus
+
+Gebäude werden nicht mehr sofort auf der zuvor angeklickten Kachel gebaut.
+
+1. Der Spieler wählt auf einer bebaubaren Kachel einen Gebäudetyp.
+2. Die UI wechselt in einen eigenen Baumodus und blendet die normalen Steuerelemente aus.
+3. Die Karte wird leicht abgedunkelt.
+4. Ein halbtransparenter Gebäude-Ghost snappt auf das Hex-Grid.
+5. Der komplette Footprint wird dargestellt.
+6. Gültige Positionen werden grün, ungültige rot hervorgehoben; der notwendige freie Ring wird zusätzlich sichtbar umrandet.
+7. Klick oder Tap bestätigt nur eine gültige Position.
+8. Ein sichtbarer „Abbrechen“-Button beendet den Modus ohne Bau.
+
+Pan und Zoom bleiben im Baumodus verfügbar. Auf Touch-Geräten wird der Ghost oberhalb des Fingers angezeigt, damit die Zielkacheln sichtbar bleiben.
 
 ## Zeit und Spielgeschwindigkeit
 
-Die Simulation besitzt einen festen internen Zeitschritt von **60 Simulationsschritten pro Sekunde bei 1×**. Dieser technische Takt wird dem Spieler nicht als Rundenzähler oder FPS-Wert gezeigt.
+Die Simulation besitzt einen festen internen Zeitschritt von **60 Simulationsschritten pro Sekunde bei 1×**. Rendering und Simulationsgeschwindigkeit bleiben voneinander getrennt.
 
-Die Darstellung läuft unabhängig davon über den normalen Browser-/Phaser-Renderloop mit bis zu 60 FPS.
+Der Spieler steuert die gesamte Simulation mit:
 
-Der Spieler steuert nur die **gesamte Simulationsgeschwindigkeit**:
+- 0,5×,
+- 1× – Standard,
+- 2×,
+- 3×,
+- Pause.
 
-- **0,5×**
-- **1×** – Standard
-- **2×**
-- **3×**
-- **Pause**
-
-Die Geschwindigkeit wirkt auf die komplette Simulation: Bewegung, Produktion, Holzabbau, Transporte und Händler. Es gibt keinen FPS-Regler, keinen Max-FPS-Modus und keinen „Nächster Schritt“-Button mehr.
-
-Bei 1× entsprechen die bisherigen Spielzeiten ungefähr dem vorherigen 5-FPS-Stand: Ein normaler Produktionsvorgang dauert etwa **1 Sekunde Simulationszeit**.
+Es gibt keinen FPS-Regler, keinen Max-FPS-Modus und keinen „Nächster Schritt“-Button.
 
 ## Bewegung und organische Wege
 
-Das Hex-Grid dient der Wegfindung und der Terrainlogik, nicht mehr als sichtbare Sprungbewegung. Personen bewegen sich kontinuierlich zwischen den Mittelpunkten der von der Wegfindung bestimmten Kacheln.
+Das Hex-Grid dient Wegfindung und Terrainlogik; Personen bewegen sich kontinuierlich zwischen den Mittelpunkten der Wegkacheln.
 
-- Grundtempo auf Wiese, Wald und Gebäudekacheln: **5 Kacheln pro Simulationssekunde**.
-- Ein Weg macht Bewegung **30 % schneller**.
-- Jeder Simulationsschritt verschiebt eine Person nur um den entsprechenden Teil einer Kantenstrecke.
-- Erst beim Erreichen des nächsten Kachelmittelpunkts gilt die Kachel logisch als betreten; dort werden Ankunft und Verkehr registriert.
-- Nicht verbrauchter Bewegungsfortschritt bleibt während eines laufenden Wegs erhalten.
-- Die Wegfindung berücksichtigt die unterschiedlichen Bewegungskosten. Ein vorhandener Weg kann daher attraktiver sein als eine kürzere Route über Wiese.
-- Die sichtbare Zwischenposition stammt direkt aus dem deterministischen Simulationsfortschritt; es gibt keine unabhängige Render-Tween-Logik.
+Durch die verdoppelte Rasterdichte beträgt das Grundtempo jetzt **10 Kacheln pro Simulationssekunde**. Das entspricht ungefähr derselben sichtbaren Weltgeschwindigkeit wie zuvor 5 Kacheln pro Sekunde auf dem gröberen Raster.
+
+- Ein Weg macht Bewegung 30 % schneller.
+- Die Wegfindung minimiert Reisezeit und berücksichtigt daher Wege.
+- Sichtbare Zwischenpositionen entstehen direkt aus dem deterministischen Simulationsfortschritt.
 
 ### Automatische Wegbildung
 
-Wege entstehen durch tatsächliche Nutzung der Landschaft:
-
-- Jede vollständige Überquerung beziehungsweise Ankunft auf einer Wiesen-Kachel wird gezählt.
-- Erreicht eine Wiesen-Kachel **8 Überquerungen innerhalb der letzten 8 Simulationssekunden**, wird sie automatisch zu einem Weg.
-- Ein automatisch entstandener Weg bleibt bestehen.
-- Sobald sich ein neuer Weg bildet, werden laufende Routen neu bewertet, damit Personen den Geschwindigkeitsvorteil nutzen können.
-- Die bestehende manuelle Weg-Bauen-/Entfernen-Funktion bleibt im PoC zusätzlich verfügbar.
-
-Damit verstärken sich häufig genutzte Routen selbst: Verkehr erzeugt Wege, Wege beschleunigen Verkehr, und die Wegfindung bevorzugt dadurch etablierte Verbindungen.
+- Jede vollständige Ankunft auf einer Wiesen-Kachel wird gezählt.
+- 8 Überquerungen innerhalb der letzten 8 Simulationssekunden machen die Kachel dauerhaft zum Weg.
+- Laufende Routen werden danach neu bewertet.
+- Manuelles Weg-Bauen und -Entfernen bleibt zusätzlich verfügbar.
 
 ## Produktionskette
 
 Nichts produziert ohne konkrete Person.
-
-Aktuelle Kette:
 
 - Wald: ca. 1 Simulationssekunde → 1 Holz.
 - Sägewerk: 2 Holz → 1 Brett in ca. 1 Simulationssekunde.
@@ -71,78 +97,54 @@ Aktuelle Kette:
 
 Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt aktuell genau eine Einheit pro Transportweg.
 
-Sägewerk und Schreinerei besitzen jeweils einen Produktionsarbeiter-Slot und bis zu zwei Träger. Der Produktionsarbeiter produziert bevorzugt und beschafft nur dann selbst Rohstoffe, wenn die Produktion blockiert ist. Träger beschaffen ausschließlich die Inputs ihrer zugewiesenen Arbeitsstätte.
+Sägewerk und Schreinerei besitzen jeweils einen Produktionsarbeiter-Slot und bis zu zwei Träger. Produktionsarbeiter produzieren bevorzugt und beschaffen nur dann selbst Rohstoffe, wenn die Produktion blockiert ist. Träger beschaffen ausschließlich Inputs ihrer Arbeitsstätte.
 
 ## Inventare, Lager und Reservierungen
 
-Produktions- und Rohstofforte besitzen getrennte Kapazitäten:
+Produktions- und Rohstofforte:
 
-- Input: maximal 10 Einheiten.
-- Output: maximal 3 Einheiten.
+- Input maximal 10 Einheiten,
+- Output maximal 3 Einheiten.
 
-Lager besitzen einen lokalen Bestand pro Warentyp:
+Lager:
 
 - maximal 20 Holz,
 - maximal 20 Bretter,
 - maximal 20 Holzwerkzeuge.
 
-Ein Produktionsvorgang startet nur, wenn Platz für den späteren Output reserviert werden kann. Bereits geplante Transporte zählen gegen die Zielkapazität. Eine vorhandene Ware wird beim Abholauftrag reserviert, damit sie nicht mehrfach verplant wird.
+Ein Produktionsvorgang startet nur, wenn Platz für Output reserviert werden kann. Geplante Transporte zählen gegen Zielkapazitäten und vorhandene Waren werden für Abholaufträge reserviert.
 
-Lager-Träger sammeln Waren nur aus einem **Umkreis von maximal 5 tatsächlich begehbaren Kachelschritten** um ihr Lager. Diese Reichweite wird weiterhin in Kachelschritten und nicht in Bewegungszeit gemessen; ein schnellerer Weg vergrößert den Sammelradius also nicht.
+Der Lager-Sammelradius beträgt wegen der verdoppelten Rasterdichte jetzt **10 begehbare Kachelschritte**. Das erhält ungefähr die bisherige physische Reichweite. Die Reichweite wird weiterhin in Schritten und nicht in Reisezeit gemessen.
 
-Waren in Lagern sind normale physische Warenquellen. Benötigt ein Sägewerk Holz oder eine Schreinerei Bretter, dürfen deren Arbeiter oder Träger die Ware aus einem erreichbaren Lager holen. Für diese bedarfsgetriebene Beschaffung gilt die 5-Schritte-Grenze nicht.
-
-Lager-Träger holen Waren **niemals aus einem anderen Lager**. Dadurch entstehen keine automatischen Lager-zu-Lager-Umlagerungen.
-
-Wird ein Transport während des Tragens abgebrochen, kehrt die Ware zur ursprünglichen Quelle zurück, sofern diese noch existiert.
+Lager-Träger holen Waren niemals aus einem anderen Lager. Produktionsarbeiter und Träger dürfen benötigte Waren dagegen auch aus weiter entfernten Lagern holen.
 
 ## Händler und Handelsrouten
 
-Händler sind eine eigene Rolle am Lager und die bewusste Ausnahme zur Lager-zu-Lager-Regel.
+Händler sind eine eigene Lagerrolle und die bewusste Ausnahme zur Lager-zu-Lager-Regel.
 
-- Ein Lager kann bis zu zwei Händler haben.
-- Jeder Händler gehört zu genau einem Startlager.
-- Pro Händler wird genau eine Route konfiguriert.
-- Eine Route besteht aus einem Ziellager und einem Warentyp: Holz, Bretter oder Holzwerkzeuge.
-- Die Route unterliegt nicht dem 5-Kachel-Radius der Lager-Träger.
-- Der Händler transportiert pro Fahrt genau eine Einheit.
+- Bis zu zwei Händler pro Lager.
+- Genau ein Startlager je Händler.
+- Route = Ziellager + Warentyp.
+- Kein 10-Kachel-Limit.
+- Eine Einheit pro Fahrt.
 
-Ablauf:
+Ablauf: am Startlager warten → Ware und Zielkapazität reservieren → transportieren → leer zurücklaufen → wiederholen.
 
-1. Händler wartet am Startlager.
-2. Ware und Zielkapazität werden reserviert.
-3. Händler bringt eine Einheit zum Ziellager.
-4. Händler läuft leer zurück.
-5. Der Zyklus beginnt erneut.
+Die Zielwahl geschieht in einem modalen Kartenmodus. Die Simulation pausiert währenddessen; gültige Lager werden hervorgehoben, Pan und Zoom bleiben möglich und Kamera sowie vorheriger Laufzustand werden danach wiederhergestellt.
 
-Es gibt aktuell keinen Rücktransport einer zweiten Ware, keine Preise und keinen Tauschhandel.
+## Gebäude abreißen
 
-### Ziellager-wählen-Modus
+Frei baubar und abreißbar sind Lager, Sägewerk und Schreinerei.
 
-Das Ziellager wird direkt auf der Karte gewählt:
+Beim Abriss:
 
-- Die Simulation pausiert während der Auswahl.
-- Nur gültige Ziellager werden deutlich hervorgehoben.
-- Andere Kartenaktionen sind gesperrt; Pan und Zoom bleiben möglich.
-- Auswahl oder Abbruch stellt Kameraposition und Zoom wieder her.
-- War die Simulation vorher aktiv, läuft sie danach mit der zuvor gewählten Geschwindigkeit weiter.
-- War sie vorher pausiert, bleibt sie pausiert.
-
-## Gebäude bauen und abreißen
-
-Frei baubar sind:
-
-- Lager,
-- Sägewerk,
-- Schreinerei.
-
-Beim Abriss eines normalen Gebäudes:
-
-- verschwindet das Gebäude sofort,
+- verschwindet die gesamte Footprint-Fläche,
+- alle darunter gespeicherten Wiesen-/Wegkacheln werden wiederhergestellt,
 - lokale Waren verfallen,
 - zugewiesene Personen werden frei und laufen zum HQ,
-- betroffene Transporte und Handelsrouten werden bereinigt,
-- die Kachel erhält ihren vorherigen Untergrund zurück.
+- betroffene Transporte und Handelsrouten werden bereinigt.
+
+HQ und aktive Wälder können nicht manuell abgerissen werden.
 
 ## Holzfäller und Wälder
 
@@ -153,79 +155,51 @@ Holzfäller sind ein globaler Beruf und werden keinem Wald manuell zugewiesen.
 - Pro aktivem Wald arbeitet maximal ein Holzfäller.
 - Bei gleichwertigen Kandidaten entscheidet ein reproduzierbarer Seed-Zufall.
 - Passive Waldkacheln werden beim Anspruch zu aktiven Wald-Arbeitsstätten.
-- Ein Holzfäller ohne verfügbaren Wald bleibt Holzfäller und wartet beziehungsweise kehrt zum HQ zurück.
 
-Jeder aktive Wald besitzt **10 Holzvorrat** und maximal 3 lokalen Output. Die Darstellung verblasst proportional zum Restvorrat, aber nie unter 35 %, solange der Wald existiert.
+Jeder aktive Wald besitzt 10 Holzvorrat und maximal 3 lokalen Output. Die Darstellung verblasst proportional zum Restvorrat, aber nie unter 35 %, solange der Wald existiert.
 
-Nach der zehnten produzierten Holzeinheit verschwindet der Wald sofort. Seine Kachel wird wieder **Wiese**. Bereits produziertes Restholz bleibt an dieser Position liegen und kann weiterhin abgeholt werden. Ein Weg entsteht dort nur dann, wenn die normale Verkehrsregel erfüllt wird.
+Nach der zehnten produzierten Holzeinheit verschwindet der Wald sofort und seine Kachel wird Wiese. Bereits produziertes Restholz bleibt dort liegen.
 
 ## Bevölkerung und Hauptquartier
 
-Der PoC startet mit acht Personen. Das ist kein dauerhaftes Bevölkerungslimit.
+Der PoC startet mit acht Personen. Freie Personen sammeln sich am HQ. Freigesetzte Personen laufen von ihrer aktuellen Position zurück; neue Zuweisungen können sie unterwegs umlenken.
 
-Freie Personen sammeln sich am HQ. Freigesetzte Personen laufen von ihrer aktuellen Position zurück; neue Zuweisungen können sie unterwegs umlenken. Eine Person zählt erst nach ihrer Ankunft als aktiv an einer stationären Arbeitsstätte.
+Debug-Bevölkerungssteuerung:
 
-Die Debug-Bevölkerungssteuerung erzeugt oder entfernt Personen direkt:
-
-- `+1`: neue freie Person am HQ.
-- `-1`: entfernt nur eine freie Person, die sich tatsächlich am HQ befindet.
+- +1 erzeugt eine freie Person am HQ,
+- −1 entfernt nur eine freie Person, die tatsächlich am HQ steht.
 
 ## Bedienung
 
 Die Karte ist dauerhaft bildschirmfüllend. Status und Steuerungen liegen als kompakte Overlays darüber.
 
-- Kurzer Klick/Tap auf Gebäude: Gebäudedialog.
+- Kurzer Klick/Tap auf eine beliebige Footprint-Kachel: Gebäudedialog.
 - Kurzer Klick/Tap auf freie Kachel: lokale Bau- und Wegoptionen.
-- Unten: Pause/Fortsetzen und `0,5× / 1× / 2× / 3×`.
+- Unten: Pause/Fortsetzen und 0,5× / 1× / 2× / 3×.
 - Oben: Build-Version und Kernmetriken.
 - Debug-Personenliste bleibt standardmäßig verborgen.
 
-### HQ
-
-- Bevölkerung und freie Personen,
-- Bevölkerung `− / +`,
-- Holzfäller `− / +`,
-- globaler Status.
-
-### Produktionsgebäude
-
-- Rezept,
-- Input und Output,
-- Produktionsstatus,
-- Produktionsarbeiter `− / +`,
-- Träger `− / +`,
-- Abriss.
-
-### Lager
-
-- Bestände je Warentyp,
-- Lager-Träger `− / +`,
-- Händler `− / +`,
-- Warentyp und Zielstatus je Händler,
-- „Ziellager wählen“,
-- Abriss.
-
 ## Desktop und Mobile
 
-Referenzgerät für Mobile ist ein **iPhone 13 Mini mit 375 × 812 CSS-Pixeln**.
+Referenzgerät ist ein iPhone 13 Mini mit 375 × 812 CSS-Pixeln.
 
 - Browser-/Seitenzoom wird unterdrückt.
 - Karte belegt den gesamten Viewport.
 - Kartenzoom: 0,7× bis 3,5×.
 - Desktop: Mausrad-Zoom und Pointer-Drag.
 - Touch: ein Finger verschiebt, zwei Finger zoomen.
-- Ein kurzer Tap wählt; eine erkennbare Ziehbewegung gilt als Pan.
+- Kurzer Tap wählt oder bestätigt im Baumodus; erkennbare Ziehbewegung gilt als Pan.
 - Overlays berücksichtigen Safe Areas.
 
 ## Simulationsreihenfolge
 
 Pro festem Simulationsschritt:
 
-1. Bewegungsfortschritt wird vergeben; Personen bewegen sich kontinuierlich entlang der aktuellen Kante und schließen bei ausreichendem Fortschritt Kachelankünfte ab.
-2. Wiesenverkehr wird bei abgeschlossenen Kachelankünften registriert; neue Wege können entstehen und Routen neu geplant werden.
-3. Ankünfte, Abholungen und Lieferungen werden verarbeitet.
-4. Produktion schreitet fort beziehungsweise wird abgeschlossen.
-5. Erschöpfte Wälder verschwinden und Holzfäller suchen neue Standorte.
-6. Neue Beschaffungs- und Handelsaufträge werden geplant.
+1. Bewegungsfortschritt vergeben und Kachelankünfte abschließen.
+2. Wiesenverkehr registrieren; neue Wege können entstehen und Routen neu geplant werden.
+3. Ankünfte, Abholungen und Lieferungen verarbeiten.
+4. Produktion fortschreiben oder abschließen.
+5. Erschöpfte Wälder entfernen und Holzfäller neu zuweisen.
+6. Neue Beschaffungs- und Handelsaufträge planen.
 
 Alle Regeln bleiben deterministisch und hängen von Simulationszeit statt Darstellungs-FPS ab.
