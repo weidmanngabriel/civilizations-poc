@@ -60,9 +60,11 @@ Auf Desktop kann der Ghost weiterhin der Mausposition folgen. Auch dort ist „B
 
 ## Zeit und Spielgeschwindigkeit
 
-Die Simulation besitzt einen festen internen Zeitschritt von **60 Simulationsschritten pro Sekunde bei 1×**. Rendering und Simulationsgeschwindigkeit bleiben voneinander getrennt.
+Die Simulation besitzt einen festen internen Zeitschritt von **60 Simulationsschritten pro Simulationssekunde**. Rendering und Simulationsgeschwindigkeit bleiben voneinander getrennt.
 
-Der Spieler steuert die gesamte Simulation mit:
+Das allgemeine Basistempo beträgt **25 % des bisherigen Tempos**. Bei angezeigtem 1× vergehen deshalb pro realer Sekunde nur 0,25 Simulationssekunden. Bewegung, Produktion, Abbau, Transporte und zeitbasierte Weltlogik werden gemeinsam verlangsamt; Rendering und Eingabe bleiben unverändert flüssig.
+
+Der Spieler steuert die gesamte Simulation relativ zu diesem neuen Basistempo mit:
 
 - 0,5×,
 - 1× – Standard,
@@ -76,7 +78,7 @@ Es gibt keinen FPS-Regler, keinen Max-FPS-Modus und keinen „Nächster Schritt�
 
 Das Hex-Grid dient Wegfindung und Terrainlogik; Personen bewegen sich kontinuierlich zwischen den Mittelpunkten der Wegkacheln.
 
-Durch die verdoppelte Rasterdichte beträgt das Grundtempo jetzt **10 Kacheln pro Simulationssekunde**. Das entspricht ungefähr derselben sichtbaren Weltgeschwindigkeit wie zuvor 5 Kacheln pro Sekunde auf dem gröberen Raster.
+Durch die verdoppelte Rasterdichte beträgt das Grundtempo **10 Kacheln pro Simulationssekunde**. Beim neuen 1×-Basistempo entspricht das 2,5 Kacheln pro realer Sekunde. Das Verhältnis aller Simulationssysteme untereinander bleibt unverändert.
 
 - Ein Weg macht Bewegung 30 % schneller.
 - Die Wegfindung minimiert Reisezeit und berücksichtigt daher Wege.
