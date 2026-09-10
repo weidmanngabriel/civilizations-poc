@@ -26,6 +26,12 @@ import {
   removeActiveFarmFields,
   rerouteFarmTask,
 } from "./farm";
+import {
+  gainProfessionExperience,
+  logisticsSpeedMultiplier,
+  productionMultiplier,
+  workerProfession,
+} from "./experience";
 
 export const building = (w: World, id: BuildingId): Building =>
   w.buildings.find((b) => b.id === id)!;
@@ -100,11 +106,12 @@ const inputStock = (b: Building, good: Good): number => {
 };
 
 const inputHasSpace = (w: World, b: Building, good: Good): boolean =>
-  inputStock(b, good) + incoming(w, b.id, good) < CONFIG.inputCapacity;
+  inputStock(b, good) + incoming(w, b.id, good) + CONFIG.carryCapacity <=
+  CONFIG.inputCapacity + 1e-9;
 
 const hasRecipeInputs = (b: Building): boolean =>
   (Object.entries(recipeRequirements(b)) as [Good, number][]).every(
-    ([good, amount]) => inputStock(b, good) >= amount,
+    ([good, amount]) => inputStock(b, good) + 1e-9 >= amount,
   );
 
 const consumeRecipeInputs = (b: Building): void => {
@@ -138,8 +145,8 @@ const available = (w: World, b: Building, good: Good) =>
   sourceStock(b, good) - reservedAtSource(w, b.id, good);
 const warehouseHasSpace = (w: World, b: Building, good: Good) =>
   !isUnderConstruction(b) &&
-  warehouseStock(b, good) + incoming(w, b.id, good) <
-    CONFIG.warehouseCapacityPerGood;
+  warehouseStock(b, good) + incoming(w, b.id, good) + CONFIG.carryCapacity <=
+    CONFIG.warehouseCapacityPerGood + 1e-9;
 const constructionMaterialsComplete = (b: Building): boolean => {
   const construction = b.construction;
   if (!construction || construction.complete) return true;
@@ -152,18 +159,24 @@ const constructionMaterialsComplete = (b: Building): boolean => {
 function returnCargoToSource(w: World, p: Person): void {
   if (!p.trip?.picked) return;
   const source = w.buildings.find((b) => b.id === p.trip!.source);
-  if (!source || (source.kind === "well" && p.trip.good === "water")) return;
+  if (!source || (source.kind === "well" && p.trip.good === "water")) {
+    p.pendingFarmBonus = undefined;
+    return;
+  }
+  const amount = CONFIG.carryCapacity + (p.pendingFarmBonus ?? 0);
   if (source.kind === "warehouse" && !isUnderConstruction(source)) {
     source.inventory ??= {};
-    source.inventory[p.trip.good] = (source.inventory[p.trip.good] ?? 0) + CONFIG.carryCapacity;
+    source.inventory[p.trip.good] = (source.inventory[p.trip.good] ?? 0) + amount;
   } else {
-    source.output += CONFIG.carryCapacity;
+    source.output += amount;
   }
+  p.pendingFarmBonus = undefined;
 }
 
 function cancel(w: World, p: Person): void {
   returnCargoToSource(w, p);
   p.trip = undefined;
+  p.pendingFarmBonus = undefined;
   clearFarmTask(p);
   p.progress = 0;
   p.movement = 0;
@@ -505,27 +518,27 @@ function requestInput(w: World, p: Person, b: Building): void {
   const collectSources = (candidateGoods: Good[]): SourceCandidate[] => {
     const sources: SourceCandidate[] = [];
     for (const good of candidateGoods) {
-    if (isWarehouseCollection && !warehouseHasSpace(w, b, good)) continue;
-    for (const source of w.buildings) {
-      if (
-        source.id === b.id ||
-        (source.retired && source.output <= 0) ||
-        available(w, source, good) <= 0 ||
-        (isWarehouseCollection && source.kind === "warehouse")
-      )
-        continue;
-      if (isWarehouseCollection) {
-        const collectionPath = findPathBySteps(w.tiles, b.position, source.position);
-        if (!collectionPath || collectionPath.length > CONFIG.warehouseCollectionRadius)
+      if (isWarehouseCollection && !warehouseHasSpace(w, b, good)) continue;
+      for (const source of w.buildings) {
+        if (
+          source.id === b.id ||
+          (source.retired && source.output < CONFIG.carryCapacity) ||
+          available(w, source, good) + 1e-9 < CONFIG.carryCapacity ||
+          (isWarehouseCollection && source.kind === "warehouse")
+        )
           continue;
-      }
-      const path = findPath(
-        w.tiles,
-        p.position,
-        source.position,
-        CONFIG.roadSpeedMultiplier,
-      );
-      if (path) sources.push({ source, good, path });
+        if (isWarehouseCollection) {
+          const collectionPath = findPathBySteps(w.tiles, b.position, source.position);
+          if (!collectionPath || collectionPath.length > CONFIG.warehouseCollectionRadius)
+            continue;
+        }
+        const path = findPath(
+          w.tiles,
+          p.position,
+          source.position,
+          CONFIG.roadSpeedMultiplier,
+        );
+        if (path) sources.push({ source, good, path });
       }
     }
     sources.sort(
@@ -574,7 +587,7 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): void {
     return;
   }
   if (
-    available(w, source, routeConfig.good) <= 0 ||
+    available(w, source, routeConfig.good) + 1e-9 < CONFIG.carryCapacity ||
     !warehouseHasSpace(w, target, routeConfig.good) ||
     !findPath(w.tiles, source.position, target.position, CONFIG.roadSpeedMultiplier)
   )
@@ -789,7 +802,16 @@ function movePeople(w: World): boolean {
       p.movement = 0;
       continue;
     }
-    p.movement += CONFIG.movementPerTick;
+    const logisticsProfession =
+      p.assignment?.role === "carrier" && p.trip
+        ? "carrier"
+        : p.assignment?.role === "merchant" && p.merchantRoute?.target
+          ? "merchant"
+          : undefined;
+    if (logisticsProfession) gainProfessionExperience(p, logisticsProfession);
+    p.movement +=
+      CONFIG.movementPerTick *
+      (logisticsProfession ? logisticsSpeedMultiplier(p, logisticsProfession) : 1);
     let moves = 0;
     while (p.path.length && moves < 4) {
       const next = p.path[0]!;
@@ -818,7 +840,12 @@ function advanceConstruction(w: World): void {
     );
     if (!activeBuilders.length) continue;
     const construction = site.construction!;
-    construction.progress += activeBuilders.length;
+    let progressThisTick = 0;
+    for (const p of activeBuilders) {
+      progressThisTick += productionMultiplier(p, "builder");
+      gainProfessionExperience(p, "builder");
+    }
+    construction.progress += progressThisTick;
     for (const p of activeBuilders) p.progress = construction.progress;
     if (construction.progress < construction.duration) continue;
 
@@ -877,11 +904,12 @@ export function tick(w: World): void {
           target.inventory![p.trip.good] =
             (target.inventory![p.trip.good] ?? 0) + CONFIG.carryCapacity;
         } else if (target.kind === "farm" && p.trip.good === "wheat") {
-          target.output += CONFIG.carryCapacity;
+          target.output += CONFIG.carryCapacity + (p.pendingFarmBonus ?? 0);
         } else {
           addProductionInput(target, p.trip.good);
         }
         p.trip = undefined;
+        p.pendingFarmBonus = undefined;
         p.movement = 0;
         immediateDecisionPeople.add(p.id);
       }
@@ -900,19 +928,22 @@ export function tick(w: World): void {
     if (p.assignment.role === "builder" || isUnderConstruction(b) || b.kind === "farm") continue;
     const recipe = b.recipe;
     if (p.assignment.role === "worker" && recipe) {
+      const profession = workerProfession(b);
       const forestHasYield =
         b.forestRemaining === undefined || b.forestRemaining > producing(w, b.id);
       if (
         p.progress === 0 &&
         forestHasYield &&
         hasRecipeInputs(b) &&
-        outputOccupied(w, b) + recipeOutputAmount(b) <= CONFIG.outputCapacity
+        outputOccupied(w, b) < CONFIG.outputCapacity
       )
         p.progress = 1;
       else if (p.progress > 0) p.progress++;
-      if (p.progress === recipe.duration) {
+      if (p.progress > 0 && profession) gainProfessionExperience(p, profession);
+      if (p.progress >= recipe.duration) {
         consumeRecipeInputs(b);
-        b.output += recipeOutputAmount(b);
+        const multiplier = profession ? productionMultiplier(p, profession) : 1;
+        b.output += recipeOutputAmount(b) * multiplier;
         if (b.forestRemaining !== undefined) b.forestRemaining--;
         p.progress = 0;
         immediateDecisionPeople.add(p.id);
