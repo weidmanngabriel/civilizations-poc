@@ -130,9 +130,9 @@ Demolishing a farm additionally removes its still-active field entities and rest
 
 ## Production and reservations
 
-Generic production still uses recipes and local input/output capacities. Recipes may define an output amount greater than one. Goods quantities are floating-point simulation values and may contain fractions. A completed production cycle may push a local output above its nominal capacity because its experience multiplier is applied at completion. No new production cycle starts while the current output is at or above the nominal capacity.
+Generic production still uses recipes and local input/output capacities. Recipes may define an output amount greater than one. Only local production-output quantities may contain fractions; production inputs and warehouse inventories remain whole-number quantities. A completed production cycle may push a local output above its nominal capacity because its experience multiplier is applied at completion. No new production cycle starts while the current output is at or above the nominal capacity.
 
-Trips deliberately remain whole-unit logistics. An unpicked trip reserves exactly one unit of source stock, an incoming trip reserves exactly one unit of destination capacity and a picked trip physically carries exactly one unit. A trip can only be planned when at least 1.0 unit is available at the source and at least 1.0 unit fits at the destination. Thus a source with 4.7 units becomes 3.7 after pickup, while a residual 0.7 cannot be transported until production raises it to at least 1.0. For multi-input recipes, procurement prioritizes ingredients still missing for the next complete batch before topping up already-sufficient inputs; if no prioritized source is reachable, normal top-up remains available.
+Trips deliberately remain whole-unit logistics. An unpicked trip reserves exactly one unit of source stock, an incoming trip reserves exactly one unit of destination capacity and a picked trip physically carries exactly one unit. A trip can only be planned when at least 1.0 unit is available at the source and at least 1.0 unit fits at the destination. Thus a production source with 4.7 units becomes 3.7 after pickup, while the destination receives exactly one whole unit. A residual 0.7 cannot be transported until production raises it to at least 1.0. For multi-input recipes, procurement prioritizes ingredients still missing for the next complete batch before topping up already-sufficient inputs; if no prioritized source is reachable, normal top-up remains available.
 
 Current generic recipes:
 
@@ -221,7 +221,7 @@ Warehouse carriers collect wheat from the farm with the same whole-unit source r
 
 ## Warehouse and logistics model
 
-Warehouses have local per-good inventory with capacity 20 for wood, planks, wooden tools, wheat, flour, water and bread. Stocks may be fractional because production is fractional, but carrier and merchant trips always transfer exactly 1.0 unit.
+Warehouses have local per-good inventory with capacity 20 for wood, planks, wooden tools, wheat, flour, water and bread. Warehouse inventories are always whole-number quantities because every inbound and outbound trip transfers exactly 1.0 unit. Fractional quantities remain only at production outputs.
 
 Warehouse carriers collect output from non-warehouse sources only when the source lies within **10 reachable tile steps**. Farm output is a valid wheat source. Retired fields are not normal wheat sources after a successful harvest return. Warehouse carriers still never create warehouse-to-warehouse trips.
 
@@ -259,7 +259,7 @@ Farm is available in the same modal placement mode as other buildings. Touch beh
 - warehouse inventory includes wheat,
 - merchant goods include wheat, flour, water and bread,
 - top metrics include total wheat and bread stored in completed warehouses,
-- good quantities are displayed with one decimal place while the simulation retains higher floating-point precision,
+- production outputs are displayed with one decimal place; production inputs, warehouse inventories and warehouse HUD totals are displayed as whole numbers,
 - goods use emoji markers alongside labels/counts where appropriate; building controls and headings use shared inline SVG icons; map people use role markers plus their numeric ID,
 - debug rows expose the current farmer action and current profession experience.
 
@@ -287,6 +287,8 @@ Farm coverage verifies:
 - warehouse carriers can collect wheat from a retired harvested field.
 
 Experience coverage verifies the 10/30/60/90-minute progression targets, 2× production cap, 1.5× logistics-speed cap, fractional production overflow, exact whole-unit pickup from fractional stocks and refusal to transport remainders below 1.0.
+
+Inventory coverage additionally verifies that fractional production outputs enter both production inputs and warehouses only as whole units, so input and warehouse quantities remain integer-valued.
 
 Existing suites continue to cover placement, construction, movement, decision cadence, forest relocation, merchant routes, worker input, reservations and deterministic replay.
 
