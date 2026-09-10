@@ -1,10 +1,28 @@
-import type { BuildableBuildingKind, Building, Hex, World } from "./model";
+import type {
+  BuildableBuildingKind,
+  Building,
+  GoodAmounts,
+  Hex,
+  World,
+} from "./model";
 import { key, neighbors, same } from "./hex";
+import { CONFIG } from "./scenario";
 import { buildAt, removeBuilding } from "./simulation";
 
 export type BuildingPlacementShape = {
   cells: Hex[];
   anchor: Hex;
+};
+
+export type ConstructionPlan = {
+  required: GoodAmounts;
+  duration: number;
+};
+
+export const CONSTRUCTION_PLANS: Record<BuildableBuildingKind, ConstructionPlan> = {
+  warehouse: { required: { wood: 4 }, duration: CONFIG.duration },
+  sawmill: { required: { wood: 6 }, duration: CONFIG.duration },
+  carpenter: { required: { plank: 4 }, duration: CONFIG.duration },
 };
 
 const SHAPES: Record<BuildableBuildingKind, BuildingPlacementShape> = {
@@ -119,6 +137,14 @@ export function buildWithFootprint(
 
   const created = buildAt(world, anchorPosition, kind);
   if (!created) return;
+  const plan = CONSTRUCTION_PLANS[kind];
+  created.construction = {
+    required: { ...plan.required },
+    delivered: {},
+    duration: plan.duration,
+    progress: 0,
+    complete: false,
+  };
   created.footprint = footprint.map((position) => ({ ...position }));
   created.baseTerrains = baseTerrains;
   for (const position of footprint) {
