@@ -65,7 +65,8 @@ const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
   well: "Brunnen",
 };
 
-const formatAmount = (value: number): string => value.toFixed(1).replace(".", ",");
+const formatOutputAmount = (value: number): string => value.toFixed(1).replace(".", ",");
+const formatWholeAmount = (value: number): string => String(Math.round(value));
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -203,7 +204,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
     if (b.forestRemaining !== undefined) {
       setField("forest-remaining", String(b.forestRemaining));
-      setField("output", `${formatAmount(b.output)}/${formatAmount(CONFIG.outputCapacity)}`);
+      setField("output", `${formatOutputAmount(b.output)}/${CONFIG.outputCapacity}`);
       return;
     }
 
@@ -220,13 +221,13 @@ export function mountControls(w: World, renderMap: () => void): void {
         `${Math.round((b.construction!.progress / b.construction!.duration) * 100)} %`,
       );
     } else if (b.kind === "warehouse") {
-      setField("warehouse-wood", `${formatAmount(warehouseStock(b, "wood"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
-      setField("warehouse-plank", `${formatAmount(warehouseStock(b, "plank"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
-      setField("warehouse-tool", `${formatAmount(warehouseStock(b, "woodenTool"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
-      setField("warehouse-wheat", `${formatAmount(warehouseStock(b, "wheat"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
-      setField("warehouse-flour", `${formatAmount(warehouseStock(b, "flour"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
-      setField("warehouse-water", `${formatAmount(warehouseStock(b, "water"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
-      setField("warehouse-bread", `${formatAmount(warehouseStock(b, "bread"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
+      setField("warehouse-wood", `${formatWholeAmount(warehouseStock(b, "wood"))}/${CONFIG.warehouseCapacityPerGood}`);
+      setField("warehouse-plank", `${formatWholeAmount(warehouseStock(b, "plank"))}/${CONFIG.warehouseCapacityPerGood}`);
+      setField("warehouse-tool", `${formatWholeAmount(warehouseStock(b, "woodenTool"))}/${CONFIG.warehouseCapacityPerGood}`);
+      setField("warehouse-wheat", `${formatWholeAmount(warehouseStock(b, "wheat"))}/${CONFIG.warehouseCapacityPerGood}`);
+      setField("warehouse-flour", `${formatWholeAmount(warehouseStock(b, "flour"))}/${CONFIG.warehouseCapacityPerGood}`);
+      setField("warehouse-water", `${formatWholeAmount(warehouseStock(b, "water"))}/${CONFIG.warehouseCapacityPerGood}`);
+      setField("warehouse-bread", `${formatWholeAmount(warehouseStock(b, "bread"))}/${CONFIG.warehouseCapacityPerGood}`);
     } else {
       const recipeInputs = b.recipe?.inputs
         ? (Object.keys(b.recipe.inputs) as Good[])
@@ -235,9 +236,9 @@ export function mountControls(w: World, renderMap: () => void): void {
           : [];
       for (const good of recipeInputs) {
         const amount = b.recipe?.inputs ? (b.inputInventory?.[good] ?? 0) : b.input;
-        setField(`input-${good}`, `${formatAmount(amount)}/${formatAmount(CONFIG.inputCapacity)}`);
+        setField(`input-${good}`, `${formatWholeAmount(amount)}/${CONFIG.inputCapacity}`);
       }
-      setField("output", `${formatAmount(b.output)}/${formatAmount(CONFIG.outputCapacity)}`);
+      setField("output", `${formatOutputAmount(b.output)}/${CONFIG.outputCapacity}`);
     }
 
     for (const role of ["worker", "carrier", "merchant"] as const) {
@@ -358,7 +359,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   }
 
   const refreshLiveState = () => {
-    document.querySelector("#metrics")!.innerHTML = `<div><small>👥 BEV.</small><strong>${w.people.length}</strong></div><div><small>👤 FREI</small><strong>${freePeople(w).length}</strong></div><div><small>${GOOD_ICONS.wheat} WEIZEN</small><strong>${formatAmount(totalWarehouseStock(w, "wheat"))}</strong></div><div><small>${GOOD_ICONS.bread} BROT</small><strong>${formatAmount(totalWarehouseStock(w, "bread"))}</strong></div>`;
+    document.querySelector("#metrics")!.innerHTML = `<div><small>👥 BEV.</small><strong>${w.people.length}</strong></div><div><small>👤 FREI</small><strong>${freePeople(w).length}</strong></div><div><small>${GOOD_ICONS.wheat} WEIZEN</small><strong>${formatWholeAmount(totalWarehouseStock(w, "wheat"))}</strong></div><div><small>${GOOD_ICONS.bread} BROT</small><strong>${formatWholeAmount(totalWarehouseStock(w, "bread"))}</strong></div>`;
     if (!selectedTile) updateSelectionLiveState();
     updateBuildPlacementConfirm();
     renderMap();

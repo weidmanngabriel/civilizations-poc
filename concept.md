@@ -135,7 +135,7 @@ Nichts produziert ohne konkrete Person.
 - Brunnen: unerschöpfliche Wasserquelle ohne zugewiesenen Arbeiter. Bäcker und Lager-Träger können dort Wasser holen.
 - Lager: Träger sammeln verfügbare Waren aus nahe gelegenen Produktions- und Rohstofforten ein.
 
-Berufserfahrung multipliziert den jeweiligen Grundoutput. Warenbestände dürfen deshalb Bruchteile enthalten und werden in der UI mit einer Nachkommastelle dargestellt; intern bleibt eine höhere Genauigkeit erhalten.
+Berufserfahrung multipliziert den jeweiligen Grundoutput. Nur lokale **Produktions-Outputs** dürfen dadurch Bruchteile enthalten und werden in der UI mit einer Nachkommastelle dargestellt; intern bleibt eine höhere Genauigkeit erhalten. Produktionsinputs und Lagerbestände bleiben immer ganzzahlig.
 
 Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt weiterhin genau **1,0 Einheit** pro Transportweg. Bei Produktionsgebäuden mit mehreren Inputs wird zuerst nur der Bedarf für den nächsten vollständigen Produktionslauf beschafft; erst wenn dafür keine fehlende Zutat mehr gezielt geholt werden kann, werden freie Inputplätze weiter aufgefüllt.
 
@@ -185,9 +185,9 @@ erntereifen Acker ernten
 
 ## Inventare, Lager und Reservierungen
 
-Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 Einheiten, normale Outputs haben eine nominelle Kapazität von 3 Einheiten. Erfahrung kann einen bereits laufenden Produktionsvorgang beim Abschluss über diese Output-Grenze bringen. Farmen halten geernteten Weizen in ihrem lokalen Output, nachdem der Farmer ihn vom Feld zurückgebracht hat.
+Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 **ganze** Einheiten, normale Outputs haben eine nominelle Kapazität von 3 Einheiten und dürfen durch Erfahrungsboni Dezimalwerte enthalten. Erfahrung kann einen bereits laufenden Produktionsvorgang beim Abschluss über diese Output-Grenze bringen. Farmen halten geernteten Weizen in ihrem lokalen Output, nachdem der Farmer ihn vom Feld zurückgebracht hat.
 
-Lager halten aktuell maximal 20 Einheiten je Warentyp:
+Lager halten aktuell maximal 20 **ganze** Einheiten je Warentyp:
 
 - Holz,
 - Bretter,
@@ -197,7 +197,7 @@ Lager halten aktuell maximal 20 Einheiten je Warentyp:
 - Wasser,
 - Brot.
 
-Bestände können Dezimalwerte enthalten. Geplante Transporte reservieren jedoch immer genau eine ganze Einheit an Quelle und Ziel. Eine Fahrt wird nur geplant, wenn an der Quelle mindestens 1,0 Einheit verfügbar ist und am Ziel mindestens 1,0 Einheit Platz hat. Aus 4,7 Einheiten werden nach einer Abholung daher 3,7; ein Rest von 0,7 bleibt liegen, bis wieder mindestens eine ganze Einheit verfügbar ist.
+Nur Produktions-Outputs können Dezimalwerte enthalten. Geplante Transporte reservieren immer genau eine ganze Einheit an Quelle und Ziel. Eine Fahrt wird nur geplant, wenn an der Quelle mindestens 1,0 Einheit verfügbar ist und am Ziel mindestens 1,0 Einheit Platz hat. Aus 4,7 Einheiten Produktions-Output werden nach einer Abholung daher 3,7; im Produktionsinput oder Lager kommt genau 1 an. Ein Rest von 0,7 bleibt am Produktionsort liegen, bis wieder mindestens eine ganze Einheit verfügbar ist.
 
 Lager-Träger sammeln Waren nur aus Nicht-Lagern innerhalb von **10 begehbaren Kachelschritten**. Sie verschieben niemals automatisch Ware von einem Lager in ein anderes.
 
@@ -250,7 +250,7 @@ Die Karte ist dauerhaft bildschirmfüllend. Status und Steuerungen liegen als ko
 - Acker sind sichtbar, aber keine direkt steuerbaren Gebäude.
 - Unten: Pause/Fortsetzen und 0,5× / 1× / 2× / 3×.
 - Oben: Build-Version und Kernmetriken einschließlich Weizenbestand in Lagern.
-- Warenbestände werden mit einer Nachkommastelle angezeigt.
+- Nur Produktions-Outputs werden mit einer Nachkommastelle angezeigt; Produktionsinputs und Lagerbestände erscheinen als Ganzzahlen.
 - Debug-Personenliste zeigt Farmeraktionen und die aktuelle Berufserfahrung.
 - Waren verwenden, wo sinnvoll, Emojis zusammen mit Zahl und Text; Gebäude verwenden ein einheitliches kleines SVG-Icon-Set.
 - Personen werden auf der Karte zusätzlich über Rollen-Icons erkennbar und nicht mehr nur über ihre ID dargestellt.
