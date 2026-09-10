@@ -33,6 +33,9 @@ export const CONSTRUCTION_PLANS: Record<BuildableBuildingKind, ConstructionPlan>
   farm: constructionPlan({ wood: 4 }),
   sawmill: constructionPlan({ wood: 6 }),
   carpenter: constructionPlan({ plank: 4 }),
+  mill: constructionPlan({ wood: 4 }),
+  bakery: constructionPlan({ plank: 4 }),
+  well: constructionPlan({ wood: 4 }),
 };
 
 const SHAPES: Record<BuildableBuildingKind, BuildingPlacementShape> = {
@@ -66,6 +69,33 @@ const SHAPES: Record<BuildableBuildingKind, BuildingPlacementShape> = {
     anchor: { q: 0, r: 0 },
   },
   carpenter: {
+    cells: [
+      { q: 0, r: 0 },
+      { q: 1, r: 0 },
+      { q: 0, r: 1 },
+      { q: 1, r: 1 },
+    ],
+    anchor: { q: 0, r: 0 },
+  },
+  mill: {
+    cells: [
+      { q: 0, r: 0 },
+      { q: 1, r: 0 },
+      { q: 0, r: 1 },
+      { q: 1, r: 1 },
+    ],
+    anchor: { q: 0, r: 0 },
+  },
+  bakery: {
+    cells: [
+      { q: 0, r: 0 },
+      { q: 1, r: 0 },
+      { q: 0, r: 1 },
+      { q: 1, r: 1 },
+    ],
+    anchor: { q: 0, r: 0 },
+  },
+  well: {
     cells: [
       { q: 0, r: 0 },
       { q: 1, r: 0 },

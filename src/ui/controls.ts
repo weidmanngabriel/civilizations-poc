@@ -33,6 +33,7 @@ import {
 } from "../simulation/buildingPlacement";
 import { CONFIG } from "../simulation/scenario";
 import { same } from "../simulation/hex";
+import { BUILDING_SVG, GOOD_ICONS, buildingIcon } from "../icons";
 
 const SIMULATION_STEP_MS = 1000 / CONFIG.simulationHz;
 const MAX_FRAME_DELTA_MS = 100;
@@ -54,6 +55,9 @@ const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
   farm: "Farm",
   sawmill: "Sägewerk",
   carpenter: "Schreinerei",
+  mill: "Mühle",
+  bakery: "Bäckerei",
+  well: "Brunnen",
 };
 
 export function mountControls(w: World, renderMap: () => void): void {
@@ -92,6 +96,27 @@ export function mountControls(w: World, renderMap: () => void): void {
         : role === "merchant"
           ? "Händler"
           : "Bauarbeiter";
+  const workerLabel = (b: Building) =>
+    b.kind === "farm" ? "Farmer" : b.kind === "mill" ? "Müller" : b.kind === "bakery" ? "Bäcker" : "Arbeiter";
+  const buildingHeading = (b: Building) => `${buildingIcon(b.kind)}<span>${b.name}</span>`;
+  const goodLabel = (good: Good) => `<span class="good-label"><span aria-hidden="true">${GOOD_ICONS[good]}</span><span>${GOODS[good]}</span></span>`;
+  const personIcon = (personId: number) => {
+    const p = w.people.find((candidate) => candidate.id === personId);
+    if (!p) return "👤";
+    if (p.woodcutter) return "🪓";
+    if (p.builder) return "🔨";
+    if (p.assignment?.role === "merchant") return "🧭";
+    if (p.assignment?.role === "carrier") return "📦";
+    if (p.assignment?.role === "worker") {
+      const workplace = w.buildings.find((candidate) => candidate.id === p.assignment!.building);
+      if (workplace?.kind === "farm") return "🌾";
+      if (workplace?.kind === "mill") return "⚙️";
+      if (workplace?.kind === "bakery") return "🍞";
+      if (workplace?.kind === "sawmill") return "🪵";
+      if (workplace?.kind === "carpenter") return "🛠️";
+    }
+    return "👤";
+  };
   const roleLimit = (b: Building, role: Role): number => {
     if (isUnderConstruction(b)) return 0;
     if (role === "builder") return 0;
@@ -110,7 +135,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const assignmentControl = (b: Building, role: Role, limit: number): string => {
     if (b.forestRemaining !== undefined || b.kind === "field" || !limit) return "";
-    const label = b.kind === "farm" && role === "worker" ? "Farmer" : roleLabel(role);
+    const label = role === "worker" ? workerLabel(b) : roleLabel(role);
     const detail = role === "merchant"
       ? "Handelsroute je Händler"
       : `<span data-field="${role}-active"></span> aktiv`;
@@ -122,7 +147,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     const merchants = assigned(w, b.id, "merchant");
     if (!merchants.length) return "";
     return `<div class="inventory">${merchants.map((p) => {
-      const goodOptions = (Object.keys(GOODS) as Good[]).map((good) => `<option value="${good}" ${p.merchantRoute?.good === good ? "selected" : ""}>${GOODS[good]}</option>`).join("");
+      const goodOptions = (Object.keys(GOODS) as Good[]).map((good) => `<option value="${good}" ${p.merchantRoute?.good === good ? "selected" : ""}>${GOOD_ICONS[good]} ${GOODS[good]}</option>`).join("");
       const routeStatus = p.merchantRoute?.target ? "Ziel eingestellt" : "Kein Ziel eingestellt";
       return `<div><span>Händler ${p.id}</span><strong>${p.trip ? (p.trip.picked ? "unterwegs zum Ziel" : "holt Ware") : p.path.length ? "auf Rückweg" : routeStatus}</strong></div><label class="recipe">Ware <select data-route-good="${p.id}">${goodOptions}</select></label><div class="merchant-route-status"><span>Ziel</span><strong>${routeStatus}</strong></div><div class="stepper"><button data-action="merchant-map-target" data-person="${p.id}">Ziellager wählen</button></div>`;
     }).join("")}</div>`;
@@ -192,8 +217,19 @@ export function mountControls(w: World, renderMap: () => void): void {
       setField("warehouse-plank", `${warehouseStock(b, "plank")}/${CONFIG.warehouseCapacityPerGood}`);
       setField("warehouse-tool", `${warehouseStock(b, "woodenTool")}/${CONFIG.warehouseCapacityPerGood}`);
       setField("warehouse-wheat", `${warehouseStock(b, "wheat")}/${CONFIG.warehouseCapacityPerGood}`);
+      setField("warehouse-flour", `${warehouseStock(b, "flour")}/${CONFIG.warehouseCapacityPerGood}`);
+      setField("warehouse-water", `${warehouseStock(b, "water")}/${CONFIG.warehouseCapacityPerGood}`);
+      setField("warehouse-bread", `${warehouseStock(b, "bread")}/${CONFIG.warehouseCapacityPerGood}`);
     } else {
-      if (b.recipe?.input) setField("input", `${b.input}/${CONFIG.inputCapacity}`);
+      const recipeInputs = b.recipe?.inputs
+        ? (Object.keys(b.recipe.inputs) as Good[])
+        : b.recipe?.input
+          ? [b.recipe.input]
+          : [];
+      for (const good of recipeInputs) {
+        const amount = b.recipe?.inputs ? (b.inputInventory?.[good] ?? 0) : b.input;
+        setField(`input-${good}`, `${amount}/${CONFIG.inputCapacity}`);
+      }
       setField("output", `${b.output}/${CONFIG.outputCapacity}`);
     }
 
@@ -244,7 +280,7 @@ export function mountControls(w: World, renderMap: () => void): void {
                   ? "Fluss"
                   : "Belegt";
       selectionPanel.hidden = false;
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>KACHEL</small><h3>${tileName}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div>${buildable ? `<p class="recipe">Gebäude wählen. Danach Position auf der Karte wählen und bestätigen.</p><div class="stepper"><button data-action="build" data-kind="warehouse">Lager</button><button data-action="build" data-kind="farm">Farm</button><button data-action="build" data-kind="sawmill">Sägewerk</button><button data-action="build" data-kind="carpenter">Schreinerei</button></div>` : `<p class="recipe">Auf dieser Kachel kann aktuell nicht gebaut werden.</p>`}${roadAction ? `<div class="stepper">${roadAction}</div>` : ""}`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>KACHEL</small><h3>${tileName}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div>${buildable ? `<p class="recipe">Gebäude wählen. Danach Position auf der Karte wählen und bestätigen.</p><div class="stepper build-choice-grid">${(Object.keys(BUILDING_NAMES) as BuildableBuildingKind[]).map((kind) => `<button class="icon-button" data-action="build" data-kind="${kind}">${buildingIcon(kind)}<span>${BUILDING_NAMES[kind]}</span></button>`).join("")}</div>` : `<p class="recipe">Auf dieser Kachel kann aktuell nicht gebaut werden.</p>`}${roadAction ? `<div class="stepper">${roadAction}</div>` : ""}`;
       return;
     }
 
@@ -264,7 +300,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
     selectionPanel.hidden = false;
     if (b.kind === "hq") {
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Sammelpunkt und globale Personalsteuerung</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> frei</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><div class="assignment"><div>Holzfäller<small>Jeder sucht selbständig einen freien Wald</small></div><div class="stepper"><button data-action="woodcutter" data-delta="-1">−</button><output data-field="woodcutter-count"></output><button data-action="woodcutter" data-delta="1">+</button></div></div><div class="assignment"><div>Bauarbeiter<small>Werden automatisch auf Baustellen verteilt</small></div><div class="stepper"><button data-action="builder-pool" data-delta="-1">−</button><output data-field="builder-pool-count"></output><button data-action="builder-pool" data-delta="1">+</button></div></div><p class="status" data-field="status"></p>`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Sammelpunkt und globale Personalsteuerung</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> frei</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><div class="assignment"><div>Holzfäller<small>Jeder sucht selbständig einen freien Wald</small></div><div class="stepper"><button data-action="woodcutter" data-delta="-1">−</button><output data-field="woodcutter-count"></output><button data-action="woodcutter" data-delta="1">+</button></div></div><div class="assignment"><div>Bauarbeiter<small>Werden automatisch auf Baustellen verteilt</small></div><div class="stepper"><button data-action="builder-pool" data-delta="-1">−</button><output data-field="builder-pool-count"></output><button data-action="builder-pool" data-delta="1">+</button></div></div><p class="status" data-field="status"></p>`;
       updateSelectionLiveState();
       return;
     }
@@ -275,39 +311,48 @@ export function mountControls(w: World, renderMap: () => void): void {
 
     if (isUnderConstruction(b)) {
       const materials = (Object.keys(b.construction!.required) as Good[])
-        .map((good) => `<div><span>${GOODS[good]}</span><strong data-field="construction-${good}"></strong></div>`)
+        .map((good) => `<div><span>${goodLabel(good)}</span><strong data-field="construction-${good}"></strong></div>`)
         .join("");
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>BAUSTELLE</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Bauarbeiter werden automatisch aus dem globalen Pool zugewiesen. Zwei Bauarbeiter bauen doppelt so schnell.</p><div class="inventory"><div><span>Bauarbeiter</span><strong data-field="builder-count"></strong></div>${materials}<div><span>Baufortschritt</span><strong data-field="construction-progress"></strong></div></div><p class="status" data-field="status"></p>${demolish}`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>BAUSTELLE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Bauarbeiter werden automatisch aus dem globalen Pool zugewiesen. Zwei Bauarbeiter bauen doppelt so schnell.</p><div class="inventory"><div><span>Bauarbeiter</span><strong data-field="builder-count"></strong></div>${materials}<div><span>Baufortschritt</span><strong data-field="construction-progress"></strong></div></div><p class="status" data-field="status"></p>${demolish}`;
       updateSelectionLiveState();
       return;
     }
 
+    const recipeInputs = b.recipe?.inputs
+      ? (Object.entries(b.recipe.inputs) as [Good, number][])
+      : b.recipe?.input
+        ? [[b.recipe.input, b.recipe.amount] as [Good, number]]
+        : [];
     const recipe = b.forestRemaining !== undefined
-      ? `1 Holz / ${b.recipe!.duration / CONFIG.simulationHz} s bei 1× · Vorrat <span data-field="forest-remaining"></span>/${CONFIG.forestYield}`
+      ? `${GOOD_ICONS.wood} 1 Holz / ${b.recipe!.duration / CONFIG.simulationHz} s bei 1× · Vorrat <span data-field="forest-remaining"></span>/${CONFIG.forestYield}`
       : b.kind === "warehouse"
         ? "Lagert bis zu 20 Einheiten je Warentyp"
         : b.kind === "farm"
           ? `Ein Farmer bewirtschaftet bis zu ${CONFIG.farmMaxFields} zufällige Acker im Radius ${CONFIG.farmFieldRadius}. Säen und Ernten dauern je 10 s; nach der Ernte trägt der Farmer den Weizen zurück zur Farm.`
-          : b.recipe?.input
-            ? `${b.recipe.amount} ${GOODS[b.recipe.input]} → 1 ${GOODS[b.recipe.output]}`
-            : "Produktion";
+          : b.kind === "well"
+            ? `${GOOD_ICONS.water} Unerschöpfliche Wasserquelle ohne zugewiesenen Arbeiter`
+            : b.recipe
+              ? `${recipeInputs.map(([good, amount]) => `${GOOD_ICONS[good]} ${amount} ${GOODS[good]}`).join(" + ")} → ${GOOD_ICONS[b.recipe.output]} 1 ${GOODS[b.recipe.output]}`
+              : "Produktion";
     const inventory = b.forestRemaining !== undefined
-      ? `<div><span>Holz · Output</span><strong data-field="output"></strong></div>`
+      ? `<div><span>${goodLabel("wood")} · Output</span><strong data-field="output"></strong></div>`
       : b.kind === "warehouse"
-        ? `<div><span>Holz</span><strong data-field="warehouse-wood"></strong></div><div><span>Bretter</span><strong data-field="warehouse-plank"></strong></div><div><span>Holzwerkzeuge</span><strong data-field="warehouse-tool"></strong></div><div><span>Weizen</span><strong data-field="warehouse-wheat"></strong></div>`
+        ? `${(["wood", "plank", "woodenTool", "wheat", "flour", "water", "bread"] as Good[]).map((good) => `<div><span>${goodLabel(good)}</span><strong data-field="warehouse-${good === "woodenTool" ? "tool" : good}"></strong></div>`).join("")}`
         : b.kind === "farm"
-          ? `<div><span>Weizen · Output</span><strong data-field="output"></strong></div>`
-          : `${b.recipe?.input ? `<div><span>${GOODS[b.recipe.input]} · Input</span><strong data-field="input"></strong></div>` : ""}<div><span>${b.recipe ? GOODS[b.recipe.output] : "Output"} · Output</span><strong data-field="output"></strong></div>`;
+          ? `<div><span>${goodLabel("wheat")} · Output</span><strong data-field="output"></strong></div>`
+          : b.kind === "well"
+            ? `<div><span>${goodLabel("water")}</span><strong>∞</strong></div>`
+            : `${recipeInputs.map(([good]) => `<div><span>${goodLabel(good)} · Input</span><strong data-field="input-${good}"></strong></div>`).join("")}${b.recipe ? `<div><span>${goodLabel(b.recipe.output)} · Output</span><strong data-field="output"></strong></div>` : ""}`;
     const merchantAssignment = b.kind === "warehouse"
       ? assignmentControl(b, "merchant", b.merchants ?? 0)
       : "";
 
-    selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">${recipe}</p>${assignmentControl(b, "worker", b.workers)}${assignmentControl(b, "carrier", b.carriers)}${merchantAssignment}<div class="inventory">${inventory}</div>${merchantControls(b)}<p class="status" data-field="status"></p>${demolish}`;
+    selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">${recipe}</p>${assignmentControl(b, "worker", b.workers)}${assignmentControl(b, "carrier", b.carriers)}${merchantAssignment}<div class="inventory">${inventory}</div>${merchantControls(b)}<p class="status" data-field="status"></p>${demolish}`;
     updateSelectionLiveState();
   }
 
   const refreshLiveState = () => {
-    document.querySelector("#metrics")!.innerHTML = `<div><small>BEV.</small><strong>${w.people.length}</strong></div><div><small>FREI</small><strong>${freePeople(w).length}</strong></div><div><small>WEIZEN</small><strong>${totalWarehouseStock(w, "wheat")}</strong></div><div><small>WERKZEUGE</small><strong>${totalWarehouseStock(w, "woodenTool")}</strong></div>`;
+    document.querySelector("#metrics")!.innerHTML = `<div><small>👥 BEV.</small><strong>${w.people.length}</strong></div><div><small>👤 FREI</small><strong>${freePeople(w).length}</strong></div><div><small>${GOOD_ICONS.wheat} WEIZEN</small><strong>${totalWarehouseStock(w, "wheat")}</strong></div><div><small>${GOOD_ICONS.bread} BROT</small><strong>${totalWarehouseStock(w, "bread")}</strong></div>`;
     if (!selectedTile) updateSelectionLiveState();
     updateBuildPlacementConfirm();
     renderMap();
@@ -328,10 +373,10 @@ export function mountControls(w: World, renderMap: () => void): void {
         : p.builder
           ? (p.assignment ? `Bauarbeiter · ${building(w, p.assignment.building).name}` : "Bauarbeiter · wartet auf Baustelle")
           : p.assignment
-            ? `${building(w, p.assignment.building).name} · ${building(w, p.assignment.building).kind === "farm" && p.assignment.role === "worker" ? "Farmer" : roleLabel(p.assignment.role)}`
+            ? `${building(w, p.assignment.building).name} · ${p.assignment.role === "worker" ? workerLabel(building(w, p.assignment.building)) : roleLabel(p.assignment.role)}`
             : "Frei";
       const state = p.trip
-        ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}`
+        ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOOD_ICONS[p.trip.good]} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}`
         : farmAction
           ? `${farmAction}${p.path.length ? " · auf dem Weg" : ""}`
           : p.assignment?.role === "merchant" && p.merchantRoute?.target
@@ -347,7 +392,7 @@ export function mountControls(w: World, renderMap: () => void): void {
                     : p.builder
                       ? "Wartet auf Baustelle"
                       : "Am HQ";
-      return `<tr><td>${p.id}</td><td>${assignment}</td><td>${state}</td></tr>`;
+      return `<tr><td><span class="person-id"><span aria-hidden="true">${personIcon(p.id)}</span><span>${p.id}</span></span></td><td>${assignment}</td><td>${state}</td></tr>`;
     }).join("")}</tbody></table>`;
   };
 

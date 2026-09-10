@@ -3,6 +3,7 @@ import type {
   Building,
   BuildingId,
   Good,
+  GoodAmounts,
   Hex,
   Person,
   Role,
@@ -75,9 +76,60 @@ export const totalWarehouseStock = (w: World, good: Good): number =>
     .filter((b) => !b.retired && b.kind === "warehouse" && !isUnderConstruction(b))
     .reduce((sum, b) => sum + warehouseStock(b, good), 0);
 
+export const ALL_GOODS: Good[] = [
+  "wood",
+  "plank",
+  "woodenTool",
+  "wheat",
+  "flour",
+  "water",
+  "bread",
+];
+
+const recipeRequirements = (b: Building): GoodAmounts => {
+  if (!b.recipe) return {};
+  if (b.recipe.inputs) return b.recipe.inputs;
+  if (b.recipe.input) return { [b.recipe.input]: b.recipe.amount };
+  return {};
+};
+
+const inputStock = (b: Building, good: Good): number => {
+  if (b.recipe?.inputs) return b.inputInventory?.[good] ?? 0;
+  return b.recipe?.input === good ? b.input : 0;
+};
+
+const inputHasSpace = (w: World, b: Building, good: Good): boolean =>
+  inputStock(b, good) + incoming(w, b.id, good) < CONFIG.inputCapacity;
+
+const hasRecipeInputs = (b: Building): boolean =>
+  (Object.entries(recipeRequirements(b)) as [Good, number][]).every(
+    ([good, amount]) => inputStock(b, good) >= amount,
+  );
+
+const consumeRecipeInputs = (b: Building): void => {
+  for (const [good, amount] of Object.entries(recipeRequirements(b)) as [Good, number][]) {
+    if (b.recipe?.inputs) {
+      b.inputInventory ??= {};
+      b.inputInventory[good] = (b.inputInventory[good] ?? 0) - amount;
+    } else if (b.recipe?.input === good) {
+      b.input -= amount;
+    }
+  }
+};
+
+const addProductionInput = (b: Building, good: Good): void => {
+  if (b.recipe?.inputs) {
+    b.inputInventory ??= {};
+    b.inputInventory[good] = (b.inputInventory[good] ?? 0) + CONFIG.carryCapacity;
+  } else {
+    b.input += CONFIG.carryCapacity;
+  }
+};
+
 const sourceStock = (b: Building, good: Good): number => {
   if (isUnderConstruction(b)) return 0;
   if (b.kind === "warehouse") return warehouseStock(b, good);
+  if (b.kind === "well" && good === "water") return Number.MAX_SAFE_INTEGER;
   if (b.kind === "farm" && good === "wheat") return b.output;
   return b.recipe?.output === good ? b.output : 0;
 };
@@ -99,7 +151,7 @@ const constructionMaterialsComplete = (b: Building): boolean => {
 function returnCargoToSource(w: World, p: Person): void {
   if (!p.trip?.picked) return;
   const source = w.buildings.find((b) => b.id === p.trip!.source);
-  if (!source) return;
+  if (!source || (source.kind === "well" && p.trip.good === "water")) return;
   if (source.kind === "warehouse" && !isUnderConstruction(source)) {
     source.inventory ??= {};
     source.inventory[p.trip.good] = (source.inventory[p.trip.good] ?? 0) + CONFIG.carryCapacity;
@@ -437,17 +489,11 @@ function requestInput(w: World, p: Person, b: Building): void {
           (construction.required[good] ?? 0),
       )
     : isWarehouseCollection
-      ? ["wood", "plank", "woodenTool", "wheat"]
-      : b.recipe?.input
-        ? [b.recipe.input]
-        : [];
+      ? ALL_GOODS
+      : (Object.keys(recipeRequirements(b)) as Good[]).filter((good) =>
+          inputHasSpace(w, b, good),
+        );
   if (!goods.length) return;
-  if (
-    !construction &&
-    !isWarehouseCollection &&
-    b.input + incoming(w, b.id) >= CONFIG.inputCapacity
-  )
-    return;
 
   const sources: SourceCandidate[] = [];
   for (const good of goods) {
@@ -574,6 +620,36 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
       output: 0,
       recipe: { input: "plank", amount: 2, output: "woodenTool", duration: CONFIG.duration },
     };
+  if (kind === "mill")
+    return {
+      kind,
+      name: "Mühle",
+      workers: 1,
+      carriers: 2,
+      input: 0,
+      output: 0,
+      recipe: { input: "wheat", amount: 1, output: "flour", duration: CONFIG.duration },
+    };
+  if (kind === "bakery")
+    return {
+      kind,
+      name: "Bäckerei",
+      workers: 1,
+      carriers: 2,
+      input: 0,
+      inputInventory: { flour: 0, water: 0 },
+      output: 0,
+      recipe: { inputs: { flour: 1, water: 1 }, amount: 1, output: "bread", duration: CONFIG.duration },
+    };
+  if (kind === "well")
+    return {
+      kind,
+      name: "Brunnen",
+      workers: 0,
+      carriers: 0,
+      input: 0,
+      output: 0,
+    };
   if (kind === "farm")
     return {
       kind,
@@ -591,7 +667,15 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
     merchants: 2,
     input: 0,
     output: 0,
-    inventory: { wood: 0, plank: 0, woodenTool: 0, wheat: 0 },
+    inventory: {
+      wood: 0,
+      plank: 0,
+      woodenTool: 0,
+      wheat: 0,
+      flour: 0,
+      water: 0,
+      bread: 0,
+    },
   };
 };
 
@@ -764,7 +848,7 @@ export function tick(w: World): void {
         if (source.kind === "warehouse" && !isUnderConstruction(source)) {
           source.inventory![p.trip.good] =
             (source.inventory![p.trip.good] ?? 0) - CONFIG.carryCapacity;
-        } else {
+        } else if (!(source.kind === "well" && p.trip.good === "water")) {
           source.output -= CONFIG.carryCapacity;
         }
         p.trip.picked = true;
@@ -782,7 +866,7 @@ export function tick(w: World): void {
         } else if (target.kind === "farm" && p.trip.good === "wheat") {
           target.output += CONFIG.carryCapacity;
         } else {
-          target.input += CONFIG.carryCapacity;
+          addProductionInput(target, p.trip.good);
         }
         p.trip = undefined;
         p.movement = 0;
@@ -808,13 +892,13 @@ export function tick(w: World): void {
       if (
         p.progress === 0 &&
         forestHasYield &&
-        b.input >= recipe.amount &&
+        hasRecipeInputs(b) &&
         outputOccupied(w, b) < CONFIG.outputCapacity
       )
         p.progress = 1;
       else if (p.progress > 0) p.progress++;
       if (p.progress === recipe.duration) {
-        b.input -= recipe.amount;
+        consumeRecipeInputs(b);
         b.output++;
         if (b.forestRemaining !== undefined) b.forestRemaining--;
         p.progress = 0;
@@ -850,11 +934,17 @@ export function tick(w: World): void {
       continue;
     }
     const recipe = b.recipe;
+    const requirements = recipeRequirements(b);
+    const recipeGoods = Object.keys(requirements) as Good[];
+    const workerCanTopUp = recipeGoods.some((good) => inputHasSpace(w, b, good));
+    const workerMissingInput = recipeGoods.some(
+      (good) => inputStock(b, good) < (requirements[good] ?? 0),
+    );
     const workerNeedsResupply =
       p.assignment.role === "worker" &&
-      recipe?.input &&
-      b.input + incoming(w, b.id) < CONFIG.inputCapacity &&
-      (b.input < recipe.amount || outputOccupied(w, b) >= CONFIG.outputCapacity);
+      Boolean(recipe) &&
+      workerCanTopUp &&
+      (workerMissingInput || outputOccupied(w, b) >= CONFIG.outputCapacity);
     if (p.assignment.role === "carrier" || workerNeedsResupply)
       requestInput(w, p, b);
   }
@@ -865,6 +955,9 @@ export const GOODS: Record<Good, string> = {
   plank: "Bretter",
   woodenTool: "Holzwerkzeuge",
   wheat: "Weizen",
+  flour: "Mehl",
+  water: "Wasser",
+  bread: "Brot",
 };
 
 export function status(w: World, b: Building): string {
@@ -889,6 +982,7 @@ export function status(w: World, b: Building): string {
       return `${siteBuilders.length} Bauarbeiter auf dem Weg`;
     return `${siteBuilders.length} Bauarbeiter · baubereit`;
   }
+  if (b.kind === "well") return "Unerschöpfliche Wasserquelle";
   if (b.kind === "warehouse") {
     const carriers = assigned(w, b.id, "carrier").length;
     const merchants = assigned(w, b.id, "merchant").length;
@@ -931,7 +1025,9 @@ export function status(w: World, b: Building): string {
     return "Output belegt – Abholung abwarten";
   if (workers.some((p) => p.trip)) return "Arbeiter beschafft Rohstoffe";
   if (workers.every((p) => !p.active)) return "Arbeiter auf dem Weg";
-  if (b.recipe?.input && b.input < b.recipe.amount)
-    return `Wartet auf ${GOODS[b.recipe.input]}`;
+  const missing = (Object.entries(recipeRequirements(b)) as [Good, number][])
+    .filter(([good, amount]) => inputStock(b, good) < amount)
+    .map(([good]) => GOODS[good]);
+  if (missing.length) return `Wartet auf ${missing.join(" + ")}`;
   return "Bereit zur Produktion";
 }
