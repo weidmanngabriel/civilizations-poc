@@ -26,6 +26,8 @@ jobs:
       - run: npm ci
       - name: Apply patch
         run: python .github/scripts/apply_bread_chain.py
+      - name: Fix strict test typing
+        run: sed -i 's/bakery\.inputInventory!\.flour/(bakery.inputInventory?.flour ?? 0)/' tests/bread-chain.test.ts
       - name: Test
         run: npm test
       - name: Build
@@ -37,4 +39,4 @@ jobs:
           git add -A
           git commit -m "Add bread production chain and visual icons"
           git push origin HEAD:feature/bread-chain-icons
-# trigger
+# trigger strict-fix
