@@ -2,31 +2,51 @@ import type { BuildableBuildingKind, Building, Hex, World } from "./model";
 import { key, neighbors, same } from "./hex";
 import { buildAt, removeBuilding } from "./simulation";
 
-const OFFSETS: Record<BuildableBuildingKind, Hex[]> = {
-  warehouse: [
-    { q: 0, r: 0 },
-    { q: 1, r: 0 },
-    { q: 0, r: 1 },
-    { q: 1, r: 1 },
-  ],
-  sawmill: [
-    { q: 0, r: 0 },
-    { q: 1, r: 0 },
-    { q: 2, r: 0 },
-    { q: 0, r: 1 },
-    { q: 1, r: 1 },
-    { q: 2, r: 1 },
-  ],
-  carpenter: [
-    { q: 0, r: 0 },
-    { q: 1, r: 0 },
-    { q: 0, r: 1 },
-    { q: 1, r: 1 },
-  ],
+export type BuildingPlacementShape = {
+  cells: Hex[];
+  anchor: Hex;
 };
 
-export const footprintAt = (kind: BuildableBuildingKind, origin: Hex): Hex[] =>
-  OFFSETS[kind].map((offset) => ({ q: origin.q + offset.q, r: origin.r + offset.r }));
+const SHAPES: Record<BuildableBuildingKind, BuildingPlacementShape> = {
+  warehouse: {
+    cells: [
+      { q: 0, r: 0 },
+      { q: 1, r: 0 },
+      { q: 0, r: 1 },
+      { q: 1, r: 1 },
+    ],
+    anchor: { q: 0, r: 0 },
+  },
+  sawmill: {
+    cells: [
+      { q: 0, r: 0 },
+      { q: 1, r: 0 },
+      { q: 2, r: 0 },
+      { q: 0, r: 1 },
+      { q: 1, r: 1 },
+      { q: 2, r: 1 },
+    ],
+    anchor: { q: 0, r: 0 },
+  },
+  carpenter: {
+    cells: [
+      { q: 0, r: 0 },
+      { q: 1, r: 0 },
+      { q: 0, r: 1 },
+      { q: 1, r: 1 },
+    ],
+    anchor: { q: 0, r: 0 },
+  },
+};
+
+export const footprintFromShape = (shape: BuildingPlacementShape, anchorPosition: Hex): Hex[] =>
+  shape.cells.map((cell) => ({
+    q: anchorPosition.q + cell.q - shape.anchor.q,
+    r: anchorPosition.r + cell.r - shape.anchor.r,
+  }));
+
+export const footprintAt = (kind: BuildableBuildingKind, anchorPosition: Hex): Hex[] =>
+  footprintFromShape(SHAPES[kind], anchorPosition);
 
 export const buildingFootprint = (building: Building): Hex[] =>
   building.footprint?.map((position) => ({ ...position })) ?? [{ ...building.position }];
@@ -40,39 +60,64 @@ export const footprintRing = (footprint: Hex[]): Hex[] => {
   return [...ring.values()];
 };
 
+type PlacementLookup = {
+  freeTiles: Set<string>;
+  people: Set<string>;
+};
+
+const createPlacementLookup = (world: World): PlacementLookup => ({
+  freeTiles: new Set(
+    world.tiles
+      .filter((tile) => tile.terrain === "grass" || tile.terrain === "road")
+      .map(key),
+  ),
+  people: new Set(world.people.map((person) => key(person.position))),
+});
+
+const canPlaceWithLookup = (
+  lookup: PlacementLookup,
+  anchorPosition: Hex,
+  kind: BuildableBuildingKind,
+): boolean => {
+  const footprint = footprintAt(kind, anchorPosition);
+  const ring = footprintRing(footprint);
+  if (!footprint.every((position) => lookup.freeTiles.has(key(position)))) return false;
+  if (!ring.every((position) => lookup.freeTiles.has(key(position)))) return false;
+  return !footprint.some((position) => lookup.people.has(key(position)));
+};
+
 export function canPlaceBuilding(
   world: World,
-  origin: Hex,
+  anchorPosition: Hex,
   kind: BuildableBuildingKind,
 ): boolean {
-  const footprint = footprintAt(kind, origin);
-  const ring = footprintRing(footprint);
-  const tileAt = (position: Hex) => world.tiles.find((tile) => same(tile, position));
-  const isFree = (position: Hex) => {
-    const tile = tileAt(position);
-    return !!tile && (tile.terrain === "grass" || tile.terrain === "road");
-  };
+  return canPlaceWithLookup(createPlacementLookup(world), anchorPosition, kind);
+}
 
-  if (!footprint.every(isFree) || !ring.every(isFree)) return false;
-  if (world.people.some((person) => footprint.some((position) => same(person.position, position))))
-    return false;
-  return true;
+export function validBuildingAnchors(
+  world: World,
+  kind: BuildableBuildingKind,
+): Hex[] {
+  const lookup = createPlacementLookup(world);
+  return world.tiles
+    .filter((tile) => canPlaceWithLookup(lookup, tile, kind))
+    .map((tile) => ({ q: tile.q, r: tile.r }));
 }
 
 export function buildWithFootprint(
   world: World,
-  origin: Hex,
+  anchorPosition: Hex,
   kind: BuildableBuildingKind,
 ): Building | undefined {
-  if (!canPlaceBuilding(world, origin, kind)) return;
-  const footprint = footprintAt(kind, origin);
+  if (!canPlaceBuilding(world, anchorPosition, kind)) return;
+  const footprint = footprintAt(kind, anchorPosition);
   const baseTerrains: Record<string, "grass" | "road"> = {};
   for (const position of footprint) {
     const tile = world.tiles.find((candidate) => same(candidate, position))!;
     baseTerrains[key(position)] = tile.terrain as "grass" | "road";
   }
 
-  const created = buildAt(world, origin, kind);
+  const created = buildAt(world, anchorPosition, kind);
   if (!created) return;
   created.footprint = footprint.map((position) => ({ ...position }));
   created.baseTerrains = baseTerrains;

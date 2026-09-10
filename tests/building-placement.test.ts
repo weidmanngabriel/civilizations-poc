@@ -8,8 +8,10 @@ import {
   buildWithFootprint,
   canPlaceBuilding,
   footprintAt,
+  footprintFromShape,
   footprintRing,
   removeBuildingWithFootprint,
+  validBuildingAnchors,
 } from "../src/simulation/buildingPlacement";
 
 const findValidOrigin = (
@@ -20,6 +22,37 @@ const findValidOrigin = (
   assert.ok(tile, "expected a valid building position");
   return { q: tile.q, r: tile.r };
 };
+
+test("building shapes can use an anchor anywhere inside an irregular footprint", () => {
+  const anchorPosition = { q: 10, r: 10 };
+  const footprint = footprintFromShape({
+    cells: [
+      { q: 0, r: 0 },
+      { q: 1, r: 0 },
+      { q: 2, r: 0 },
+      { q: 1, r: 1 },
+    ],
+    anchor: { q: 1, r: 0 },
+  }, anchorPosition);
+
+  assert.deepEqual(footprint, [
+    { q: 9, r: 10 },
+    { q: 10, r: 10 },
+    { q: 11, r: 10 },
+    { q: 10, r: 11 },
+  ]);
+});
+
+test("valid anchor enumeration matches the authoritative placement rule", () => {
+  const world = createWorld();
+  const valid = validBuildingAnchors(world, "warehouse");
+  assert.ok(valid.length > 0);
+  assert.ok(valid.every((position) => canPlaceBuilding(world, position, "warehouse")));
+  assert.equal(
+    valid.length,
+    world.tiles.filter((position) => canPlaceBuilding(world, position, "warehouse")).length,
+  );
+});
 
 test("buildable buildings occupy multiple tiles and keep one free tile around them", () => {
   const world = createWorld();

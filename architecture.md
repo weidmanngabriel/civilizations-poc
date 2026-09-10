@@ -33,7 +33,7 @@ Buildings may additionally carry a `footprint` containing all occupied Hex posit
 
 `simulation.ts` owns deterministic in-place simulation steps, assignment changes, reservations, production, forest claiming/depletion, low-level building creation/removal, road editing, organic road formation, merchant routes and status derivation.
 
-`buildingPlacement.ts` owns user-facing multi-tile placement rules. It defines per-building footprints, calculates the one-tile clearance ring, validates placement, wraps building creation so every footprint tile is occupied, and restores all saved terrain on demolition. This keeps spatial placement policy out of Phaser and the DOM UI.
+`buildingPlacement.ts` owns user-facing multi-tile placement rules. It defines per-building shapes as local Hex cells plus an independent local anchor cell. `footprintAt()` translates the shape so the selected world tile becomes that anchor. The anchor can therefore later be moved to the middle, front or any other cell of a rectangular or irregular footprint without changing placement consumers. The module calculates the one-tile clearance ring, validates placement, enumerates valid anchor positions, wraps building creation so every footprint tile is occupied, and restores all saved terrain on demolition. This keeps spatial placement policy out of Phaser and the DOM UI.
 
 `movement.ts` derives each person's continuous fractional world position from deterministic simulation state. Phaser consumes that position but does not invent renderer-owned movement.
 
@@ -93,7 +93,7 @@ Sawmill     6 tiles
 Carpenter   4 tiles
 ```
 
-A footprint is expressed as absolute axial Hex positions once placed. The anchor remains the building's transport/job target.
+A building shape is expressed as local axial Hex cells and an anchor cell. Once placed, it becomes a list of absolute axial Hex positions. The chosen map tile is the world position of the configured anchor, while the building's logical `position` remains that same anchor for transport/job targeting.
 
 ### Placement validation
 
@@ -107,7 +107,9 @@ A footprint is expressed as absolute axial Hex positions once placed. The anchor
 
 This means a full one-tile free border is mandatory. Buildings therefore cannot touch other buildings, forests, water, mountains or the map edge.
 
-The rule is intentionally enforced in the simulation layer. Phaser only visualizes `canPlaceBuilding()` and cannot create a placement that the core would reject.
+The rule is intentionally enforced in the simulation layer. Phaser only visualizes placement validity and cannot create a placement that the core would reject.
+
+For whole-map placement previews, `validBuildingAnchors()` builds the free-tile and person lookup sets once, then checks every map tile against the same shape/ring rule. This avoids duplicating product logic in Phaser and keeps the 41 × 25 full-grid preview inexpensive enough to refresh while the world changes.
 
 ### Building and demolition
 
@@ -193,10 +195,12 @@ Flow:
 UI chooses building kind
 → BUILD_MODE_EVENT
 → MainScene shows the initial ghost at the previously selected tile
-→ desktop pointer hover or a short map tap updates the ghost position
-→ BUILD_POSITION_SELECTED_EVENT reports the preview position to the DOM UI
+→ simulation validBuildingAnchors() evaluates all possible anchor tiles
+→ map is dimmed and every valid anchor tile is redrawn at normal brightness
+→ desktop pointer hover or a short map tap updates the ghost anchor
+→ BUILD_POSITION_SELECTED_EVENT reports the preview anchor to the DOM UI
 → simulation canPlaceBuilding() validates footprint + ring
-→ Phaser draws dim layer + green/red ghost + clearance ring
+→ Phaser draws green/red ghost + clearance ring
 → UI enables "Bauen" only for a currently valid position
 → "Bauen" calls buildWithFootprint()
 → success exits mode and selects building
@@ -229,7 +233,7 @@ The existing merchant destination mode remains separate. It pauses simulation, s
 - empty grass/road tile: building choices and manual road action,
 - debug overlay: people and transport tasks.
 
-When the player chooses a building type, the normal selection panel and bottom controls are hidden and a compact placement overlay is shown. The overlay explicitly says **“Tippen, um das Gebäude zu verschieben.”** and contains `Bauen` plus `Abbrechen` actions.
+When the player chooses a building type, the normal selection panel and bottom controls are hidden and a compact placement overlay is shown. The overlay explicitly says **“Tippen, um das Gebäude zu verschieben.”** and contains `Bauen` plus `Abbrechen` actions. `src/build-placement.css` keeps those actions inside the panel and places them in their own two-column row on narrow screens.
 
 ## Presentation performance
 
@@ -239,7 +243,7 @@ At 1× the accumulator consumes fixed steps at the full 60 Hz cadence. Slower ga
 
 A frame delta is capped before entering the accumulator to avoid large catch-up bursts after suspended/backgrounded tabs. A frame also caps the number of fixed simulation steps processed at once.
 
-Placement hover currently scans the fixed grid to find the nearest Hex. At 41 × 25 this remains small enough for the PoC; a spatial lookup can replace it if map size grows substantially.
+Placement hover currently scans the fixed grid to find the nearest Hex. At 41 × 25 this remains small enough for the PoC; a spatial lookup can replace it if map size grows substantially. The valid-anchor preview also scans the fixed grid, but reuses one prebuilt placement lookup for the whole scan rather than rebuilding tile/person lookups per candidate.
 
 ## Testing
 
@@ -250,7 +254,9 @@ Placement has dedicated coverage for:
 - multi-tile footprints,
 - mandatory one-tile free ring,
 - rejection when the ring contains blocked terrain,
-- restoration of every footprint tile after demolition.
+- restoration of every footprint tile after demolition,
+- arbitrary anchor positions inside irregular local shapes,
+- whole-map valid-anchor enumeration matching `canPlaceBuilding()`.
 
 Decision-cadence coverage verifies that idle autonomous planning does not re-run between one-second decision boundaries and that a delivery can trigger its required follow-up decision immediately without waiting for the next boundary.
 
