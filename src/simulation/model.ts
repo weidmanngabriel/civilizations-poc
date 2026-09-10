@@ -3,6 +3,16 @@ export type BuildingId = string;
 export type BuildingKind = "hq" | "forest" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "warehouse";
 export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest" | "field">;
 export type Role = "worker" | "carrier" | "merchant" | "builder";
+export type Profession =
+  | "woodcutter"
+  | "builder"
+  | "carrier"
+  | "merchant"
+  | "farmer"
+  | "sawmillWorker"
+  | "carpenter"
+  | "miller"
+  | "baker";
 export interface Hex {
   q: number;
   r: number;
@@ -76,6 +86,8 @@ export interface Person {
   farmTask?: FarmTask;
   woodcutter?: boolean;
   builder?: boolean;
+  experience?: Partial<Record<Profession, number>>;
+  pendingFarmBonus?: number;
   active: boolean;
   progress: number;
   movement: number;
