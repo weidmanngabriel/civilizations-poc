@@ -13,9 +13,9 @@ import { personWorldPosition } from "../simulation/movement";
 import { CONFIG } from "../simulation/scenario";
 import {
   buildingFootprint,
-  canPlaceBuilding,
   footprintAt,
   footprintRing,
+  validBuildingAnchors,
 } from "../simulation/buildingPlacement";
 
 const HEX_X = 24;
@@ -467,8 +467,25 @@ export class MainScene extends Phaser.Scene {
     this.targetModeHighlights.add(highlights);
 
     if (this.buildKind) {
+      const validAnchors = validBuildingAnchors(this.world, this.buildKind);
+      const validAnchorKeys = new Set(validAnchors.map(key));
+      for (const anchorPosition of validAnchors) {
+        const tile = this.world.tiles.find((candidate) => same(candidate, anchorPosition));
+        if (!tile) continue;
+        const points = this.hexPoints(anchorPosition);
+        highlights.fillStyle(colors[tile.terrain], 1);
+        highlights.fillPoints(points, true);
+        highlights.lineStyle(1, 0x20392c, 0.38);
+        highlights.strokePoints(points, true);
+        if (tile.terrain === "grass") {
+          const { x, y } = pixel(tile);
+          highlights.lineStyle(1, 0x93a76e, 0.3);
+          highlights.lineBetween(x - 2, y + 2, x - 3, y - 2);
+        }
+      }
+
       if (!this.buildHover) return;
-      const valid = canPlaceBuilding(this.world, this.buildHover, this.buildKind);
+      const valid = validAnchorKeys.has(key(this.buildHover));
       const footprint = footprintAt(this.buildKind, this.buildHover);
       for (const position of footprint) {
         highlights.fillStyle(valid ? 0xb8e69f : 0xe18b7d, 0.48);
