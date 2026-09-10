@@ -25,274 +25,233 @@ Dependencies flow from presentation toward the simulation. `src/simulation/` mus
 
 ## Simulation core
 
-`src/simulation/model.ts` defines people, assignments, transport trips, merchant routes, recipes, buildings, local inventories, terrain and world state. Buildings have stable string IDs plus a separate `kind`, so multiple warehouses, sawmills and carpenter shops can coexist.
+`src/simulation/model.ts` defines people, assignments, transport trips, merchant routes, farm tasks, recipes, buildings, fields, local inventories, terrain and world state. Buildings have stable string IDs plus a separate `kind`. Goods currently include wood, plank, woodenTool and wheat.
 
-Buildings may additionally carry a `footprint` containing all occupied Hex positions and `baseTerrains` used to restore every occupied tile on demolition. Their logical `position` remains the anchor used by jobs, inventory and transport routing.
+Buildable buildings may carry a `footprint` and `baseTerrains` for demolition restoration. Their logical `position` remains the anchor used by jobs and routing. Buildable buildings can additionally carry a `construction` state while unfinished.
 
-Buildable buildings can additionally carry a `construction` state. The building keeps its final `kind`, footprint and logical position while under construction, but `construction.complete === false` gates all normal building functionality. The state stores required goods, physically delivered goods, build duration and deterministic build progress. This deliberately avoids a second parallel entity hierarchy for construction sites.
+People can carry persistent `woodcutter` and `builder` pool flags. Normal workplace roles continue to use `assignment`. Farm workers use a normal worker assignment to the farm plus a transient `farmTask` for sowing, fertilizing or harvesting a specific field position.
 
-People can carry persistent global profession-pool flags. `woodcutter` and `builder` mean that the person remains part of that profession even while temporarily unassigned. `assignment` still represents the concrete current workplace. This lets builders be automatically moved between construction sites without turning the construction site itself into the owner of the profession.
+`scenario.ts` owns the fixed **41 × 25** map and central balance constants, including farm radius, field limit, action duration and growth duration.
 
-`scenario.ts` owns the fixed **41 × 25** map and central balance constants. The initial world contains eight people, one multi-tile HQ, passive forest groups, water and mountains. There are no initial roads.
+`simulation.ts` owns the global deterministic tick, assignments, reservations, production, construction, profession pools, forest lifecycle, low-level building creation/removal, roads, merchant routes and status derivation. Farm-specific behavior is delegated to `farm.ts` rather than expanding the generic recipe loop with special cases.
 
-`simulation.ts` owns deterministic in-place simulation steps, assignment changes, reservations, production, construction work, global profession pools, forest claiming/depletion, low-level building creation/removal, road editing, organic road formation, merchant routes and status derivation.
+`farm.ts` owns field selection, seeded random field placement, field lifecycle, growth, fertilizing acceleration, harvest and cleanup when a farm is demolished.
 
-`buildingPlacement.ts` owns user-facing multi-tile placement rules. It defines per-building shapes as local Hex cells plus an independent local anchor cell. `footprintAt()` translates the shape so the selected world tile becomes that anchor. The anchor can therefore later be moved to the middle, front or any other cell of a rectangular or irregular footprint without changing placement consumers. The module calculates the one-tile clearance ring, validates placement, enumerates valid anchor positions, wraps building creation so every footprint tile is occupied, creates the initial construction state and restores all saved terrain on demolition. This keeps spatial placement policy out of Phaser and the DOM UI.
+`buildingPlacement.ts` owns user-facing multi-tile placement rules and construction plans. Farm uses the same placement flow as the other buildable buildings.
 
 `movement.ts` derives each person's continuous fractional world position from deterministic simulation state. Phaser consumes that position but does not invent renderer-owned movement.
 
 ## Fixed simulation time
 
-At displayed 1×, the simulation keeps its fixed **60 Hz** update cadence. `tick()` is still called about 60 times per real second, so movement receives a fresh deterministic state every display frame on a typical 60 Hz screen.
+At displayed 1×, the simulation keeps a fixed **60 Hz** update cadence. Rendering remains on `requestAnimationFrame` and is independent from simulation speed.
 
-The slower game pace is implemented in the balance constants instead of reducing tick cadence:
+Important balance constants at 1×:
 
-- normal production duration: 240 ticks, about 4 real seconds at 1×,
-- base movement: `2.5 / 60` tile-distance per tick, or 2.5 tiles/second at 1×,
-- organic-road traffic window: 1920 ticks, or 32 seconds at 1×.
+- normal production duration: 240 ticks / about 4 seconds,
+- base movement: `2.5 / 60` tile-distance per tick,
+- autonomous decision interval: 60 ticks / 1 second,
+- organic-road traffic window: 1920 ticks / 32 seconds,
+- sow and harvest action: 600 ticks / 10 seconds,
+- one natural field-growth stage: 1800 ticks / 30 seconds.
 
-These values are exactly one quarter of the previous movement rate / four times the previous durations, so gameplay remains 75% slower while the state update frequency remains fine-grained.
-
-Autonomous planning is intentionally slower than the fixed simulation step. `CONFIG.decisionIntervalTicks` is 60, so idle source selection, merchant planning, construction-material planning and retries for waiting woodcutters/builders run once per simulated second. The first fixed tick is also a decision tick so newly configured actors can react immediately at startup. Event-driven transitions bypass that cadence: arriving at an assigned workplace, completing a delivery and completing production mark the affected person for an immediate follow-up decision in the same tick. Forest depletion directly reassigns its woodcutter. Construction completion directly releases its builders back into the builder pool and attempts immediate reassignment. Movement, pickup, delivery, production progress, construction progress and reservation state therefore remain responsive without performing expensive path/source searches 60 times per second.
-
-The UI still uses a `requestAnimationFrame` accumulator and the relative speed choices `0.5`, `1`, `2`, `3`. Rendering stays on the browser animation loop and is independent from simulation speed. Pausing stops simulation advancement while Phaser continues to render and accept camera input.
+Event-driven transitions bypass the 1-Hz planning cadence. Arrivals, deliveries, production completion, farm-action completion, field-stage completion and construction completion can cause an immediate follow-up decision.
 
 ## Navigation and movement
 
-`src/simulation/hex.ts` provides axial neighbors and two navigation modes:
+`src/simulation/hex.ts` provides weighted Dijkstra routing and an unweighted BFS for tile-step range checks.
 
-- `findPath()` uses weighted Dijkstra routing and minimizes travel time,
-- `findPathBySteps()` uses unweighted BFS and measures reachable tile steps.
-
-Walkable terrain: grass, road, forest, building.
+Walkable terrain: grass, road, forest, field, building.
 Blocked terrain: mountain, river.
 
-Tiles are navigation waypoints, not the visible movement unit. `Person.position` is the last reached tile centre, `Person.path[0]` is the next waypoint and `Person.movement` is fractional progress along that edge.
-
-Normal terrain costs 1.0 movement. Roads cost `1 / 1.3`, giving a 30% speed increase. The same costs drive both route choice and visible movement.
-
-The warehouse collection radius uses `findPathBySteps()` so faster roads do not enlarge the radius.
+Tiles are navigation waypoints, not the visible movement unit. Roads cost `1 / 1.3`, giving a 30% speed increase. The warehouse collection radius continues to use reachable tile steps rather than travel time.
 
 ## Organic roads
 
 Grass records recent traversal timestamps in `Tile.trafficTicks`.
 
 - threshold: 8 traversals,
-- rolling window: 32 seconds at 1× / 1920 ticks,
+- rolling window: 32 seconds at 1×,
 - on threshold: grass becomes road immediately,
-- current tasks reroute so agents can exploit new roads.
+- current tasks reroute so agents can exploit the new road.
 
-Roads persist. Manual road editing remains available.
+Fields are not treated as grass traffic counters while they exist. After harvest the tile becomes ordinary grass again.
 
 ## Multi-tile buildings
 
-User-facing buildable kinds are warehouse, sawmill and carpenter. The HQ is also multi-tile in the initial scenario.
-
-Current footprints:
+User-facing buildable kinds are warehouse, farm, sawmill and carpenter. The HQ is multi-tile in the initial scenario.
 
 ```text
 HQ          4 tiles
 Warehouse   4 tiles
+Farm        4 tiles
 Sawmill     6 tiles
 Carpenter   4 tiles
 ```
 
-A building shape is expressed as local axial Hex cells and an anchor cell. Once placed, it becomes a list of absolute axial Hex positions. The chosen map tile is the world position of the configured anchor, while the building's logical `position` remains that same anchor for transport/job targeting.
+Placement requires all footprint and one-tile clearance-ring cells to exist and currently be grass or road. A person may not occupy a footprint tile. Therefore active fields block building placement just like forests or other non-free terrain.
 
-### Placement validation
-
-`buildingPlacement.ts` applies one authoritative rule before a building can be created:
-
-- every footprint tile must exist,
-- every footprint tile must currently be grass or road,
-- no person may occupy a footprint tile,
-- every neighboring tile in the ring around the complete footprint must exist,
-- every ring tile must be grass or road.
-
-This means a full one-tile free border is mandatory. Buildings therefore cannot touch other buildings, forests, water, mountains or the map edge.
-
-The rule is intentionally enforced in the simulation layer. Phaser only visualizes placement validity and cannot create a placement that the core would reject.
-
-For whole-map placement previews, `validBuildingAnchors()` builds the free-tile and person lookup sets once, then checks every map tile against the same shape/ring rule. This avoids duplicating product logic in Phaser and keeps the 41 × 25 full-grid preview inexpensive enough to refresh while the world changes.
-
-### Building, construction and demolition
-
-`buildWithFootprint()` first stores the original grass/road terrain for all footprint cells, delegates logical building creation, assigns the footprint to the building, marks every occupied cell as `building` and attaches a construction state.
-
-Current PoC construction plans are intentionally simple and data-driven inside `buildingPlacement.ts`:
+Current construction plans:
 
 ```text
 Warehouse   4 wood    → 11 s base build time
+Farm        4 wood    → 11 s base build time
 Sawmill     6 wood    → 15 s base build time
 Carpenter   4 planks  → 11 s base build time
 ```
 
-Build duration is calculated as `(3 + 2 × required resource units) × simulationHz`. The resulting duration is stored in simulation ticks on the construction state.
+Build duration remains `(3 + 2 × required resource units) × simulationHz`. Up to two builders work on a site and the second builder exactly doubles progress while both are present.
 
-While `construction.complete === false`, all normal worker, carrier and merchant capacity is gated. Builders are not manually assigned through the site's role controls. Instead, a persistent global `Person.builder` pool is configured at the HQ. Waiting builders automatically select a quickest reachable construction site with fewer than two assigned builders; equal-cost candidates use the deterministic seeded RNG. A site therefore accepts at most two builders.
-
-Assigned builders use the existing trip/reservation model to fetch each required good from an operational source. Delivered goods are recorded in `construction.delivered` rather than the normal building inventory/input. An unfinished warehouse therefore cannot accidentally behave like a real warehouse.
-
-Once all required quantities are present, construction progress advances once per fixed simulation tick by the number of active builders physically present at the site: +1 with one builder and +2 with two. This makes the second builder exactly double build speed without changing global simulation cadence. At completion all builders are released from the site but retain `builder === true`, then immediately attempt reassignment to another open site; otherwise they route toward HQ.
-
-`removeBuildingWithFootprint()` delegates the existing entity/assignment/transport cleanup and then restores every saved footprint tile. This works for both completed buildings and unfinished construction sites; delivered construction goods are intentionally lost on demolition. Builders released by demolition remain in the builder pool and are redispatched. HQ and forests remain non-demolishable.
-
-Building tiles are still walkable. This avoids introducing entrance or collision semantics before the product rules require them.
+Demolishing a farm additionally removes its still-active field entities and restores their tiles to grass. Retired harvested field sources containing loose wheat are intentionally not removed with the farm because the product rule says already produced physical goods remain in the world.
 
 ## Production and reservations
 
-Trips represent reservations directly. Unpicked trips reserve source stock; planned deliveries reserve destination capacity. A picked trip physically carries one unit. Cancelling a carried trip returns it to the original source when that source still exists.
+Generic production still uses recipes and local input/output capacities. Trips represent reservations directly: an unpicked trip reserves source stock, an incoming trip reserves destination capacity and a picked trip physically carries one unit.
 
-The same trip primitive is used for construction materials. Builders only request goods that are still missing after both delivered quantities and already incoming trips are counted. This prevents simultaneous builders from over-delivering the same requirement.
-
-Production inputs remain inside the building until completion. In-progress production reserves output capacity. Production workers prioritize production and fetch inputs themselves only when blocked. Carriers assigned to production buildings fetch only required input.
-
-Current recipes at 1×:
+Current generic recipes:
 
 - forest: 1 wood / ~4 seconds,
 - sawmill: 2 wood → 1 plank / ~4 seconds,
 - carpenter: 2 plank → 1 wooden tool / ~4 seconds.
 
-## Warehouse and logistics model
+Farm production deliberately does **not** use the generic recipe loop because it is spatial and multi-stage. The farmer works on separate field entities and the harvested wheat source is located at the field, not at the farm building.
 
-Warehouses have local inventory keyed by good type. Capacity is 20 units per good type.
+## Farm and field model
 
-Warehouse carriers collect output from non-warehouse sources only when the source lies within **10 reachable tile steps**. This doubles the old five-step value to preserve approximately the same physical world radius after doubling grid density.
+Farm fields are represented as lightweight one-tile `Building` entities with `kind === "field"`. They reuse stable entity IDs and the existing local-output/reservation infrastructure without becoming player-buildable buildings.
 
-Warehouses remain valid sources for production and construction demand without this radius restriction. Warehouse carriers never create warehouse-to-warehouse trips. Unfinished warehouses are excluded from warehouse stock totals, normal collection and merchant routes.
-
-### Merchant routes
-
-Merchants are a separate warehouse role and the only automatic mechanism that intentionally moves goods between completed warehouses. Each completed warehouse supports up to two merchants.
+Relevant state:
 
 ```text
-wait at source
-→ reserve configured good + destination capacity
-→ pick up
-→ travel to destination
-→ deliver
-→ return empty to source
-→ repeat
+Building(kind = field)
+  farmId
+  position
+  fieldStage: 1 | 2 | 3 | 4
+  fieldGrowthProgress
+  output              # wheat after harvest
+  retired
+
+Person
+  assignment           # worker at farm
+  farmTask:
+    kind: sow | fertilize | harvest
+    target
+    fieldId?
+    progress
 ```
 
-The route has no collection-radius restriction.
+An active field changes its map tile to terrain `field`. It is walkable but not valid for normal building placement or road editing. A harvested field is marked retired and the tile immediately returns to grass. The retired field entity remains only while its wheat output is relevant to logistics; it is excluded from active-field counting and rendering as a building.
+
+### Field choice
+
+A farm worker may maintain at most four active fields. Candidate sow tiles must:
+
+- currently be grass,
+- be reachable,
+- lie within three axial Hex steps from at least one farm-footprint cell,
+- not currently contain a person,
+- not already be reserved by another farmer's sow task.
+
+The candidate is selected with the existing deterministic seeded RNG. Reserving the target inside `Person.farmTask` prevents two farmers from choosing the same grass tile while walking there.
+
+### Farmer planner
+
+The farmer planner runs through the normal decision system with this priority:
+
+```text
+ripe field available     → harvest
+active fields < 4         → sow random valid grass tile
+otherwise                 → fertilize random non-ripe field
+```
+
+The farmer does not need to return to the farm between field actions. Each task stores its target and the normal pathfinder moves the person physically to it.
+
+### Growth and fertilizing
+
+Each non-ripe field advances one growth-progress unit per simulation tick. One stage therefore takes 1800 ticks / 30 seconds naturally.
+
+While its farmer is physically present and executing a fertilize task, the same field advances three units per tick total. Thus the remaining natural time is divided by three. Examples:
+
+- 30 seconds remaining → 10 seconds fertilizing,
+- 15 seconds remaining → 5 seconds fertilizing,
+- 6 seconds remaining → 2 seconds fertilizing.
+
+The fertilize task ends immediately when the next field stage is reached, rather than always consuming a fixed 10 seconds. This implements the product requirement that partially grown fields need proportionally less work.
+
+Sowing and harvesting are different: both always require 600 ticks / 10 seconds once the farmer has arrived.
+
+### Harvest and physical wheat
+
+Harvesting increments the field entity's output by one wheat, marks the field retired and restores its tile to grass. The retired entity remains a valid non-warehouse goods source while `output > 0`. This mirrors the existing depleted-forest pattern: world terrain can disappear while already produced goods remain collectible.
+
+Warehouse carriers therefore collect wheat with the same trip/reservation primitive used for wood/planks/tools. No global wheat counter is authoritative; HUD totals are derived from completed warehouse inventories.
+
+## Warehouse and logistics model
+
+Warehouses have local per-good inventory with capacity 20 for wood, planks, wooden tools and wheat.
+
+Warehouse carriers collect output from non-warehouse sources only when the source lies within **10 reachable tile steps**. Retired harvested field sources are valid while they still contain wheat. Warehouse carriers still never create warehouse-to-warehouse trips.
+
+Merchants remain the only automatic warehouse-to-warehouse mechanism and can select wheat as their configured good.
 
 ## Forest logic
 
 Woodcutters are appointed globally. Each chooses the quickest reachable unoccupied active or passive forest; ties use seeded PRNG state.
 
-A passive forest tile becomes a dynamic one-tile forest building when claimed. Every active forest starts with 10 yield, has one worker slot and produces one wood per production duration.
+A passive forest tile becomes a dynamic one-tile forest building when claimed. Every active forest starts with 10 yield. At zero yield the forest retires immediately and its tile becomes grass. Residual produced wood remains collectible.
 
-At zero yield the forest retires immediately and its tile becomes grass. Residual produced wood remains collectible. The woodcutter then searches for another forest without teleporting.
+The farm implementation intentionally follows the same useful separation between terrain lifecycle and physical produced output, but field lifecycle is driven by a farm worker rather than a persistent resource node.
 
 ## Map rendering and interaction
 
-`game/MainScene.ts` renders the world through Phaser. `Phaser.Scale.RESIZE` keeps the canvas fitted to the browser viewport.
+`game/MainScene.ts` renders the world through Phaser. `Phaser.Scale.RESIZE` keeps the canvas fitted to the viewport.
 
-The visual Hex geometry is denser than before:
+Current Hex geometry:
 
 - horizontal spacing: 24 px,
 - vertical spacing: 21 px,
 - Hex radius: 14 px.
 
-People are drawn from continuous simulation positions.
+Fields are rendered from the tile plus their associated active field entity. The visible number/height of simple crop strokes increases with `fieldStage`. Retired harvested fields are not drawn as buildings; wheat output slots can remain visible at their former position until collection.
 
-Camera navigation:
-
-- desktop: wheel zoom and pointer drag,
-- mobile: one-finger pan and two-finger pinch,
-- camera zoom: 0.7×–3.5×.
-
-The page itself does not scroll or zoom inside the app.
-
-Selection checks every tile in a building footprint, so tapping any occupied cell selects the same building or construction site.
-
-## Building placement mode
-
-Building placement is a dedicated modal map state controlled through DOM/Phaser custom events.
-
-Flow:
-
-```text
-UI chooses building kind
-→ BUILD_MODE_EVENT
-→ MainScene clears any previous placement anchor; no ghost is rendered yet
-→ simulation validBuildingAnchors() evaluates all possible anchor tiles
-→ map is dimmed and every valid anchor tile is redrawn at normal brightness
-→ first short click/tap selects an anchor and enables ghost rendering
-→ BUILD_POSITION_SELECTED_EVENT reports the preview anchor to the DOM UI
-→ after that first selection, desktop pointer hover or a short map tap may update the ghost anchor
-→ simulation canPlaceBuilding() validates footprint + ring
-→ Phaser draws green/red ghost + clearance ring
-→ UI enables "Bauen" only for a currently valid selected position
-→ "Bauen" calls buildWithFootprint()
-→ success exits mode and selects the new construction site
-```
-
-Input responsibilities are deliberately separated:
-
-- no placement ghost exists before the first short click/tap,
-- after the first selection desktop hover may move the ghost,
-- a short touch tap moves the ghost to the tapped tile,
-- one-finger touch drag pans the camera and never moves the ghost,
-- two-finger touch gestures zoom/pan and never move the ghost,
-- tapping/clicking the map never creates the building directly,
-- only the DOM `Bauen` button confirms placement,
-- `Abbrechen` exits without changing the world.
-
-The `Bauen` button is recalculated against `canPlaceBuilding()` as the preview or world changes, and `buildWithFootprint()` validates once more when confirmation occurs. This prevents presentation state from bypassing simulation rules.
-
-The existing merchant destination mode remains separate. It pauses simulation, stores camera state, dims the map, highlights valid completed warehouses and restores camera/running state after selection or cancel.
+Farm is available in the same modal placement mode as other buildings. Touch behavior remains unchanged: one-finger drag pans, two-finger gesture zooms/pans, a short tap moves the placement ghost and only the DOM `Bauen` button confirms.
 
 ## DOM UI
 
-`ui/controls.ts` owns overlays and the real-time simulation accumulator.
+`ui/controls.ts` owns overlays and the real-time accumulator.
 
-- top: build/version and core metrics,
-- bottom: pause/resume, 0.5×, 1×, 2×, 3×, debug,
-- HQ: population, woodcutter-pool and builder-pool controls,
-- construction site: required/delivered material, build progress and automatically assigned builder count up to two,
-- production buildings: recipe, inventory, worker/carrier controls, demolition,
-- warehouse: local stocks, carriers, merchants and route configuration,
-- active forest: remaining yield/output,
-- empty grass/road tile: building choices and manual road action,
-- debug overlay: people and transport tasks.
+- farm is offered in the building choices,
+- a finished farm exposes one worker slot labelled Farmer,
+- farm status reports sowing, fertilizing, harvesting or active-field count,
+- warehouse inventory includes wheat,
+- merchant goods include wheat,
+- top metrics include total wheat stored in completed warehouses,
+- debug rows expose the current farmer action.
 
-When the player chooses a building type, the normal selection panel and bottom controls are hidden and a compact placement overlay is shown. The overlay says **“Tippen, um eine Position zu wählen.”** and contains `Bauen` plus `Abbrechen` actions. `src/build-placement.css` keeps those actions inside the panel and places them in their own two-column row on narrow screens.
+Fields themselves are not normal selectable production buildings. Tapping an active field is treated as tapping its tile rather than opening a worker-management panel.
 
 ## Presentation performance
 
-Phaser's renderer continues on the browser animation loop, normally up to display refresh. Simulation advancement is decoupled through the fixed-step accumulator.
+Phaser continues to render on the browser animation loop. Simulation advancement stays deterministic through fixed steps. Field growth is a constant-time update per active field; each farm has at most four active fields, so the new system does not introduce broad spatial scans every rendering frame.
 
-At 1× the accumulator consumes fixed steps at the full 60 Hz cadence. Slower gameplay is expressed through smaller per-tick movement and longer tick-based durations, avoiding the visible 15 Hz stepping that occurred when the 0.25 factor was applied to the accumulator itself.
-
-A frame delta is capped before entering the accumulator to avoid large catch-up bursts after suspended/backgrounded tabs. A frame also caps the number of fixed simulation steps processed at once.
-
-Placement hover currently scans the fixed grid to find the nearest Hex. At 41 × 25 this remains small enough for the PoC; a spatial lookup can replace it if map size grows substantially. The valid-anchor preview also scans the fixed grid, but reuses one prebuilt placement lookup for the whole scan rather than rebuilding tile/person lookups per candidate.
+Candidate sow selection and new farmer decisions run on decision events rather than continuously. At current PoC map size, scanning the fixed tile list for valid candidates remains inexpensive and keeps the implementation simple.
 
 ## Testing
 
-`npm test` runs deterministic Node tests through `tsx`.
+`npm test` runs deterministic Node tests through `tsx`; `npm run build` performs TypeScript checking plus the Vite production build.
 
-Placement has dedicated coverage for:
+Farm coverage verifies:
 
-- multi-tile footprints,
-- mandatory one-tile free ring,
-- rejection when the ring contains blocked terrain,
-- restoration of every footprint tile after demolition,
-- arbitrary anchor positions inside irregular local shapes,
-- whole-map valid-anchor enumeration matching `canPlaceBuilding()`.
+- a farmer autonomously establishes no more than four fields,
+- fields are chosen inside the configured radius,
+- fertilizing divides remaining stage time by three,
+- harvesting takes ten seconds,
+- harvest restores the tile to grass and leaves one wheat,
+- warehouse carriers can collect wheat from a retired harvested field.
 
-Construction coverage verifies that placement produces an unfinished site, normal roles remain disabled until completion, builders are taken from the global pool and assigned automatically, a site accepts at most two builders, simultaneous builders do not over-deliver reservations, two active builders advance construction at 2× speed, duration follows the 3 s + 2 s/resource formula, completed builders remain in their profession pool, and carpenter construction uses planks.
-
-Decision-cadence coverage verifies that idle autonomous planning does not re-run between one-second decision boundaries and that a delivery can trigger its required follow-up decision immediately without waiting for the next boundary.
-
-Other simulation tests continue to cover movement, production, forest relocation, merchant routes, reservations and logistics invariants.
+Existing suites continue to cover placement, construction, movement, decision cadence, forest relocation, merchant routes, worker input, reservations and deterministic replay.
 
 ## Build and deployment
 
-Vite injects `process.env.BUILD_TIME` as an ISO timestamp. `main.ts` renders it in the `Europe/Berlin` timezone in the top HUD.
+Vite injects `process.env.BUILD_TIME` and the UI formats it in the `Europe/Berlin` timezone.
 
-TypeScript 5.9 is used in the project toolchain. `npm test` runs tests; `npm run build` performs type checking and the Vite production build.
-
-`.github/workflows/deploy.yml` tests and builds pushes to `main`, then deploys GitHub Pages. Branch pushes do not deploy. Vite base path is `/civilizations-poc/`.
+`.github/workflows/deploy.yml` runs tests and a production build for pushes to `main`, then deploys GitHub Pages. Branch pushes do not deploy. Vite base path remains `/civilizations-poc/`.

@@ -16,6 +16,7 @@ export const walkable = (t: Tile): boolean =>
   t.terrain === "grass" ||
   t.terrain === "road" ||
   t.terrain === "forest" ||
+  t.terrain === "field" ||
   t.terrain === "building";
 
 export const movementCost = (t: Tile, roadSpeedMultiplier = 1.3): number =>

@@ -16,6 +16,10 @@ export const CONFIG = {
   warehouseCapacityPerGood: 20,
   warehouseCollectionRadius: 10,
   forestYield: 10,
+  farmMaxFields: 4,
+  farmFieldRadius: 3,
+  farmActionDurationTicks: 10 * 60,
+  fieldStageDurationTicks: 30 * 60,
   mapColumns: 41,
   mapRows: 25,
 } as const;
@@ -99,6 +103,7 @@ export function createWorld(population: number = CONFIG.population): World {
     nextId: population + 1,
     nextForestId: 1,
     nextBuildingId: 1,
+    nextFieldId: 1,
     rngState: 0x1a2b3c4d,
     buildings,
     tiles,

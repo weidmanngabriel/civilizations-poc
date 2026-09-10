@@ -51,13 +51,14 @@ type SimulationSpeed = 0.5 | 1 | 2 | 3;
 
 const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
   warehouse: "Lager",
+  farm: "Farm",
   sawmill: "Sägewerk",
   carpenter: "Schreinerei",
 };
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
-  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span><b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
+  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Farmen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span><b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
 
   let autoplayFrame: number | undefined;
   let lastAutoplayFrame = 0;
@@ -108,8 +109,8 @@ export function mountControls(w: World, renderMap: () => void): void {
   }
 
   const assignmentControl = (b: Building, role: Role, limit: number): string => {
-    if (b.forestRemaining !== undefined || !limit) return "";
-    const label = roleLabel(role);
+    if (b.forestRemaining !== undefined || b.kind === "field" || !limit) return "";
+    const label = b.kind === "farm" && role === "worker" ? "Farmer" : roleLabel(role);
     const detail = role === "merchant"
       ? "Handelsroute je Händler"
       : `<span data-field="${role}-active"></span> aktiv`;
@@ -190,7 +191,8 @@ export function mountControls(w: World, renderMap: () => void): void {
       setField("warehouse-wood", `${warehouseStock(b, "wood")}/${CONFIG.warehouseCapacityPerGood}`);
       setField("warehouse-plank", `${warehouseStock(b, "plank")}/${CONFIG.warehouseCapacityPerGood}`);
       setField("warehouse-tool", `${warehouseStock(b, "woodenTool")}/${CONFIG.warehouseCapacityPerGood}`);
-    } else {
+      setField("warehouse-wheat", `${warehouseStock(b, "wheat")}/${CONFIG.warehouseCapacityPerGood}`);
+    } else if (b.kind !== "farm") {
       if (b.recipe?.input) setField("input", `${b.input}/${CONFIG.inputCapacity}`);
       setField("output", `${b.output}/${CONFIG.outputCapacity}`);
     }
@@ -228,8 +230,21 @@ export function mountControls(w: World, renderMap: () => void): void {
         : tile.terrain === "road"
           ? `<button data-action="road" data-enabled="false" ${w.people.some((p) => same(p.position, tile)) ? "disabled" : ""}>Weg entfernen</button>`
           : "";
+      const tileName = tile.terrain === "grass"
+        ? "Wiese"
+        : tile.terrain === "road"
+          ? "Weg"
+          : tile.terrain === "forest"
+            ? "Wald"
+            : tile.terrain === "field"
+              ? "Acker"
+              : tile.terrain === "mountain"
+                ? "Berg"
+                : tile.terrain === "river"
+                  ? "Fluss"
+                  : "Belegt";
       selectionPanel.hidden = false;
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>KACHEL</small><h3>${tile.terrain === "grass" ? "Wiese" : tile.terrain === "road" ? "Weg" : tile.terrain === "forest" ? "Wald" : tile.terrain === "mountain" ? "Berg" : tile.terrain === "river" ? "Fluss" : "Belegt"}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div>${buildable ? `<p class="recipe">Gebäude wählen. Danach Position auf der Karte wählen und bestätigen.</p><div class="stepper"><button data-action="build" data-kind="warehouse">Lager</button><button data-action="build" data-kind="sawmill">Sägewerk</button><button data-action="build" data-kind="carpenter">Schreinerei</button></div>` : `<p class="recipe">Auf dieser Kachel kann aktuell nicht gebaut werden.</p>`}${roadAction ? `<div class="stepper">${roadAction}</div>` : ""}`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>KACHEL</small><h3>${tileName}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div>${buildable ? `<p class="recipe">Gebäude wählen. Danach Position auf der Karte wählen und bestätigen.</p><div class="stepper"><button data-action="build" data-kind="warehouse">Lager</button><button data-action="build" data-kind="farm">Farm</button><button data-action="build" data-kind="sawmill">Sägewerk</button><button data-action="build" data-kind="carpenter">Schreinerei</button></div>` : `<p class="recipe">Auf dieser Kachel kann aktuell nicht gebaut werden.</p>`}${roadAction ? `<div class="stepper">${roadAction}</div>` : ""}`;
       return;
     }
 
@@ -254,7 +269,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
 
-    const demolish = b.kind === "forest"
+    const demolish = b.kind === "forest" || b.kind === "field"
       ? ""
       : `<button data-action="demolish" class="danger">Abreißen</button>`;
 
@@ -271,14 +286,18 @@ export function mountControls(w: World, renderMap: () => void): void {
       ? `1 Holz / ${b.recipe!.duration / CONFIG.simulationHz} s bei 1× · Vorrat <span data-field="forest-remaining"></span>/${CONFIG.forestYield}`
       : b.kind === "warehouse"
         ? "Lagert bis zu 20 Einheiten je Warentyp"
-        : b.recipe?.input
-          ? `${b.recipe.amount} ${GOODS[b.recipe.input]} → 1 ${GOODS[b.recipe.output]}`
-          : "Produktion";
+        : b.kind === "farm"
+          ? `Ein Farmer bewirtschaftet bis zu ${CONFIG.farmMaxFields} zufällige Acker im Radius ${CONFIG.farmFieldRadius}. Säen und Ernten dauern je 10 s; Düngen beschleunigt die nächste Wachstumsstufe auf ein Drittel der Restzeit.`
+          : b.recipe?.input
+            ? `${b.recipe.amount} ${GOODS[b.recipe.input]} → 1 ${GOODS[b.recipe.output]}`
+            : "Produktion";
     const inventory = b.forestRemaining !== undefined
       ? `<div><span>Holz · Output</span><strong data-field="output"></strong></div>`
       : b.kind === "warehouse"
-        ? `<div><span>Holz</span><strong data-field="warehouse-wood"></strong></div><div><span>Bretter</span><strong data-field="warehouse-plank"></strong></div><div><span>Holzwerkzeuge</span><strong data-field="warehouse-tool"></strong></div>`
-        : `${b.recipe?.input ? `<div><span>${GOODS[b.recipe.input]} · Input</span><strong data-field="input"></strong></div>` : ""}<div><span>${b.recipe ? GOODS[b.recipe.output] : "Output"} · Output</span><strong data-field="output"></strong></div>`;
+        ? `<div><span>Holz</span><strong data-field="warehouse-wood"></strong></div><div><span>Bretter</span><strong data-field="warehouse-plank"></strong></div><div><span>Holzwerkzeuge</span><strong data-field="warehouse-tool"></strong></div><div><span>Weizen</span><strong data-field="warehouse-wheat"></strong></div>`
+        : b.kind === "farm"
+          ? `<div><span>Ernte</span><strong>1 Weizen je Acker</strong></div>`
+          : `${b.recipe?.input ? `<div><span>${GOODS[b.recipe.input]} · Input</span><strong data-field="input"></strong></div>` : ""}<div><span>${b.recipe ? GOODS[b.recipe.output] : "Output"} · Output</span><strong data-field="output"></strong></div>`;
     const merchantAssignment = b.kind === "warehouse"
       ? assignmentControl(b, "merchant", b.merchants ?? 0)
       : "";
@@ -288,7 +307,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   }
 
   const refreshLiveState = () => {
-    document.querySelector("#metrics")!.innerHTML = `<div><small>BEV.</small><strong>${w.people.length}</strong></div><div><small>FREI</small><strong>${freePeople(w).length}</strong></div><div><small>WERKZEUGE</small><strong>${totalWarehouseStock(w, "woodenTool")}</strong></div>`;
+    document.querySelector("#metrics")!.innerHTML = `<div><small>BEV.</small><strong>${w.people.length}</strong></div><div><small>FREI</small><strong>${freePeople(w).length}</strong></div><div><small>WEIZEN</small><strong>${totalWarehouseStock(w, "wheat")}</strong></div><div><small>WERKZEUGE</small><strong>${totalWarehouseStock(w, "woodenTool")}</strong></div>`;
     if (!selectedTile) updateSelectionLiveState();
     updateBuildPlacementConfirm();
     renderMap();
@@ -296,7 +315,40 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const refreshPanels = () => {
     renderSelectionPanel();
-    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => `<tr><td>${p.id}</td><td>${p.woodcutter ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald") : p.builder ? (p.assignment ? `Bauarbeiter · ${building(w, p.assignment.building).name}` : "Bauarbeiter · wartet auf Baustelle") : p.assignment ? `${building(w, p.assignment.building).name} · ${roleLabel(p.assignment.role)}` : "Frei"}</td><td>${p.trip ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}` : p.assignment?.role === "merchant" && p.merchantRoute?.target ? `${GOODS[p.merchantRoute.good]} → Ziellager${p.path.length ? " · Rückweg" : ""}` : p.progress ? `${p.woodcutter ? "Fällt Holz" : p.builder ? "Baut" : "Produziert"} · ${Math.round((p.progress / (p.assignment && isUnderConstruction(building(w, p.assignment.building)) ? building(w, p.assignment.building).construction!.duration : CONFIG.duration)) * 100)} %` : p.path.length ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : p.builder ? "Sucht / wartet auf Baustelle" : "Auf dem Rückweg zum HQ") : p.assignment ? "An der Arbeitsstätte" : p.woodcutter ? "Wartet auf Wald" : p.builder ? "Wartet auf Baustelle" : "Am HQ"}</td></tr>`).join("")}</tbody></table>`;
+    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => {
+      const farmAction = p.farmTask?.kind === "sow"
+        ? "Sät"
+        : p.farmTask?.kind === "fertilize"
+          ? "Düngt"
+          : p.farmTask?.kind === "harvest"
+            ? "Erntet"
+            : undefined;
+      const assignment = p.woodcutter
+        ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald")
+        : p.builder
+          ? (p.assignment ? `Bauarbeiter · ${building(w, p.assignment.building).name}` : "Bauarbeiter · wartet auf Baustelle")
+          : p.assignment
+            ? `${building(w, p.assignment.building).name} · ${building(w, p.assignment.building).kind === "farm" && p.assignment.role === "worker" ? "Farmer" : roleLabel(p.assignment.role)}`
+            : "Frei";
+      const state = p.trip
+        ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}`
+        : farmAction
+          ? `${farmAction}${p.path.length ? " · auf dem Weg" : ""}`
+          : p.assignment?.role === "merchant" && p.merchantRoute?.target
+            ? `${GOODS[p.merchantRoute.good]} → Ziellager${p.path.length ? " · Rückweg" : ""}`
+            : p.progress
+              ? `${p.woodcutter ? "Fällt Holz" : p.builder ? "Baut" : "Produziert"} · ${Math.round((p.progress / (p.assignment && isUnderConstruction(building(w, p.assignment.building)) ? building(w, p.assignment.building).construction!.duration : CONFIG.duration)) * 100)} %`
+              : p.path.length
+                ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : p.builder ? "Sucht / wartet auf Baustelle" : "Auf dem Rückweg zum HQ")
+                : p.assignment
+                  ? "An der Arbeitsstätte"
+                  : p.woodcutter
+                    ? "Wartet auf Wald"
+                    : p.builder
+                      ? "Wartet auf Baustelle"
+                      : "Am HQ";
+      return `<tr><td>${p.id}</td><td>${assignment}</td><td>${state}</td></tr>`;
+    }).join("")}</tbody></table>`;
   };
 
   const refresh = () => {

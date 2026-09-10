@@ -17,6 +17,14 @@ import {
   same,
 } from "./hex";
 import { CONFIG } from "./scenario";
+import {
+  activeFarmFieldCount,
+  advanceFarmSystem,
+  clearFarmTask,
+  planFarmWorker,
+  removeActiveFarmFields,
+  rerouteFarmTask,
+} from "./farm";
 
 export const building = (w: World, id: BuildingId): Building =>
   w.buildings.find((b) => b.id === id)!;
@@ -43,7 +51,7 @@ const reservedAtSource = (w: World, id: BuildingId, good: Good) =>
     (p) => p.trip?.source === id && p.trip.good === good && !p.trip.picked,
   ).length;
 const producing = (w: World, id: BuildingId) =>
-  w.people.filter((p) => p.assignment?.building === id && p.progress > 0)
+  w.people.filter((p) => p.assignment?.building === id && p.progress > 0 && !p.farmTask)
     .length;
 export const outputOccupied = (w: World, b: Building): number =>
   b.output + heldOutput(w, b.id) + producing(w, b.id);
@@ -92,8 +100,8 @@ function returnCargoToSource(w: World, p: Person): void {
   const source = w.buildings.find((b) => b.id === p.trip!.source);
   if (!source) return;
   if (source.kind === "warehouse" && !isUnderConstruction(source)) {
-    source.inventory ??= { wood: 0, plank: 0, woodenTool: 0 };
-    source.inventory[p.trip.good] += CONFIG.carryCapacity;
+    source.inventory ??= {};
+    source.inventory[p.trip.good] = (source.inventory[p.trip.good] ?? 0) + CONFIG.carryCapacity;
   } else {
     source.output += CONFIG.carryCapacity;
   }
@@ -102,12 +110,14 @@ function returnCargoToSource(w: World, p: Person): void {
 function cancel(w: World, p: Person): void {
   returnCargoToSource(w, p);
   p.trip = undefined;
+  clearFarmTask(p);
   p.progress = 0;
   p.movement = 0;
   p.path = [];
 }
 
 function rerouteCurrentTask(w: World, p: Person): void {
+  if (rerouteFarmTask(w, p)) return;
   if (p.trip) {
     const target = w.buildings.find(
       (b) => b.id === (p.trip!.picked ? p.trip!.target : p.trip!.source),
@@ -144,7 +154,7 @@ export function changeAssignment(
   const b = building(w, id),
     people = assigned(w, id, role),
     limit = roleLimit(b, role);
-  if (b.forestRemaining !== undefined || !limit) return false;
+  if (b.forestRemaining !== undefined || b.kind === "field" || !limit) return false;
   if (delta === 1) {
     const p = freePeople(w)[0];
     if (!p || b.retired || people.length >= limit) return false;
@@ -421,7 +431,7 @@ function requestInput(w: World, p: Person, b: Building): void {
           (construction.required[good] ?? 0),
       )
     : isWarehouseCollection
-      ? ["wood", "plank", "woodenTool"]
+      ? ["wood", "plank", "woodenTool", "wheat"]
       : b.recipe?.input
         ? [b.recipe.input]
         : [];
@@ -439,7 +449,7 @@ function requestInput(w: World, p: Person, b: Building): void {
     for (const source of w.buildings) {
       if (
         source.id === b.id ||
-        source.retired && !(source.forestRemaining === 0 && source.output > 0) ||
+        (source.retired && source.output <= 0) ||
         available(w, source, good) <= 0 ||
         (isWarehouseCollection && source.kind === "warehouse")
       )
@@ -558,6 +568,15 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
       output: 0,
       recipe: { input: "plank", amount: 2, output: "woodenTool", duration: CONFIG.duration },
     };
+  if (kind === "farm")
+    return {
+      kind,
+      name: "Farm",
+      workers: 1,
+      carriers: 0,
+      input: 0,
+      output: 0,
+    };
   return {
     kind,
     name: "Lager",
@@ -566,7 +585,7 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
     merchants: 2,
     input: 0,
     output: 0,
-    inventory: { wood: 0, plank: 0, woodenTool: 0 },
+    inventory: { wood: 0, plank: 0, woodenTool: 0, wheat: 0 },
   };
 };
 
@@ -596,7 +615,9 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
   const index = w.buildings.findIndex((b) => b.id === id);
   if (index < 0) return false;
   const removed = w.buildings[index]!;
-  if (removed.kind === "hq" || removed.kind === "forest") return false;
+  if (removed.kind === "hq" || removed.kind === "forest" || removed.kind === "field") return false;
+
+  if (removed.kind === "farm") removeActiveFarmFields(w, removed.id);
 
   for (const p of w.people) {
     const affectedTrip = p.trip?.source === id || p.trip?.target === id;
@@ -605,6 +626,7 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
     if (p.assignment?.building === id) {
       p.assignment = undefined;
       p.merchantRoute = undefined;
+      clearFarmTask(p);
       p.active = false;
       p.progress = 0;
       p.movement = 0;
@@ -614,7 +636,8 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
     }
   }
 
-  w.buildings.splice(index, 1);
+  const currentIndex = w.buildings.findIndex((b) => b.id === id);
+  if (currentIndex >= 0) w.buildings.splice(currentIndex, 1);
   const restored = tileAt(w, removed.position);
   restored.terrain = removed.baseTerrain ?? "grass";
   restored.trafficTicks = undefined;
@@ -733,7 +756,8 @@ export function tick(w: World): void {
         const source = building(w, p.trip.source);
         if (!same(p.position, source.position)) continue;
         if (source.kind === "warehouse" && !isUnderConstruction(source)) {
-          source.inventory![p.trip.good] -= CONFIG.carryCapacity;
+          source.inventory![p.trip.good] =
+            (source.inventory![p.trip.good] ?? 0) - CONFIG.carryCapacity;
         } else {
           source.output -= CONFIG.carryCapacity;
         }
@@ -747,7 +771,8 @@ export function tick(w: World): void {
           const delivered = target.construction!.delivered;
           delivered[p.trip.good] = (delivered[p.trip.good] ?? 0) + CONFIG.carryCapacity;
         } else if (target.kind === "warehouse") {
-          target.inventory![p.trip.good] += CONFIG.carryCapacity;
+          target.inventory![p.trip.good] =
+            (target.inventory![p.trip.good] ?? 0) + CONFIG.carryCapacity;
         } else {
           target.input += CONFIG.carryCapacity;
         }
@@ -761,12 +786,13 @@ export function tick(w: World): void {
   }
 
   advanceConstruction(w);
+  for (const id of advanceFarmSystem(w)) immediateDecisionPeople.add(id);
 
   for (const p of w.people) {
-    if (!p.assignment || !p.active || p.trip || p.path.length) continue;
+    if (!p.assignment || !p.active || p.trip || p.path.length || p.farmTask) continue;
     const b = building(w, p.assignment.building);
     if (!same(p.position, b.position)) continue;
-    if (p.assignment.role === "builder" || isUnderConstruction(b)) continue;
+    if (p.assignment.role === "builder" || isUnderConstruction(b) || b.kind === "farm") continue;
     const recipe = b.recipe;
     if (p.assignment.role === "worker" && recipe) {
       const forestHasYield =
@@ -799,7 +825,7 @@ export function tick(w: World): void {
 
   for (const p of w.people) {
     if (!regularDecisionTick && !immediateDecisionPeople.has(p.id)) continue;
-    if (!p.assignment || !p.active || p.path.length || p.trip || p.progress > 0)
+    if (!p.assignment || !p.active || p.path.length || p.trip || p.progress > 0 || p.farmTask)
       continue;
     const b = building(w, p.assignment.building);
     if (p.assignment.role === "builder" && isUnderConstruction(b)) {
@@ -809,6 +835,10 @@ export function tick(w: World): void {
     if (isUnderConstruction(b)) continue;
     if (p.assignment.role === "merchant") {
       requestMerchantTransfer(w, p, b);
+      continue;
+    }
+    if (b.kind === "farm" && p.assignment.role === "worker") {
+      planFarmWorker(w, p, b);
       continue;
     }
     const recipe = b.recipe;
@@ -826,11 +856,17 @@ export const GOODS: Record<Good, string> = {
   wood: "Holz",
   plank: "Bretter",
   woodenTool: "Holzwerkzeuge",
+  wheat: "Weizen",
 };
 
 export function status(w: World, b: Building): string {
   const workers = assigned(w, b.id, "worker");
   if (b.kind === "hq") return "Sammelpunkt für freie Personen";
+  if (b.kind === "field") {
+    if (b.retired) return b.output > 0 ? `${b.output} Weizen liegt zur Abholung bereit` : "Abgeerntet";
+    if (b.fieldStage === 4) return "Erntereif";
+    return `Wachstumsstufe ${b.fieldStage ?? 1}/4`;
+  }
   if (isUnderConstruction(b)) {
     const siteBuilders = assigned(w, b.id, "builder");
     const construction = b.construction!;
@@ -852,6 +888,16 @@ export function status(w: World, b: Building): string {
     return carriers
       ? `Träger sammeln Waren im Umkreis von ${CONFIG.warehouseCollectionRadius} Schritten`
       : "Keine Träger oder Händler zugewiesen";
+  }
+  if (b.kind === "farm") {
+    if (!workers.length) return "Kein Farmer zugewiesen";
+    const worker = workers[0]!;
+    const count = activeFarmFieldCount(w, b.id);
+    if (worker.farmTask?.kind === "sow") return `Farmer sät · ${count}/${CONFIG.farmMaxFields} Felder`;
+    if (worker.farmTask?.kind === "fertilize") return `Farmer düngt · ${count}/${CONFIG.farmMaxFields} Felder`;
+    if (worker.farmTask?.kind === "harvest") return `Farmer erntet · ${count}/${CONFIG.farmMaxFields} Felder`;
+    if (worker.path.length) return `Farmer unterwegs · ${count}/${CONFIG.farmMaxFields} Felder`;
+    return `${count}/${CONFIG.farmMaxFields} Felder aktiv`;
   }
   if (b.forestRemaining !== undefined) {
     if (b.retired) return "Erschöpft";

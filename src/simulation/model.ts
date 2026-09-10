@@ -1,14 +1,14 @@
-export type Good = "wood" | "plank" | "woodenTool";
+export type Good = "wood" | "plank" | "woodenTool" | "wheat";
 export type BuildingId = string;
-export type BuildingKind = "hq" | "forest" | "sawmill" | "carpenter" | "warehouse";
-export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest">;
+export type BuildingKind = "hq" | "forest" | "field" | "farm" | "sawmill" | "carpenter" | "warehouse";
+export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest" | "field">;
 export type Role = "worker" | "carrier" | "merchant" | "builder";
 export interface Hex {
   q: number;
   r: number;
 }
 export interface Tile extends Hex {
-  terrain: "grass" | "road" | "forest" | "mountain" | "river" | "building";
+  terrain: "grass" | "road" | "forest" | "field" | "mountain" | "river" | "building";
   trafficTicks?: number[];
 }
 export interface Recipe {
@@ -17,7 +17,7 @@ export interface Recipe {
   output: Good;
   duration: number;
 }
-export type Inventory = Record<Good, number>;
+export type Inventory = Partial<Record<Good, number>>;
 export type GoodAmounts = Partial<Record<Good, number>>;
 export interface ConstructionState {
   required: GoodAmounts;
@@ -26,6 +26,7 @@ export interface ConstructionState {
   progress: number;
   complete: boolean;
 }
+export type FieldStage = 1 | 2 | 3 | 4;
 export interface Building {
   id: BuildingId;
   kind: BuildingKind;
@@ -43,6 +44,9 @@ export interface Building {
   baseTerrain?: "grass" | "road";
   baseTerrains?: Record<string, "grass" | "road">;
   forestRemaining?: number;
+  farmId?: BuildingId;
+  fieldStage?: FieldStage;
+  fieldGrowthProgress?: number;
   retired?: boolean;
 }
 export interface Trip {
@@ -55,11 +59,18 @@ export interface MerchantRoute {
   target?: BuildingId;
   good: Good;
 }
+export interface FarmTask {
+  kind: "sow" | "fertilize" | "harvest";
+  target: Hex;
+  fieldId?: BuildingId;
+  progress: number;
+}
 export interface Person {
   id: number;
   position: Hex;
   assignment?: { building: BuildingId; role: Role };
   merchantRoute?: MerchantRoute;
+  farmTask?: FarmTask;
   woodcutter?: boolean;
   builder?: boolean;
   active: boolean;
@@ -73,6 +84,7 @@ export interface World {
   nextId: number;
   nextForestId: number;
   nextBuildingId: number;
+  nextFieldId: number;
   rngState: number;
   people: Person[];
   buildings: Building[];

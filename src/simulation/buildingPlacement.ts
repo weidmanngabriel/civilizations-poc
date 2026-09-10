@@ -30,12 +30,22 @@ const constructionPlan = (required: GoodAmounts): ConstructionPlan => ({
 
 export const CONSTRUCTION_PLANS: Record<BuildableBuildingKind, ConstructionPlan> = {
   warehouse: constructionPlan({ wood: 4 }),
+  farm: constructionPlan({ wood: 4 }),
   sawmill: constructionPlan({ wood: 6 }),
   carpenter: constructionPlan({ plank: 4 }),
 };
 
 const SHAPES: Record<BuildableBuildingKind, BuildingPlacementShape> = {
   warehouse: {
+    cells: [
+      { q: 0, r: 0 },
+      { q: 1, r: 0 },
+      { q: 0, r: 1 },
+      { q: 1, r: 1 },
+    ],
+    anchor: { q: 0, r: 0 },
+  },
+  farm: {
     cells: [
       { q: 0, r: 0 },
       { q: 1, r: 0 },
@@ -166,7 +176,7 @@ export function buildWithFootprint(
 
 export function removeBuildingWithFootprint(world: World, id: string): boolean {
   const existing = world.buildings.find((building) => building.id === id);
-  if (!existing || existing.kind === "hq" || existing.kind === "forest") return false;
+  if (!existing || existing.kind === "hq" || existing.kind === "forest" || existing.kind === "field") return false;
   const footprint = buildingFootprint(existing);
   const baseTerrains = existing.baseTerrains;
   if (!removeBuilding(world, id)) return false;
