@@ -28,6 +28,8 @@ export const woodcutters = (w: World): Person[] =>
   w.people.filter((p) => p.woodcutter);
 export const freePeople = (w: World): Person[] =>
   w.people.filter((p) => !p.assignment && !p.woodcutter);
+export const isUnderConstruction = (b: Building): boolean =>
+  Boolean(b.construction && !b.construction.complete);
 const incoming = (w: World, id: BuildingId, good?: Good) =>
   w.people.filter(
     (p) => p.trip?.target === id && (!good || p.trip.good === good),
@@ -55,27 +57,39 @@ const tileAt = (w: World, position: Hex): Tile =>
   w.tiles.find((tile) => same(tile, position))!;
 
 export const warehouseStock = (b: Building, good: Good): number =>
-  b.kind === "warehouse" ? (b.inventory?.[good] ?? 0) : 0;
+  b.kind === "warehouse" && !isUnderConstruction(b)
+    ? (b.inventory?.[good] ?? 0)
+    : 0;
 export const totalWarehouseStock = (w: World, good: Good): number =>
   w.buildings
-    .filter((b) => !b.retired && b.kind === "warehouse")
+    .filter((b) => !b.retired && b.kind === "warehouse" && !isUnderConstruction(b))
     .reduce((sum, b) => sum + warehouseStock(b, good), 0);
 
 const sourceStock = (b: Building, good: Good): number => {
+  if (isUnderConstruction(b)) return 0;
   if (b.kind === "warehouse") return warehouseStock(b, good);
   return b.recipe?.output === good ? b.output : 0;
 };
 const available = (w: World, b: Building, good: Good) =>
   sourceStock(b, good) - reservedAtSource(w, b.id, good);
 const warehouseHasSpace = (w: World, b: Building, good: Good) =>
+  !isUnderConstruction(b) &&
   warehouseStock(b, good) + incoming(w, b.id, good) <
-  CONFIG.warehouseCapacityPerGood;
+    CONFIG.warehouseCapacityPerGood;
+const constructionMaterialsComplete = (b: Building): boolean => {
+  const construction = b.construction;
+  if (!construction || construction.complete) return true;
+  return (Object.keys(construction.required) as Good[]).every(
+    (good) =>
+      (construction.delivered[good] ?? 0) >= (construction.required[good] ?? 0),
+  );
+};
 
 function returnCargoToSource(w: World, p: Person): void {
   if (!p.trip?.picked) return;
   const source = w.buildings.find((b) => b.id === p.trip!.source);
   if (!source) return;
-  if (source.kind === "warehouse") {
+  if (source.kind === "warehouse" && !isUnderConstruction(source)) {
     source.inventory ??= { wood: 0, plank: 0, woodenTool: 0 };
     source.inventory[p.trip.good] += CONFIG.carryCapacity;
   } else {
@@ -111,6 +125,8 @@ function rerouteCurrentTask(w: World, p: Person): void {
 }
 
 const roleLimit = (b: Building, role: Role): number => {
+  if (isUnderConstruction(b)) return role === "builder" ? 1 : 0;
+  if (role === "builder") return 0;
   if (role === "worker") return b.workers;
   if (role === "carrier") return b.carriers;
   return b.kind === "warehouse" ? (b.merchants ?? 0) : 0;
@@ -155,10 +171,15 @@ export function setMerchantRoute(
   const p = w.people.find((person) => person.id === personId);
   if (!p?.assignment || p.assignment.role !== "merchant") return false;
   const source = w.buildings.find((b) => b.id === p.assignment!.building);
-  if (!source || source.kind !== "warehouse") return false;
+  if (!source || source.kind !== "warehouse" || isUnderConstruction(source)) return false;
   if (target) {
     const destination = w.buildings.find((b) => b.id === target && !b.retired);
-    if (!destination || destination.kind !== "warehouse" || destination.id === source.id)
+    if (
+      !destination ||
+      destination.kind !== "warehouse" ||
+      isUnderConstruction(destination) ||
+      destination.id === source.id
+    )
       return false;
   }
   if (p.trip) cancel(w, p);
@@ -308,30 +329,39 @@ export function changeWoodcutters(w: World, delta: 1 | -1): boolean {
 type SourceCandidate = { source: Building; good: Good; path: Hex[] };
 
 function requestInput(w: World, p: Person, b: Building): void {
-  const goods: Good[] = b.kind === "warehouse"
-    ? ["wood", "plank", "woodenTool"]
-    : b.recipe?.input
-      ? [b.recipe.input]
-      : [];
+  const construction = isUnderConstruction(b) ? b.construction! : undefined;
+  const isWarehouseCollection = b.kind === "warehouse" && !construction;
+  const goods: Good[] = construction
+    ? (Object.keys(construction.required) as Good[]).filter(
+        (good) =>
+          (construction.delivered[good] ?? 0) + incoming(w, b.id, good) <
+          (construction.required[good] ?? 0),
+      )
+    : isWarehouseCollection
+      ? ["wood", "plank", "woodenTool"]
+      : b.recipe?.input
+        ? [b.recipe.input]
+        : [];
   if (!goods.length) return;
   if (
-    b.kind !== "warehouse" &&
+    !construction &&
+    !isWarehouseCollection &&
     b.input + incoming(w, b.id) >= CONFIG.inputCapacity
   )
     return;
 
   const sources: SourceCandidate[] = [];
   for (const good of goods) {
-    if (b.kind === "warehouse" && !warehouseHasSpace(w, b, good)) continue;
+    if (isWarehouseCollection && !warehouseHasSpace(w, b, good)) continue;
     for (const source of w.buildings) {
       if (
         source.id === b.id ||
         source.retired && !(source.forestRemaining === 0 && source.output > 0) ||
         available(w, source, good) <= 0 ||
-        (b.kind === "warehouse" && source.kind === "warehouse")
+        (isWarehouseCollection && source.kind === "warehouse")
       )
         continue;
-      if (b.kind === "warehouse") {
+      if (isWarehouseCollection) {
         const collectionPath = findPathBySteps(w.tiles, b.position, source.position);
         if (!collectionPath || collectionPath.length > CONFIG.warehouseCollectionRadius)
           continue;
@@ -364,9 +394,18 @@ function requestInput(w: World, p: Person, b: Building): void {
 
 function requestMerchantTransfer(w: World, p: Person, source: Building): void {
   const routeConfig = p.merchantRoute;
-  if (!routeConfig?.target || source.kind !== "warehouse") return;
+  if (
+    !routeConfig?.target ||
+    source.kind !== "warehouse" ||
+    isUnderConstruction(source)
+  )
+    return;
   const target = w.buildings.find(
-    (b) => b.id === routeConfig.target && b.kind === "warehouse" && !b.retired,
+    (b) =>
+      b.id === routeConfig.target &&
+      b.kind === "warehouse" &&
+      !b.retired &&
+      !isUnderConstruction(b),
   );
   if (!target) {
     routeConfig.target = undefined;
@@ -582,7 +621,7 @@ export function tick(w: World): void {
       if (!p.trip.picked) {
         const source = building(w, p.trip.source);
         if (!same(p.position, source.position)) continue;
-        if (source.kind === "warehouse") {
+        if (source.kind === "warehouse" && !isUnderConstruction(source)) {
           source.inventory![p.trip.good] -= CONFIG.carryCapacity;
         } else {
           source.output -= CONFIG.carryCapacity;
@@ -593,7 +632,10 @@ export function tick(w: World): void {
       } else {
         const target = building(w, p.trip.target);
         if (!same(p.position, target.position)) continue;
-        if (target.kind === "warehouse") {
+        if (isUnderConstruction(target)) {
+          const delivered = target.construction!.delivered;
+          delivered[p.trip.good] = (delivered[p.trip.good] ?? 0) + CONFIG.carryCapacity;
+        } else if (target.kind === "warehouse") {
           target.inventory![p.trip.good] += CONFIG.carryCapacity;
         } else {
           target.input += CONFIG.carryCapacity;
@@ -611,6 +653,27 @@ export function tick(w: World): void {
     if (!p.assignment || !p.active || p.trip || p.path.length) continue;
     const b = building(w, p.assignment.building);
     if (!same(p.position, b.position)) continue;
+
+    if (p.assignment.role === "builder" && isUnderConstruction(b)) {
+      const construction = b.construction!;
+      if (constructionMaterialsComplete(b)) {
+        construction.progress++;
+        p.progress = construction.progress;
+        if (construction.progress >= construction.duration) {
+          construction.progress = construction.duration;
+          construction.complete = true;
+          p.progress = 0;
+          p.assignment = undefined;
+          p.active = false;
+          route(w, p, building(w, "hq"));
+        }
+      } else {
+        p.progress = 0;
+      }
+      continue;
+    }
+
+    if (isUnderConstruction(b)) continue;
     const recipe = b.recipe;
     if (p.assignment.role === "worker" && recipe) {
       const forestHasYield =
@@ -643,6 +706,11 @@ export function tick(w: World): void {
     if (!p.assignment || !p.active || p.path.length || p.trip || p.progress > 0)
       continue;
     const b = building(w, p.assignment.building);
+    if (p.assignment.role === "builder" && isUnderConstruction(b)) {
+      if (!constructionMaterialsComplete(b)) requestInput(w, p, b);
+      continue;
+    }
+    if (isUnderConstruction(b)) continue;
     if (p.assignment.role === "merchant") {
       requestMerchantTransfer(w, p, b);
       continue;
@@ -667,6 +735,17 @@ export const GOODS: Record<Good, string> = {
 export function status(w: World, b: Building): string {
   const workers = assigned(w, b.id, "worker");
   if (b.kind === "hq") return "Sammelpunkt für freie Personen";
+  if (isUnderConstruction(b)) {
+    const builders = assigned(w, b.id, "builder");
+    const construction = b.construction!;
+    if (!builders.length) return "Baustelle wartet auf einen Bauarbeiter";
+    if (builders.some((p) => p.trip)) return "Bauarbeiter holt Baumaterial";
+    if (!constructionMaterialsComplete(b)) return "Wartet auf Baumaterial";
+    if (construction.progress > 0)
+      return `Baufortschritt: ${Math.round((construction.progress / construction.duration) * 100)} %`;
+    if (builders.every((p) => !p.active)) return "Bauarbeiter auf dem Weg";
+    return "Baubereit";
+  }
   if (b.kind === "warehouse") {
     const carriers = assigned(w, b.id, "carrier").length;
     const merchants = assigned(w, b.id, "merchant").length;
