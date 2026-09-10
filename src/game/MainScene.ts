@@ -5,12 +5,14 @@ import type {
   BuildingId,
   Good,
   Hex,
+  Person,
   Tile,
   World,
 } from "../simulation/model";
 import { key, same } from "../simulation/hex";
 import { personWorldPosition } from "../simulation/movement";
 import { CONFIG } from "../simulation/scenario";
+import { GOOD_ICONS } from "../icons";
 import {
   buildingFootprint,
   footprintAt,
@@ -55,6 +57,9 @@ const goodColors: Record<Good, number> = {
   plank: 0xd4a763,
   woodenTool: 0xc8d8d0,
   wheat: 0xe3c766,
+  flour: 0xf0e4c8,
+  water: 0x77b9d4,
+  bread: 0xb8793d,
 };
 
 type PointerPosition = { x: number; y: number };
@@ -380,8 +385,27 @@ export class MainScene extends Phaser.Scene {
     if (b.kind === "farm") return `${prefix}FARM`;
     if (b.kind === "sawmill") return `${prefix}SÄGEWERK`;
     if (b.kind === "carpenter") return `${prefix}SCHREINEREI`;
+    if (b.kind === "mill") return `${prefix}MÜHLE`;
+    if (b.kind === "bakery") return `${prefix}BÄCKEREI`;
+    if (b.kind === "well") return `${prefix}BRUNNEN`;
     if (b.kind === "warehouse") return `${prefix}LAGER`;
     return `${prefix}${b.name.toUpperCase()}`;
+  }
+
+  private personMarker(p: Person): string {
+    if (p.woodcutter) return "🪓";
+    if (p.builder) return "🔨";
+    if (p.assignment?.role === "merchant") return "🧭";
+    if (p.assignment?.role === "carrier") return "📦";
+    if (p.assignment?.role === "worker") {
+      const workplace = this.world.buildings.find((b) => b.id === p.assignment!.building);
+      if (workplace?.kind === "farm") return "🌾";
+      if (workplace?.kind === "mill") return "⚙️";
+      if (workplace?.kind === "bakery") return "🍞";
+      if (workplace?.kind === "sawmill") return "🪵";
+      if (workplace?.kind === "carpenter") return "🛠️";
+    }
+    return "👤";
   }
 
   private drawMap(): void {
@@ -618,18 +642,23 @@ export class MainScene extends Phaser.Scene {
           ? 0x234636
           : 0x8b512e;
       const dot = this.add.circle(x, y, 4, color).setStrokeStyle(1, 0xffffff);
-      const label = this.add.text(x, y, String(p.id), {
+      const label = this.add.text(x, y - 1, this.personMarker(p), {
         fontFamily: "system-ui",
-        fontSize: "6px",
+        fontSize: "7px",
         color: "#ffffff",
       }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
-      if (!p.assignment && !p.woodcutter && !p.builder) label.setColor("#24362b");
-      this.markers.add([dot, label]);
+      const idLabel = this.add.text(x + 4, y + 3, String(p.id), {
+        fontFamily: "system-ui",
+        fontSize: "4px",
+        color: "#ffffff",
+        backgroundColor: "#263c2d",
+      }).setResolution(TEXT_RESOLUTION).setOrigin(0, 0.5);
+      this.markers.add([dot, label, idLabel]);
       if (p.trip?.picked)
         this.markers.add(this.add.text(
           x + 3,
           y - 6,
-          { wood: "H", plank: "B", woodenTool: "W", wheat: "G" }[p.trip.good],
+          GOOD_ICONS[p.trip.good],
           {
             fontFamily: "system-ui",
             fontSize: "6px",

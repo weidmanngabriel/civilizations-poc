@@ -25,7 +25,7 @@ Dependencies flow from presentation toward the simulation. `src/simulation/` mus
 
 ## Simulation core
 
-`src/simulation/model.ts` defines people, assignments, transport trips, merchant routes, farm tasks, recipes, buildings, fields, local inventories, terrain and world state. Buildings have stable string IDs plus a separate `kind`. Goods currently include wood, plank, woodenTool and wheat.
+`src/simulation/model.ts` defines people, assignments, transport trips, merchant routes, farm tasks, recipes, buildings, fields, local inventories, terrain and world state. Buildings have stable string IDs plus a separate `kind`. Goods currently include wood, plank, woodenTool, wheat, flour, water and bread. Recipes support both the existing single-input representation and a multi-input map for chains such as flour + water → bread.
 
 Buildable buildings may carry a `footprint` and `baseTerrains` for demolition restoration. Their logical `position` remains the anchor used by jobs and routing. Buildable buildings can additionally carry a `construction` state while unfinished.
 
@@ -78,7 +78,7 @@ Fields are not treated as grass traffic counters while they exist. After harvest
 
 ## Multi-tile buildings
 
-User-facing buildable kinds are warehouse, farm, sawmill and carpenter. The HQ is multi-tile in the initial scenario.
+User-facing buildable kinds are warehouse, farm, sawmill, carpenter, mill, bakery and well. The HQ is multi-tile in the initial scenario.
 
 ```text
 HQ          4 tiles
@@ -86,6 +86,9 @@ Warehouse   4 tiles
 Farm        4 tiles
 Sawmill     6 tiles
 Carpenter   4 tiles
+Mill        4 tiles
+Bakery      4 tiles
+Well        4 tiles
 ```
 
 Placement requires all footprint and one-tile clearance-ring cells to exist and currently be grass or road. A person may not occupy a footprint tile. Therefore active fields block building placement just like forests or other non-free terrain.
@@ -97,6 +100,9 @@ Warehouse   4 wood    → 11 s base build time
 Farm        4 wood    → 11 s base build time
 Sawmill     6 wood    → 15 s base build time
 Carpenter   4 planks  → 11 s base build time
+Mill        4 wood    → 11 s base build time
+Bakery      4 planks  → 11 s base build time
+Well        4 wood    → 11 s base build time
 ```
 
 Build duration remains `(3 + 2 × required resource units) × simulationHz`. Up to two builders work on a site and the second builder exactly doubles progress while both are present. When a builder is assigned, construction input is planned immediately from the builder's current position. If material can be reserved, the first route goes directly to that source; only builders without available material route to the site and wait there.
@@ -112,6 +118,9 @@ Current generic recipes:
 - forest: 1 wood / ~4 seconds,
 - sawmill: 2 wood → 1 plank / ~4 seconds,
 - carpenter: 2 plank → 1 wooden tool / ~4 seconds.
+- mill: 1 wheat → 1 flour / ~4 seconds.
+- bakery: 1 flour + 1 water → 1 bread / ~4 seconds.
+- well: infinite water source with no worker and no production timer.
 
 Farm production deliberately does **not** use the generic recipe loop because it is spatial and multi-stage. The farmer works on separate field entities, picks up wheat when harvest completes and transports it through the existing trip primitive back to the farm. The farm then acts as the normal wheat source for warehouse collection.
 
@@ -187,7 +196,7 @@ Warehouse carriers collect wheat from the farm with the same source reservation 
 
 ## Warehouse and logistics model
 
-Warehouses have local per-good inventory with capacity 20 for wood, planks, wooden tools and wheat.
+Warehouses have local per-good inventory with capacity 20 for wood, planks, wooden tools, wheat, flour, water and bread. Water can be collected from wells; wells themselves are not depleted by pickup.
 
 Warehouse carriers collect output from non-warehouse sources only when the source lies within **10 reachable tile steps**. Farm output is a valid wheat source. Retired fields are not normal wheat sources after a successful harvest return. Warehouse carriers still never create warehouse-to-warehouse trips.
 
@@ -219,12 +228,13 @@ Farm is available in the same modal placement mode as other buildings. Touch beh
 
 `ui/controls.ts` owns overlays and the real-time accumulator.
 
-- farm is offered in the building choices,
-- a finished farm exposes one worker slot labelled Farmer,
+- farm, mill, bakery and well are offered in the building choices,
+- a finished farm exposes one worker slot labelled Farmer; mill and bakery expose Müller and Bäcker worker labels; well has no worker slot,
 - farm status reports sowing, fertilizing, harvesting or active-field count,
 - warehouse inventory includes wheat,
-- merchant goods include wheat,
-- top metrics include total wheat stored in completed warehouses,
+- merchant goods include wheat, flour, water and bread,
+- top metrics include total wheat and bread stored in completed warehouses,
+- goods use emoji markers alongside labels/counts where appropriate; building controls and headings use shared inline SVG icons; map people use role markers plus their numeric ID,
 - debug rows expose the current farmer action.
 
 Fields themselves are not normal selectable production buildings. Tapping an active field is treated as tapping its tile rather than opening a worker-management panel.

@@ -24,7 +24,10 @@ Aktuelle Größen:
 - Lager: 4 Kacheln,
 - Farm: 4 Kacheln,
 - Sägewerk: 6 Kacheln,
-- Schreinerei: 4 Kacheln.
+- Schreinerei: 4 Kacheln,
+- Mühle: 4 Kacheln,
+- Bäckerei: 4 Kacheln,
+- Brunnen: 4 Kacheln.
 
 Ein Gebäude bleibt logisch eine einzelne Entity. Klick oder Tap auf eine beliebige belegte Kachel selektiert dieselbe Gebäude-Entity.
 
@@ -63,7 +66,10 @@ Aktuelle PoC-Baukosten:
 - Lager: 4 Holz,
 - Farm: 4 Holz,
 - Sägewerk: 6 Holz,
-- Schreinerei: 4 Bretter.
+- Schreinerei: 4 Bretter,
+- Mühle: 4 Holz,
+- Bäckerei: 4 Bretter,
+- Brunnen: 4 Holz.
 
 Die normale Bauzeit bei einem Bauarbeiter beträgt **3 Sekunden Grundzeit plus 2 Sekunden pro benötigter Ressourceneinheit**. Damit dauern Lager, Farm und Schreinerei aktuell 11 Sekunden und das Sägewerk 15 Sekunden.
 
@@ -95,6 +101,9 @@ Nichts produziert ohne konkrete Person.
 - Sägewerk: 2 Holz → 1 Brett in ca. 4 Sekunden.
 - Schreinerei: 2 Bretter → 1 Holzwerkzeug in ca. 4 Sekunden.
 - Farm: Farmer bewirtschaftet bis zu vier umliegende Acker und erzeugt nach der Ernte je Acker 1 Weizen.
+- Mühle: 1 Weizen → 1 Mehl in ca. 4 Sekunden; ein Müller arbeitet dort.
+- Bäckerei: 1 Mehl + 1 Wasser → 1 Brot in ca. 4 Sekunden; ein Bäcker arbeitet dort.
+- Brunnen: unerschöpfliche Wasserquelle ohne zugewiesenen Arbeiter. Bäcker und Lager-Träger können dort Wasser holen.
 - Lager: Träger sammeln verfügbare Waren aus nahe gelegenen Produktions- und Rohstofforten ein.
 
 Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt aktuell genau eine Einheit pro Transportweg.
@@ -149,7 +158,10 @@ Lager halten aktuell maximal 20 Einheiten je Warentyp:
 - Holz,
 - Bretter,
 - Holzwerkzeuge,
-- Weizen.
+- Weizen,
+- Mehl,
+- Wasser,
+- Brot.
 
 Geplante Transporte reservieren Quelle und Zielkapazität. Lager-Träger sammeln Waren nur aus Nicht-Lagern innerhalb von **10 begehbaren Kachelschritten**. Sie verschieben niemals automatisch Ware von einem Lager in ein anderes.
 
@@ -168,7 +180,7 @@ Die Zielwahl geschieht in einem modalen Kartenmodus. Die Simulation pausiert wä
 
 ## Gebäude abreißen
 
-Frei baubar und abreißbar sind Lager, Farm, Sägewerk und Schreinerei, einschließlich unfertiger Baustellen.
+Frei baubar und abreißbar sind Lager, Farm, Sägewerk, Schreinerei, Mühle, Bäckerei und Brunnen, einschließlich unfertiger Baustellen.
 
 Beim Abriss verschwinden Footprint und lokale Gebäudebestände, der gespeicherte Untergrund wird wiederhergestellt, Personen werden freigesetzt und betroffene Transporte werden bereinigt. Bei einer Farm verschwinden zusätzlich alle noch aktiven zugehörigen Acker und werden zu Wiese. Bereits abgeernteter, lose liegender Weizen bleibt erhalten.
 
@@ -202,6 +214,8 @@ Die Karte ist dauerhaft bildschirmfüllend. Status und Steuerungen liegen als ko
 - Unten: Pause/Fortsetzen und 0,5× / 1× / 2× / 3×.
 - Oben: Build-Version und Kernmetriken einschließlich Weizenbestand in Lagern.
 - Debug-Personenliste zeigt Farmeraktionen wie Säen, Düngen und Ernten.
+- Waren verwenden, wo sinnvoll, Emojis zusammen mit Zahl und Text; Gebäude verwenden ein einheitliches kleines SVG-Icon-Set.
+- Personen werden auf der Karte zusätzlich über Rollen-Icons erkennbar und nicht mehr nur über ihre ID dargestellt.
 
 ## Desktop und Mobile
 

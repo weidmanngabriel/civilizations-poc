@@ -1,6 +1,6 @@
-export type Good = "wood" | "plank" | "woodenTool" | "wheat";
+export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread";
 export type BuildingId = string;
-export type BuildingKind = "hq" | "forest" | "field" | "farm" | "sawmill" | "carpenter" | "warehouse";
+export type BuildingKind = "hq" | "forest" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "warehouse";
 export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest" | "field">;
 export type Role = "worker" | "carrier" | "merchant" | "builder";
 export interface Hex {
@@ -13,6 +13,7 @@ export interface Tile extends Hex {
 }
 export interface Recipe {
   input?: Good;
+  inputs?: GoodAmounts;
   amount: number;
   output: Good;
   duration: number;
@@ -38,6 +39,7 @@ export interface Building {
   merchants?: number;
   recipe?: Recipe;
   input: number;
+  inputInventory?: Inventory;
   output: number;
   inventory?: Inventory;
   construction?: ConstructionState;
