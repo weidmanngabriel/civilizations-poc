@@ -31,9 +31,11 @@ Buildings may additionally carry a `footprint` containing all occupied Hex posit
 
 Buildable buildings can additionally carry a `construction` state. The building keeps its final `kind`, footprint and logical position while under construction, but `construction.complete === false` gates all normal building functionality. The state stores required goods, physically delivered goods, build duration and deterministic build progress. This deliberately avoids a second parallel entity hierarchy for construction sites.
 
+People can carry persistent global profession-pool flags. `woodcutter` and `builder` mean that the person remains part of that profession even while temporarily unassigned. `assignment` still represents the concrete current workplace. This lets builders be automatically moved between construction sites without turning the construction site itself into the owner of the profession.
+
 `scenario.ts` owns the fixed **41 × 25** map and central balance constants. The initial world contains eight people, one multi-tile HQ, passive forest groups, water and mountains. There are no initial roads.
 
-`simulation.ts` owns deterministic in-place simulation steps, assignment changes, reservations, production, construction work, forest claiming/depletion, low-level building creation/removal, road editing, organic road formation, merchant routes and status derivation.
+`simulation.ts` owns deterministic in-place simulation steps, assignment changes, reservations, production, construction work, global profession pools, forest claiming/depletion, low-level building creation/removal, road editing, organic road formation, merchant routes and status derivation.
 
 `buildingPlacement.ts` owns user-facing multi-tile placement rules. It defines per-building shapes as local Hex cells plus an independent local anchor cell. `footprintAt()` translates the shape so the selected world tile becomes that anchor. The anchor can therefore later be moved to the middle, front or any other cell of a rectangular or irregular footprint without changing placement consumers. The module calculates the one-tile clearance ring, validates placement, enumerates valid anchor positions, wraps building creation so every footprint tile is occupied, creates the initial construction state and restores all saved terrain on demolition. This keeps spatial placement policy out of Phaser and the DOM UI.
 
@@ -51,7 +53,7 @@ The slower game pace is implemented in the balance constants instead of reducing
 
 These values are exactly one quarter of the previous movement rate / four times the previous durations, so gameplay remains 75% slower while the state update frequency remains fine-grained.
 
-Autonomous planning is intentionally slower than the fixed simulation step. `CONFIG.decisionIntervalTicks` is 60, so idle source selection, merchant planning, construction-material planning and retries for waiting woodcutters run once per simulated second. The first fixed tick is also a decision tick so newly configured actors can react immediately at startup. Event-driven transitions bypass that cadence: arriving at an assigned workplace, completing a delivery and completing production mark the affected person for an immediate follow-up decision in the same tick. Forest depletion directly reassigns its woodcutter. Movement, pickup, delivery, production progress, construction progress and reservation state therefore remain responsive without performing expensive path/source searches 60 times per second.
+Autonomous planning is intentionally slower than the fixed simulation step. `CONFIG.decisionIntervalTicks` is 60, so idle source selection, merchant planning, construction-material planning and retries for waiting woodcutters/builders run once per simulated second. The first fixed tick is also a decision tick so newly configured actors can react immediately at startup. Event-driven transitions bypass that cadence: arriving at an assigned workplace, completing a delivery and completing production mark the affected person for an immediate follow-up decision in the same tick. Forest depletion directly reassigns its woodcutter. Construction completion directly releases its builders back into the builder pool and attempts immediate reassignment. Movement, pickup, delivery, production progress, construction progress and reservation state therefore remain responsive without performing expensive path/source searches 60 times per second.
 
 The UI still uses a `requestAnimationFrame` accumulator and the relative speed choices `0.5`, `1`, `2`, `3`. Rendering stays on the browser animation loop and is independent from simulation speed. Pausing stops simulation advancement while Phaser continues to render and accept camera input.
 
@@ -120,17 +122,20 @@ For whole-map placement previews, `validBuildingAnchors()` builds the free-tile 
 Current PoC construction plans are intentionally simple and data-driven inside `buildingPlacement.ts`:
 
 ```text
-Warehouse   4 wood
-Sawmill     6 wood
-Carpenter   4 planks
-Build work  240 ticks after all materials arrived
+Warehouse   4 wood    → 11 s base build time
+Sawmill     6 wood    → 15 s base build time
+Carpenter   4 planks  → 11 s base build time
 ```
 
-While `construction.complete === false`, `simulation.ts` exposes exactly one `builder` role and zero normal worker, carrier or merchant capacity. The assigned builder uses the existing trip/reservation model to fetch each required good from an operational source. Delivered goods are recorded in `construction.delivered` rather than the normal building inventory/input. An unfinished warehouse therefore cannot accidentally behave like a real warehouse.
+Build duration is calculated as `(3 + 2 × required resource units) × simulationHz`. The resulting duration is stored in simulation ticks on the construction state.
 
-Once all required quantities are present, the assigned builder advances `construction.progress` every fixed simulation tick. At the configured duration, the site becomes operational, the builder is released and routed back to HQ, and the normal role limits become available.
+While `construction.complete === false`, all normal worker, carrier and merchant capacity is gated. Builders are not manually assigned through the site's role controls. Instead, a persistent global `Person.builder` pool is configured at the HQ. Waiting builders automatically select a quickest reachable construction site with fewer than two assigned builders; equal-cost candidates use the deterministic seeded RNG. A site therefore accepts at most two builders.
 
-`removeBuildingWithFootprint()` delegates the existing entity/assignment/transport cleanup and then restores every saved footprint tile. This works for both completed buildings and unfinished construction sites; delivered construction goods are intentionally lost on demolition. HQ and forests remain non-demolishable.
+Assigned builders use the existing trip/reservation model to fetch each required good from an operational source. Delivered goods are recorded in `construction.delivered` rather than the normal building inventory/input. An unfinished warehouse therefore cannot accidentally behave like a real warehouse.
+
+Once all required quantities are present, construction progress advances once per fixed simulation tick by the number of active builders physically present at the site: +1 with one builder and +2 with two. This makes the second builder exactly double build speed without changing global simulation cadence. At completion all builders are released from the site but retain `builder === true`, then immediately attempt reassignment to another open site; otherwise they route toward HQ.
+
+`removeBuildingWithFootprint()` delegates the existing entity/assignment/transport cleanup and then restores every saved footprint tile. This works for both completed buildings and unfinished construction sites; delivered construction goods are intentionally lost on demolition. Builders released by demolition remain in the builder pool and are redispatched. HQ and forests remain non-demolishable.
 
 Building tiles are still walkable. This avoids introducing entrance or collision semantics before the product rules require them.
 
@@ -138,7 +143,7 @@ Building tiles are still walkable. This avoids introducing entrance or collision
 
 Trips represent reservations directly. Unpicked trips reserve source stock; planned deliveries reserve destination capacity. A picked trip physically carries one unit. Cancelling a carried trip returns it to the original source when that source still exists.
 
-The same trip primitive is used for construction materials. A builder only requests goods that are still missing after both delivered quantities and already incoming trips are counted. This prevents multiple planned construction trips from over-delivering the same requirement.
+The same trip primitive is used for construction materials. Builders only request goods that are still missing after both delivered quantities and already incoming trips are counted. This prevents simultaneous builders from over-delivering the same requirement.
 
 Production inputs remain inside the building until completion. In-progress production reserves output capacity. Production workers prioritize production and fetch inputs themselves only when blocked. Carriers assigned to production buildings fetch only required input.
 
@@ -211,21 +216,23 @@ Flow:
 ```text
 UI chooses building kind
 → BUILD_MODE_EVENT
-→ MainScene shows the initial ghost at the previously selected tile
+→ MainScene clears any previous placement anchor; no ghost is rendered yet
 → simulation validBuildingAnchors() evaluates all possible anchor tiles
 → map is dimmed and every valid anchor tile is redrawn at normal brightness
-→ desktop pointer hover or a short map tap updates the ghost anchor
+→ first short click/tap selects an anchor and enables ghost rendering
 → BUILD_POSITION_SELECTED_EVENT reports the preview anchor to the DOM UI
+→ after that first selection, desktop pointer hover or a short map tap may update the ghost anchor
 → simulation canPlaceBuilding() validates footprint + ring
 → Phaser draws green/red ghost + clearance ring
-→ UI enables "Bauen" only for a currently valid position
+→ UI enables "Bauen" only for a currently valid selected position
 → "Bauen" calls buildWithFootprint()
 → success exits mode and selects the new construction site
 ```
 
 Input responsibilities are deliberately separated:
 
-- desktop hover may move the ghost,
+- no placement ghost exists before the first short click/tap,
+- after the first selection desktop hover may move the ghost,
 - a short touch tap moves the ghost to the tapped tile,
 - one-finger touch drag pans the camera and never moves the ghost,
 - two-finger touch gestures zoom/pan and never move the ghost,
@@ -243,15 +250,15 @@ The existing merchant destination mode remains separate. It pauses simulation, s
 
 - top: build/version and core metrics,
 - bottom: pause/resume, 0.5×, 1×, 2×, 3×, debug,
-- HQ: population and woodcutter controls,
-- construction site: required/delivered material, build progress and one builder slot,
+- HQ: population, woodcutter-pool and builder-pool controls,
+- construction site: required/delivered material, build progress and automatically assigned builder count up to two,
 - production buildings: recipe, inventory, worker/carrier controls, demolition,
 - warehouse: local stocks, carriers, merchants and route configuration,
 - active forest: remaining yield/output,
 - empty grass/road tile: building choices and manual road action,
 - debug overlay: people and transport tasks.
 
-When the player chooses a building type, the normal selection panel and bottom controls are hidden and a compact placement overlay is shown. The overlay explicitly says **“Tippen, um das Gebäude zu verschieben.”** and contains `Bauen` plus `Abbrechen` actions. `src/build-placement.css` keeps those actions inside the panel and places them in their own two-column row on narrow screens.
+When the player chooses a building type, the normal selection panel and bottom controls are hidden and a compact placement overlay is shown. The overlay says **“Tippen, um eine Position zu wählen.”** and contains `Bauen` plus `Abbrechen` actions. `src/build-placement.css` keeps those actions inside the panel and places them in their own two-column row on narrow screens.
 
 ## Presentation performance
 
@@ -276,7 +283,7 @@ Placement has dedicated coverage for:
 - arbitrary anchor positions inside irregular local shapes,
 - whole-map valid-anchor enumeration matching `canPlaceBuilding()`.
 
-Construction coverage verifies that placement produces an unfinished site, normal roles remain disabled until completion, a builder physically fetches the required material, build progress completes deterministically, the builder is released afterwards and carpenter construction uses planks.
+Construction coverage verifies that placement produces an unfinished site, normal roles remain disabled until completion, builders are taken from the global pool and assigned automatically, a site accepts at most two builders, simultaneous builders do not over-deliver reservations, two active builders advance construction at 2× speed, duration follows the 3 s + 2 s/resource formula, completed builders remain in their profession pool, and carpenter construction uses planks.
 
 Decision-cadence coverage verifies that idle autonomous planning does not re-run between one-second decision boundaries and that a delivery can trigger its required follow-up decision immediately without waiting for the next boundary.
 
