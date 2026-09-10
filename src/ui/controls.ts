@@ -10,7 +10,9 @@ import type {
 import {
   assigned,
   building,
+  builders,
   changeAssignment,
+  changeBuilders,
   changePopulation,
   changeWoodcutters,
   freePeople,
@@ -55,7 +57,7 @@ const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
-  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span><b>Tippen, um das Gebäude zu verschieben.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
+  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span><b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
 
   let autoplayFrame: number | undefined;
   let lastAutoplayFrame = 0;
@@ -90,7 +92,7 @@ export function mountControls(w: World, renderMap: () => void): void {
           ? "Händler"
           : "Bauarbeiter";
   const roleLimit = (b: Building, role: Role): number => {
-    if (isUnderConstruction(b)) return role === "builder" ? 1 : 0;
+    if (isUnderConstruction(b)) return 0;
     if (role === "builder") return 0;
     if (role === "worker") return b.workers;
     if (role === "carrier") return b.carriers;
@@ -144,12 +146,17 @@ export function mountControls(w: World, renderMap: () => void): void {
       setField("population-count", String(w.people.length));
       setField("free-count", String(freePeople(w).length));
       setField("woodcutter-count", String(woodcutters(w).length));
+      setField("builder-pool-count", String(builders(w).length));
       const populationMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="population"][data-delta="-1"]');
       const woodcutterMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="woodcutter"][data-delta="-1"]');
       const woodcutterPlus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="woodcutter"][data-delta="1"]');
+      const builderMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="builder-pool"][data-delta="-1"]');
+      const builderPlus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="builder-pool"][data-delta="1"]');
       if (populationMinus) populationMinus.disabled = !canRemovePopulation();
       if (woodcutterMinus) woodcutterMinus.disabled = woodcutters(w).length === 0;
       if (woodcutterPlus) woodcutterPlus.disabled = freePeople(w).length === 0;
+      if (builderMinus) builderMinus.disabled = builders(w).length === 0;
+      if (builderPlus) builderPlus.disabled = freePeople(w).length === 0;
       return;
     }
 
@@ -166,6 +173,7 @@ export function mountControls(w: World, renderMap: () => void): void {
           `${b.construction!.delivered[good] ?? 0}/${b.construction!.required[good] ?? 0}`,
         );
       }
+      setField("builder-count", `${assigned(w, b.id, "builder").length}/2`);
       setField(
         "construction-progress",
         `${Math.round((b.construction!.progress / b.construction!.duration) * 100)} %`,
@@ -179,7 +187,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       setField("output", `${b.output}/${CONFIG.outputCapacity}`);
     }
 
-    for (const role of ["worker", "carrier", "merchant", "builder"] as const) {
+    for (const role of ["worker", "carrier", "merchant"] as const) {
       const limit = roleLimit(b, role);
       if (!limit) continue;
       const people = assigned(w, b.id, role);
@@ -233,7 +241,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
     selectionPanel.hidden = false;
     if (b.kind === "hq") {
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Sammelpunkt und globale Personalsteuerung</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> frei</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><div class="assignment"><div>Holzfäller<small>Jeder sucht selbständig einen freien Wald</small></div><div class="stepper"><button data-action="woodcutter" data-delta="-1">−</button><output data-field="woodcutter-count"></output><button data-action="woodcutter" data-delta="1">+</button></div></div><p class="status" data-field="status"></p>`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Sammelpunkt und globale Personalsteuerung</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> frei</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><div class="assignment"><div>Holzfäller<small>Jeder sucht selbständig einen freien Wald</small></div><div class="stepper"><button data-action="woodcutter" data-delta="-1">−</button><output data-field="woodcutter-count"></output><button data-action="woodcutter" data-delta="1">+</button></div></div><div class="assignment"><div>Bauarbeiter<small>Werden automatisch auf Baustellen verteilt</small></div><div class="stepper"><button data-action="builder-pool" data-delta="-1">−</button><output data-field="builder-pool-count"></output><button data-action="builder-pool" data-delta="1">+</button></div></div><p class="status" data-field="status"></p>`;
       updateSelectionLiveState();
       return;
     }
@@ -246,7 +254,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       const materials = (Object.keys(b.construction!.required) as Good[])
         .map((good) => `<div><span>${GOODS[good]}</span><strong data-field="construction-${good}"></strong></div>`)
         .join("");
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>BAUSTELLE</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Material wird physisch beschafft. Sobald alles da ist, beginnt der Bau.</p>${assignmentControl(b, "builder", 1)}<div class="inventory">${materials}<div><span>Baufortschritt</span><strong data-field="construction-progress"></strong></div></div><p class="status" data-field="status"></p>${demolish}`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>BAUSTELLE</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Bauarbeiter werden automatisch aus dem globalen Pool zugewiesen. Zwei Bauarbeiter bauen doppelt so schnell.</p><div class="inventory"><div><span>Bauarbeiter</span><strong data-field="builder-count"></strong></div>${materials}<div><span>Baufortschritt</span><strong data-field="construction-progress"></strong></div></div><p class="status" data-field="status"></p>${demolish}`;
       updateSelectionLiveState();
       return;
     }
@@ -280,7 +288,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const refreshPanels = () => {
     renderSelectionPanel();
-    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => `<tr><td>${p.id}</td><td>${p.woodcutter ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald") : p.assignment ? `${building(w, p.assignment.building).name} · ${roleLabel(p.assignment.role)}` : "Frei"}</td><td>${p.trip ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}` : p.assignment?.role === "merchant" && p.merchantRoute?.target ? `${GOODS[p.merchantRoute.good]} → Ziellager${p.path.length ? " · Rückweg" : ""}` : p.progress ? `${p.woodcutter ? "Fällt Holz" : p.assignment?.role === "builder" ? "Baut" : "Produziert"} · ${Math.round((p.progress / CONFIG.duration) * 100)} %` : p.path.length ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : "Auf dem Rückweg zum HQ") : p.assignment ? "An der Arbeitsstätte" : p.woodcutter ? "Wartet auf Wald" : "Am HQ"}</td></tr>`).join("")}</tbody></table>`;
+    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => `<tr><td>${p.id}</td><td>${p.woodcutter ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald") : p.builder ? (p.assignment ? `Bauarbeiter · ${building(w, p.assignment.building).name}` : "Bauarbeiter · wartet auf Baustelle") : p.assignment ? `${building(w, p.assignment.building).name} · ${roleLabel(p.assignment.role)}` : "Frei"}</td><td>${p.trip ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}` : p.assignment?.role === "merchant" && p.merchantRoute?.target ? `${GOODS[p.merchantRoute.good]} → Ziellager${p.path.length ? " · Rückweg" : ""}` : p.progress ? `${p.woodcutter ? "Fällt Holz" : p.builder ? "Baut" : "Produziert"} · ${Math.round((p.progress / (p.assignment && isUnderConstruction(building(w, p.assignment.building)) ? building(w, p.assignment.building).construction!.duration : CONFIG.duration)) * 100)} %` : p.path.length ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : p.builder ? "Sucht / wartet auf Baustelle" : "Auf dem Rückweg zum HQ") : p.assignment ? "An der Arbeitsstätte" : p.woodcutter ? "Wartet auf Wald" : p.builder ? "Wartet auf Baustelle" : "Am HQ"}</td></tr>`).join("")}</tbody></table>`;
   };
 
   const refresh = () => {
@@ -353,7 +361,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const enterBuildPlacementMode = (kind: BuildableBuildingKind) => {
     buildPlacementKind = kind;
-    buildPlacementPosition = selectedTile ? { ...selectedTile } : undefined;
+    buildPlacementPosition = undefined;
     selectedTile = undefined;
     selectedBuildingId = undefined;
     setDebugOpen(false);
@@ -483,6 +491,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     const delta = Number(button.dataset.delta) as 1 | -1;
     if (action === "population") changePopulation(w, delta);
     if (action === "woodcutter") changeWoodcutters(w, delta);
+    if (action === "builder-pool") changeBuilders(w, delta);
     if (action === "assignment")
       changeAssignment(
         w,
