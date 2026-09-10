@@ -19,10 +19,19 @@ export type ConstructionPlan = {
   duration: number;
 };
 
+const constructionDuration = (required: GoodAmounts): number =>
+  (3 + Object.values(required).reduce((sum, amount) => sum + (amount ?? 0), 0) * 2) *
+  CONFIG.simulationHz;
+
+const constructionPlan = (required: GoodAmounts): ConstructionPlan => ({
+  required,
+  duration: constructionDuration(required),
+});
+
 export const CONSTRUCTION_PLANS: Record<BuildableBuildingKind, ConstructionPlan> = {
-  warehouse: { required: { wood: 4 }, duration: CONFIG.duration },
-  sawmill: { required: { wood: 6 }, duration: CONFIG.duration },
-  carpenter: { required: { plank: 4 }, duration: CONFIG.duration },
+  warehouse: constructionPlan({ wood: 4 }),
+  sawmill: constructionPlan({ wood: 6 }),
+  carpenter: constructionPlan({ plank: 4 }),
 };
 
 const SHAPES: Record<BuildableBuildingKind, BuildingPlacementShape> = {
