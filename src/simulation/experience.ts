@@ -17,8 +17,8 @@ export function gainProfessionExperience(
   workTicks = 1,
 ): void {
   if (workTicks <= 0) return;
-  p.experience ??= {};
-  let xp = professionExperience(p, profession);
+  const experience = (p.experience ??= {});
+  let xp = experience[profession] ?? 0;
   let remainingTicks = workTicks;
 
   for (const band of EXPERIENCE_BANDS) {
@@ -30,7 +30,7 @@ export function gainProfessionExperience(
     remainingTicks -= spentTicks;
   }
 
-  p.experience[profession] = Math.min(100, xp);
+  experience[profession] = Math.min(100, xp);
 }
 
 export const productionMultiplier = (p: Person, profession: Profession): number =>
