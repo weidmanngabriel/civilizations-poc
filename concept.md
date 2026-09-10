@@ -27,6 +27,8 @@ Aktuelle Größen:
 
 Ein Gebäude bleibt logisch eine einzelne Entity mit einer Ankerposition. Klick oder Tap auf eine beliebige belegte Kachel selektiert dieselbe Gebäude-Entity.
 
+Form und Anker sind dabei getrennt definiert. Die Gebäudeform besteht aus lokalen Hex-Zellen; zusätzlich bestimmt jeder Gebäudetyp, welche dieser lokalen Zellen der **Ankerpunkt** ist. Die vom Spieler angetippte Kachel ist die Zielposition dieses Ankers, und der restliche Footprint wird relativ dazu platziert. Dadurch kann der Anker künftig ohne Änderung der Platzierungslogik beispielsweise vorne, mittig oder an einer anderen Stelle einer rechteckigen oder unregelmäßigen Gebäudeform liegen.
+
 ### Platzierungsregel
 
 Ein Gebäude darf nur platziert werden, wenn:
@@ -47,16 +49,19 @@ Gebäude werden nicht mehr sofort auf der zuvor angeklickten Kachel gebaut.
 1. Der Spieler wählt auf einer bebaubaren Kachel einen Gebäudetyp.
 2. Die UI wechselt in einen eigenen Baumodus und blendet die normalen Steuerelemente aus.
 3. Die Karte wird leicht abgedunkelt.
-4. Ein halbtransparenter Gebäude-Ghost snappt auf das Hex-Grid.
-5. Der komplette Footprint wird dargestellt.
-6. Gültige Positionen werden grün, ungültige rot hervorgehoben; der notwendige freie Ring wird zusätzlich sichtbar umrandet.
-7. **Ein kurzer Tap auf die Karte verschiebt auf Touch-Geräten nur den Ghost.**
-8. **Ziehen verschiebt weiterhin ausschließlich die Karte; Pinch-Zoom bleibt unverändert.**
-9. Ein klarer Hinweis im Overlay erklärt: „Tippen, um das Gebäude zu verschieben.“
-10. Der Bau wird ausschließlich über den sichtbaren **„Bauen“**-Button bestätigt. Dieser ist nur aktiv, wenn die aktuelle Position gültig ist.
-11. Ein sichtbarer **„Abbrechen“**-Button beendet den Modus ohne Bau.
+4. **Alle aktuell gültigen Ankerkacheln bleiben in ihrer normalen Helligkeit sichtbar; ungültige Ankerkacheln bleiben abgedunkelt.** Damit ist vor dem ersten Tap sichtbar, auf welche Kacheln das Gebäude gesetzt werden kann.
+5. Ein halbtransparenter Gebäude-Ghost snappt auf das Hex-Grid und verwendet die gewählte Kachel als Ankerpunkt.
+6. Der komplette Footprint wird dargestellt.
+7. Der Ghost wird bei gültiger Position grün und bei ungültiger Position rot hervorgehoben; der notwendige freie Ring wird zusätzlich sichtbar umrandet.
+8. **Ein kurzer Tap auf die Karte verschiebt auf Touch-Geräten nur den Ghost.**
+9. **Ziehen verschiebt weiterhin ausschließlich die Karte; Pinch-Zoom bleibt unverändert.**
+10. Ein klarer Hinweis im Overlay erklärt: „Tippen, um das Gebäude zu verschieben.“
+11. Der Bau wird ausschließlich über den sichtbaren **„Bauen“**-Button bestätigt. Dieser ist nur aktiv, wenn die aktuelle Position gültig ist.
+12. Ein sichtbarer **„Abbrechen“**-Button beendet den Modus ohne Bau.
 
 Auf Desktop kann der Ghost weiterhin der Mausposition folgen. Auch dort ist „Bauen“ die explizite Bestätigung; ein Karten-Klick baut nicht unmittelbar.
+
+Auf schmalen Displays ordnet der Baumodus seine beiden Aktionsbuttons in einer eigenen Zeile innerhalb des Overlays an, damit weder „Bauen“ noch „Abbrechen“ aus dem sichtbaren Bereich ragen.
 
 ## Zeit und Spielgeschwindigkeit
 
@@ -197,6 +202,7 @@ Referenzgerät ist ein iPhone 13 Mini mit 375 × 812 CSS-Pixeln.
 - Touch: ein Finger verschiebt, zwei Finger zoomen.
 - Im Baumodus verschiebt ein kurzer Tap nur den Ghost; Ziehen bleibt Pan.
 - Der Bau wird im Baumodus ausschließlich mit „Bauen“ bestätigt oder mit „Abbrechen“ verworfen.
+- Im Baumodus zeigen normal helle Kacheln die aktuell gültigen Ankerpositionen; die übrige Karte bleibt leicht abgedunkelt.
 - Overlays berücksichtigen Safe Areas.
 
 ## Simulationsreihenfolge
