@@ -36,7 +36,7 @@ test("mill and bakery turn wheat plus well water into bread", () => {
 
   assert.ok(mill.output > 0 || (bakery.inputInventory?.flour ?? 0) > 0 || bakery.output > 0);
   assert.ok((bakery.inputInventory?.water ?? 0) >= 0);
-  assert.equal(bakery.output, 2, "one bakery batch should produce two bread");
+  assert.ok(bakery.output > 2 && bakery.output < 2.1, "first bakery batch should be just above two bread as experience starts growing");
   assert.equal(well.output, 0, "well water must not be depleted");
 });
 

@@ -32,7 +32,7 @@ test("production worker keeps producing while input and output space allow it", 
   forest.output = 1;
 
   for (let i = 0; i < CONFIG.duration; i++) tick(world);
-  assert.equal(sawmill.output, 1);
+  assert.ok(sawmill.output > 1 && sawmill.output < 1.01);
   assert.equal(sawmill.input, 8);
   assert.equal(worker.trip, undefined);
 
@@ -41,7 +41,7 @@ test("production worker keeps producing while input and output space allow it", 
   assert.equal(worker.trip, undefined);
 
   for (let i = 0; i < CONFIG.duration * 2 - 1; i++) tick(world);
-  assert.equal(sawmill.output, 3);
+  assert.ok(sawmill.output > 3 && sawmill.output < 3.1);
   assert.equal(sawmill.input, 4);
   assert.equal(worker.progress, 0);
   assert.deepEqual(worker.trip, {
