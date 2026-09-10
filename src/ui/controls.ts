@@ -27,6 +27,11 @@ import {
   woodcutters,
 } from "../simulation/simulation";
 import {
+  currentProfession,
+  PROFESSION_LABELS,
+  professionExperience,
+} from "../simulation/experience";
+import {
   buildWithFootprint,
   canPlaceBuilding,
   removeBuildingWithFootprint,
@@ -59,6 +64,8 @@ const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
   bakery: "Bäckerei",
   well: "Brunnen",
 };
+
+const formatAmount = (value: number): string => value.toFixed(1).replace(".", ",");
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -196,7 +203,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
     if (b.forestRemaining !== undefined) {
       setField("forest-remaining", String(b.forestRemaining));
-      setField("output", `${b.output}/${CONFIG.outputCapacity}`);
+      setField("output", `${formatAmount(b.output)}/${formatAmount(CONFIG.outputCapacity)}`);
       return;
     }
 
@@ -213,13 +220,13 @@ export function mountControls(w: World, renderMap: () => void): void {
         `${Math.round((b.construction!.progress / b.construction!.duration) * 100)} %`,
       );
     } else if (b.kind === "warehouse") {
-      setField("warehouse-wood", `${warehouseStock(b, "wood")}/${CONFIG.warehouseCapacityPerGood}`);
-      setField("warehouse-plank", `${warehouseStock(b, "plank")}/${CONFIG.warehouseCapacityPerGood}`);
-      setField("warehouse-tool", `${warehouseStock(b, "woodenTool")}/${CONFIG.warehouseCapacityPerGood}`);
-      setField("warehouse-wheat", `${warehouseStock(b, "wheat")}/${CONFIG.warehouseCapacityPerGood}`);
-      setField("warehouse-flour", `${warehouseStock(b, "flour")}/${CONFIG.warehouseCapacityPerGood}`);
-      setField("warehouse-water", `${warehouseStock(b, "water")}/${CONFIG.warehouseCapacityPerGood}`);
-      setField("warehouse-bread", `${warehouseStock(b, "bread")}/${CONFIG.warehouseCapacityPerGood}`);
+      setField("warehouse-wood", `${formatAmount(warehouseStock(b, "wood"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
+      setField("warehouse-plank", `${formatAmount(warehouseStock(b, "plank"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
+      setField("warehouse-tool", `${formatAmount(warehouseStock(b, "woodenTool"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
+      setField("warehouse-wheat", `${formatAmount(warehouseStock(b, "wheat"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
+      setField("warehouse-flour", `${formatAmount(warehouseStock(b, "flour"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
+      setField("warehouse-water", `${formatAmount(warehouseStock(b, "water"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
+      setField("warehouse-bread", `${formatAmount(warehouseStock(b, "bread"))}/${formatAmount(CONFIG.warehouseCapacityPerGood)}`);
     } else {
       const recipeInputs = b.recipe?.inputs
         ? (Object.keys(b.recipe.inputs) as Good[])
@@ -228,9 +235,9 @@ export function mountControls(w: World, renderMap: () => void): void {
           : [];
       for (const good of recipeInputs) {
         const amount = b.recipe?.inputs ? (b.inputInventory?.[good] ?? 0) : b.input;
-        setField(`input-${good}`, `${amount}/${CONFIG.inputCapacity}`);
+        setField(`input-${good}`, `${formatAmount(amount)}/${formatAmount(CONFIG.inputCapacity)}`);
       }
-      setField("output", `${b.output}/${CONFIG.outputCapacity}`);
+      setField("output", `${formatAmount(b.output)}/${formatAmount(CONFIG.outputCapacity)}`);
     }
 
     for (const role of ["worker", "carrier", "merchant"] as const) {
@@ -313,7 +320,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       const materials = (Object.keys(b.construction!.required) as Good[])
         .map((good) => `<div><span>${goodLabel(good)}</span><strong data-field="construction-${good}"></strong></div>`)
         .join("");
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>BAUSTELLE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Bauarbeiter werden automatisch aus dem globalen Pool zugewiesen. Zwei Bauarbeiter bauen doppelt so schnell.</p><div class="inventory"><div><span>Bauarbeiter</span><strong data-field="builder-count"></strong></div>${materials}<div><span>Baufortschritt</span><strong data-field="construction-progress"></strong></div></div><p class="status" data-field="status"></p>${demolish}`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>BAUSTELLE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Bauarbeiter werden automatisch aus dem globalen Pool zugewiesen. Erfahrung erhöht den persönlichen Baufortschritt bis auf das Doppelte.</p><div class="inventory"><div><span>Bauarbeiter</span><strong data-field="builder-count"></strong></div>${materials}<div><span>Baufortschritt</span><strong data-field="construction-progress"></strong></div></div><p class="status" data-field="status"></p>${demolish}`;
       updateSelectionLiveState();
       return;
     }
@@ -346,13 +353,12 @@ export function mountControls(w: World, renderMap: () => void): void {
     const merchantAssignment = b.kind === "warehouse"
       ? assignmentControl(b, "merchant", b.merchants ?? 0)
       : "";
-
     selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">${recipe}</p>${assignmentControl(b, "worker", b.workers)}${assignmentControl(b, "carrier", b.carriers)}${merchantAssignment}<div class="inventory">${inventory}</div>${merchantControls(b)}<p class="status" data-field="status"></p>${demolish}`;
     updateSelectionLiveState();
   }
 
   const refreshLiveState = () => {
-    document.querySelector("#metrics")!.innerHTML = `<div><small>👥 BEV.</small><strong>${w.people.length}</strong></div><div><small>👤 FREI</small><strong>${freePeople(w).length}</strong></div><div><small>${GOOD_ICONS.wheat} WEIZEN</small><strong>${totalWarehouseStock(w, "wheat")}</strong></div><div><small>${GOOD_ICONS.bread} BROT</small><strong>${totalWarehouseStock(w, "bread")}</strong></div>`;
+    document.querySelector("#metrics")!.innerHTML = `<div><small>👥 BEV.</small><strong>${w.people.length}</strong></div><div><small>👤 FREI</small><strong>${freePeople(w).length}</strong></div><div><small>${GOOD_ICONS.wheat} WEIZEN</small><strong>${formatAmount(totalWarehouseStock(w, "wheat"))}</strong></div><div><small>${GOOD_ICONS.bread} BROT</small><strong>${formatAmount(totalWarehouseStock(w, "bread"))}</strong></div>`;
     if (!selectedTile) updateSelectionLiveState();
     updateBuildPlacementConfirm();
     renderMap();
@@ -360,7 +366,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const refreshPanels = () => {
     renderSelectionPanel();
-    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => {
+    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Erfahrung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => {
       const farmAction = p.farmTask?.kind === "sow"
         ? "Sät"
         : p.farmTask?.kind === "fertilize"
@@ -375,6 +381,10 @@ export function mountControls(w: World, renderMap: () => void): void {
           : p.assignment
             ? `${building(w, p.assignment.building).name} · ${p.assignment.role === "worker" ? workerLabel(building(w, p.assignment.building)) : roleLabel(p.assignment.role)}`
             : "Frei";
+      const profession = currentProfession(w, p);
+      const experience = profession
+        ? `${PROFESSION_LABELS[profession]} · ${Math.round(professionExperience(p, profession))} %`
+        : "–";
       const state = p.trip
         ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOOD_ICONS[p.trip.good]} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}`
         : farmAction
@@ -392,7 +402,7 @@ export function mountControls(w: World, renderMap: () => void): void {
                     : p.builder
                       ? "Wartet auf Baustelle"
                       : "Am HQ";
-      return `<tr><td><span class="person-id"><span aria-hidden="true">${personIcon(p.id)}</span><span>${p.id}</span></span></td><td>${assignment}</td><td>${state}</td></tr>`;
+      return `<tr><td><span class="person-id"><span aria-hidden="true">${personIcon(p.id)}</span><span>${p.id}</span></span></td><td>${assignment}</td><td>${experience}</td><td>${state}</td></tr>`;
     }).join("")}</tbody></table>`;
   };
 
@@ -451,6 +461,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   const setDebugOpen = (open: boolean) => {
     debugPanel.hidden = !open;
     debugToggle.setAttribute("aria-pressed", String(open));
+    if (open) refreshPanels();
   };
 
   const leaveBuildPlacementMode = () => {
