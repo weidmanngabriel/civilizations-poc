@@ -77,6 +77,7 @@ export interface FarmTask {
   target: Hex;
   fieldId?: BuildingId;
   progress: number;
+  outputMultiplier?: number;
 }
 export interface Person {
   id: number;
@@ -87,6 +88,7 @@ export interface Person {
   woodcutter?: boolean;
   builder?: boolean;
   experience?: Partial<Record<Profession, number>>;
+  workMultiplier?: number;
   pendingFarmBonus?: number;
   active: boolean;
   progress: number;
