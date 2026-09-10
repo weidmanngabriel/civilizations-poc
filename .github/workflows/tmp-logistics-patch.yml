@@ -17,152 +17,110 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-      - name: Apply code and test changes
+      - name: Apply implementation
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          def replace(path, old, new):
+          def rep(path, old, new):
               p = Path(path)
-              text = p.read_text()
-              if old not in text:
-                  raise SystemExit(f"pattern not found in {path}: {old[:120]!r}")
-              p.write_text(text.replace(old, new, 1))
+              s = p.read_text()
+              if old not in s:
+                  raise SystemExit(f"missing pattern in {path}: {old[:100]!r}")
+              p.write_text(s.replace(old, new, 1))
 
-          replace(
-              "src/simulation/simulation.ts",
+          rep("src/simulation/simulation.ts",
               '  if (b.kind === "warehouse") return warehouseStock(b, good);\n  return b.recipe?.output === good ? b.output : 0;',
-              '  if (b.kind === "warehouse") return warehouseStock(b, good);\n  if (b.kind === "farm" && good === "wheat") return b.output;\n  return b.recipe?.output === good ? b.output : 0;',
-          )
+              '  if (b.kind === "warehouse") return warehouseStock(b, good);\n  if (b.kind === "farm" && good === "wheat") return b.output;\n  return b.recipe?.output === good ? b.output : 0;')
 
-          replace(
-              "src/simulation/simulation.ts",
+          rep("src/simulation/simulation.ts",
               '  p.assignment = { building: choice.site.id, role: "builder" };\n  p.active = same(p.position, choice.site.position);\n  p.progress = 0;\n  p.movement = 0;\n  p.path = choice.path;\n  return true;',
-              '  p.assignment = { building: choice.site.id, role: "builder" };\n  p.active = false;\n  p.progress = 0;\n  p.movement = 0;\n  p.path = [];\n  requestInput(w, p, choice.site);\n  if (!p.trip) {\n    p.path = choice.path;\n    p.active = same(p.position, choice.site.position);\n  }\n  return true;',
-          )
+              '  p.assignment = { building: choice.site.id, role: "builder" };\n  p.active = false;\n  p.progress = 0;\n  p.movement = 0;\n  p.path = [];\n  requestInput(w, p, choice.site);\n  if (!p.trip) {\n    p.path = choice.path;\n    p.active = same(p.position, choice.site.position);\n  }\n  return true;')
 
-          replace(
-              "src/simulation/simulation.ts",
+          rep("src/simulation/simulation.ts",
               '        } else if (target.kind === "warehouse") {\n          target.inventory![p.trip.good] =\n            (target.inventory![p.trip.good] ?? 0) + CONFIG.carryCapacity;\n        } else {\n          target.input += CONFIG.carryCapacity;\n        }',
-              '        } else if (target.kind === "warehouse") {\n          target.inventory![p.trip.good] =\n            (target.inventory![p.trip.good] ?? 0) + CONFIG.carryCapacity;\n        } else if (target.kind === "farm" && p.trip.good === "wheat") {\n          target.output += CONFIG.carryCapacity;\n        } else {\n          target.input += CONFIG.carryCapacity;\n        }',
-          )
+              '        } else if (target.kind === "warehouse") {\n          target.inventory![p.trip.good] =\n            (target.inventory![p.trip.good] ?? 0) + CONFIG.carryCapacity;\n        } else if (target.kind === "farm" && p.trip.good === "wheat") {\n          target.output += CONFIG.carryCapacity;\n        } else {\n          target.input += CONFIG.carryCapacity;\n        }')
 
-          replace(
-              "src/simulation/simulation.ts",
+          rep("src/simulation/simulation.ts",
               '    if (b.retired) return b.output > 0 ? `${b.output} Weizen liegt zur Abholung bereit` : "Abgeerntet";',
-              '    if (b.retired) return "Abgeerntet";',
-          )
+              '    if (b.retired) return "Abgeerntet";')
 
-          replace(
-              "src/simulation/simulation.ts",
+          rep("src/simulation/simulation.ts",
               '    if (worker.farmTask?.kind === "sow") return `Farmer sät · ${count}/${CONFIG.farmMaxFields} Felder`;\n    if (worker.farmTask?.kind === "fertilize") return `Farmer düngt · ${count}/${CONFIG.farmMaxFields} Felder`;\n    if (worker.farmTask?.kind === "harvest") return `Farmer erntet · ${count}/${CONFIG.farmMaxFields} Felder`;\n    if (worker.path.length) return `Farmer unterwegs · ${count}/${CONFIG.farmMaxFields} Felder`;\n    return `${count}/${CONFIG.farmMaxFields} Felder aktiv`;',
-              '    if (worker.trip?.picked && worker.trip.good === "wheat" && worker.trip.target === b.id)\n      return `Farmer bringt Weizen zur Farm · ${count}/${CONFIG.farmMaxFields} Felder`;\n    if (worker.farmTask?.kind === "sow") return `Farmer sät · ${count}/${CONFIG.farmMaxFields} Felder`;\n    if (worker.farmTask?.kind === "fertilize") return `Farmer düngt · ${count}/${CONFIG.farmMaxFields} Felder`;\n    if (worker.farmTask?.kind === "harvest") return `Farmer erntet · ${count}/${CONFIG.farmMaxFields} Felder`;\n    if (worker.path.length) return `Farmer unterwegs · ${count}/${CONFIG.farmMaxFields} Felder`;\n    if (b.output >= CONFIG.outputCapacity) return `Farm-Output voll · ${count}/${CONFIG.farmMaxFields} Felder`;\n    return `${count}/${CONFIG.farmMaxFields} Felder aktiv`;'
-          )
+              '    if (worker.trip?.picked && worker.trip.good === "wheat" && worker.trip.target === b.id)\n      return `Farmer bringt Weizen zur Farm · ${count}/${CONFIG.farmMaxFields} Felder`;\n    if (worker.farmTask?.kind === "sow") return `Farmer sät · ${count}/${CONFIG.farmMaxFields} Felder`;\n    if (worker.farmTask?.kind === "fertilize") return `Farmer düngt · ${count}/${CONFIG.farmMaxFields} Felder`;\n    if (worker.farmTask?.kind === "harvest") return `Farmer erntet · ${count}/${CONFIG.farmMaxFields} Felder`;\n    if (worker.path.length) return `Farmer unterwegs · ${count}/${CONFIG.farmMaxFields} Felder`;\n    if (b.output >= CONFIG.outputCapacity) return `Farm-Output voll · ${count}/${CONFIG.farmMaxFields} Felder`;\n    return `${count}/${CONFIG.farmMaxFields} Felder aktiv`;')
 
-          replace(
-              "src/simulation/farm.ts",
+          rep("src/simulation/farm.ts",
               '  if (\n    assignFieldTask(\n      w,\n      farm,\n      p,\n      "harvest",\n      (field) => field.fieldStage === 4,\n    )\n  )\n    return true;\n\n  if (farmFields(w, farm.id).length < CONFIG.farmMaxFields && assignSowTask(w, farm, p))',
-              '  const ripeFields = farmFields(w, farm.id).filter((field) => field.fieldStage === 4);\n  const incomingWheat = w.people.filter(\n    (person) => person.trip?.target === farm.id && person.trip.good === "wheat",\n  ).length;\n  if (\n    farm.output + incomingWheat < CONFIG.outputCapacity &&\n    assignFieldTask(\n      w,\n      farm,\n      p,\n      "harvest",\n      (field) => field.fieldStage === 4,\n    )\n  )\n    return true;\n  if (ripeFields.length) return false;\n\n  if (farmFields(w, farm.id).length < CONFIG.farmMaxFields && assignSowTask(w, farm, p))',
-          )
+              '  const ripeFields = farmFields(w, farm.id).filter((field) => field.fieldStage === 4);\n  const incomingWheat = w.people.filter(\n    (person) => person.trip?.target === farm.id && person.trip.good === "wheat",\n  ).length;\n  if (\n    farm.output + incomingWheat < CONFIG.outputCapacity &&\n    assignFieldTask(\n      w,\n      farm,\n      p,\n      "harvest",\n      (field) => field.fieldStage === 4,\n    )\n  )\n    return true;\n  if (ripeFields.length) return false;\n\n  if (farmFields(w, farm.id).length < CONFIG.farmMaxFields && assignSowTask(w, farm, p))')
 
-          replace(
-              "src/simulation/farm.ts",
+          rep("src/simulation/farm.ts",
               'const harvestField = (w: World, field: Building): void => {\n  field.output += 1;\n  field.retired = true;',
-              'const harvestField = (w: World, field: Building): void => {\n  field.retired = true;',
-          )
+              'const harvestField = (w: World, field: Building): void => {\n  field.retired = true;')
 
-          replace(
-              "src/simulation/farm.ts",
+          rep("src/simulation/farm.ts",
               '    if (task.kind === "sow") createField(w, farm, task.target);\n    else {\n      const field = task.fieldId ? w.buildings.find((b) => b.id === task.fieldId) : undefined;\n      if (field?.kind === "field" && !field.retired && field.fieldStage === 4)\n        harvestField(w, field);\n    }\n    p.farmTask = undefined;\n    p.progress = 0;\n    immediate.add(p.id);',
-              '    if (task.kind === "sow") {\n      createField(w, farm, task.target);\n      p.farmTask = undefined;\n      p.progress = 0;\n      immediate.add(p.id);\n      continue;\n    }\n\n    const field = task.fieldId ? w.buildings.find((b) => b.id === task.fieldId) : undefined;\n    if (field?.kind === "field" && !field.retired && field.fieldStage === 4) {\n      harvestField(w, field);\n      const path = routeTo(w, p, farm.position);\n      if (path) {\n        p.trip = {\n          source: field.id,\n          target: farm.id,\n          good: "wheat",\n          picked: true,\n        };\n        p.path = path;\n        p.movement = 0;\n      } else {\n        field.output += 1;\n      }\n    }\n    p.farmTask = undefined;\n    p.progress = 0;\n    if (!p.trip) immediate.add(p.id);',
-          )
+              '    if (task.kind === "sow") {\n      createField(w, farm, task.target);\n      p.farmTask = undefined;\n      p.progress = 0;\n      immediate.add(p.id);\n      continue;\n    }\n\n    const field = task.fieldId ? w.buildings.find((b) => b.id === task.fieldId) : undefined;\n    if (field?.kind === "field" && !field.retired && field.fieldStage === 4) {\n      harvestField(w, field);\n      const path = routeTo(w, p, farm.position);\n      if (path) {\n        p.trip = { source: field.id, target: farm.id, good: "wheat", picked: true };\n        p.path = path;\n        p.movement = 0;\n      } else {\n        field.output += 1;\n      }\n    }\n    p.farmTask = undefined;\n    p.progress = 0;\n    if (!p.trip) immediate.add(p.id);')
 
-          replace(
-              "src/ui/controls.ts",
+          rep("src/ui/controls.ts",
               '    } else if (b.kind === "warehouse") {\n      setField("warehouse-wood", `${warehouseStock(b, "wood")}/${CONFIG.warehouseCapacityPerGood}`);\n      setField("warehouse-plank", `${warehouseStock(b, "plank")}/${CONFIG.warehouseCapacityPerGood}`);\n      setField("warehouse-tool", `${warehouseStock(b, "woodenTool")}/${CONFIG.warehouseCapacityPerGood}`);\n      setField("warehouse-wheat", `${warehouseStock(b, "wheat")}/${CONFIG.warehouseCapacityPerGood}`);\n    } else if (b.kind !== "farm") {\n      if (b.recipe?.input) setField("input", `${b.input}/${CONFIG.inputCapacity}`);\n      setField("output", `${b.output}/${CONFIG.outputCapacity}`);\n    }',
-              '    } else if (b.kind === "warehouse") {\n      setField("warehouse-wood", `${warehouseStock(b, "wood")}/${CONFIG.warehouseCapacityPerGood}`);\n      setField("warehouse-plank", `${warehouseStock(b, "plank")}/${CONFIG.warehouseCapacityPerGood}`);\n      setField("warehouse-tool", `${warehouseStock(b, "woodenTool")}/${CONFIG.warehouseCapacityPerGood}`);\n      setField("warehouse-wheat", `${warehouseStock(b, "wheat")}/${CONFIG.warehouseCapacityPerGood}`);\n    } else {\n      if (b.recipe?.input) setField("input", `${b.input}/${CONFIG.inputCapacity}`);\n      setField("output", `${b.output}/${CONFIG.outputCapacity}`);\n    }',
-          )
+              '    } else if (b.kind === "warehouse") {\n      setField("warehouse-wood", `${warehouseStock(b, "wood")}/${CONFIG.warehouseCapacityPerGood}`);\n      setField("warehouse-plank", `${warehouseStock(b, "plank")}/${CONFIG.warehouseCapacityPerGood}`);\n      setField("warehouse-tool", `${warehouseStock(b, "woodenTool")}/${CONFIG.warehouseCapacityPerGood}`);\n      setField("warehouse-wheat", `${warehouseStock(b, "wheat")}/${CONFIG.warehouseCapacityPerGood}`);\n    } else {\n      if (b.recipe?.input) setField("input", `${b.input}/${CONFIG.inputCapacity}`);\n      setField("output", `${b.output}/${CONFIG.outputCapacity}`);\n    }')
 
-          replace(
-              "src/ui/controls.ts",
+          rep("src/ui/controls.ts",
               '          ? `Ein Farmer bewirtschaftet bis zu ${CONFIG.farmMaxFields} zufällige Acker im Radius ${CONFIG.farmFieldRadius}. Säen und Ernten dauern je 10 s; Düngen beschleunigt die nächste Wachstumsstufe auf ein Drittel der Restzeit.`',
-              '          ? `Ein Farmer bewirtschaftet bis zu ${CONFIG.farmMaxFields} zufällige Acker im Radius ${CONFIG.farmFieldRadius}. Säen und Ernten dauern je 10 s; nach der Ernte trägt der Farmer den Weizen zurück zur Farm.`',
-          )
-
-          replace(
-              "src/ui/controls.ts",
+              '          ? `Ein Farmer bewirtschaftet bis zu ${CONFIG.farmMaxFields} zufällige Acker im Radius ${CONFIG.farmFieldRadius}. Säen und Ernten dauern je 10 s; nach der Ernte trägt der Farmer den Weizen zurück zur Farm.`')
+          rep("src/ui/controls.ts",
               '        : b.kind === "farm"\n          ? `<div><span>Ernte</span><strong>1 Weizen je Acker</strong></div>`',
-              '        : b.kind === "farm"\n          ? `<div><span>Weizen · Output</span><strong data-field="output"></strong></div>`',
-          )
+              '        : b.kind === "farm"\n          ? `<div><span>Weizen · Output</span><strong data-field="output"></strong></div>`')
 
-          replace(
-              "src/game/MainScene.ts",
-              '    for (const b of this.world.buildings.filter(\n      (building) =>\n        (!building.retired || (building.forestRemaining === 0 && building.output > 0)) &&\n        !underConstruction(building),\n    )) {\n      if (!b.recipe) continue;\n      const { x, y } = pixel(b.position);\n      if (b.recipe.input) {',
-              '    for (const b of this.world.buildings.filter(\n      (building) =>\n        (!building.retired || (building.forestRemaining === 0 && building.output > 0)) &&\n        !underConstruction(building),\n    )) {\n      const outputGood = b.kind === "farm" ? "wheat" : b.recipe?.output;\n      if (!outputGood) continue;\n      const { x, y } = pixel(b.position);\n      if (b.recipe?.input) {',
-          )
-
-          replace(
-              "src/game/MainScene.ts",
+          rep("src/game/MainScene.ts",
+              '    )) {\n      if (!b.recipe) continue;\n      const { x, y } = pixel(b.position);\n      if (b.recipe.input) {',
+              '    )) {\n      const outputGood = b.kind === "farm" ? "wheat" : b.recipe?.output;\n      if (!outputGood) continue;\n      const { x, y } = pixel(b.position);\n      if (b.recipe?.input) {')
+          rep("src/game/MainScene.ts",
               '        b.recipe.input ? y + 3 : y - 1,\n        b.output,\n        CONFIG.outputCapacity,\n        b.recipe.output,\n        3,\n      );\n      this.markers.add(this.add.text(x + 5, b.recipe.input ? y + 7 : y + 3, "OUT", {',
-              '        b.recipe?.input ? y + 3 : y - 1,\n        b.output,\n        CONFIG.outputCapacity,\n        outputGood,\n        3,\n      );\n      this.markers.add(this.add.text(x + 5, b.recipe?.input ? y + 7 : y + 3, "OUT", {',
-          )
+              '        b.recipe?.input ? y + 3 : y - 1,\n        b.output,\n        CONFIG.outputCapacity,\n        outputGood,\n        3,\n      );\n      this.markers.add(this.add.text(x + 5, b.recipe?.input ? y + 7 : y + 3, "OUT", {')
 
-          Path("tests/farm.test.ts").write_text('''import { test } from "node:test";\nimport assert from "node:assert/strict";\nimport { createWorld, CONFIG } from "../src/simulation/scenario";\nimport { assigned, buildAt, changeAssignment, tick, warehouseStock } from "../src/simulation/simulation";\nimport { activeFarmFieldCount } from "../src/simulation/farm";\nimport type { Building, World } from "../src/simulation/model";\n\nconst rounds = (w: World, count: number) => {\n  for (let i = 0; i < count; i++) tick(w);\n};\n\nconst distance = (a: { q: number; r: number }, b: { q: number; r: number }) => {\n  const dq = a.q - b.q;\n  const dr = a.r - b.r;\n  return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));\n};\n\nconst finishedFarm = (w: World) => {\n  const farm = buildAt(w, { q: 10, r: 10 }, "farm")!;\n  assert.ok(farm);\n  changeAssignment(w, farm.id, "worker", 1);\n  const farmer = assigned(w, farm.id, "worker")[0]!;\n  farmer.position = { ...farm.position };\n  farmer.path = [];\n  farmer.movement = 0;\n  farmer.active = true;\n  return { farm, farmer };\n};\n\nconst addField = (\n  w: World,\n  farm: Building,\n  position: { q: number; r: number },\n  stage: 1 | 2 | 3 | 4,\n  progress = 0,\n) => {\n  const tile = w.tiles.find((candidate) => candidate.q === position.q && candidate.r === position.r)!;\n  assert.equal(tile.terrain, "grass");\n  tile.terrain = "field";\n  const field: Building = {\n    id: `field-test-${w.nextFieldId++}`,\n    kind: "field",\n    name: "Testacker",\n    position: { ...position },\n    workers: 0,\n    carriers: 0,\n    input: 0,\n    output: 0,\n    farmId: farm.id,\n    fieldStage: stage,\n    fieldGrowthProgress: progress,\n    recipe: { amount: 0, output: "wheat", duration: CONFIG.fieldStageDurationTicks },\n  };\n  w.buildings.push(field);\n  return field;\n};\n\ntest("farmer sows up to four random fields around the farm", () => {\n  const w = createWorld();\n  const { farm } = finishedFarm(w);\n  for (let i = 0; i < 6000 && activeFarmFieldCount(w, farm.id) < CONFIG.farmMaxFields; i++) tick(w);\n  const fields = w.buildings.filter((b) => b.kind === "field" && b.farmId === farm.id && !b.retired);\n  assert.equal(fields.length, 4);\n  for (const field of fields) {\n    assert.ok(distance(field.position, farm.position) <= CONFIG.farmFieldRadius);\n    assert.equal(w.tiles.find((tile) => tile.q === field.position.q && tile.r === field.position.r)?.terrain, "field");\n  }\n});\n\ntest("fertilizing reduces the remaining time to the next stage to one third", () => {\n  const w = createWorld();\n  const { farm, farmer } = finishedFarm(w);\n  const field = addField(w, farm, { q: farm.position.q + 1, r: farm.position.r }, 1, CONFIG.fieldStageDurationTicks / 2);\n  farmer.position = { ...field.position };\n  farmer.path = [];\n  farmer.farmTask = { kind: "fertilize", target: { ...field.position }, fieldId: field.id, progress: 0 };\n  rounds(w, CONFIG.fieldStageDurationTicks / 6 - 1);\n  assert.equal(field.fieldStage, 1);\n  tick(w);\n  assert.equal(field.fieldStage, 2);\n  assert.notEqual(farmer.farmTask?.kind, "fertilize");\n});\n\ntest("harvest takes ten seconds and farmer carries wheat back to the farm", () => {\n  const w = createWorld();\n  const { farm, farmer } = finishedFarm(w);\n  const field = addField(w, farm, { q: farm.position.q + 1, r: farm.position.r }, 4);\n  farmer.position = { ...field.position };\n  farmer.path = [];\n  farmer.farmTask = { kind: "harvest", target: { ...field.position }, fieldId: field.id, progress: 0 };\n\n  rounds(w, CONFIG.farmActionDurationTicks - 1);\n  assert.equal(field.retired, undefined);\n  tick(w);\n\n  assert.equal(field.retired, true);\n  assert.equal(field.output, 0);\n  assert.equal(farmer.trip?.source, field.id);\n  assert.equal(farmer.trip?.target, farm.id);\n  assert.equal(farmer.trip?.good, "wheat");\n  assert.equal(farmer.trip?.picked, true);\n  assert.equal(w.tiles.find((tile) => tile.q === field.position.q && tile.r === field.position.r)?.terrain, "grass");\n\n  for (let i = 0; i < 1000 && farm.output === 0; i++) tick(w);\n  assert.equal(farm.output, 1);\n  assert.equal(farmer.trip, undefined);\n});\n\ntest("warehouse carriers collect wheat from farm output", () => {\n  const w = createWorld();\n  const farm = buildAt(w, { q: 10, r: 10 }, "farm")!;\n  const warehouse = buildAt(w, { q: 9, r: 10 }, "warehouse")!;\n  assert.ok(farm && warehouse);\n  farm.output = 1;\n  changeAssignment(w, warehouse.id, "carrier", 1);\n  const carrier = assigned(w, warehouse.id, "carrier")[0]!;\n  carrier.position = { ...warehouse.position };\n  carrier.path = [];\n  carrier.movement = 0;\n  carrier.active = true;\n\n  for (let i = 0; i < 1000 && warehouseStock(warehouse, "wheat") === 0; i++) tick(w);\n\n  assert.equal(warehouseStock(warehouse, "wheat"), 1);\n  assert.equal(farm.output, 0);\n});\n\ntest("farmer waits to harvest while farm output is full", () => {\n  const w = createWorld();\n  const { farm, farmer } = finishedFarm(w);\n  addField(w, farm, { q: farm.position.q + 1, r: farm.position.r }, 4);\n  farm.output = CONFIG.outputCapacity;\n  tick(w);\n  assert.equal(farmer.farmTask, undefined);\n  assert.equal(farmer.trip, undefined);\n});\n''')
+          # Update existing farm assertions instead of replacing the whole suite.
+          rep("tests/farm.test.ts",
+              'test("harvest takes ten seconds, restores grass and leaves one wheat", () => {',
+              'test("harvest takes ten seconds and farmer carries wheat back to the farm", () => {')
+          rep("tests/farm.test.ts",
+              '  assert.equal(field.retired, true);\n  assert.equal(field.output, 1);\n  assert.equal(\n    w.tiles.find((tile) => tile.q === field.position.q && tile.r === field.position.r)?.terrain,\n    "grass",\n  );\n});',
+              '  assert.equal(field.retired, true);\n  assert.equal(field.output, 0);\n  assert.equal(farmer.trip?.source, field.id);\n  assert.equal(farmer.trip?.target, farm.id);\n  assert.equal(farmer.trip?.good, "wheat");\n  assert.equal(farmer.trip?.picked, true);\n  assert.equal(\n    w.tiles.find((tile) => tile.q === field.position.q && tile.r === field.position.r)?.terrain,\n    "grass",\n  );\n  for (let i = 0; i < 1000 && farm.output === 0; i++) tick(w);\n  assert.equal(farm.output, 1);\n  assert.equal(farmer.trip, undefined);\n});')
+
+          start = Path("tests/farm.test.ts").read_text().index('test("warehouse carriers can collect wheat from a harvested field"')
+          text = Path("tests/farm.test.ts").read_text()
+          replacement = '''test("warehouse carriers collect wheat from farm output", () => {\n  const w = createWorld();\n  const farm = buildAt(w, { q: 10, r: 10 }, "farm")!;\n  const warehouse = buildAt(w, { q: 9, r: 10 }, "warehouse")!;\n  assert.ok(farm && warehouse);\n  farm.output = 1;\n  changeAssignment(w, warehouse.id, "carrier", 1);\n  const carrier = assigned(w, warehouse.id, "carrier")[0]!;\n  carrier.position = { ...warehouse.position };\n  carrier.path = [];\n  carrier.movement = 0;\n  carrier.active = true;\n  for (let i = 0; i < 1000 && warehouseStock(warehouse, "wheat") === 0; i++) tick(w);\n  assert.equal(warehouseStock(warehouse, "wheat"), 1);\n  assert.equal(farm.output, 0);\n});\n\ntest("farmer waits to harvest while farm output is full", () => {\n  const w = createWorld();\n  const { farm, farmer } = finishedFarm(w);\n  addField(w, farm, { q: farm.position.q + 1, r: farm.position.r }, 4);\n  farm.output = CONFIG.outputCapacity;\n  tick(w);\n  assert.equal(farmer.farmTask, undefined);\n  assert.equal(farmer.trip, undefined);\n});\n'''
+          Path("tests/farm.test.ts").write_text(text[:start] + replacement)
 
           p = Path("tests/construction.test.ts")
           text = p.read_text()
           marker = 'test("a construction site accepts at most two automatic builders", () => {'
-          addition = '''test("newly assigned builder goes directly to available construction material", () => {\n  const world = createWorld();\n  const origin = world.tiles.find((tile) => canPlaceBuilding(world, tile, "warehouse"));\n  assert.ok(origin);\n  const site = buildWithFootprint(world, origin!, "warehouse")!;\n  const sourcePosition = world.tiles.find((tile) =>\n    tile.terrain === "grass" && !same(tile, site.position),\n  );\n  assert.ok(sourcePosition);\n  world.buildings.push({\n    id: "ready-wood-source",\n    kind: "forest",\n    name: "Bereites Holz",\n    position: { q: sourcePosition!.q, r: sourcePosition!.r },\n    workers: 0,\n    carriers: 0,\n    input: 0,\n    output: 4,\n    recipe: { amount: 0, output: "wood", duration: 1 },\n  });\n\n  assert.equal(changeBuilders(world, 1), true);\n  const builder = assigned(world, site.id, "builder")[0]!;\n  assert.equal(builder.trip?.source, "ready-wood-source");\n  assert.equal(builder.trip?.target, site.id);\n  assert.equal(builder.trip?.picked, false);\n  const destination = builder.path.at(-1) ?? builder.position;\n  assert.ok(same(destination, sourcePosition!));\n  assert.equal(same(destination, site.position), false);\n});\n\n'''
-          if marker not in text:
-              raise SystemExit("construction insertion marker missing")
+          addition = '''test("newly assigned builder goes directly to available construction material", () => {\n  const world = createWorld();\n  const origin = world.tiles.find((tile) => canPlaceBuilding(world, tile, "warehouse"));\n  assert.ok(origin);\n  const site = buildWithFootprint(world, origin!, "warehouse")!;\n  const sourcePosition = world.tiles.find((tile) => tile.terrain === "grass" && !same(tile, site.position));\n  assert.ok(sourcePosition);\n  world.buildings.push({ id: "ready-wood-source", kind: "forest", name: "Bereites Holz", position: { q: sourcePosition!.q, r: sourcePosition!.r }, workers: 0, carriers: 0, input: 0, output: 4, recipe: { amount: 0, output: "wood", duration: 1 } });\n  assert.equal(changeBuilders(world, 1), true);\n  const builder = assigned(world, site.id, "builder")[0]!;\n  assert.equal(builder.trip?.source, "ready-wood-source");\n  assert.equal(builder.trip?.target, site.id);\n  assert.equal(builder.trip?.picked, false);\n  const destination = builder.path.at(-1) ?? builder.position;\n  assert.ok(same(destination, sourcePosition!));\n  assert.equal(same(destination, site.position), false);\n});\n\n'''
+          if marker not in text: raise SystemExit("construction marker missing")
           p.write_text(text.replace(marker, addition + marker, 1))
 
-          replace(
-              "concept.md",
+          rep("concept.md",
               'Bauarbeiter sind ein globaler Berufspool am Hauptquartier. Freie Bauarbeiter suchen selbständig erreichbare Baustellen. Pro Baustelle arbeiten maximal zwei gleichzeitig. Sie holen fehlendes Baumaterial physisch aus Produktionsorten oder fertigen Lagern. Ein zweiter aktiver Bauarbeiter verdoppelt den Baufortschritt. Nach Fertigstellung bleiben beide im Bauarbeiter-Pool und werden neu disponiert.',
-              'Bauarbeiter sind ein globaler Berufspool am Hauptquartier. Freie Bauarbeiter suchen selbständig erreichbare Baustellen. Pro Baustelle arbeiten maximal zwei gleichzeitig. Direkt bei der Zuweisung prüft ein Bauarbeiter fehlendes Baumaterial: Ist eine erreichbare, nicht reservierte Ressource verfügbar, läuft er von seiner aktuellen Position direkt zur Quelle und anschließend zur Baustelle. Nur wenn aktuell nichts verfügbar ist, läuft er zunächst zur Baustelle und wartet dort. Ein zweiter aktiver Bauarbeiter verdoppelt den Baufortschritt. Nach Fertigstellung bleiben beide im Bauarbeiter-Pool und werden neu disponiert.',
-          )
-          replace(
-              "concept.md",
+              'Bauarbeiter sind ein globaler Berufspool am Hauptquartier. Freie Bauarbeiter suchen selbständig erreichbare Baustellen. Pro Baustelle arbeiten maximal zwei gleichzeitig. Direkt bei der Zuweisung prüft ein Bauarbeiter fehlendes Baumaterial: Ist eine erreichbare, nicht reservierte Ressource verfügbar, läuft er von seiner aktuellen Position direkt zur Quelle und anschließend zur Baustelle. Nur wenn aktuell nichts verfügbar ist, läuft er zunächst zur Baustelle und wartet dort. Ein zweiter aktiver Bauarbeiter verdoppelt den Baufortschritt. Nach Fertigstellung bleiben beide im Bauarbeiter-Pool und werden neu disponiert.')
+          rep("concept.md",
               '- Danach entsteht dort **1 Weizen** als physische Ware.\n- Die Acker-Kachel wird sofort wieder normale Wiese.\n- Der abgeerntete Acker zählt nicht mehr zu den maximal vier aktiven Ackern.\n- Der Farmer sucht anschließend wieder eine neue zufällige freie Wiese für die nächste Aussaat.\n\nWeizen bleibt nach der Ernte am ehemaligen Acker liegen, bis ein Lager-Träger oder später eine andere berechtigte Logistikperson ihn abholt. Damit kann das Feld verschwinden, ohne dass die Ware global oder unsichtbar teleportiert wird.',
-              '- Mit Abschluss der Ernte nimmt der Farmer **1 Weizen** direkt auf.\n- Die Acker-Kachel wird sofort wieder normale Wiese.\n- Der abgeerntete Acker zählt nicht mehr zu den maximal vier aktiven Ackern.\n- Der Farmer trägt den Weizen physisch zurück zur Farm und legt ihn dort in den lokalen Output. Erst danach beginnt er seine nächste Feldaufgabe.\n- Ist der Farm-Output voll, wartet der Farmer mit weiteren Ernten.\n\nLager-Träger holen Weizen damit ausschließlich an der Farm ab; im Normalfall bleibt nach der Ernte kein Weizen auf dem ehemaligen Acker liegen.',
-          )
-          replace(
-              "concept.md",
+              '- Mit Abschluss der Ernte nimmt der Farmer **1 Weizen** direkt auf.\n- Die Acker-Kachel wird sofort wieder normale Wiese.\n- Der abgeerntete Acker zählt nicht mehr zu den maximal vier aktiven Ackern.\n- Der Farmer trägt den Weizen physisch zurück zur Farm und legt ihn dort in den lokalen Output. Erst danach beginnt er seine nächste Feldaufgabe.\n- Ist der Farm-Output voll, wartet der Farmer mit weiteren Ernten.\n\nLager-Träger holen Weizen damit ausschließlich an der Farm ab; im Normalfall bleibt nach der Ernte kein Weizen auf dem ehemaligen Acker liegen.')
+          rep("concept.md",
               'Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 Einheiten, normale Outputs maximal 3 Einheiten. Lose Ernte liegt als Output an der ehemaligen Feldposition.',
-              'Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 Einheiten, normale Outputs maximal 3 Einheiten. Farmen halten geernteten Weizen in ihrem lokalen Output, nachdem der Farmer ihn vom Feld zurückgebracht hat.',
-          )
-          replace(
-              "concept.md",
-              'Beim Abriss verschwinden Footprint und lokale Gebäudebestände, der gespeicherte Untergrund wird wiederhergestellt, Personen werden freigesetzt und betroffene Transporte werden bereinigt. Bei einer Farm verschwinden zusätzlich alle noch aktiven zugehörigen Acker und werden zu Wiese. Bereits abgeernteter, lose liegender Weizen bleibt erhalten.',
-              'Beim Abriss verschwinden Footprint und lokale Gebäudebestände, der gespeicherte Untergrund wird wiederhergestellt, Personen werden freigesetzt und betroffene Transporte werden bereinigt. Bei einer Farm verschwinden zusätzlich alle noch aktiven zugehörigen Acker und werden zu Wiese. Bereits in der Farm eingelagerter Weizen geht beim Abriss wie anderer lokaler Gebäudebestand verloren; vom Farmer gerade getragene Ernte wird über die bestehende Abbruchlogik an ihrer Quelle zurückgegeben.',
-          )
+              'Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 Einheiten, normale Outputs maximal 3 Einheiten. Farmen halten geernteten Weizen in ihrem lokalen Output, nachdem der Farmer ihn vom Feld zurückgebracht hat.')
 
-          replace(
-              "architecture.md",
+          rep("architecture.md",
               'Farm production deliberately does **not** use the generic recipe loop because it is spatial and multi-stage. The farmer works on separate field entities and the harvested wheat source is located at the field, not at the farm building.',
-              'Farm production deliberately does **not** use the generic recipe loop because it is spatial and multi-stage. The farmer works on separate field entities, picks up wheat when harvest completes and transports it through the existing trip primitive back to the farm. The farm then acts as the normal wheat source for warehouse collection.',
-          )
-          replace(
-              "architecture.md",
+              'Farm production deliberately does **not** use the generic recipe loop because it is spatial and multi-stage. The farmer works on separate field entities, picks up wheat when harvest completes and transports it through the existing trip primitive back to the farm. The farm then acts as the normal wheat source for warehouse collection.')
+          rep("architecture.md",
               'Harvesting increments the field entity\'s output by one wheat, marks the field retired and restores its tile to grass. The retired entity remains a valid non-warehouse goods source while `output > 0`. This mirrors the existing depleted-forest pattern: world terrain can disappear while already produced goods remain collectible.\n\nWarehouse carriers therefore collect wheat with the same trip/reservation primitive used for wood/planks/tools. No global wheat counter is authoritative; HUD totals are derived from completed warehouse inventories.',
-              'Harvest completion marks the field retired and restores its tile to grass. At that moment the farmer immediately carries one wheat using a picked `Trip` whose source is the retired field and whose target is the farm. The field normally keeps zero output. On arrival, wheat is added to the farm\'s local output. The farmer cannot start another field task while this trip is active.\n\nFarm output uses the normal output capacity of three units. A ripe field is left standing while farm output plus incoming farmer wheat is full. Warehouse carriers collect wheat from the farm with the same source reservation logic used for other produced goods. If a carried harvest trip becomes impossible and is cancelled, the generic cargo-return rule can still restore that wheat to the retired field source rather than losing it.',
-          )
-          replace(
-              "architecture.md",
+              'Harvest completion marks the field retired and restores its tile to grass. At that moment the farmer immediately carries one wheat using a picked `Trip` whose source is the retired field and whose target is the farm. On arrival, wheat is added to the farm\'s local output. The farmer cannot start another field task while this trip is active. Farm output uses the normal output capacity of three units, and ripe fields wait while that output plus incoming wheat is full.\n\nWarehouse carriers collect wheat from the farm with the same source reservation logic used for other produced goods. No global wheat counter is authoritative; HUD totals are derived from completed warehouse inventories.')
+          rep("architecture.md",
               'Warehouse carriers collect output from non-warehouse sources only when the source lies within **10 reachable tile steps**. Retired harvested field sources are valid while they still contain wheat. Warehouse carriers still never create warehouse-to-warehouse trips.',
-              'Warehouse carriers collect output from non-warehouse sources only when the source lies within **10 reachable tile steps**. Farm output is a valid wheat source. Retired fields are not normal wheat sources after a successful harvest return. Warehouse carriers still never create warehouse-to-warehouse trips.',
-          )
-          replace(
-              "architecture.md",
-              'Current construction plans:\n\n```text\nWarehouse   4 wood    → 11 s base build time\nFarm        4 wood    → 11 s base build time\nSawmill     6 wood    → 15 s base build time\nCarpenter   4 planks  → 11 s base build time\n```\n\nBuild duration remains `(3 + 2 × required resource units) × simulationHz`. Up to two builders work on a site and the second builder exactly doubles progress while both are present.',
-              'Current construction plans:\n\n```text\nWarehouse   4 wood    → 11 s base build time\nFarm        4 wood    → 11 s base build time\nSawmill     6 wood    → 15 s base build time\nCarpenter   4 planks  → 11 s base build time\n```\n\nBuild duration remains `(3 + 2 × required resource units) × simulationHz`. Up to two builders work on a site and the second builder exactly doubles progress while both are present. When `assignBuilder()` selects a site, it immediately calls the existing construction-input planner from the builder\'s current position. If material can be reserved, the first route therefore goes directly to that source; only builders without currently available material use the site route and wait there.',
-          )
-          replace(
-              "architecture.md",
-              '- harvesting takes ten seconds,\n- harvest restores the tile to grass and leaves one wheat,\n- warehouse carriers can collect wheat from a retired harvested field.',
-              '- harvesting takes ten seconds,\n- harvest restores the tile to grass and creates a carried wheat trip back to the farm,\n- farm output receives the delivered wheat and respects output capacity,\n- warehouse carriers collect wheat from farm output,\n- newly assigned builders route directly to available construction material instead of visiting the site first.',
-          )
+              'Warehouse carriers collect output from non-warehouse sources only when the source lies within **10 reachable tile steps**. Farm output is a valid wheat source. Retired fields are not normal wheat sources after a successful harvest return. Warehouse carriers still never create warehouse-to-warehouse trips.')
+          rep("architecture.md",
+              'Build duration remains `(3 + 2 × required resource units) × simulationHz`. Up to two builders work on a site and the second builder exactly doubles progress while both are present.',
+              'Build duration remains `(3 + 2 × required resource units) × simulationHz`. Up to two builders work on a site and the second builder exactly doubles progress while both are present. When a builder is assigned, construction input is planned immediately from the builder\'s current position. If material can be reserved, the first route goes directly to that source; only builders without available material route to the site and wait there.')
           PY
       - run: npm ci
       - run: npm test
