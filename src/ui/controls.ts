@@ -141,6 +141,14 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
 
+    const constructionPanelOpen = Boolean(
+      selectionPanel.querySelector('[data-field="construction-progress"]'),
+    );
+    if (constructionPanelOpen && !isUnderConstruction(b)) {
+      renderSelectionPanel();
+      return;
+    }
+
     setField("status", status(w, b));
     if (b.kind === "hq") {
       setField("population-count", String(w.people.length));
