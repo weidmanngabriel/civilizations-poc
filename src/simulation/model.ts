@@ -16,6 +16,7 @@ export interface Recipe {
   inputs?: GoodAmounts;
   amount: number;
   output: Good;
+  outputAmount?: number;
   duration: number;
 }
 export type Inventory = Partial<Record<Good, number>>;

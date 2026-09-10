@@ -36,7 +36,7 @@ test("mill and bakery turn wheat plus well water into bread", () => {
 
   assert.ok(mill.output > 0 || (bakery.inputInventory?.flour ?? 0) > 0 || bakery.output > 0);
   assert.ok((bakery.inputInventory?.water ?? 0) >= 0);
-  assert.ok(bakery.output > 0, "expected bread to be produced");
+  assert.equal(bakery.output, 2, "one bakery batch should produce two bread");
   assert.equal(well.output, 0, "well water must not be depleted");
 });
 
@@ -55,4 +55,27 @@ test("warehouse carriers can collect water from a well", () => {
 
   assert.ok(warehouseStock(warehouse, "water") > 0);
   assert.equal(well.output, 0);
+});
+
+
+test("bakery fetches only what the next batch needs before topping up another input", () => {
+  const world = createWorld(3);
+  const bakery = buildAt(world, { q: 0, r: 0 }, "bakery")!;
+  const well = buildAt(world, { q: 1, r: 0 }, "well")!;
+  const warehouse = buildAt(world, { q: 4, r: 0 }, "warehouse")!;
+  warehouse.inventory!.flour = 4;
+
+  assert.equal(changeAssignment(world, bakery.id, "worker", 1), true);
+  const baker = activateWorker(world, bakery.id);
+
+  tick(world);
+  assert.equal(baker.trip?.good, "water");
+
+  for (let i = 0; i < 1200 && (bakery.inputInventory?.water ?? 0) < 1; i++) tick(world);
+  assert.equal(bakery.inputInventory?.water, 1);
+  assert.equal(baker.trip?.good, "flour", "after one required water, flour must be prioritized over more water");
+
+  for (let i = 0; i < 2400 && (bakery.inputInventory?.flour ?? 0) < 2; i++) tick(world);
+  assert.equal(bakery.inputInventory?.flour, 2);
+  assert.equal(bakery.inputInventory?.water, 1);
 });
