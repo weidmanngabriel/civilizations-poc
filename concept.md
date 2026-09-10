@@ -102,11 +102,11 @@ Nichts produziert ohne konkrete Person.
 - Schreinerei: 2 Bretter → 1 Holzwerkzeug in ca. 4 Sekunden.
 - Farm: Farmer bewirtschaftet bis zu vier umliegende Acker und erzeugt nach der Ernte je Acker 1 Weizen.
 - Mühle: 1 Weizen → 1 Mehl in ca. 4 Sekunden; ein Müller arbeitet dort.
-- Bäckerei: 1 Mehl + 1 Wasser → 1 Brot in ca. 4 Sekunden; ein Bäcker arbeitet dort.
+- Bäckerei: 2 Mehl + 1 Wasser → 2 Brot in ca. 4 Sekunden; ein Bäcker arbeitet dort.
 - Brunnen: unerschöpfliche Wasserquelle ohne zugewiesenen Arbeiter. Bäcker und Lager-Träger können dort Wasser holen.
 - Lager: Träger sammeln verfügbare Waren aus nahe gelegenen Produktions- und Rohstofforten ein.
 
-Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt aktuell genau eine Einheit pro Transportweg.
+Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt aktuell genau eine Einheit pro Transportweg. Bei Produktionsgebäuden mit mehreren Inputs wird zuerst nur der Bedarf für den nächsten vollständigen Produktionslauf beschafft; erst wenn dafür keine fehlende Zutat mehr gezielt geholt werden kann, werden freie Inputplätze weiter aufgefüllt.
 
 ## Farm, Acker und Weizen
 

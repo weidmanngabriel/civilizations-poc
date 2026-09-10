@@ -111,7 +111,7 @@ Demolishing a farm additionally removes its still-active field entities and rest
 
 ## Production and reservations
 
-Generic production still uses recipes and local input/output capacities. Trips represent reservations directly: an unpicked trip reserves source stock, an incoming trip reserves destination capacity and a picked trip physically carries one unit.
+Generic production still uses recipes and local input/output capacities. Recipes may define an output amount greater than one. Trips represent reservations directly: an unpicked trip reserves source stock, an incoming trip reserves destination capacity and a picked trip physically carries one unit. For multi-input recipes, procurement prioritizes ingredients still missing for the next complete batch before topping up already-sufficient inputs; if no prioritized source is reachable, normal top-up remains available.
 
 Current generic recipes:
 
@@ -119,7 +119,7 @@ Current generic recipes:
 - sawmill: 2 wood → 1 plank / ~4 seconds,
 - carpenter: 2 plank → 1 wooden tool / ~4 seconds.
 - mill: 1 wheat → 1 flour / ~4 seconds.
-- bakery: 1 flour + 1 water → 1 bread / ~4 seconds.
+- bakery: 2 flour + 1 water → 2 bread / ~4 seconds.
 - well: infinite water source with no worker and no production timer.
 
 Farm production deliberately does **not** use the generic recipe loop because it is spatial and multi-stage. The farmer works on separate field entities, picks up wheat when harvest completes and transports it through the existing trip primitive back to the farm. The farm then acts as the normal wheat source for warehouse collection.

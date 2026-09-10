@@ -332,7 +332,7 @@ export function mountControls(w: World, renderMap: () => void): void {
           : b.kind === "well"
             ? `${GOOD_ICONS.water} Unerschöpfliche Wasserquelle ohne zugewiesenen Arbeiter`
             : b.recipe
-              ? `${recipeInputs.map(([good, amount]) => `${GOOD_ICONS[good]} ${amount} ${GOODS[good]}`).join(" + ")} → ${GOOD_ICONS[b.recipe.output]} 1 ${GOODS[b.recipe.output]}`
+              ? `${recipeInputs.map(([good, amount]) => `${GOOD_ICONS[good]} ${amount} ${GOODS[good]}`).join(" + ")} → ${GOOD_ICONS[b.recipe.output]} ${b.recipe.outputAmount ?? 1} ${GOODS[b.recipe.output]}`
               : "Produktion";
     const inventory = b.forestRemaining !== undefined
       ? `<div><span>${goodLabel("wood")} · Output</span><strong data-field="output"></strong></div>`

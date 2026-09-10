@@ -54,8 +54,9 @@ const reservedAtSource = (w: World, id: BuildingId, good: Good) =>
 const producing = (w: World, id: BuildingId) =>
   w.people.filter((p) => p.assignment?.building === id && p.progress > 0 && !p.farmTask)
     .length;
+const recipeOutputAmount = (b: Building): number => b.recipe?.outputAmount ?? 1;
 export const outputOccupied = (w: World, b: Building): number =>
-  b.output + heldOutput(w, b.id) + producing(w, b.id);
+  b.output + heldOutput(w, b.id) + producing(w, b.id) * recipeOutputAmount(b);
 const route = (w: World, p: Person, b: Building) => {
   p.path = findPath(
     w.tiles,
@@ -482,6 +483,12 @@ type SourceCandidate = { source: Building; good: Good; path: Hex[] };
 function requestInput(w: World, p: Person, b: Building): void {
   const construction = isUnderConstruction(b) ? b.construction! : undefined;
   const isWarehouseCollection = b.kind === "warehouse" && !construction;
+  const recipeGoods = (Object.keys(recipeRequirements(b)) as Good[]).filter((good) =>
+    inputHasSpace(w, b, good),
+  );
+  const missingForNextBatch = recipeGoods.filter((good) =>
+    inputStock(b, good) + incoming(w, b.id, good) < (recipeRequirements(b)[good] ?? 0),
+  );
   const goods: Good[] = construction
     ? (Object.keys(construction.required) as Good[]).filter(
         (good) =>
@@ -490,13 +497,14 @@ function requestInput(w: World, p: Person, b: Building): void {
       )
     : isWarehouseCollection
       ? ALL_GOODS
-      : (Object.keys(recipeRequirements(b)) as Good[]).filter((good) =>
-          inputHasSpace(w, b, good),
-        );
+      : missingForNextBatch.length
+        ? missingForNextBatch
+        : recipeGoods;
   if (!goods.length) return;
 
-  const sources: SourceCandidate[] = [];
-  for (const good of goods) {
+  const collectSources = (candidateGoods: Good[]): SourceCandidate[] => {
+    const sources: SourceCandidate[] = [];
+    for (const good of candidateGoods) {
     if (isWarehouseCollection && !warehouseHasSpace(w, b, good)) continue;
     for (const source of w.buildings) {
       if (
@@ -518,13 +526,18 @@ function requestInput(w: World, p: Person, b: Building): void {
         CONFIG.roadSpeedMultiplier,
       );
       if (path) sources.push({ source, good, path });
+      }
     }
-  }
-  sources.sort(
-    (a, b) =>
-      pathTravelCost(w.tiles, a.path, CONFIG.roadSpeedMultiplier) -
-      pathTravelCost(w.tiles, b.path, CONFIG.roadSpeedMultiplier),
-  );
+    sources.sort(
+      (a, b) =>
+        pathTravelCost(w.tiles, a.path, CONFIG.roadSpeedMultiplier) -
+        pathTravelCost(w.tiles, b.path, CONFIG.roadSpeedMultiplier),
+    );
+    return sources;
+  };
+  let sources = collectSources(goods);
+  if (!sources.length && !construction && !isWarehouseCollection && missingForNextBatch.length)
+    sources = collectSources(recipeGoods);
   const source = sources[0];
   if (!source) return;
   p.trip = {
@@ -639,7 +652,7 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
       input: 0,
       inputInventory: { flour: 0, water: 0 },
       output: 0,
-      recipe: { inputs: { flour: 1, water: 1 }, amount: 1, output: "bread", duration: CONFIG.duration },
+      recipe: { inputs: { flour: 2, water: 1 }, amount: 1, output: "bread", outputAmount: 2, duration: CONFIG.duration },
     };
   if (kind === "well")
     return {
@@ -893,13 +906,13 @@ export function tick(w: World): void {
         p.progress === 0 &&
         forestHasYield &&
         hasRecipeInputs(b) &&
-        outputOccupied(w, b) < CONFIG.outputCapacity
+        outputOccupied(w, b) + recipeOutputAmount(b) <= CONFIG.outputCapacity
       )
         p.progress = 1;
       else if (p.progress > 0) p.progress++;
       if (p.progress === recipe.duration) {
         consumeRecipeInputs(b);
-        b.output++;
+        b.output += recipeOutputAmount(b);
         if (b.forestRemaining !== undefined) b.forestRemaining--;
         p.progress = 0;
         immediateDecisionPeople.add(p.id);
