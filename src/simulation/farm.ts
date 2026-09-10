@@ -109,7 +109,12 @@ export function planFarmWorker(w: World, p: Person, farm: Building): boolean {
   )
     return false;
 
+  const ripeFields = farmFields(w, farm.id).filter((field) => field.fieldStage === 4);
+  const incomingWheat = w.people.filter(
+    (person) => person.trip?.target === farm.id && person.trip.good === "wheat",
+  ).length;
   if (
+    farm.output + incomingWheat < CONFIG.outputCapacity &&
     assignFieldTask(
       w,
       farm,
@@ -119,6 +124,7 @@ export function planFarmWorker(w: World, p: Person, farm: Building): boolean {
     )
   )
     return true;
+  if (ripeFields.length) return false;
 
   if (farmFields(w, farm.id).length < CONFIG.farmMaxFields && assignSowTask(w, farm, p))
     return true;
@@ -156,7 +162,6 @@ const createField = (w: World, farm: Building, target: Hex): boolean => {
 };
 
 const harvestField = (w: World, field: Building): void => {
-  field.output += 1;
   field.retired = true;
   field.fieldGrowthProgress = 0;
   const tile = tileAt(w, field.position);
@@ -244,15 +249,29 @@ export function advanceFarmSystem(w: World): number[] {
     p.progress = task.progress;
     if (task.progress < CONFIG.farmActionDurationTicks) continue;
 
-    if (task.kind === "sow") createField(w, farm, task.target);
-    else {
-      const field = task.fieldId ? w.buildings.find((b) => b.id === task.fieldId) : undefined;
-      if (field?.kind === "field" && !field.retired && field.fieldStage === 4)
-        harvestField(w, field);
+    if (task.kind === "sow") {
+      createField(w, farm, task.target);
+      p.farmTask = undefined;
+      p.progress = 0;
+      immediate.add(p.id);
+      continue;
+    }
+
+    const field = task.fieldId ? w.buildings.find((b) => b.id === task.fieldId) : undefined;
+    if (field?.kind === "field" && !field.retired && field.fieldStage === 4) {
+      harvestField(w, field);
+      const path = routeTo(w, p, farm.position);
+      if (path) {
+        p.trip = { source: field.id, target: farm.id, good: "wheat", picked: true };
+        p.path = path;
+        p.movement = 0;
+      } else {
+        field.output += 1;
+      }
     }
     p.farmTask = undefined;
     p.progress = 0;
-    immediate.add(p.id);
+    if (!p.trip) immediate.add(p.id);
   }
 
   return [...immediate];
