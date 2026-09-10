@@ -71,9 +71,9 @@ Aktuelle PoC-Baukosten:
 - Bäckerei: 4 Bretter,
 - Brunnen: 4 Holz.
 
-Die normale Bauzeit bei einem Bauarbeiter beträgt **3 Sekunden Grundzeit plus 2 Sekunden pro benötigter Ressourceneinheit**. Damit dauern Lager, Farm und Schreinerei aktuell 11 Sekunden und das Sägewerk 15 Sekunden.
+Die normale Bauzeit bei einem unerfahrenen Bauarbeiter beträgt **3 Sekunden Grundzeit plus 2 Sekunden pro benötigter Ressourceneinheit**. Damit dauern Lager, Farm und Schreinerei aktuell 11 Sekunden und das Sägewerk 15 Sekunden.
 
-Bauarbeiter sind ein globaler Berufspool am Hauptquartier. Freie Bauarbeiter suchen selbständig erreichbare Baustellen. Pro Baustelle arbeiten maximal zwei gleichzeitig. Direkt bei der Zuweisung prüft ein Bauarbeiter fehlendes Baumaterial: Ist eine erreichbare, nicht reservierte Ressource verfügbar, läuft er von seiner aktuellen Position direkt zur Quelle und anschließend zur Baustelle. Nur wenn aktuell nichts verfügbar ist, läuft er zunächst zur Baustelle und wartet dort. Ein zweiter aktiver Bauarbeiter verdoppelt den Baufortschritt. Nach Fertigstellung bleiben beide im Bauarbeiter-Pool und werden neu disponiert.
+Bauarbeiter sind ein globaler Berufspool am Hauptquartier. Freie Bauarbeiter suchen selbständig erreichbare Baustellen. Pro Baustelle arbeiten maximal zwei gleichzeitig. Direkt bei der Zuweisung prüft ein Bauarbeiter fehlendes Baumaterial: Ist eine erreichbare, nicht reservierte Ressource verfügbar, läuft er von seiner aktuellen Position direkt zur Quelle und anschließend zur Baustelle. Nur wenn aktuell nichts verfügbar ist, läuft er zunächst zur Baustelle und wartet dort. Die persönlichen Bauleistungen der aktiven Bauarbeiter werden addiert. Zwei unerfahrene Bauarbeiter bauen daher doppelt so schnell wie einer; Berufserfahrung kann die Leistung jedes einzelnen Bauarbeiters zusätzlich bis auf das Doppelte steigern. Nach Fertigstellung bleiben beide im Bauarbeiter-Pool und werden neu disponiert.
 
 ## Zeit und Spielgeschwindigkeit
 
@@ -93,20 +93,53 @@ Personen bewegen sich kontinuierlich zwischen Hex-Mittelpunkten. Das Grundtempo 
 - Laufende Routen werden nach neuer Wegbildung neu bewertet.
 - Manuelles Bauen und Entfernen von Wegen bleibt möglich.
 
+## Berufserfahrung
+
+Jede Person besitzt eine eigene Erfahrung von **0 bis 100 % je Beruf**. Beim Berufswechsel bleibt die bisherige Erfahrung erhalten. Erfahrung steigt nur, wenn die Person die jeweilige Tätigkeit tatsächlich ausübt; Warten oder allgemeines Herumlaufen zählt nicht.
+
+Die aktuelle Zielkurve wird mit zunehmender Erfahrung langsamer:
+
+- ca. 50 % nach 10 Minuten aktiver Arbeit,
+- ca. 80 % nach 30 Minuten aktiver Arbeit,
+- ca. 95 % nach 60 Minuten aktiver Arbeit,
+- 100 % nach ca. 90 Minuten aktiver Arbeit.
+
+100 % ist damit bewusst erreichbar, aber deutlich aufwendiger als die ersten Erfahrungsstufen.
+
+Für Holzfäller, Sägewerker, Schreiner, Müller, Bäcker und Farmer steigt der erzeugte Output linear mit der Erfahrung:
+
+```text
+Output-Multiplikator = 1 + Erfahrung / 100
+```
+
+0 % bedeutet normale Leistung, 50 % bedeutet 1,5× Output und 100 % bedeutet 2× Output. Bauarbeiter verwenden dieselbe Kurve für ihren persönlichen Baufortschritt.
+
+Träger und Händler verändern dagegen **nicht** ihre Traglast. Sie transportieren weiterhin genau eine Einheit je Fahrt. Ihre Erfahrung beschleunigt nur die Bewegung während aktiver Logistik:
+
+```text
+Geschwindigkeits-Multiplikator = 1 + 0,5 × Erfahrung / 100
+```
+
+Damit erreichen Träger und Händler bei 100 % Erfahrung maximal +50 % Bewegungsgeschwindigkeit. Der bestehende Wegbonus wirkt zusätzlich.
+
 ## Produktionskette
 
 Nichts produziert ohne konkrete Person.
 
-- Wald: ca. 4 Sekunden → 1 Holz.
-- Sägewerk: 2 Holz → 1 Brett in ca. 4 Sekunden.
-- Schreinerei: 2 Bretter → 1 Holzwerkzeug in ca. 4 Sekunden.
-- Farm: Farmer bewirtschaftet bis zu vier umliegende Acker und erzeugt nach der Ernte je Acker 1 Weizen.
-- Mühle: 1 Weizen → 1 Mehl in ca. 4 Sekunden; ein Müller arbeitet dort.
-- Bäckerei: 2 Mehl + 1 Wasser → 2 Brot in ca. 4 Sekunden; ein Bäcker arbeitet dort.
+- Wald: ca. 4 Sekunden → 1 Holz Grundoutput.
+- Sägewerk: 2 Holz → 1 Brett Grundoutput in ca. 4 Sekunden.
+- Schreinerei: 2 Bretter → 1 Holzwerkzeug Grundoutput in ca. 4 Sekunden.
+- Farm: Farmer bewirtschaftet bis zu vier umliegende Acker und erzeugt nach der Ernte je Acker 1 Weizen Grundoutput.
+- Mühle: 1 Weizen → 1 Mehl Grundoutput in ca. 4 Sekunden; ein Müller arbeitet dort.
+- Bäckerei: 2 Mehl + 1 Wasser → 2 Brot Grundoutput in ca. 4 Sekunden; ein Bäcker arbeitet dort.
 - Brunnen: unerschöpfliche Wasserquelle ohne zugewiesenen Arbeiter. Bäcker und Lager-Träger können dort Wasser holen.
 - Lager: Träger sammeln verfügbare Waren aus nahe gelegenen Produktions- und Rohstofforten ein.
 
-Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt aktuell genau eine Einheit pro Transportweg. Bei Produktionsgebäuden mit mehreren Inputs wird zuerst nur der Bedarf für den nächsten vollständigen Produktionslauf beschafft; erst wenn dafür keine fehlende Zutat mehr gezielt geholt werden kann, werden freie Inputplätze weiter aufgefüllt.
+Berufserfahrung multipliziert den jeweiligen Grundoutput. Warenbestände dürfen deshalb Bruchteile enthalten und werden in der UI mit einer Nachkommastelle dargestellt; intern bleibt eine höhere Genauigkeit erhalten.
+
+Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt weiterhin genau **1,0 Einheit** pro Transportweg. Bei Produktionsgebäuden mit mehreren Inputs wird zuerst nur der Bedarf für den nächsten vollständigen Produktionslauf beschafft; erst wenn dafür keine fehlende Zutat mehr gezielt geholt werden kann, werden freie Inputplätze weiter aufgefüllt.
+
+Ein bereits gestarteter Produktionsvorgang darf beim Abschluss durch den Erfahrungsbonus über die nominelle Output-Kapazität hinausgehen. Solange der aktuelle Output danach mindestens die Kapazitätsgrenze erreicht, startet kein neuer Produktionsvorgang.
 
 ## Farm, Acker und Weizen
 
@@ -132,11 +165,12 @@ Wenn der Farmer gerade weder ernten noch einen fehlenden Acker anlegen muss, suc
 - Erntereife Acker haben Vorrang vor Aussaat und Düngen.
 - Der Farmer läuft physisch zum Acker.
 - Ernten dauert bei 1× **10 Sekunden**.
-- Mit Abschluss der Ernte nimmt der Farmer **1 Weizen** direkt auf.
+- Die Ernte erzeugt 1 Weizen Grundoutput, multipliziert mit der Farmer-Erfahrung.
+- Der Farmer trägt physisch weiterhin genau 1,0 Weizen zurück zur Farm; der zusätzliche Dezimalanteil des Produktionsertrags wird beim Eintreffen ebenfalls dem Farm-Output gutgeschrieben und erhöht nicht die Transportkapazität.
 - Die Acker-Kachel wird sofort wieder normale Wiese.
 - Der abgeerntete Acker zählt nicht mehr zu den maximal vier aktiven Ackern.
-- Der Farmer trägt den Weizen physisch zurück zur Farm und legt ihn dort in den lokalen Output. Erst danach beginnt er seine nächste Feldaufgabe.
-- Ist der Farm-Output voll, wartet der Farmer mit weiteren Ernten.
+- Erst nach der Rückkehr zur Farm beginnt der Farmer seine nächste Feldaufgabe.
+- Ist der Farm-Output voll oder darüber, wartet der Farmer mit weiteren Ernten.
 
 Lager-Träger holen Weizen damit ausschließlich an der Farm ab; im Normalfall bleibt nach der Ernte kein Weizen auf dem ehemaligen Acker liegen.
 
@@ -151,7 +185,7 @@ erntereifen Acker ernten
 
 ## Inventare, Lager und Reservierungen
 
-Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 Einheiten, normale Outputs maximal 3 Einheiten. Farmen halten geernteten Weizen in ihrem lokalen Output, nachdem der Farmer ihn vom Feld zurückgebracht hat.
+Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 Einheiten, normale Outputs haben eine nominelle Kapazität von 3 Einheiten. Erfahrung kann einen bereits laufenden Produktionsvorgang beim Abschluss über diese Output-Grenze bringen. Farmen halten geernteten Weizen in ihrem lokalen Output, nachdem der Farmer ihn vom Feld zurückgebracht hat.
 
 Lager halten aktuell maximal 20 Einheiten je Warentyp:
 
@@ -163,7 +197,9 @@ Lager halten aktuell maximal 20 Einheiten je Warentyp:
 - Wasser,
 - Brot.
 
-Geplante Transporte reservieren Quelle und Zielkapazität. Lager-Träger sammeln Waren nur aus Nicht-Lagern innerhalb von **10 begehbaren Kachelschritten**. Sie verschieben niemals automatisch Ware von einem Lager in ein anderes.
+Bestände können Dezimalwerte enthalten. Geplante Transporte reservieren jedoch immer genau eine ganze Einheit an Quelle und Ziel. Eine Fahrt wird nur geplant, wenn an der Quelle mindestens 1,0 Einheit verfügbar ist und am Ziel mindestens 1,0 Einheit Platz hat. Aus 4,7 Einheiten werden nach einer Abholung daher 3,7; ein Rest von 0,7 bleibt liegen, bis wieder mindestens eine ganze Einheit verfügbar ist.
+
+Lager-Träger sammeln Waren nur aus Nicht-Lagern innerhalb von **10 begehbaren Kachelschritten**. Sie verschieben niemals automatisch Ware von einem Lager in ein anderes.
 
 ## Händler und Handelsrouten
 
@@ -174,7 +210,8 @@ Händler sind die bewusste Ausnahme zur Lager-zu-Lager-Regel.
 - Route = Ziellager + Warentyp.
 - Weizen kann wie andere Waren als Handelsgut gewählt werden.
 - Kein 10-Kachel-Limit.
-- Eine Einheit pro Fahrt.
+- Genau 1,0 Einheit pro Fahrt.
+- Berufserfahrung erhöht die Bewegungsgeschwindigkeit bis maximal +50 %, nicht die Ladungsmenge.
 
 Die Zielwahl geschieht in einem modalen Kartenmodus. Die Simulation pausiert währenddessen; gültige fertige Lager werden hervorgehoben, Pan und Zoom bleiben möglich und Kamera sowie vorheriger Laufzustand werden danach wiederhergestellt.
 
@@ -196,13 +233,13 @@ Holzfäller sind ein globaler Beruf und werden keinem Wald manuell zugewiesen.
 - Bei gleichwertigen Kandidaten entscheidet ein reproduzierbarer Seed-Zufall.
 - Passive Waldkacheln werden beim Anspruch zu aktiven Wald-Arbeitsstätten.
 
-Jeder aktive Wald besitzt 10 Holzvorrat und maximal 3 lokalen Output. Nach der zehnten produzierten Holzeinheit verschwindet der Wald sofort und seine Kachel wird Wiese. Bereits produziertes Restholz bleibt dort liegen.
+Jeder aktive Wald besitzt 10 Arbeitszyklen Holzvorrat und maximal 3 nominelle lokale Output-Kapazität. Erfahrung erhöht den Output je abgeschlossenem Arbeitszyklus, nicht die Zahl der Zyklen. Nach dem zehnten abgeschlossenen Zyklus verschwindet der Wald sofort und seine Kachel wird Wiese. Bereits produziertes Restholz bleibt dort liegen.
 
 ## Bevölkerung und Hauptquartier
 
 Der PoC startet mit acht Personen. Freie Personen sammeln sich am HQ. Freigesetzte Personen laufen von ihrer aktuellen Position zurück; neue Zuweisungen können sie unterwegs umlenken.
 
-Im HQ werden Bevölkerung sowie die globalen Pools für Holzfäller und Bauarbeiter gesteuert. Farmer werden dagegen direkt einer fertigen Farm zugewiesen.
+Im HQ werden Bevölkerung sowie die globalen Pools für Holzfäller und Bauarbeiter gesteuert. Farmer werden dagegen direkt einer fertigen Farm zugewiesen. Berufserfahrung bleibt an der Person gespeichert, auch wenn sie später wieder freigesetzt oder einem anderen Beruf zugewiesen wird.
 
 ## Bedienung
 
@@ -213,7 +250,8 @@ Die Karte ist dauerhaft bildschirmfüllend. Status und Steuerungen liegen als ko
 - Acker sind sichtbar, aber keine direkt steuerbaren Gebäude.
 - Unten: Pause/Fortsetzen und 0,5× / 1× / 2× / 3×.
 - Oben: Build-Version und Kernmetriken einschließlich Weizenbestand in Lagern.
-- Debug-Personenliste zeigt Farmeraktionen wie Säen, Düngen und Ernten.
+- Warenbestände werden mit einer Nachkommastelle angezeigt.
+- Debug-Personenliste zeigt Farmeraktionen und die aktuelle Berufserfahrung.
 - Waren verwenden, wo sinnvoll, Emojis zusammen mit Zahl und Text; Gebäude verwenden ein einheitliches kleines SVG-Icon-Set.
 - Personen werden auf der Karte zusätzlich über Rollen-Icons erkennbar und nicht mehr nur über ihre ID dargestellt.
 
@@ -234,12 +272,12 @@ Referenzgerät ist ein iPhone 13 Mini mit 375 × 812 CSS-Pixeln.
 
 Pro festem Simulationsschritt:
 
-1. Bewegungsfortschritt vergeben und Kachelankünfte abschließen.
+1. Bewegungsfortschritt vergeben, inklusive Erfahrungsbonus aktiver Träger/Händler, und Kachelankünfte abschließen.
 2. Wiesenverkehr registrieren; neue Wege können entstehen und Routen neu geplant werden.
 3. Ankünfte, Abholungen und Lieferungen verarbeiten.
-4. Baustellenfortschritt fortschreiben.
-5. Ackerwachstum und laufende Farmeraktionen fortschreiben; Düngen beschleunigt das aktuelle Feldwachstum.
-6. Normale Produktion fortschreiben oder abschließen.
+4. Baustellenfortschritt und Bauarbeiter-Erfahrung fortschreiben.
+5. Ackerwachstum und laufende Farmeraktionen fortschreiben; Düngen beschleunigt das aktuelle Feldwachstum und aktive Farmerarbeit sammelt Erfahrung.
+6. Normale Produktion und zugehörige Berufserfahrung fortschreiben oder abschließen.
 7. Erschöpfte Wälder entfernen und Holzfäller neu zuweisen.
 8. Neue Beschaffungs-, Farmer-, Bauarbeiter- und Händlerentscheidungen in der regulären 1-Hz-Runde oder bei markierter Sofortreaktion planen.
 
