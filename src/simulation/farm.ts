@@ -96,6 +96,7 @@ const assignFieldTask = (
     target: { ...choice.field.position },
     fieldId: choice.field.id,
     progress: 0,
+    outputMultiplier: kind === "harvest" ? productionMultiplier(p, "farmer") : undefined,
   };
   p.path = choice.path;
   p.movement = 0;
@@ -265,7 +266,7 @@ export function advanceFarmSystem(w: World): number[] {
 
     const field = task.fieldId ? w.buildings.find((b) => b.id === task.fieldId) : undefined;
     if (field?.kind === "field" && !field.retired && field.fieldStage === 4) {
-      const harvestAmount = productionMultiplier(p, "farmer");
+      const harvestAmount = task.outputMultiplier ?? productionMultiplier(p, "farmer");
       harvestField(w, field);
       const path = routeTo(w, p, farm.position);
       if (path) {
