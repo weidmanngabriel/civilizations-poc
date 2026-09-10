@@ -67,7 +67,7 @@ Aktuelle PoC-Baukosten:
 
 Die normale Bauzeit bei einem Bauarbeiter beträgt **3 Sekunden Grundzeit plus 2 Sekunden pro benötigter Ressourceneinheit**. Damit dauern Lager, Farm und Schreinerei aktuell 11 Sekunden und das Sägewerk 15 Sekunden.
 
-Bauarbeiter sind ein globaler Berufspool am Hauptquartier. Freie Bauarbeiter suchen selbständig erreichbare Baustellen. Pro Baustelle arbeiten maximal zwei gleichzeitig. Sie holen fehlendes Baumaterial physisch aus Produktionsorten oder fertigen Lagern. Ein zweiter aktiver Bauarbeiter verdoppelt den Baufortschritt. Nach Fertigstellung bleiben beide im Bauarbeiter-Pool und werden neu disponiert.
+Bauarbeiter sind ein globaler Berufspool am Hauptquartier. Freie Bauarbeiter suchen selbständig erreichbare Baustellen. Pro Baustelle arbeiten maximal zwei gleichzeitig. Direkt bei der Zuweisung prüft ein Bauarbeiter fehlendes Baumaterial: Ist eine erreichbare, nicht reservierte Ressource verfügbar, läuft er von seiner aktuellen Position direkt zur Quelle und anschließend zur Baustelle. Nur wenn aktuell nichts verfügbar ist, läuft er zunächst zur Baustelle und wartet dort. Ein zweiter aktiver Bauarbeiter verdoppelt den Baufortschritt. Nach Fertigstellung bleiben beide im Bauarbeiter-Pool und werden neu disponiert.
 
 ## Zeit und Spielgeschwindigkeit
 
@@ -123,12 +123,13 @@ Wenn der Farmer gerade weder ernten noch einen fehlenden Acker anlegen muss, suc
 - Erntereife Acker haben Vorrang vor Aussaat und Düngen.
 - Der Farmer läuft physisch zum Acker.
 - Ernten dauert bei 1× **10 Sekunden**.
-- Danach entsteht dort **1 Weizen** als physische Ware.
+- Mit Abschluss der Ernte nimmt der Farmer **1 Weizen** direkt auf.
 - Die Acker-Kachel wird sofort wieder normale Wiese.
 - Der abgeerntete Acker zählt nicht mehr zu den maximal vier aktiven Ackern.
-- Der Farmer sucht anschließend wieder eine neue zufällige freie Wiese für die nächste Aussaat.
+- Der Farmer trägt den Weizen physisch zurück zur Farm und legt ihn dort in den lokalen Output. Erst danach beginnt er seine nächste Feldaufgabe.
+- Ist der Farm-Output voll, wartet der Farmer mit weiteren Ernten.
 
-Weizen bleibt nach der Ernte am ehemaligen Acker liegen, bis ein Lager-Träger oder später eine andere berechtigte Logistikperson ihn abholt. Damit kann das Feld verschwinden, ohne dass die Ware global oder unsichtbar teleportiert wird.
+Lager-Träger holen Weizen damit ausschließlich an der Farm ab; im Normalfall bleibt nach der Ernte kein Weizen auf dem ehemaligen Acker liegen.
 
 Die Priorität des Farmers lautet:
 
@@ -141,7 +142,7 @@ erntereifen Acker ernten
 
 ## Inventare, Lager und Reservierungen
 
-Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 Einheiten, normale Outputs maximal 3 Einheiten. Lose Ernte liegt als Output an der ehemaligen Feldposition.
+Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 Einheiten, normale Outputs maximal 3 Einheiten. Farmen halten geernteten Weizen in ihrem lokalen Output, nachdem der Farmer ihn vom Feld zurückgebracht hat.
 
 Lager halten aktuell maximal 20 Einheiten je Warentyp:
 

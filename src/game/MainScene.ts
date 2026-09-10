@@ -576,9 +576,10 @@ export class MainScene extends Phaser.Scene {
         (!building.retired || building.output > 0) &&
         !underConstruction(building),
     )) {
-      if (!b.recipe) continue;
+      const outputGood = b.kind === "farm" ? "wheat" : b.recipe?.output;
+      if (!outputGood) continue;
       const { x, y } = pixel(b.position);
-      if (b.recipe.input) {
+      if (b.recipe?.input) {
         this.drawSlots(slots, x + 5, y - 4, b.input, CONFIG.inputCapacity, b.recipe.input, 5);
         this.markers.add(this.add.text(x + 5, y - 9, "IN", {
           fontFamily: "system-ui",
@@ -589,13 +590,13 @@ export class MainScene extends Phaser.Scene {
       this.drawSlots(
         slots,
         x + 5,
-        b.recipe.input ? y + 3 : y - 1,
+        b.recipe?.input ? y + 3 : y - 1,
         b.output,
         CONFIG.outputCapacity,
-        b.recipe.output,
+        outputGood,
         3,
       );
-      this.markers.add(this.add.text(x + 5, b.recipe.input ? y + 7 : y + 3, "OUT", {
+      this.markers.add(this.add.text(x + 5, b.recipe?.input ? y + 7 : y + 3, "OUT", {
         fontFamily: "system-ui",
         fontSize: "5px",
         color: "#21372a",

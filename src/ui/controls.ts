@@ -192,7 +192,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       setField("warehouse-plank", `${warehouseStock(b, "plank")}/${CONFIG.warehouseCapacityPerGood}`);
       setField("warehouse-tool", `${warehouseStock(b, "woodenTool")}/${CONFIG.warehouseCapacityPerGood}`);
       setField("warehouse-wheat", `${warehouseStock(b, "wheat")}/${CONFIG.warehouseCapacityPerGood}`);
-    } else if (b.kind !== "farm") {
+    } else {
       if (b.recipe?.input) setField("input", `${b.input}/${CONFIG.inputCapacity}`);
       setField("output", `${b.output}/${CONFIG.outputCapacity}`);
     }
@@ -287,7 +287,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       : b.kind === "warehouse"
         ? "Lagert bis zu 20 Einheiten je Warentyp"
         : b.kind === "farm"
-          ? `Ein Farmer bewirtschaftet bis zu ${CONFIG.farmMaxFields} zufällige Acker im Radius ${CONFIG.farmFieldRadius}. Säen und Ernten dauern je 10 s; Düngen beschleunigt die nächste Wachstumsstufe auf ein Drittel der Restzeit.`
+          ? `Ein Farmer bewirtschaftet bis zu ${CONFIG.farmMaxFields} zufällige Acker im Radius ${CONFIG.farmFieldRadius}. Säen und Ernten dauern je 10 s; nach der Ernte trägt der Farmer den Weizen zurück zur Farm.`
           : b.recipe?.input
             ? `${b.recipe.amount} ${GOODS[b.recipe.input]} → 1 ${GOODS[b.recipe.output]}`
             : "Produktion";
@@ -296,7 +296,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       : b.kind === "warehouse"
         ? `<div><span>Holz</span><strong data-field="warehouse-wood"></strong></div><div><span>Bretter</span><strong data-field="warehouse-plank"></strong></div><div><span>Holzwerkzeuge</span><strong data-field="warehouse-tool"></strong></div><div><span>Weizen</span><strong data-field="warehouse-wheat"></strong></div>`
         : b.kind === "farm"
-          ? `<div><span>Ernte</span><strong>1 Weizen je Acker</strong></div>`
+          ? `<div><span>Weizen · Output</span><strong data-field="output"></strong></div>`
           : `${b.recipe?.input ? `<div><span>${GOODS[b.recipe.input]} · Input</span><strong data-field="input"></strong></div>` : ""}<div><span>${b.recipe ? GOODS[b.recipe.output] : "Output"} · Output</span><strong data-field="output"></strong></div>`;
     const merchantAssignment = b.kind === "warehouse"
       ? assignmentControl(b, "merchant", b.merchants ?? 0)

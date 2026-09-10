@@ -101,7 +101,7 @@ test("fertilizing reduces the remaining time to the next stage to one third", ()
   assert.notEqual(farmer.farmTask?.kind, "fertilize");
 });
 
-test("harvest takes ten seconds, restores grass and leaves one wheat", () => {
+test("harvest takes ten seconds and farmer carries wheat back to the farm", () => {
   const w = createWorld();
   const { farm, farmer } = finishedFarm(w);
   const field = addField(w, farm, { q: farm.position.q + 1, r: farm.position.r }, 4);
@@ -119,42 +119,43 @@ test("harvest takes ten seconds, restores grass and leaves one wheat", () => {
   tick(w);
 
   assert.equal(field.retired, true);
-  assert.equal(field.output, 1);
+  assert.equal(field.output, 0);
+  assert.equal(farmer.trip?.source, field.id);
+  assert.equal(farmer.trip?.target, farm.id);
+  assert.equal(farmer.trip?.good, "wheat");
+  assert.equal(farmer.trip?.picked, true);
   assert.equal(
     w.tiles.find((tile) => tile.q === field.position.q && tile.r === field.position.r)?.terrain,
     "grass",
   );
+  for (let i = 0; i < 1000 && farm.output === 0; i++) tick(w);
+  assert.equal(farm.output, 1);
+  assert.equal(farmer.trip, undefined);
 });
 
-test("warehouse carriers can collect wheat from a harvested field", () => {
+test("warehouse carriers collect wheat from farm output", () => {
   const w = createWorld();
+  const farm = buildAt(w, { q: 10, r: 10 }, "farm")!;
   const warehouse = buildAt(w, { q: 9, r: 10 }, "warehouse")!;
-  assert.ok(warehouse);
+  assert.ok(farm && warehouse);
+  farm.output = 1;
   changeAssignment(w, warehouse.id, "carrier", 1);
   const carrier = assigned(w, warehouse.id, "carrier")[0]!;
   carrier.position = { ...warehouse.position };
   carrier.path = [];
   carrier.movement = 0;
   carrier.active = true;
-
-  const source: Building = {
-    id: "field-harvested",
-    kind: "field",
-    name: "Abgeernteter Acker",
-    position: { q: 10, r: 10 },
-    workers: 0,
-    carriers: 0,
-    input: 0,
-    output: 1,
-    fieldStage: 4,
-    fieldGrowthProgress: 0,
-    retired: true,
-    recipe: { amount: 0, output: "wheat", duration: CONFIG.fieldStageDurationTicks },
-  };
-  w.buildings.push(source);
-
   for (let i = 0; i < 1000 && warehouseStock(warehouse, "wheat") === 0; i++) tick(w);
-
   assert.equal(warehouseStock(warehouse, "wheat"), 1);
-  assert.equal(source.output, 0);
+  assert.equal(farm.output, 0);
+});
+
+test("farmer waits to harvest while farm output is full", () => {
+  const w = createWorld();
+  const { farm, farmer } = finishedFarm(w);
+  addField(w, farm, { q: farm.position.q + 1, r: farm.position.r }, 4);
+  farm.output = CONFIG.outputCapacity;
+  tick(w);
+  assert.equal(farmer.farmTask, undefined);
+  assert.equal(farmer.trip, undefined);
 });

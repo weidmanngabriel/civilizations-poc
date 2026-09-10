@@ -99,7 +99,7 @@ Sawmill     6 wood    → 15 s base build time
 Carpenter   4 planks  → 11 s base build time
 ```
 
-Build duration remains `(3 + 2 × required resource units) × simulationHz`. Up to two builders work on a site and the second builder exactly doubles progress while both are present.
+Build duration remains `(3 + 2 × required resource units) × simulationHz`. Up to two builders work on a site and the second builder exactly doubles progress while both are present. When a builder is assigned, construction input is planned immediately from the builder's current position. If material can be reserved, the first route goes directly to that source; only builders without available material route to the site and wait there.
 
 Demolishing a farm additionally removes its still-active field entities and restores their tiles to grass. Retired harvested field sources containing loose wheat are intentionally not removed with the farm because the product rule says already produced physical goods remain in the world.
 
@@ -113,7 +113,7 @@ Current generic recipes:
 - sawmill: 2 wood → 1 plank / ~4 seconds,
 - carpenter: 2 plank → 1 wooden tool / ~4 seconds.
 
-Farm production deliberately does **not** use the generic recipe loop because it is spatial and multi-stage. The farmer works on separate field entities and the harvested wheat source is located at the field, not at the farm building.
+Farm production deliberately does **not** use the generic recipe loop because it is spatial and multi-stage. The farmer works on separate field entities, picks up wheat when harvest completes and transports it through the existing trip primitive back to the farm. The farm then acts as the normal wheat source for warehouse collection.
 
 ## Farm and field model
 
@@ -181,15 +181,15 @@ Sowing and harvesting are different: both always require 600 ticks / 10 seconds 
 
 ### Harvest and physical wheat
 
-Harvesting increments the field entity's output by one wheat, marks the field retired and restores its tile to grass. The retired entity remains a valid non-warehouse goods source while `output > 0`. This mirrors the existing depleted-forest pattern: world terrain can disappear while already produced goods remain collectible.
+Harvest completion marks the field retired and restores its tile to grass. At that moment the farmer immediately carries one wheat using a picked `Trip` whose source is the retired field and whose target is the farm. On arrival, wheat is added to the farm's local output. The farmer cannot start another field task while this trip is active. Farm output uses the normal output capacity of three units, and ripe fields wait while that output plus incoming wheat is full.
 
-Warehouse carriers therefore collect wheat with the same trip/reservation primitive used for wood/planks/tools. No global wheat counter is authoritative; HUD totals are derived from completed warehouse inventories.
+Warehouse carriers collect wheat from the farm with the same source reservation logic used for other produced goods. No global wheat counter is authoritative; HUD totals are derived from completed warehouse inventories.
 
 ## Warehouse and logistics model
 
 Warehouses have local per-good inventory with capacity 20 for wood, planks, wooden tools and wheat.
 
-Warehouse carriers collect output from non-warehouse sources only when the source lies within **10 reachable tile steps**. Retired harvested field sources are valid while they still contain wheat. Warehouse carriers still never create warehouse-to-warehouse trips.
+Warehouse carriers collect output from non-warehouse sources only when the source lies within **10 reachable tile steps**. Farm output is a valid wheat source. Retired fields are not normal wheat sources after a successful harvest return. Warehouse carriers still never create warehouse-to-warehouse trips.
 
 Merchants remain the only automatic warehouse-to-warehouse mechanism and can select wheat as their configured good.
 

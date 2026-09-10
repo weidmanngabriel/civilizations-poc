@@ -78,6 +78,7 @@ export const totalWarehouseStock = (w: World, good: Good): number =>
 const sourceStock = (b: Building, good: Good): number => {
   if (isUnderConstruction(b)) return 0;
   if (b.kind === "warehouse") return warehouseStock(b, good);
+  if (b.kind === "farm" && good === "wheat") return b.output;
   return b.recipe?.output === good ? b.output : 0;
 };
 const available = (w: World, b: Building, good: Good) =>
@@ -387,10 +388,15 @@ function assignBuilder(w: World, p: Person): boolean {
   }
   const choice = candidates[randomIndex(w, candidates.length)]!;
   p.assignment = { building: choice.site.id, role: "builder" };
-  p.active = same(p.position, choice.site.position);
+  p.active = false;
   p.progress = 0;
   p.movement = 0;
-  p.path = choice.path;
+  p.path = [];
+  requestInput(w, p, choice.site);
+  if (!p.trip) {
+    p.path = choice.path;
+    p.active = same(p.position, choice.site.position);
+  }
   return true;
 }
 
@@ -773,6 +779,8 @@ export function tick(w: World): void {
         } else if (target.kind === "warehouse") {
           target.inventory![p.trip.good] =
             (target.inventory![p.trip.good] ?? 0) + CONFIG.carryCapacity;
+        } else if (target.kind === "farm" && p.trip.good === "wheat") {
+          target.output += CONFIG.carryCapacity;
         } else {
           target.input += CONFIG.carryCapacity;
         }
@@ -863,7 +871,7 @@ export function status(w: World, b: Building): string {
   const workers = assigned(w, b.id, "worker");
   if (b.kind === "hq") return "Sammelpunkt für freie Personen";
   if (b.kind === "field") {
-    if (b.retired) return b.output > 0 ? `${b.output} Weizen liegt zur Abholung bereit` : "Abgeerntet";
+    if (b.retired) return "Abgeerntet";
     if (b.fieldStage === 4) return "Erntereif";
     return `Wachstumsstufe ${b.fieldStage ?? 1}/4`;
   }
@@ -893,10 +901,13 @@ export function status(w: World, b: Building): string {
     if (!workers.length) return "Kein Farmer zugewiesen";
     const worker = workers[0]!;
     const count = activeFarmFieldCount(w, b.id);
+    if (worker.trip?.picked && worker.trip.good === "wheat" && worker.trip.target === b.id)
+      return `Farmer bringt Weizen zur Farm · ${count}/${CONFIG.farmMaxFields} Felder`;
     if (worker.farmTask?.kind === "sow") return `Farmer sät · ${count}/${CONFIG.farmMaxFields} Felder`;
     if (worker.farmTask?.kind === "fertilize") return `Farmer düngt · ${count}/${CONFIG.farmMaxFields} Felder`;
     if (worker.farmTask?.kind === "harvest") return `Farmer erntet · ${count}/${CONFIG.farmMaxFields} Felder`;
     if (worker.path.length) return `Farmer unterwegs · ${count}/${CONFIG.farmMaxFields} Felder`;
+    if (b.output >= CONFIG.outputCapacity) return `Farm-Output voll · ${count}/${CONFIG.farmMaxFields} Felder`;
     return `${count}/${CONFIG.farmMaxFields} Felder aktiv`;
   }
   if (b.forestRemaining !== undefined) {

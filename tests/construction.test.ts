@@ -57,6 +57,24 @@ test("builder pool automatically assigns builders and completes construction", (
   assert.equal(changeAssignment(world, site!.id, "carrier", 1), true);
 });
 
+test("newly assigned builder goes directly to available construction material", () => {
+  const world = createWorld();
+  const origin = world.tiles.find((tile) => canPlaceBuilding(world, tile, "warehouse"));
+  assert.ok(origin);
+  const site = buildWithFootprint(world, origin!, "warehouse")!;
+  const sourcePosition = world.tiles.find((tile) => tile.terrain === "grass" && !same(tile, site.position));
+  assert.ok(sourcePosition);
+  world.buildings.push({ id: "ready-wood-source", kind: "forest", name: "Bereites Holz", position: { q: sourcePosition!.q, r: sourcePosition!.r }, workers: 0, carriers: 0, input: 0, output: 4, recipe: { amount: 0, output: "wood", duration: 1 } });
+  assert.equal(changeBuilders(world, 1), true);
+  const builder = assigned(world, site.id, "builder")[0]!;
+  assert.equal(builder.trip?.source, "ready-wood-source");
+  assert.equal(builder.trip?.target, site.id);
+  assert.equal(builder.trip?.picked, false);
+  const destination = builder.path.at(-1) ?? builder.position;
+  assert.ok(same(destination, sourcePosition!));
+  assert.equal(same(destination, site.position), false);
+});
+
 test("a construction site accepts at most two automatic builders", () => {
   const world = createWorld();
   const origin = world.tiles.find((tile) => canPlaceBuilding(world, tile, "warehouse"));
