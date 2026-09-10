@@ -2,7 +2,7 @@ export type Good = "wood" | "plank" | "woodenTool";
 export type BuildingId = string;
 export type BuildingKind = "hq" | "forest" | "sawmill" | "carpenter" | "warehouse";
 export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest">;
-export type Role = "worker" | "carrier" | "merchant";
+export type Role = "worker" | "carrier" | "merchant" | "builder";
 export interface Hex {
   q: number;
   r: number;
@@ -18,6 +18,14 @@ export interface Recipe {
   duration: number;
 }
 export type Inventory = Record<Good, number>;
+export type GoodAmounts = Partial<Record<Good, number>>;
+export interface ConstructionState {
+  required: GoodAmounts;
+  delivered: GoodAmounts;
+  duration: number;
+  progress: number;
+  complete: boolean;
+}
 export interface Building {
   id: BuildingId;
   kind: BuildingKind;
@@ -31,6 +39,7 @@ export interface Building {
   input: number;
   output: number;
   inventory?: Inventory;
+  construction?: ConstructionState;
   baseTerrain?: "grass" | "road";
   baseTerrains?: Record<string, "grass" | "road">;
   forestRemaining?: number;
