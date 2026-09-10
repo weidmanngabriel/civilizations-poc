@@ -7,27 +7,26 @@ Ziel des ersten Proof of Concept ist eine personenbasierte Produktions- und Logi
 ## Karte und Terrain
 
 - Die Welt ist ein festes **41 × 25 Hex-Grid**.
-- Die Hexfelder sind ungefähr halb so groß dargestellt wie im früheren 21 × 13 Raster. Dadurch bleibt die sichtbare Welt ähnlich groß, enthält aber deutlich mehr räumliche Auflösung.
+- Die Hexfelder sind ungefähr halb so groß dargestellt wie im früheren 21 × 13 Raster.
 - Zu Beginn existiert nur das Hauptquartier als Gebäude.
 - Mehrere kleine Gruppen passiver Waldkacheln sind über die Karte verteilt.
 - Zu Beginn gibt es keine Wege.
-- Wiese, Wald, Wege und Gebäudekacheln sind begehbar.
+- Wiese, Wald, Acker, Wege und Gebäudekacheln sind begehbar.
 - Wasser und Berge sind nicht begehbar.
 
 ## Gebäude und Platzierung
 
-Gebäude sind keine Ein-Kachel-Objekte mehr. Jeder Gebäudetyp besitzt einen festen zusammenhängenden **Footprint** aus mehreren Hexfeldern.
+Gebäude besitzen feste zusammenhängende Footprints aus mehreren Hexfeldern und eine Ankerposition.
 
 Aktuelle Größen:
 
 - Hauptquartier: 4 Kacheln,
 - Lager: 4 Kacheln,
+- Farm: 4 Kacheln,
 - Sägewerk: 6 Kacheln,
 - Schreinerei: 4 Kacheln.
 
-Ein Gebäude bleibt logisch eine einzelne Entity mit einer Ankerposition. Klick oder Tap auf eine beliebige belegte Kachel selektiert dieselbe Gebäude-Entity.
-
-Form und Anker sind dabei getrennt definiert. Die Gebäudeform besteht aus lokalen Hex-Zellen; zusätzlich bestimmt jeder Gebäudetyp, welche dieser lokalen Zellen der **Ankerpunkt** ist. Die vom Spieler angetippte Kachel ist die Zielposition dieses Ankers, und der restliche Footprint wird relativ dazu platziert. Dadurch kann der Anker künftig ohne Änderung der Platzierungslogik beispielsweise vorne, mittig oder an einer anderen Stelle einer rechteckigen oder unregelmäßigen Gebäudeform liegen.
+Ein Gebäude bleibt logisch eine einzelne Entity. Klick oder Tap auf eine beliebige belegte Kachel selektiert dieselbe Gebäude-Entity.
 
 ### Platzierungsregel
 
@@ -36,156 +35,143 @@ Ein Gebäude darf nur platziert werden, wenn:
 1. jede Kachel seines Footprints innerhalb der Karte liegt,
 2. jede Footprint-Kachel freie Wiese oder Weg ist,
 3. auf keiner Footprint-Kachel eine Person steht,
-4. **um den kompletten Footprint mindestens ein Ring aus einer freien Kachel bestehen bleibt**.
+4. um den kompletten Footprint mindestens ein Ring aus einer freien Kachel bestehen bleibt.
 
-Der freie Ring muss ebenfalls innerhalb der Karte liegen und aus Wiese oder Weg bestehen. Gebäude können dadurch weder direkt aneinander noch direkt an Wald, Wasser, Berge oder den Kartenrand gesetzt werden.
+Der freie Ring muss ebenfalls innerhalb der Karte liegen und aus Wiese oder Weg bestehen. Gebäude können dadurch weder direkt aneinander noch direkt an Wald, Acker, Wasser, Berge oder den Kartenrand gesetzt werden.
 
 Wege dürfen vom Footprint überbaut werden. Der vorherige Untergrund jeder belegten Kachel wird gespeichert und beim Abriss wiederhergestellt.
 
 ### Baumodus
 
-Gebäude werden nicht mehr sofort auf der zuvor angeklickten Kachel gebaut.
-
 1. Der Spieler wählt auf einer bebaubaren Kachel einen Gebäudetyp.
-2. Die UI wechselt in einen eigenen Baumodus und blendet die normalen Steuerelemente aus.
-3. Die Karte wird leicht abgedunkelt.
-4. **Alle aktuell gültigen Ankerkacheln bleiben in ihrer normalen Helligkeit sichtbar; ungültige Ankerkacheln bleiben abgedunkelt.** Damit ist vor dem ersten Tap sichtbar, auf welche Kacheln das Gebäude gesetzt werden kann.
-5. Beim Start des Baumodus wird **noch kein Gebäude-Ghost angezeigt**.
-6. Erst der erste kurze Klick/Tap auf die Karte wählt eine Ankerposition und zeigt dort den halbtransparenten Ghost.
-7. Der komplette Footprint wird dargestellt.
-8. Der Ghost wird bei gültiger Position grün und bei ungültiger Position rot hervorgehoben; der notwendige freie Ring wird zusätzlich sichtbar umrandet.
-9. Nach der ersten Positionswahl kann der Ghost auf Desktop weiter der Mausposition folgen; auf Touch verschiebt ein kurzer Tap den Ghost.
-10. **Ziehen verschiebt weiterhin ausschließlich die Karte; Pinch-Zoom bleibt unverändert.**
-11. Ein klarer Hinweis im Overlay erklärt: „Tippen, um eine Position zu wählen.“
-12. Der Bau wird ausschließlich über den sichtbaren **„Bauen“**-Button bestätigt. Dieser bleibt deaktiviert, bis erstmals eine gültige Position gewählt wurde.
-13. „Bauen“ erzeugt an dieser Stelle zunächst eine Baustelle; das fertige Gebäude entsteht erst durch Materiallieferung und Bauarbeit.
-14. Ein sichtbarer **„Abbrechen“**-Button beendet den Modus ohne Bau.
-
-Auf Desktop ist „Bauen“ ebenfalls die explizite Bestätigung; ein Karten-Klick baut nicht unmittelbar.
-
-Auf schmalen Displays ordnet der Baumodus seine beiden Aktionsbuttons in einer eigenen Zeile innerhalb des Overlays an, damit weder „Bauen“ noch „Abbrechen“ aus dem sichtbaren Bereich ragen.
+2. Die UI wechselt in einen eigenen Baumodus.
+3. Die Karte wird leicht abgedunkelt; gültige Ankerkacheln bleiben normal hell.
+4. Beim Start wird noch kein Gebäude-Ghost angezeigt.
+5. Der erste kurze Klick/Tap wählt eine Position und zeigt den Ghost.
+6. Der komplette Footprint und der notwendige freie Ring werden dargestellt.
+7. Gültig wird grün, ungültig rot visualisiert.
+8. Desktop-Hover oder ein kurzer Touch-Tap können danach den Ghost verschieben.
+9. Ziehen verschiebt weiterhin nur die Karte; Pinch-Zoom bleibt aktiv.
+10. Der Bau wird ausschließlich über „Bauen“ bestätigt. „Abbrechen“ beendet den Modus ohne Änderung.
 
 ### Baustellen und Bauarbeiter
 
-Lager, Sägewerk und Schreinerei werden nach der Platzierung als unfertige Baustelle angelegt. Der komplette Footprint ist sofort belegt, aber die spätere Gebäudefunktion bleibt gesperrt.
+Lager, Farm, Sägewerk und Schreinerei werden zunächst als unfertige Baustelle angelegt. Der Footprint ist sofort belegt; die spätere Gebäudefunktion bleibt bis zur Fertigstellung gesperrt.
 
 Aktuelle PoC-Baukosten:
 
 - Lager: 4 Holz,
+- Farm: 4 Holz,
 - Sägewerk: 6 Holz,
 - Schreinerei: 4 Bretter.
 
-Diese Werte sind vorläufige Balancewerte für den PoC.
+Die normale Bauzeit bei einem Bauarbeiter beträgt **3 Sekunden Grundzeit plus 2 Sekunden pro benötigter Ressourceneinheit**. Damit dauern Lager, Farm und Schreinerei aktuell 11 Sekunden und das Sägewerk 15 Sekunden.
 
-Bauarbeiter sind wie Holzfäller ein **globaler Berufspool**, der im Hauptquartier eingestellt wird. Es können global beliebig viele Personen als Bauarbeiter markiert sein. Freie Bauarbeiter suchen selbständig eine erreichbare offene Baustelle und werden automatisch zugewiesen. Pro Baustelle können maximal **zwei Bauarbeiter** gleichzeitig arbeiten. Gibt es keine freie Baustelle, wartet die Person als Bauarbeiter am Hauptquartier beziehungsweise läuft dorthin zurück.
-
-Beide Bauarbeiter können fehlendes Baumaterial selbst physisch aus erreichbaren Produktionsorten oder fertigen Lagern holen, jeweils eine Einheit pro Transport. Die Ware wird bei der Planung reserviert und zählt nach Lieferung zum Baustellenbestand.
-
-Erst wenn alle erforderlichen Waren geliefert wurden, beginnt der Baufortschritt. Die normale Bauzeit bei einem Bauarbeiter beträgt **3 Sekunden Grundzeit plus 2 Sekunden pro benötigter Ressourceneinheit**. Dadurch ergeben sich aktuell bei 1×:
-
-- Lager: 11 Sekunden,
-- Sägewerk: 15 Sekunden,
-- Schreinerei: 11 Sekunden.
-
-Ein zweiter aktiver Bauarbeiter verdoppelt die Baugeschwindigkeit. Zwei Bauarbeiter benötigen daher bei durchgehend gemeinsamer Arbeit nur die halbe verbleibende Bauzeit. Nach Fertigstellung bleiben beide Personen im globalen Bauarbeiter-Pool und werden automatisch zur nächsten offenen Baustelle geschickt; gibt es keine, warten sie am HQ. Erst mit der Fertigstellung werden die normalen Arbeiter-, Träger- und Händlerrollen des Gebäudes freigeschaltet.
-
-Unfertige Lager sind weder Warenquelle noch normales Warenziel und können nicht als Handelsziel verwendet werden. Wird eine Baustelle abgerissen, gehen bereits gelieferte Baumaterialien verloren; zugewiesene Bauarbeiter kehren in den Pool zurück und werden neu disponiert. Der ursprüngliche Boden des Footprints wird wiederhergestellt.
+Bauarbeiter sind ein globaler Berufspool am Hauptquartier. Freie Bauarbeiter suchen selbständig erreichbare Baustellen. Pro Baustelle arbeiten maximal zwei gleichzeitig. Sie holen fehlendes Baumaterial physisch aus Produktionsorten oder fertigen Lagern. Ein zweiter aktiver Bauarbeiter verdoppelt den Baufortschritt. Nach Fertigstellung bleiben beide im Bauarbeiter-Pool und werden neu disponiert.
 
 ## Zeit und Spielgeschwindigkeit
 
-Die Simulation besitzt bei angezeigtem **1× weiterhin 60 feste Simulationsschritte pro realer Sekunde**. Rendering und Simulationsgeschwindigkeit bleiben voneinander getrennt.
+Die Simulation läuft bei angezeigtem **1× mit 60 festen Simulationsschritten pro realer Sekunde**. Rendering und Simulation sind getrennt.
 
-Das allgemeine Spieltempo beträgt trotzdem nur **25 % des früheren Tempos**: Bewegungsfortschritt pro Tick wurde auf ein Viertel reduziert und Arbeits-/Produktionsdauern sowie andere Zeitfenster wurden vervierfacht. Dadurch bleiben die Zustände bei 1× mit 60 Hz fein aufgelöst, statt die Simulation nur noch 15-mal pro Sekunde zu aktualisieren.
+Autonome Neuentscheidungen laufen grundsätzlich einmal pro Simulationssekunde. Ereignisse wie Ankunft, Lieferung, Produktionsabschluss, Farmaktion oder Bauabschluss können unmittelbar eine neue Entscheidung auslösen.
 
-Autonome **Neuentscheidungen** laufen nicht mit 60 Hz. Eine reguläre Entscheidungsrunde findet einmal pro Simulationssekunde, also alle 60 Simulationsschritte, statt. Bewegung, laufende Produktion und andere kontinuierliche Zustände bleiben bei 60 Hz. Notwendige Folgereaktionen auf konkrete Ereignisse wie Ankunft am Arbeitsplatz, Warenlieferung oder Produktionsabschluss werden sofort verarbeitet und warten nicht auf die nächste Entscheidungsrunde.
-
-Der Spieler steuert die gesamte Simulation relativ zu diesem neuen Basistempo mit:
-
-- 0,5×,
-- 1× – Standard,
-- 2×,
-- 3×,
-- Pause.
-
-Die Darstellungs-Framerate bleibt von diesen Geschwindigkeiten unabhängig. Es gibt keinen FPS-Regler, keinen Max-FPS-Modus und keinen „Nächster Schritt“-Button.
+Der Spieler steuert die Simulation mit 0,5×, 1×, 2×, 3× und Pause. Die Darstellungs-Framerate bleibt davon unabhängig.
 
 ## Bewegung und organische Wege
 
-Das Hex-Grid dient Wegfindung und Terrainlogik; Personen bewegen sich kontinuierlich zwischen den Mittelpunkten der Wegkacheln.
+Personen bewegen sich kontinuierlich zwischen Hex-Mittelpunkten. Das Grundtempo beträgt bei 1× 2,5 Kacheln pro Sekunde.
 
-Das Grundtempo beträgt bei 1× jetzt **2,5 Kacheln pro realer Sekunde**. Das sind 25 % des vorherigen Tempos von 10 Kacheln pro Sekunde, bei weiterhin 60 Bewegungsupdates pro Sekunde.
-
-- Ein Weg macht Bewegung 30 % schneller.
-- Die Wegfindung minimiert Reisezeit und berücksichtigt daher Wege.
-- Sichtbare Zwischenpositionen entstehen direkt aus dem deterministischen Simulationsfortschritt.
-
-### Automatische Wegbildung
-
-- Jede vollständige Ankunft auf einer Wiesen-Kachel wird gezählt.
-- 8 Überquerungen innerhalb der letzten 32 Sekunden bei 1× machen die Kachel dauerhaft zum Weg.
-- Laufende Routen werden danach neu bewertet.
-- Manuelles Weg-Bauen und -Entfernen bleibt zusätzlich verfügbar.
+- Wege machen Bewegung 30 % schneller.
+- Die Wegfindung minimiert Reisezeit und berücksichtigt Wege.
+- Acht Überquerungen einer Wiese innerhalb von 32 Sekunden erzeugen dort dauerhaft einen Weg.
+- Laufende Routen werden nach neuer Wegbildung neu bewertet.
+- Manuelles Bauen und Entfernen von Wegen bleibt möglich.
 
 ## Produktionskette
 
 Nichts produziert ohne konkrete Person.
 
-- Wald: ca. 4 Sekunden bei 1× → 1 Holz.
-- Sägewerk: 2 Holz → 1 Brett in ca. 4 Sekunden bei 1×.
-- Schreinerei: 2 Bretter → 1 Holzwerkzeug in ca. 4 Sekunden bei 1×.
+- Wald: ca. 4 Sekunden → 1 Holz.
+- Sägewerk: 2 Holz → 1 Brett in ca. 4 Sekunden.
+- Schreinerei: 2 Bretter → 1 Holzwerkzeug in ca. 4 Sekunden.
+- Farm: Farmer bewirtschaftet bis zu vier umliegende Acker und erzeugt nach der Ernte je Acker 1 Weizen.
 - Lager: Träger sammeln verfügbare Waren aus nahe gelegenen Produktions- und Rohstofforten ein.
 
 Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt aktuell genau eine Einheit pro Transportweg.
 
-Sägewerk und Schreinerei besitzen jeweils einen Produktionsarbeiter-Slot und bis zu zwei Träger. Produktionsarbeiter produzieren bevorzugt und beschaffen nur dann selbst Rohstoffe, wenn die Produktion blockiert ist. Träger beschaffen ausschließlich Inputs ihrer Arbeitsstätte.
+## Farm, Acker und Weizen
+
+Eine fertige Farm besitzt genau einen Farmer-Slot. Der Farmer arbeitet autonom und bewirtschaftet maximal **vier gleichzeitig aktive Acker**.
+
+### Aussaat
+
+- Solange weniger als vier aktive Acker existieren, sucht der Farmer eine zufällige geeignete freie Wiese.
+- Geeignet sind erreichbare Wiesen innerhalb von **drei Hex-Schritten vom Farm-Footprint**.
+- Bereits von einem anderen Farmer für die Aussaat reservierte Kacheln werden ausgeschlossen.
+- Der Farmer läuft physisch zur Zielkachel.
+- Aussäen dauert bei 1× **10 Sekunden**.
+- Danach wird die Wiese zu einem Acker auf Wachstumsstufe 1.
+
+### Wachstum
+
+Ein Acker besitzt vier sichtbare Zustände: Wachstumsstufe 1, 2, 3 und erntereif. Zwischen den Stufen liegen ohne Farmerhilfe jeweils **30 Sekunden Simulationszeit**.
+
+Wenn der Farmer gerade weder ernten noch einen fehlenden Acker anlegen muss, sucht er sich einen noch nicht erntereifen Acker und **düngt** ihn. Während des Düngens läuft dessen Wachstumsfortschritt mit dreifacher Geschwindigkeit. Dadurch sinkt die verbleibende Zeit bis zur nächsten Stufe auf ein Drittel: 30 Sekunden Restzeit werden zu 10 Sekunden Arbeit, 15 Sekunden Restzeit zu 5 Sekunden Arbeit. Sobald die nächste Stufe erreicht ist, endet das Düngen sofort.
+
+### Ernte
+
+- Erntereife Acker haben Vorrang vor Aussaat und Düngen.
+- Der Farmer läuft physisch zum Acker.
+- Ernten dauert bei 1× **10 Sekunden**.
+- Danach entsteht dort **1 Weizen** als physische Ware.
+- Die Acker-Kachel wird sofort wieder normale Wiese.
+- Der abgeerntete Acker zählt nicht mehr zu den maximal vier aktiven Ackern.
+- Der Farmer sucht anschließend wieder eine neue zufällige freie Wiese für die nächste Aussaat.
+
+Weizen bleibt nach der Ernte am ehemaligen Acker liegen, bis ein Lager-Träger oder später eine andere berechtigte Logistikperson ihn abholt. Damit kann das Feld verschwinden, ohne dass die Ware global oder unsichtbar teleportiert wird.
+
+Die Priorität des Farmers lautet:
+
+```text
+erntereifen Acker ernten
+→ falls weniger als 4 Acker: neuen Acker aussäen
+→ sonst nicht erntereifen Acker düngen
+→ warten, falls keine Aktion möglich ist
+```
 
 ## Inventare, Lager und Reservierungen
 
-Produktions- und Rohstofforte:
+Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 Einheiten, normale Outputs maximal 3 Einheiten. Lose Ernte liegt als Output an der ehemaligen Feldposition.
 
-- Input maximal 10 Einheiten,
-- Output maximal 3 Einheiten.
+Lager halten aktuell maximal 20 Einheiten je Warentyp:
 
-Lager:
+- Holz,
+- Bretter,
+- Holzwerkzeuge,
+- Weizen.
 
-- maximal 20 Holz,
-- maximal 20 Bretter,
-- maximal 20 Holzwerkzeuge.
-
-Ein Produktionsvorgang startet nur, wenn Platz für Output reserviert werden kann. Geplante Transporte zählen gegen Zielkapazitäten und vorhandene Waren werden für Abholaufträge reserviert.
-
-Der Lager-Sammelradius beträgt wegen der verdoppelten Rasterdichte jetzt **10 begehbare Kachelschritte**. Das erhält ungefähr die bisherige physische Reichweite. Die Reichweite wird weiterhin in Schritten und nicht in Reisezeit gemessen.
-
-Lager-Träger holen Waren niemals aus einem anderen Lager. Produktionsarbeiter, Träger und Bauarbeiter dürfen benötigte Waren dagegen auch aus weiter entfernten fertigen Lagern holen.
+Geplante Transporte reservieren Quelle und Zielkapazität. Lager-Träger sammeln Waren nur aus Nicht-Lagern innerhalb von **10 begehbaren Kachelschritten**. Sie verschieben niemals automatisch Ware von einem Lager in ein anderes.
 
 ## Händler und Handelsrouten
 
-Händler sind eine eigene Lagerrolle und die bewusste Ausnahme zur Lager-zu-Lager-Regel.
+Händler sind die bewusste Ausnahme zur Lager-zu-Lager-Regel.
 
 - Bis zu zwei Händler pro Lager.
 - Genau ein Startlager je Händler.
 - Route = Ziellager + Warentyp.
+- Weizen kann wie andere Waren als Handelsgut gewählt werden.
 - Kein 10-Kachel-Limit.
 - Eine Einheit pro Fahrt.
-
-Ablauf: am Startlager warten → Ware und Zielkapazität reservieren → transportieren → leer zurücklaufen → wiederholen.
 
 Die Zielwahl geschieht in einem modalen Kartenmodus. Die Simulation pausiert währenddessen; gültige fertige Lager werden hervorgehoben, Pan und Zoom bleiben möglich und Kamera sowie vorheriger Laufzustand werden danach wiederhergestellt.
 
 ## Gebäude abreißen
 
-Frei baubar und abreißbar sind Lager, Sägewerk und Schreinerei, einschließlich unfertiger Baustellen.
+Frei baubar und abreißbar sind Lager, Farm, Sägewerk und Schreinerei, einschließlich unfertiger Baustellen.
 
-Beim Abriss:
+Beim Abriss verschwinden Footprint und lokale Gebäudebestände, der gespeicherte Untergrund wird wiederhergestellt, Personen werden freigesetzt und betroffene Transporte werden bereinigt. Bei einer Farm verschwinden zusätzlich alle noch aktiven zugehörigen Acker und werden zu Wiese. Bereits abgeernteter, lose liegender Weizen bleibt erhalten.
 
-- verschwindet die gesamte Footprint-Fläche,
-- alle darunter gespeicherten Wiesen-/Wegkacheln werden wiederhergestellt,
-- lokale Waren beziehungsweise gelieferte Baumaterialien verfallen,
-- zugewiesene normale Gebäude-Personen werden frei und laufen zum HQ,
-- zugewiesene Bauarbeiter bleiben Bauarbeiter und werden automatisch neu disponiert,
-- betroffene Transporte und Handelsrouten werden bereinigt.
-
-HQ und aktive Wälder können nicht manuell abgerissen werden.
+HQ, aktive Wälder und Acker können nicht direkt manuell abgerissen werden.
 
 ## Holzfäller und Wälder
 
@@ -197,30 +183,24 @@ Holzfäller sind ein globaler Beruf und werden keinem Wald manuell zugewiesen.
 - Bei gleichwertigen Kandidaten entscheidet ein reproduzierbarer Seed-Zufall.
 - Passive Waldkacheln werden beim Anspruch zu aktiven Wald-Arbeitsstätten.
 
-Jeder aktive Wald besitzt 10 Holzvorrat und maximal 3 lokalen Output. Die Darstellung verblasst proportional zum Restvorrat, aber nie unter 35 %, solange der Wald existiert.
-
-Nach der zehnten produzierten Holzeinheit verschwindet der Wald sofort und seine Kachel wird Wiese. Bereits produziertes Restholz bleibt dort liegen.
+Jeder aktive Wald besitzt 10 Holzvorrat und maximal 3 lokalen Output. Nach der zehnten produzierten Holzeinheit verschwindet der Wald sofort und seine Kachel wird Wiese. Bereits produziertes Restholz bleibt dort liegen.
 
 ## Bevölkerung und Hauptquartier
 
 Der PoC startet mit acht Personen. Freie Personen sammeln sich am HQ. Freigesetzte Personen laufen von ihrer aktuellen Position zurück; neue Zuweisungen können sie unterwegs umlenken.
 
-Debug-Bevölkerungssteuerung:
-
-- +1 erzeugt eine freie Person am HQ,
-- −1 entfernt nur eine freie Person, die tatsächlich am HQ steht.
-
-Im HQ werden außerdem die globalen Pools für Holzfäller und Bauarbeiter über +/− gesteuert.
+Im HQ werden Bevölkerung sowie die globalen Pools für Holzfäller und Bauarbeiter gesteuert. Farmer werden dagegen direkt einer fertigen Farm zugewiesen.
 
 ## Bedienung
 
 Die Karte ist dauerhaft bildschirmfüllend. Status und Steuerungen liegen als kompakte Overlays darüber.
 
-- Kurzer Klick/Tap auf eine beliebige Footprint-Kachel: Gebäude- oder Baustellendialog.
-- Kurzer Klick/Tap auf freie Kachel: lokale Bau- und Wegoptionen.
+- Kurzer Klick/Tap auf eine Gebäude-Footprint-Kachel: Gebäude- oder Baustellendialog.
+- Kurzer Klick/Tap auf freie Wiese oder Weg: lokale Bau- und Wegoptionen.
+- Acker sind sichtbar, aber keine direkt steuerbaren Gebäude.
 - Unten: Pause/Fortsetzen und 0,5× / 1× / 2× / 3×.
-- Oben: Build-Version und Kernmetriken.
-- Debug-Personenliste bleibt standardmäßig verborgen.
+- Oben: Build-Version und Kernmetriken einschließlich Weizenbestand in Lagern.
+- Debug-Personenliste zeigt Farmeraktionen wie Säen, Düngen und Ernten.
 
 ## Desktop und Mobile
 
@@ -233,8 +213,6 @@ Referenzgerät ist ein iPhone 13 Mini mit 375 × 812 CSS-Pixeln.
 - Touch: ein Finger verschiebt, zwei Finger zoomen.
 - Im Baumodus wird der Ghost erst nach dem ersten kurzen Klick/Tap angezeigt.
 - Danach verschiebt ein kurzer Tap auf Touch nur den Ghost; Ziehen bleibt Pan.
-- Der Bau wird im Baumodus ausschließlich mit „Bauen“ bestätigt oder mit „Abbrechen“ verworfen.
-- Im Baumodus zeigen normal helle Kacheln die aktuell gültigen Ankerpositionen; die übrige Karte bleibt leicht abgedunkelt.
 - Overlays berücksichtigen Safe Areas.
 
 ## Simulationsreihenfolge
@@ -243,9 +221,11 @@ Pro festem Simulationsschritt:
 
 1. Bewegungsfortschritt vergeben und Kachelankünfte abschließen.
 2. Wiesenverkehr registrieren; neue Wege können entstehen und Routen neu geplant werden.
-3. Ankünfte, Abholungen und Lieferungen verarbeiten; notwendige direkte Folgereaktionen werden für denselben Tick markiert.
-4. Baustellenfortschritt anhand der Zahl aktiver Bauarbeiter und danach Produktion fortschreiben oder abschließen.
-5. Erschöpfte Wälder entfernen und betroffene Holzfäller sofort neu zuweisen.
-6. Neue Beschaffungs-, Bauarbeiter-, Händler- und Warteentscheidungen nur in der regulären 1-Hz-Entscheidungsrunde oder bei einer markierten Sofortreaktion planen.
+3. Ankünfte, Abholungen und Lieferungen verarbeiten.
+4. Baustellenfortschritt fortschreiben.
+5. Ackerwachstum und laufende Farmeraktionen fortschreiben; Düngen beschleunigt das aktuelle Feldwachstum.
+6. Normale Produktion fortschreiben oder abschließen.
+7. Erschöpfte Wälder entfernen und Holzfäller neu zuweisen.
+8. Neue Beschaffungs-, Farmer-, Bauarbeiter- und Händlerentscheidungen in der regulären 1-Hz-Runde oder bei markierter Sofortreaktion planen.
 
 Alle Regeln bleiben deterministisch und hängen von Simulationszeit statt Darstellungs-FPS ab.
