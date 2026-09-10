@@ -37,3 +37,4 @@ jobs:
           git add -A
           git commit -m "Add bread production chain and visual icons"
           git push origin HEAD:feature/bread-chain-icons
+# trigger
