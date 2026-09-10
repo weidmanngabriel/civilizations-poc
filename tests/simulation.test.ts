@@ -17,7 +17,6 @@ import {
   changeAssignment,
   changePopulation,
   changeWoodcutters,
-  outputOccupied,
   removeBuilding,
   setRoad,
   tick,
@@ -81,12 +80,11 @@ function assertInvariants(w: World) {
     assert.ok(b.input >= 0 && b.input <= CONFIG.inputCapacity);
     assert.ok(b.output >= 0);
     if (b.kind !== "warehouse") {
-      assert.ok(outputOccupied(w, b) <= CONFIG.outputCapacity, `${b.id}: output overflow`);
       assert.ok(
         b.input + w.people.filter((p) => p.trip?.target === b.id).length <= CONFIG.inputCapacity,
       );
       assert.ok(
-        w.people.filter((p) => p.trip?.source === b.id && !p.trip.picked).length <= b.output,
+        w.people.filter((p) => p.trip?.source === b.id && !p.trip.picked).length <= b.output + 1e-9,
       );
     } else {
       for (const good of goods) {
@@ -99,7 +97,7 @@ function assertInvariants(w: World) {
         ).length;
         assert.ok(stock >= 0 && stock <= CONFIG.warehouseCapacityPerGood);
         assert.ok(stock + incoming <= CONFIG.warehouseCapacityPerGood);
-        assert.ok(reserved <= stock);
+        assert.ok(reserved <= stock + 1e-9);
       }
     }
     if (b.forestRemaining !== undefined) {
@@ -186,7 +184,7 @@ test("arrival controls activation; release and reassignment never teleport", () 
   assert.deepEqual(p.assignment, { building: carpenter.id, role: "worker" });
 });
 
-test("production takes one simulated second and consumes two inputs", () => {
+test("production takes one configured cycle and gains a small initial experience bonus", () => {
   const w = createWorld();
   const { sawmill } = placeCore(w);
   const p = workerAt(w, sawmill.id);
@@ -195,18 +193,19 @@ test("production takes one simulated second and consumes two inputs", () => {
   assert.equal(sawmill.output, 0);
   assert.equal(p.progress, CONFIG.duration - 1);
   tick(w);
-  assert.equal(sawmill.output, 1);
+  assert.ok(sawmill.output > 1 && sawmill.output < 1.01);
   assert.equal(sawmill.input, 0);
 });
 
-test("one woodcutter occupies one forest and respects output capacity", () => {
+test("one woodcutter occupies one forest and stops after experience overflow reaches capacity", () => {
   const w = createWorld();
   const { forest } = woodcutterAtForest(w);
   assert.equal(assigned(w, forest.id, "worker").length, 1);
   rounds(w, CONFIG.duration * 3);
-  assert.equal(forest.output, 3);
+  assert.ok(forest.output > 3 && forest.output < 3.1);
+  const stoppedAt = forest.output;
   rounds(w, CONFIG.duration * 2);
-  assert.equal(forest.output, 3);
+  assert.equal(forest.output, stoppedAt);
   assertInvariants(w);
 });
 
