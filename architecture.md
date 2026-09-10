@@ -29,11 +29,13 @@ Dependencies flow from presentation toward the simulation. `src/simulation/` mus
 
 Buildable buildings may carry a `footprint` and `baseTerrains` for demolition restoration. Their logical `position` remains the anchor used by jobs and routing. Buildable buildings can additionally carry a `construction` state while unfinished.
 
-People can carry persistent `woodcutter` and `builder` pool flags. Normal workplace roles continue to use `assignment`. Farm workers use a normal worker assignment to the farm plus a transient `farmTask` for sowing, fertilizing or harvesting a specific field position.
+People can carry persistent `woodcutter` and `builder` pool flags. Normal workplace roles continue to use `assignment`. Farm workers use a normal worker assignment to the farm plus a transient `farmTask` for sowing, fertilizing or harvesting a specific field position. Each person also stores persistent experience per profession in `experience`; switching jobs does not erase previously earned experience.
 
 `scenario.ts` owns the fixed **41 × 25** map and central balance constants, including farm radius, field limit, action duration and growth duration.
 
 `simulation.ts` owns the global deterministic tick, assignments, reservations, production, construction, profession pools, forest lifecycle, low-level building creation/removal, roads, merchant routes and status derivation. Farm-specific behavior is delegated to `farm.ts` rather than expanding the generic recipe loop with special cases.
+
+`experience.ts` owns profession-XP progression and the resulting production, construction and logistics modifiers. Keeping these rules separate avoids spreading balance formulas across the simulation loop.
 
 `farm.ts` owns field selection, seeded random field placement, field lifecycle, growth, fertilizing acceleration, harvest and cleanup when a farm is demolished.
 
@@ -55,6 +57,23 @@ Important balance constants at 1×:
 - one natural field-growth stage: 1800 ticks / 30 seconds.
 
 Event-driven transitions bypass the 1-Hz planning cadence. Arrivals, deliveries, production completion, farm-action completion, field-stage completion and construction completion can cause an immediate follow-up decision.
+
+## Profession experience
+
+Experience is stored per person and profession from 0 to 100. Only active profession work contributes; ordinary idle time does not. The current prototype uses a piecewise-linear curve that deliberately slows with increasing skill:
+
+```text
+0 → 50     10 minutes active work
+50 → 80    next 20 minutes
+80 → 95    next 30 minutes
+95 → 100   next 30 minutes
+```
+
+Thus an uninterrupted profession can reach 100 after about 90 minutes of active work. Experience remains when a person changes profession and later returns.
+
+Production professions use `1 + experience / 100` as their output multiplier, so 100 experience doubles output. Builders use the same multiplier for their personal construction contribution. Carrier and merchant load size remains exactly one unit; instead their active logistics movement uses `1 + 0.5 × experience / 100`, capped naturally at 1.5× at 100 experience.
+
+The profession-specific effects are deterministic and based entirely on simulation ticks. Roads multiply movement independently, so an experienced carrier or merchant also benefits from the normal road speed bonus.
 
 ## Navigation and movement
 
@@ -105,24 +124,28 @@ Bakery      4 planks  → 11 s base build time
 Well        4 wood    → 11 s base build time
 ```
 
-Build duration remains `(3 + 2 × required resource units) × simulationHz`. Up to two builders work on a site and the second builder exactly doubles progress while both are present. When a builder is assigned, construction input is planned immediately from the builder's current position. If material can be reserved, the first route goes directly to that source; only builders without available material route to the site and wait there.
+Build duration remains `(3 + 2 × required resource units) × simulationHz`. Up to two builders work on a site. Their individual construction contributions are added each tick: two inexperienced builders therefore build exactly twice as fast as one inexperienced builder, while experience can raise each builder's own contribution up to 2×. When a builder is assigned, construction input is planned immediately from the builder's current position. If material can be reserved, the first route goes directly to that source; only builders without available material route to the site and wait there.
 
 Demolishing a farm additionally removes its still-active field entities and restores their tiles to grass. Retired harvested field sources containing loose wheat are intentionally not removed with the farm because the product rule says already produced physical goods remain in the world.
 
 ## Production and reservations
 
-Generic production still uses recipes and local input/output capacities. Recipes may define an output amount greater than one. Trips represent reservations directly: an unpicked trip reserves source stock, an incoming trip reserves destination capacity and a picked trip physically carries one unit. For multi-input recipes, procurement prioritizes ingredients still missing for the next complete batch before topping up already-sufficient inputs; if no prioritized source is reachable, normal top-up remains available.
+Generic production still uses recipes and local input/output capacities. Recipes may define an output amount greater than one. Goods quantities are floating-point simulation values and may contain fractions. A completed production cycle may push a local output above its nominal capacity because its experience multiplier is applied at completion. No new production cycle starts while the current output is at or above the nominal capacity.
+
+Trips deliberately remain whole-unit logistics. An unpicked trip reserves exactly one unit of source stock, an incoming trip reserves exactly one unit of destination capacity and a picked trip physically carries exactly one unit. A trip can only be planned when at least 1.0 unit is available at the source and at least 1.0 unit fits at the destination. Thus a source with 4.7 units becomes 3.7 after pickup, while a residual 0.7 cannot be transported until production raises it to at least 1.0. For multi-input recipes, procurement prioritizes ingredients still missing for the next complete batch before topping up already-sufficient inputs; if no prioritized source is reachable, normal top-up remains available.
 
 Current generic recipes:
 
 - forest: 1 wood / ~4 seconds,
 - sawmill: 2 wood → 1 plank / ~4 seconds,
-- carpenter: 2 plank → 1 wooden tool / ~4 seconds.
-- mill: 1 wheat → 1 flour / ~4 seconds.
-- bakery: 2 flour + 1 water → 2 bread / ~4 seconds.
+- carpenter: 2 plank → 1 wooden tool / ~4 seconds,
+- mill: 1 wheat → 1 flour / ~4 seconds,
+- bakery: 2 flour + 1 water → 2 bread / ~4 seconds,
 - well: infinite water source with no worker and no production timer.
 
-Farm production deliberately does **not** use the generic recipe loop because it is spatial and multi-stage. The farmer works on separate field entities, picks up wheat when harvest completes and transports it through the existing trip primitive back to the farm. The farm then acts as the normal wheat source for warehouse collection.
+The base output listed above is multiplied by worker experience. Production time itself remains unchanged for these professions.
+
+Farm production deliberately does **not** use the generic recipe loop because it is spatial and multi-stage. The farmer works on separate field entities, picks up one physical wheat when harvest completes and transports it through the existing trip primitive back to the farm. Any fractional experience bonus from that harvest is credited to the farm output when the farmer arrives, so the trip primitive itself still carries exactly one unit. The farm then acts as the normal wheat source for warehouse collection.
 
 ## Farm and field model
 
@@ -141,6 +164,8 @@ Building(kind = field)
 
 Person
   assignment           # worker at farm
+  experience            # persistent XP per profession
+  pendingFarmBonus?     # fractional harvest yield awaiting return to farm
   farmTask:
     kind: sow | fertilize | harvest
     target
@@ -186,27 +211,27 @@ While its farmer is physically present and executing a fertilize task, the same 
 
 The fertilize task ends immediately when the next field stage is reached, rather than always consuming a fixed 10 seconds. This implements the product requirement that partially grown fields need proportionally less work.
 
-Sowing and harvesting are different: both always require 600 ticks / 10 seconds once the farmer has arrived.
+Sowing and harvesting are different: both always require 600 ticks / 10 seconds once the farmer has arrived. Active sowing, fertilizing and harvesting all contribute farmer experience.
 
 ### Harvest and physical wheat
 
-Harvest completion marks the field retired and restores its tile to grass. At that moment the farmer immediately carries one wheat using a picked `Trip` whose source is the retired field and whose target is the farm. On arrival, wheat is added to the farm's local output. The farmer cannot start another field task while this trip is active. Farm output uses the normal output capacity of three units, and ripe fields wait while that output plus incoming wheat is full.
+Harvest completion marks the field retired and restores its tile to grass. The harvest yield is `1 × farmer production multiplier`. At that moment the farmer immediately carries the physical base unit using a picked `Trip` whose source is the retired field and whose target is the farm. On arrival, one wheat plus the fractional experience bonus are added to the farm's local output. The farmer cannot start another field task while this trip is active. Farm output uses the normal nominal output capacity of three units; a completed harvest may overflow it, and ripe fields then wait while that output plus incoming wheat is full.
 
-Warehouse carriers collect wheat from the farm with the same source reservation logic used for other produced goods. No global wheat counter is authoritative; HUD totals are derived from completed warehouse inventories.
+Warehouse carriers collect wheat from the farm with the same whole-unit source reservation logic used for other produced goods. No global wheat counter is authoritative; HUD totals are derived from completed warehouse inventories.
 
 ## Warehouse and logistics model
 
-Warehouses have local per-good inventory with capacity 20 for wood, planks, wooden tools, wheat, flour, water and bread. Water can be collected from wells; wells themselves are not depleted by pickup.
+Warehouses have local per-good inventory with capacity 20 for wood, planks, wooden tools, wheat, flour, water and bread. Stocks may be fractional because production is fractional, but carrier and merchant trips always transfer exactly 1.0 unit.
 
 Warehouse carriers collect output from non-warehouse sources only when the source lies within **10 reachable tile steps**. Farm output is a valid wheat source. Retired fields are not normal wheat sources after a successful harvest return. Warehouse carriers still never create warehouse-to-warehouse trips.
 
-Merchants remain the only automatic warehouse-to-warehouse mechanism and can select wheat as their configured good.
+Merchants remain the only automatic warehouse-to-warehouse mechanism and can select wheat as their configured good. Carrier and merchant profession experience speeds up active logistics movement by up to 50% without changing load size.
 
 ## Forest logic
 
 Woodcutters are appointed globally. Each chooses the quickest reachable unoccupied active or passive forest; ties use seeded PRNG state.
 
-A passive forest tile becomes a dynamic one-tile forest building when claimed. Every active forest starts with 10 yield. At zero yield the forest retires immediately and its tile becomes grass. Residual produced wood remains collectible.
+A passive forest tile becomes a dynamic one-tile forest building when claimed. Every active forest starts with 10 yield. At zero yield the forest retires immediately and its tile becomes grass. Experience increases the wood produced per completed felling cycle but does not increase the forest's finite count of ten work cycles. Residual produced wood remains collectible.
 
 The farm implementation intentionally follows the same useful separation between terrain lifecycle and physical produced output, but field lifecycle is driven by a farm worker rather than a persistent resource node.
 
@@ -234,8 +259,9 @@ Farm is available in the same modal placement mode as other buildings. Touch beh
 - warehouse inventory includes wheat,
 - merchant goods include wheat, flour, water and bread,
 - top metrics include total wheat and bread stored in completed warehouses,
+- good quantities are displayed with one decimal place while the simulation retains higher floating-point precision,
 - goods use emoji markers alongside labels/counts where appropriate; building controls and headings use shared inline SVG icons; map people use role markers plus their numeric ID,
-- debug rows expose the current farmer action.
+- debug rows expose the current farmer action and current profession experience.
 
 Fields themselves are not normal selectable production buildings. Tapping an active field is treated as tapping its tile rather than opening a worker-management panel.
 
@@ -244,6 +270,8 @@ Fields themselves are not normal selectable production buildings. Tapping an act
 Phaser continues to render on the browser animation loop. Simulation advancement stays deterministic through fixed steps. Field growth is a constant-time update per active field; each farm has at most four active fields, so the new system does not introduce broad spatial scans every rendering frame.
 
 Candidate sow selection and new farmer decisions run on decision events rather than continuously. At current PoC map size, scanning the fixed tile list for valid candidates remains inexpensive and keeps the implementation simple.
+
+Experience updates are constant-time arithmetic on the currently active profession and add no spatial scans.
 
 ## Testing
 
@@ -257,6 +285,8 @@ Farm coverage verifies:
 - harvesting takes ten seconds,
 - harvest restores the tile to grass and leaves one wheat,
 - warehouse carriers can collect wheat from a retired harvested field.
+
+Experience coverage verifies the 10/30/60/90-minute progression targets, 2× production cap, 1.5× logistics-speed cap, fractional production overflow, exact whole-unit pickup from fractional stocks and refusal to transport remainders below 1.0.
 
 Existing suites continue to cover placement, construction, movement, decision cadence, forest relocation, merchant routes, worker input, reservations and deterministic replay.
 
