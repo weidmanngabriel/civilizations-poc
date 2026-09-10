@@ -178,7 +178,7 @@ export function advanceFarmSystem(w: World): number[] {
     const field = task.fieldId
       ? w.buildings.find((b) => b.id === task.fieldId && !b.retired)
       : undefined;
-    if (!field || field.kind !== "field" || field.fieldStage === 4) {
+    if (!field || field.kind !== "field" || field.fieldStage === undefined || field.fieldStage === 4) {
       p.farmTask = undefined;
       p.progress = 0;
       immediate.add(p.id);
@@ -190,6 +190,8 @@ export function advanceFarmSystem(w: World): number[] {
   for (const field of w.buildings.filter(
     (b) => b.kind === "field" && !b.retired && b.fieldStage !== undefined && b.fieldStage < 4,
   )) {
+    const currentStage = field.fieldStage;
+    if (currentStage === undefined || currentStage >= 4) continue;
     const fertilizer = activeFertilizers.get(field.id);
     field.fieldGrowthProgress = (field.fieldGrowthProgress ?? 0) + (fertilizer ? 3 : 1);
     if (fertilizer) {
@@ -197,7 +199,7 @@ export function advanceFarmSystem(w: World): number[] {
       fertilizer.progress = fertilizer.farmTask!.progress;
     }
     if (field.fieldGrowthProgress < CONFIG.fieldStageDurationTicks) continue;
-    field.fieldStage = (field.fieldStage + 1) as 2 | 3 | 4;
+    field.fieldStage = (currentStage + 1) as 2 | 3 | 4;
     field.fieldGrowthProgress = 0;
     if (fertilizer) {
       fertilizer.farmTask = undefined;
