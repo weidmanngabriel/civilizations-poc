@@ -101,7 +101,7 @@ test("fertilizing reduces the remaining time to the next stage to one third", ()
   assert.notEqual(farmer.farmTask?.kind, "fertilize");
 });
 
-test("harvest takes ten seconds and farmer carries wheat back to the farm", () => {
+test("harvest takes ten seconds and farmer carries one physical wheat back to the farm", () => {
   const w = createWorld();
   const { farm, farmer } = finishedFarm(w);
   const field = addField(w, farm, { q: farm.position.q + 1, r: farm.position.r }, 4);
@@ -129,16 +129,16 @@ test("harvest takes ten seconds and farmer carries wheat back to the farm", () =
     "grass",
   );
   for (let i = 0; i < 1000 && farm.output === 0; i++) tick(w);
-  assert.equal(farm.output, 1);
+  assert.ok(farm.output > 1 && farm.output < 1.1);
   assert.equal(farmer.trip, undefined);
 });
 
-test("warehouse carriers collect wheat from farm output", () => {
+test("warehouse carriers collect one whole wheat from fractional farm output", () => {
   const w = createWorld();
   const farm = buildAt(w, { q: 10, r: 10 }, "farm")!;
   const warehouse = buildAt(w, { q: 9, r: 10 }, "warehouse")!;
   assert.ok(farm && warehouse);
-  farm.output = 1;
+  farm.output = 1.7;
   changeAssignment(w, warehouse.id, "carrier", 1);
   const carrier = assigned(w, warehouse.id, "carrier")[0]!;
   carrier.position = { ...warehouse.position };
@@ -147,7 +147,7 @@ test("warehouse carriers collect wheat from farm output", () => {
   carrier.active = true;
   for (let i = 0; i < 1000 && warehouseStock(warehouse, "wheat") === 0; i++) tick(w);
   assert.equal(warehouseStock(warehouse, "wheat"), 1);
-  assert.equal(farm.output, 0);
+  assert.ok(Math.abs(farm.output - 0.7) < 1e-9);
 });
 
 test("farmer waits to harvest while farm output is full", () => {
