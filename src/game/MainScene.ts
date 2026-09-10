@@ -45,6 +45,7 @@ const colors = {
   grass: 0x526b42,
   road: 0xc0a375,
   forest: 0x3f623d,
+  field: 0x8a6f3f,
   mountain: 0x727b72,
   river: 0x43879a,
   building: 0xe6ce94,
@@ -53,6 +54,7 @@ const goodColors: Record<Good, number> = {
   wood: 0x6f4a2d,
   plank: 0xd4a763,
   woodenTool: 0xc8d8d0,
+  wheat: 0xe3c766,
 };
 
 type PointerPosition = { x: number; y: number };
@@ -212,7 +214,7 @@ export class MainScene extends Phaser.Scene {
 
     const worldPoint = this.cameras.main.getWorldPoint(screenX, screenY);
     const candidate = this.world.buildings
-      .filter((building) => !building.retired)
+      .filter((building) => !building.retired && building.kind !== "field")
       .map((building) => ({
         building,
         distance: Math.min(...buildingFootprint(building).map((position) =>
@@ -358,10 +360,24 @@ export class MainScene extends Phaser.Scene {
     g.fillRect(x - 1, y + 3, 2, 4);
   }
 
+  private drawField(g: Phaser.GameObjects.Graphics, tile: Tile, x: number, y: number): void {
+    const field = this.world.buildings.find(
+      (b) => b.kind === "field" && !b.retired && same(b.position, tile),
+    );
+    const stage = field?.fieldStage ?? 1;
+    const stalks = stage;
+    g.lineStyle(1, 0xe4cf77, 0.9);
+    for (let i = 0; i < stalks; i += 1) {
+      const ox = (i - (stalks - 1) / 2) * 3;
+      g.lineBetween(x + ox, y + 5, x + ox, y - 2 - stage);
+    }
+  }
+
   private buildingLabel(b: Building): string {
     if (b.kind === "forest") return "WALD";
     if (b.kind === "hq") return "HQ";
     const prefix = underConstruction(b) ? "BAU: " : "";
+    if (b.kind === "farm") return `${prefix}FARM`;
     if (b.kind === "sawmill") return `${prefix}SÄGEWERK`;
     if (b.kind === "carpenter") return `${prefix}SCHREINEREI`;
     if (b.kind === "warehouse") return `${prefix}LAGER`;
@@ -400,9 +416,12 @@ export class MainScene extends Phaser.Scene {
         this.drawTree(g, x - 3, y + 1);
         this.drawTree(g, x + 3, y - 1);
       }
+      if (tile.terrain === "field") this.drawField(g, tile, x, y);
     }
 
-    for (const b of this.world.buildings.filter((building) => !building.retired)) {
+    for (const b of this.world.buildings.filter(
+      (building) => !building.retired && building.kind !== "field",
+    )) {
       const { x, y } = pixel(b.position);
       this.mapLabels.add(this.add.text(x, y - 7, this.buildingLabel(b), {
         fontFamily: "system-ui",
@@ -554,7 +573,7 @@ export class MainScene extends Phaser.Scene {
     this.markers.add(slots);
     for (const b of this.world.buildings.filter(
       (building) =>
-        (!building.retired || (building.forestRemaining === 0 && building.output > 0)) &&
+        (!building.retired || building.output > 0) &&
         !underConstruction(building),
     )) {
       if (!b.recipe) continue;
@@ -609,7 +628,7 @@ export class MainScene extends Phaser.Scene {
         this.markers.add(this.add.text(
           x + 3,
           y - 6,
-          { wood: "H", plank: "B", woodenTool: "W" }[p.trip.good],
+          { wood: "H", plank: "B", woodenTool: "W", wheat: "G" }[p.trip.good],
           {
             fontFamily: "system-ui",
             fontSize: "6px",
