@@ -88,7 +88,6 @@ export interface Person {
   woodcutter?: boolean;
   builder?: boolean;
   experience?: Partial<Record<Profession, number>>;
-  workMultiplier?: number;
   pendingFarmBonus?: number;
   active: boolean;
   progress: number;
