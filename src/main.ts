@@ -8,6 +8,7 @@ import { createWorld } from "./simulation/scenario";
 import { mountControls } from "./ui/controls";
 import "./style.css";
 import "./map-interaction.css";
+import "./build-placement.css";
 
 const preventPageZoom = (): void => {
   document.addEventListener(
