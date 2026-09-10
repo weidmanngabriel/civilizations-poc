@@ -57,11 +57,30 @@ Gebäude werden nicht mehr sofort auf der zuvor angeklickten Kachel gebaut.
 9. **Ziehen verschiebt weiterhin ausschließlich die Karte; Pinch-Zoom bleibt unverändert.**
 10. Ein klarer Hinweis im Overlay erklärt: „Tippen, um das Gebäude zu verschieben.“
 11. Der Bau wird ausschließlich über den sichtbaren **„Bauen“**-Button bestätigt. Dieser ist nur aktiv, wenn die aktuelle Position gültig ist.
-12. Ein sichtbarer **„Abbrechen“**-Button beendet den Modus ohne Bau.
+12. „Bauen“ erzeugt an dieser Stelle zunächst eine Baustelle; das fertige Gebäude entsteht erst durch Materiallieferung und Bauarbeit.
+13. Ein sichtbarer **„Abbrechen“**-Button beendet den Modus ohne Bau.
 
 Auf Desktop kann der Ghost weiterhin der Mausposition folgen. Auch dort ist „Bauen“ die explizite Bestätigung; ein Karten-Klick baut nicht unmittelbar.
 
 Auf schmalen Displays ordnet der Baumodus seine beiden Aktionsbuttons in einer eigenen Zeile innerhalb des Overlays an, damit weder „Bauen“ noch „Abbrechen“ aus dem sichtbaren Bereich ragen.
+
+### Baustellen und Bauarbeiter
+
+Lager, Sägewerk und Schreinerei werden nach der Platzierung als unfertige Baustelle angelegt. Der komplette Footprint ist sofort belegt, aber die spätere Gebäudefunktion bleibt gesperrt.
+
+Aktuelle PoC-Baukosten:
+
+- Lager: 4 Holz,
+- Sägewerk: 6 Holz,
+- Schreinerei: 4 Bretter.
+
+Diese Werte sind vorläufige Balancewerte für den PoC.
+
+Jede Baustelle besitzt genau einen Bauarbeiter-Slot. Der Spieler weist eine freie Person als Bauarbeiter zu. Der Bauarbeiter holt fehlendes Baumaterial selbst physisch aus erreichbaren Produktionsorten oder fertigen Lagern, jeweils eine Einheit pro Transport. Die Ware wird bei der Planung reserviert und zählt nach Lieferung zum Baustellenbestand.
+
+Erst wenn alle erforderlichen Waren geliefert wurden, beginnt der Baufortschritt. Die reine Bauarbeit dauert aktuell ca. 4 Sekunden bei 1×. Nach Fertigstellung wird der Bauarbeiter automatisch wieder frei und läuft zum Hauptquartier. Erst dann werden die normalen Arbeiter-, Träger- und Händlerrollen des Gebäudes freigeschaltet.
+
+Unfertige Lager sind weder Warenquelle noch normales Warenziel und können nicht als Handelsziel verwendet werden. Wird eine Baustelle abgerissen, gehen bereits gelieferte Baumaterialien verloren und der ursprüngliche Boden des Footprints wird wiederhergestellt.
 
 ## Zeit und Spielgeschwindigkeit
 
@@ -128,7 +147,7 @@ Ein Produktionsvorgang startet nur, wenn Platz für Output reserviert werden kan
 
 Der Lager-Sammelradius beträgt wegen der verdoppelten Rasterdichte jetzt **10 begehbare Kachelschritte**. Das erhält ungefähr die bisherige physische Reichweite. Die Reichweite wird weiterhin in Schritten und nicht in Reisezeit gemessen.
 
-Lager-Träger holen Waren niemals aus einem anderen Lager. Produktionsarbeiter und Träger dürfen benötigte Waren dagegen auch aus weiter entfernten Lagern holen.
+Lager-Träger holen Waren niemals aus einem anderen Lager. Produktionsarbeiter, Träger und Bauarbeiter dürfen benötigte Waren dagegen auch aus weiter entfernten fertigen Lagern holen.
 
 ## Händler und Handelsrouten
 
@@ -142,17 +161,17 @@ Händler sind eine eigene Lagerrolle und die bewusste Ausnahme zur Lager-zu-Lage
 
 Ablauf: am Startlager warten → Ware und Zielkapazität reservieren → transportieren → leer zurücklaufen → wiederholen.
 
-Die Zielwahl geschieht in einem modalen Kartenmodus. Die Simulation pausiert währenddessen; gültige Lager werden hervorgehoben, Pan und Zoom bleiben möglich und Kamera sowie vorheriger Laufzustand werden danach wiederhergestellt.
+Die Zielwahl geschieht in einem modalen Kartenmodus. Die Simulation pausiert währenddessen; gültige fertige Lager werden hervorgehoben, Pan und Zoom bleiben möglich und Kamera sowie vorheriger Laufzustand werden danach wiederhergestellt.
 
 ## Gebäude abreißen
 
-Frei baubar und abreißbar sind Lager, Sägewerk und Schreinerei.
+Frei baubar und abreißbar sind Lager, Sägewerk und Schreinerei, einschließlich unfertiger Baustellen.
 
 Beim Abriss:
 
 - verschwindet die gesamte Footprint-Fläche,
 - alle darunter gespeicherten Wiesen-/Wegkacheln werden wiederhergestellt,
-- lokale Waren verfallen,
+- lokale Waren beziehungsweise gelieferte Baumaterialien verfallen,
 - zugewiesene Personen werden frei und laufen zum HQ,
 - betroffene Transporte und Handelsrouten werden bereinigt.
 
@@ -185,7 +204,7 @@ Debug-Bevölkerungssteuerung:
 
 Die Karte ist dauerhaft bildschirmfüllend. Status und Steuerungen liegen als kompakte Overlays darüber.
 
-- Kurzer Klick/Tap auf eine beliebige Footprint-Kachel: Gebäudedialog.
+- Kurzer Klick/Tap auf eine beliebige Footprint-Kachel: Gebäude- oder Baustellendialog.
 - Kurzer Klick/Tap auf freie Kachel: lokale Bau- und Wegoptionen.
 - Unten: Pause/Fortsetzen und 0,5× / 1× / 2× / 3×.
 - Oben: Build-Version und Kernmetriken.
@@ -212,8 +231,8 @@ Pro festem Simulationsschritt:
 1. Bewegungsfortschritt vergeben und Kachelankünfte abschließen.
 2. Wiesenverkehr registrieren; neue Wege können entstehen und Routen neu geplant werden.
 3. Ankünfte, Abholungen und Lieferungen verarbeiten; notwendige direkte Folgereaktionen werden für denselben Tick markiert.
-4. Produktion fortschreiben oder abschließen.
+4. Baufortschritt und Produktion fortschreiben oder abschließen.
 5. Erschöpfte Wälder entfernen und betroffene Holzfäller sofort neu zuweisen.
-6. Neue Beschaffungs-, Händler- und Warteentscheidungen nur in der regulären 1-Hz-Entscheidungsrunde oder bei einer markierten Sofortreaktion planen.
+6. Neue Beschaffungs-, Bauarbeiter-, Händler- und Warteentscheidungen nur in der regulären 1-Hz-Entscheidungsrunde oder bei einer markierten Sofortreaktion planen.
 
 Alle Regeln bleiben deterministisch und hängen von Simulationszeit statt Darstellungs-FPS ab.

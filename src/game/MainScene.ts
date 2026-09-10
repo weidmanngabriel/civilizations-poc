@@ -60,6 +60,9 @@ type CameraSnapshot = { scrollX: number; scrollY: number; zoom: number };
 type MerchantTargetModeDetail = { active: boolean; sourceId?: BuildingId };
 type BuildModeDetail = { active: boolean; kind?: BuildableBuildingKind };
 
+const underConstruction = (b: Building): boolean =>
+  Boolean(b.construction && !b.construction.complete);
+
 export class MainScene extends Phaser.Scene {
   private mapGraphics?: Phaser.GameObjects.Graphics;
   private mapLabels?: Phaser.GameObjects.Container;
@@ -227,6 +230,7 @@ export class MainScene extends Phaser.Scene {
     if (this.merchantTargetSourceId) {
       if (
         candidate?.building.kind === "warehouse" &&
+        !underConstruction(candidate.building) &&
         candidate.building.id !== this.merchantTargetSourceId
       ) {
         window.dispatchEvent(new CustomEvent(BUILDING_SELECTED_EVENT, {
@@ -356,10 +360,11 @@ export class MainScene extends Phaser.Scene {
   private buildingLabel(b: Building): string {
     if (b.kind === "forest") return "WALD";
     if (b.kind === "hq") return "HQ";
-    if (b.kind === "sawmill") return "SÄGEWERK";
-    if (b.kind === "carpenter") return "SCHREINEREI";
-    if (b.kind === "warehouse") return "LAGER";
-    return b.name.toUpperCase();
+    const prefix = underConstruction(b) ? "BAU: " : "";
+    if (b.kind === "sawmill") return `${prefix}SÄGEWERK`;
+    if (b.kind === "carpenter") return `${prefix}SCHREINEREI`;
+    if (b.kind === "warehouse") return `${prefix}LAGER`;
+    return `${prefix}${b.name.toUpperCase()}`;
   }
 
   private drawMap(): void {
@@ -411,6 +416,11 @@ export class MainScene extends Phaser.Scene {
           y - 11,
           Math.max(MIN_FOREST_ALPHA, b.forestRemaining / CONFIG.forestYield),
         );
+      } else if (underConstruction(b)) {
+        g.lineStyle(2, 0x785d3e, 0.95);
+        g.strokeRect(x - 6, y - 18, 12, 8);
+        g.lineBetween(x - 6, y - 18, x + 6, y - 10);
+        g.lineBetween(x + 6, y - 18, x - 6, y - 10);
       } else {
         g.fillStyle(0x785d3e);
         g.fillRect(x - 4, y - 14, 8, 5);
@@ -512,7 +522,11 @@ export class MainScene extends Phaser.Scene {
     }
 
     for (const warehouse of this.world.buildings.filter(
-      (b) => !b.retired && b.kind === "warehouse" && b.id !== this.merchantTargetSourceId,
+      (b) =>
+        !b.retired &&
+        b.kind === "warehouse" &&
+        !underConstruction(b) &&
+        b.id !== this.merchantTargetSourceId,
     )) {
       for (const occupied of buildingFootprint(warehouse)) {
         highlights.fillStyle(0xf5e8b8, 0.18);
@@ -538,7 +552,9 @@ export class MainScene extends Phaser.Scene {
     const slots = this.add.graphics();
     this.markers.add(slots);
     for (const b of this.world.buildings.filter(
-      (building) => !building.retired || (building.forestRemaining === 0 && building.output > 0),
+      (building) =>
+        (!building.retired || (building.forestRemaining === 0 && building.output > 0)) &&
+        !underConstruction(building),
     )) {
       if (!b.recipe) continue;
       const { x, y } = pixel(b.position);

@@ -15,6 +15,7 @@ import {
   changeWoodcutters,
   freePeople,
   GOODS,
+  isUnderConstruction,
   setMerchantRoute,
   setRoad,
   status,
@@ -81,7 +82,20 @@ export function mountControls(w: World, renderMap: () => void): void {
   const canRemovePopulation = () =>
     freePeople(w).some((p) => same(p.position, building(w, "hq").position));
   const roleLabel = (role: Role) =>
-    role === "worker" ? "Arbeiter" : role === "carrier" ? "Träger" : "Händler";
+    role === "worker"
+      ? "Arbeiter"
+      : role === "carrier"
+        ? "Träger"
+        : role === "merchant"
+          ? "Händler"
+          : "Bauarbeiter";
+  const roleLimit = (b: Building, role: Role): number => {
+    if (isUnderConstruction(b)) return role === "builder" ? 1 : 0;
+    if (role === "builder") return 0;
+    if (role === "worker") return b.workers;
+    if (role === "carrier") return b.carriers;
+    return b.kind === "warehouse" ? (b.merchants ?? 0) : 0;
+  };
 
   function updateBuildPlacementConfirm(): void {
     buildPlacementConfirm.disabled = !(
@@ -101,7 +115,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   };
 
   const merchantControls = (b: Building): string => {
-    if (b.kind !== "warehouse") return "";
+    if (b.kind !== "warehouse" || isUnderConstruction(b)) return "";
     const merchants = assigned(w, b.id, "merchant");
     if (!merchants.length) return "";
     return `<div class="inventory">${merchants.map((p) => {
@@ -145,7 +159,18 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
 
-    if (b.kind === "warehouse") {
+    if (isUnderConstruction(b)) {
+      for (const good of Object.keys(b.construction!.required) as Good[]) {
+        setField(
+          `construction-${good}`,
+          `${b.construction!.delivered[good] ?? 0}/${b.construction!.required[good] ?? 0}`,
+        );
+      }
+      setField(
+        "construction-progress",
+        `${Math.round((b.construction!.progress / b.construction!.duration) * 100)} %`,
+      );
+    } else if (b.kind === "warehouse") {
       setField("warehouse-wood", `${warehouseStock(b, "wood")}/${CONFIG.warehouseCapacityPerGood}`);
       setField("warehouse-plank", `${warehouseStock(b, "plank")}/${CONFIG.warehouseCapacityPerGood}`);
       setField("warehouse-tool", `${warehouseStock(b, "woodenTool")}/${CONFIG.warehouseCapacityPerGood}`);
@@ -154,12 +179,8 @@ export function mountControls(w: World, renderMap: () => void): void {
       setField("output", `${b.output}/${CONFIG.outputCapacity}`);
     }
 
-    for (const role of ["worker", "carrier", "merchant"] as const) {
-      const limit = role === "worker"
-        ? b.workers
-        : role === "carrier"
-          ? b.carriers
-          : (b.merchants ?? 0);
+    for (const role of ["worker", "carrier", "merchant", "builder"] as const) {
+      const limit = roleLimit(b, role);
       if (!limit) continue;
       const people = assigned(w, b.id, role);
       if (role !== "merchant")
@@ -217,6 +238,19 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
 
+    const demolish = b.kind === "forest"
+      ? ""
+      : `<button data-action="demolish" class="danger">Abreißen</button>`;
+
+    if (isUnderConstruction(b)) {
+      const materials = (Object.keys(b.construction!.required) as Good[])
+        .map((good) => `<div><span>${GOODS[good]}</span><strong data-field="construction-${good}"></strong></div>`)
+        .join("");
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>BAUSTELLE</small><h3>${b.name}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Material wird physisch beschafft. Sobald alles da ist, beginnt der Bau.</p>${assignmentControl(b, "builder", 1)}<div class="inventory">${materials}<div><span>Baufortschritt</span><strong data-field="construction-progress"></strong></div></div><p class="status" data-field="status"></p>${demolish}`;
+      updateSelectionLiveState();
+      return;
+    }
+
     const recipe = b.forestRemaining !== undefined
       ? `1 Holz / ${b.recipe!.duration / CONFIG.simulationHz} s bei 1× · Vorrat <span data-field="forest-remaining"></span>/${CONFIG.forestYield}`
       : b.kind === "warehouse"
@@ -229,9 +263,6 @@ export function mountControls(w: World, renderMap: () => void): void {
       : b.kind === "warehouse"
         ? `<div><span>Holz</span><strong data-field="warehouse-wood"></strong></div><div><span>Bretter</span><strong data-field="warehouse-plank"></strong></div><div><span>Holzwerkzeuge</span><strong data-field="warehouse-tool"></strong></div>`
         : `${b.recipe?.input ? `<div><span>${GOODS[b.recipe.input]} · Input</span><strong data-field="input"></strong></div>` : ""}<div><span>${b.recipe ? GOODS[b.recipe.output] : "Output"} · Output</span><strong data-field="output"></strong></div>`;
-    const demolish = b.kind === "forest"
-      ? ""
-      : `<button data-action="demolish" class="danger">Abreißen</button>`;
     const merchantAssignment = b.kind === "warehouse"
       ? assignmentControl(b, "merchant", b.merchants ?? 0)
       : "";
@@ -249,7 +280,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const refreshPanels = () => {
     renderSelectionPanel();
-    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => `<tr><td>${p.id}</td><td>${p.woodcutter ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald") : p.assignment ? `${building(w, p.assignment.building).name} · ${roleLabel(p.assignment.role)}` : "Frei"}</td><td>${p.trip ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}` : p.assignment?.role === "merchant" && p.merchantRoute?.target ? `${GOODS[p.merchantRoute.good]} → Ziellager${p.path.length ? " · Rückweg" : ""}` : p.progress ? `${p.woodcutter ? "Fällt Holz" : "Produziert"} · ${Math.round((p.progress / CONFIG.duration) * 100)} %` : p.path.length ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : "Auf dem Rückweg zum HQ") : p.assignment ? "An der Arbeitsstätte" : p.woodcutter ? "Wartet auf Wald" : "Am HQ"}</td></tr>`).join("")}</tbody></table>`;
+    document.querySelector("#people")!.innerHTML = `<table><thead><tr><th>Person</th><th>Zuweisung</th><th>Zustand / Fracht</th></tr></thead><tbody>${w.people.map((p) => `<tr><td>${p.id}</td><td>${p.woodcutter ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald") : p.assignment ? `${building(w, p.assignment.building).name} · ${roleLabel(p.assignment.role)}` : "Frei"}</td><td>${p.trip ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}` : p.assignment?.role === "merchant" && p.merchantRoute?.target ? `${GOODS[p.merchantRoute.good]} → Ziellager${p.path.length ? " · Rückweg" : ""}` : p.progress ? `${p.woodcutter ? "Fällt Holz" : p.assignment?.role === "builder" ? "Baut" : "Produziert"} · ${Math.round((p.progress / CONFIG.duration) * 100)} %` : p.path.length ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : "Auf dem Rückweg zum HQ") : p.assignment ? "An der Arbeitsstätte" : p.woodcutter ? "Wartet auf Wald" : "Am HQ"}</td></tr>`).join("")}</tbody></table>`;
   };
 
   const refresh = () => {
@@ -476,7 +507,13 @@ export function mountControls(w: World, renderMap: () => void): void {
       const merchant = w.people.find((p) => p.id === merchantTargetSelection);
       const sourceId = merchant?.assignment?.building;
       const target = w.buildings.find((b) => b.id === id);
-      if (merchant && sourceId && target?.kind === "warehouse" && id !== sourceId) {
+      if (
+        merchant &&
+        sourceId &&
+        target?.kind === "warehouse" &&
+        !isUnderConstruction(target) &&
+        id !== sourceId
+      ) {
         setMerchantRoute(w, merchant.id, id, merchant.merchantRoute?.good);
         leaveMerchantTargetMode();
         selectedTile = undefined;
