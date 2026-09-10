@@ -1,6 +1,10 @@
 import type { Building, Hex, Person, Tile, World } from "./model";
 import { findPath, key, same } from "./hex";
 import { CONFIG } from "./scenario";
+import {
+  gainProfessionExperience,
+  productionMultiplier,
+} from "./experience";
 
 const hexDistance = (a: Hex, b: Hex): number => {
   const dq = a.q - b.q;
@@ -200,6 +204,7 @@ export function advanceFarmSystem(w: World): number[] {
     const fertilizer = activeFertilizers.get(field.id);
     field.fieldGrowthProgress = (field.fieldGrowthProgress ?? 0) + (fertilizer ? 3 : 1);
     if (fertilizer) {
+      gainProfessionExperience(fertilizer, "farmer");
       fertilizer.farmTask!.progress++;
       fertilizer.progress = fertilizer.farmTask!.progress;
     }
@@ -245,6 +250,7 @@ export function advanceFarmSystem(w: World): number[] {
       }
     }
 
+    gainProfessionExperience(p, "farmer");
     task.progress++;
     p.progress = task.progress;
     if (task.progress < CONFIG.farmActionDurationTicks) continue;
@@ -259,14 +265,16 @@ export function advanceFarmSystem(w: World): number[] {
 
     const field = task.fieldId ? w.buildings.find((b) => b.id === task.fieldId) : undefined;
     if (field?.kind === "field" && !field.retired && field.fieldStage === 4) {
+      const harvestAmount = productionMultiplier(p, "farmer");
       harvestField(w, field);
       const path = routeTo(w, p, farm.position);
       if (path) {
+        p.pendingFarmBonus = Math.max(0, harvestAmount - CONFIG.carryCapacity);
         p.trip = { source: field.id, target: farm.id, good: "wheat", picked: true };
         p.path = path;
         p.movement = 0;
       } else {
-        field.output += 1;
+        field.output += harvestAmount;
       }
     }
     p.farmTask = undefined;
