@@ -77,6 +77,7 @@ export class MainScene extends Phaser.Scene {
   private cameraBeforeMerchantTarget?: CameraSnapshot;
   private buildKind?: BuildableBuildingKind;
   private buildHover?: Hex;
+  private buildPositionChosen = false;
 
   constructor(private world: World) {
     super("main");
@@ -128,12 +129,10 @@ export class MainScene extends Phaser.Scene {
     const setBuildMode = (event: Event) => {
       const detail = (event as CustomEvent<BuildModeDetail>).detail;
       this.buildKind = detail.active ? detail.kind : undefined;
-      this.buildHover = detail.active && this.selectedTile
-        ? { ...this.selectedTile }
-        : undefined;
+      this.buildHover = undefined;
+      this.buildPositionChosen = false;
       this.selectedBuildingId = undefined;
       this.selectedTile = undefined;
-      if (this.buildHover) this.emitBuildPosition();
       this.renderWorld();
     };
 
@@ -206,6 +205,7 @@ export class MainScene extends Phaser.Scene {
 
   private selectAtScreenPoint(screenX: number, screenY: number): void {
     if (this.buildKind) {
+      this.buildPositionChosen = true;
       this.updateBuildHover(screenX, screenY, true);
       return;
     }
@@ -284,7 +284,8 @@ export class MainScene extends Phaser.Scene {
         pointer.y,
         this.cameras.main.zoom * Math.exp(-deltaY * WHEEL_ZOOM_SENSITIVITY),
       );
-      if (this.buildKind) this.updateBuildHover(pointer.x, pointer.y, true);
+      if (this.buildKind && this.buildPositionChosen)
+        this.updateBuildHover(pointer.x, pointer.y, true);
     });
 
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
@@ -296,7 +297,7 @@ export class MainScene extends Phaser.Scene {
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
       const previous = this.activePointers.get(pointer.id);
       if (!previous) {
-        if (this.buildKind && !this.isTouch(pointer))
+        if (this.buildKind && this.buildPositionChosen && !this.isTouch(pointer))
           this.updateBuildHover(pointer.x, pointer.y, true);
         return;
       }
@@ -324,7 +325,7 @@ export class MainScene extends Phaser.Scene {
         camera.scrollX -= (pointer.x - previous.x) / camera.zoom;
         camera.scrollY -= (pointer.y - previous.y) / camera.zoom;
       }
-      if (this.buildKind && !this.isTouch(pointer))
+      if (this.buildKind && this.buildPositionChosen && !this.isTouch(pointer))
         this.updateBuildHover(pointer.x, pointer.y, true);
     });
 
@@ -591,7 +592,7 @@ export class MainScene extends Phaser.Scene {
       const pos = pixel(personWorldPosition(this.world, p));
       const x = pos.x + (moving ? ((p.id % 3) - 1) * 2 : ((i % 4) - 1.5) * 8);
       const y = pos.y + (moving ? 1 : 1 + Math.floor(i / 4) * 8);
-      const color = !p.assignment && !p.woodcutter
+      const color = !p.assignment && !p.woodcutter && !p.builder
         ? 0xdde5db
         : p.assignment?.role === "worker" || p.woodcutter
           ? 0x234636
@@ -602,7 +603,7 @@ export class MainScene extends Phaser.Scene {
         fontSize: "6px",
         color: "#ffffff",
       }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
-      if (!p.assignment && !p.woodcutter) label.setColor("#24362b");
+      if (!p.assignment && !p.woodcutter && !p.builder) label.setColor("#24362b");
       this.markers.add([dot, label]);
       if (p.trip?.picked)
         this.markers.add(this.add.text(
