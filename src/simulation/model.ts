@@ -61,6 +61,7 @@ export interface Person {
   assignment?: { building: BuildingId; role: Role };
   merchantRoute?: MerchantRoute;
   woodcutter?: boolean;
+  builder?: boolean;
   active: boolean;
   progress: number;
   movement: number;

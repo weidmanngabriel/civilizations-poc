@@ -26,8 +26,10 @@ export const assigned = (w: World, id: BuildingId, role: Role): Person[] =>
   );
 export const woodcutters = (w: World): Person[] =>
   w.people.filter((p) => p.woodcutter);
+export const builders = (w: World): Person[] =>
+  w.people.filter((p) => p.builder);
 export const freePeople = (w: World): Person[] =>
-  w.people.filter((p) => !p.assignment && !p.woodcutter);
+  w.people.filter((p) => !p.assignment && !p.woodcutter && !p.builder);
 export const isUnderConstruction = (b: Building): boolean =>
   Boolean(b.construction && !b.construction.complete);
 const incoming = (w: World, id: BuildingId, good?: Good) =>
@@ -125,7 +127,7 @@ function rerouteCurrentTask(w: World, p: Person): void {
 }
 
 const roleLimit = (b: Building, role: Role): number => {
-  if (isUnderConstruction(b)) return role === "builder" ? 1 : 0;
+  if (isUnderConstruction(b)) return role === "builder" ? 2 : 0;
   if (role === "builder") return 0;
   if (role === "worker") return b.workers;
   if (role === "carrier") return b.carriers;
@@ -138,6 +140,7 @@ export function changeAssignment(
   role: Role,
   delta: 1 | -1,
 ): boolean {
+  if (role === "builder") return false;
   const b = building(w, id),
     people = assigned(w, id, role),
     limit = roleLimit(b, role);
@@ -204,7 +207,11 @@ export function changePopulation(w: World, delta: 1 | -1): boolean {
     return true;
   }
   const index = w.people.findIndex(
-    (p) => !p.assignment && !p.woodcutter && same(p.position, hq.position),
+    (p) =>
+      !p.assignment &&
+      !p.woodcutter &&
+      !p.builder &&
+      same(p.position, hq.position),
   );
   if (index < 0) return false;
   w.people.splice(index, 1);
@@ -321,6 +328,82 @@ export function changeWoodcutters(w: World, delta: 1 | -1): boolean {
   cancel(w, p);
   p.assignment = undefined;
   p.woodcutter = undefined;
+  p.active = false;
+  route(w, p, building(w, "hq"));
+  return true;
+}
+
+type BuilderCandidate = { site: Building; path: Hex[]; cost: number };
+
+function builderCandidates(w: World, origin: Hex): BuilderCandidate[] {
+  const candidates = w.buildings
+    .filter(
+      (b) =>
+        !b.retired &&
+        isUnderConstruction(b) &&
+        assigned(w, b.id, "builder").length < 2,
+    )
+    .map((site) => {
+      const path = findPath(
+        w.tiles,
+        origin,
+        site.position,
+        CONFIG.roadSpeedMultiplier,
+      );
+      return path
+        ? {
+            site,
+            path,
+            cost: pathTravelCost(w.tiles, path, CONFIG.roadSpeedMultiplier),
+          }
+        : undefined;
+    })
+    .filter((candidate): candidate is BuilderCandidate => Boolean(candidate));
+  if (!candidates.length) return [];
+  const best = Math.min(...candidates.map((candidate) => candidate.cost));
+  return candidates.filter((candidate) => Math.abs(candidate.cost - best) < 1e-9);
+}
+
+function assignBuilder(w: World, p: Person): boolean {
+  const candidates = builderCandidates(w, p.position);
+  if (!candidates.length) {
+    p.assignment = undefined;
+    p.active = false;
+    p.progress = 0;
+    p.movement = 0;
+    const hq = building(w, "hq");
+    if (!same(p.position, hq.position)) route(w, p, hq);
+    return false;
+  }
+  const choice = candidates[randomIndex(w, candidates.length)]!;
+  p.assignment = { building: choice.site.id, role: "builder" };
+  p.active = same(p.position, choice.site.position);
+  p.progress = 0;
+  p.movement = 0;
+  p.path = choice.path;
+  return true;
+}
+
+function assignWaitingBuilders(w: World): void {
+  for (const person of builders(w)) {
+    if (!person.assignment) assignBuilder(w, person);
+  }
+}
+
+export function changeBuilders(w: World, delta: 1 | -1): boolean {
+  if (delta === 1) {
+    const p = freePeople(w)[0];
+    if (!p) return false;
+    p.builder = true;
+    assignBuilder(w, p);
+    return true;
+  }
+  const pool = builders(w);
+  const p = pool.find((person) => !person.assignment) ?? pool.at(-1);
+  if (!p) return false;
+  cancel(w, p);
+  p.assignment = undefined;
+  p.builder = undefined;
   p.active = false;
   route(w, p, building(w, "hq"));
   return true;
@@ -539,6 +622,7 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
     if (same(p.position, removed.position)) continue;
     if (p.path.some((step) => same(step, removed.position))) rerouteCurrentTask(w, p);
   }
+  assignWaitingBuilders(w);
   return true;
 }
 
@@ -596,6 +680,33 @@ function movePeople(w: World): boolean {
   return roadCreated;
 }
 
+function advanceConstruction(w: World): void {
+  for (const site of w.buildings.filter(isUnderConstruction)) {
+    const siteBuilders = assigned(w, site.id, "builder");
+    if (!constructionMaterialsComplete(site)) {
+      for (const p of siteBuilders) p.progress = 0;
+      continue;
+    }
+    const activeBuilders = siteBuilders.filter(
+      (p) => p.active && !p.trip && !p.path.length && same(p.position, site.position),
+    );
+    if (!activeBuilders.length) continue;
+    const construction = site.construction!;
+    construction.progress += activeBuilders.length;
+    for (const p of activeBuilders) p.progress = construction.progress;
+    if (construction.progress < construction.duration) continue;
+
+    construction.progress = construction.duration;
+    construction.complete = true;
+    for (const p of siteBuilders) {
+      cancel(w, p);
+      p.assignment = undefined;
+      p.active = false;
+    }
+    for (const p of siteBuilders) assignBuilder(w, p);
+  }
+}
+
 /** One deterministic 1/60-second simulation step. */
 export function tick(w: World): void {
   w.round++;
@@ -649,31 +760,13 @@ export function tick(w: World): void {
     }
   }
 
+  advanceConstruction(w);
+
   for (const p of w.people) {
     if (!p.assignment || !p.active || p.trip || p.path.length) continue;
     const b = building(w, p.assignment.building);
     if (!same(p.position, b.position)) continue;
-
-    if (p.assignment.role === "builder" && isUnderConstruction(b)) {
-      const construction = b.construction!;
-      if (constructionMaterialsComplete(b)) {
-        construction.progress++;
-        p.progress = construction.progress;
-        if (construction.progress >= construction.duration) {
-          construction.progress = construction.duration;
-          construction.complete = true;
-          p.progress = 0;
-          p.assignment = undefined;
-          p.active = false;
-          route(w, p, building(w, "hq"));
-        }
-      } else {
-        p.progress = 0;
-      }
-      continue;
-    }
-
-    if (isUnderConstruction(b)) continue;
+    if (p.assignment.role === "builder" || isUnderConstruction(b)) continue;
     const recipe = b.recipe;
     if (p.assignment.role === "worker" && recipe) {
       const forestHasYield =
@@ -697,7 +790,10 @@ export function tick(w: World): void {
   }
 
   retireDepletedForests(w);
-  if (regularDecisionTick) assignWaitingWoodcutters(w);
+  if (regularDecisionTick) {
+    assignWaitingWoodcutters(w);
+    assignWaitingBuilders(w);
+  }
 
   if (!regularDecisionTick && immediateDecisionPeople.size === 0) return;
 
@@ -736,15 +832,18 @@ export function status(w: World, b: Building): string {
   const workers = assigned(w, b.id, "worker");
   if (b.kind === "hq") return "Sammelpunkt für freie Personen";
   if (isUnderConstruction(b)) {
-    const builders = assigned(w, b.id, "builder");
+    const siteBuilders = assigned(w, b.id, "builder");
     const construction = b.construction!;
-    if (!builders.length) return "Baustelle wartet auf einen Bauarbeiter";
-    if (builders.some((p) => p.trip)) return "Bauarbeiter holt Baumaterial";
-    if (!constructionMaterialsComplete(b)) return "Wartet auf Baumaterial";
+    if (!siteBuilders.length) return "Baustelle wartet auf Bauarbeiter";
+    if (siteBuilders.some((p) => p.trip))
+      return `${siteBuilders.length} Bauarbeiter · Baumaterial wird beschafft`;
+    if (!constructionMaterialsComplete(b))
+      return `${siteBuilders.length} Bauarbeiter · wartet auf Baumaterial`;
     if (construction.progress > 0)
-      return `Baufortschritt: ${Math.round((construction.progress / construction.duration) * 100)} %`;
-    if (builders.every((p) => !p.active)) return "Bauarbeiter auf dem Weg";
-    return "Baubereit";
+      return `${siteBuilders.length} Bauarbeiter · Baufortschritt: ${Math.round((construction.progress / construction.duration) * 100)} %`;
+    if (siteBuilders.every((p) => !p.active))
+      return `${siteBuilders.length} Bauarbeiter auf dem Weg`;
+    return `${siteBuilders.length} Bauarbeiter · baubereit`;
   }
   if (b.kind === "warehouse") {
     const carriers = assigned(w, b.id, "carrier").length;

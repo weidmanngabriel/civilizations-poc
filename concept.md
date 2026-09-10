@@ -50,17 +50,18 @@ Gebäude werden nicht mehr sofort auf der zuvor angeklickten Kachel gebaut.
 2. Die UI wechselt in einen eigenen Baumodus und blendet die normalen Steuerelemente aus.
 3. Die Karte wird leicht abgedunkelt.
 4. **Alle aktuell gültigen Ankerkacheln bleiben in ihrer normalen Helligkeit sichtbar; ungültige Ankerkacheln bleiben abgedunkelt.** Damit ist vor dem ersten Tap sichtbar, auf welche Kacheln das Gebäude gesetzt werden kann.
-5. Ein halbtransparenter Gebäude-Ghost snappt auf das Hex-Grid und verwendet die gewählte Kachel als Ankerpunkt.
-6. Der komplette Footprint wird dargestellt.
-7. Der Ghost wird bei gültiger Position grün und bei ungültiger Position rot hervorgehoben; der notwendige freie Ring wird zusätzlich sichtbar umrandet.
-8. **Ein kurzer Tap auf die Karte verschiebt auf Touch-Geräten nur den Ghost.**
-9. **Ziehen verschiebt weiterhin ausschließlich die Karte; Pinch-Zoom bleibt unverändert.**
-10. Ein klarer Hinweis im Overlay erklärt: „Tippen, um das Gebäude zu verschieben.“
-11. Der Bau wird ausschließlich über den sichtbaren **„Bauen“**-Button bestätigt. Dieser ist nur aktiv, wenn die aktuelle Position gültig ist.
-12. „Bauen“ erzeugt an dieser Stelle zunächst eine Baustelle; das fertige Gebäude entsteht erst durch Materiallieferung und Bauarbeit.
-13. Ein sichtbarer **„Abbrechen“**-Button beendet den Modus ohne Bau.
+5. Beim Start des Baumodus wird **noch kein Gebäude-Ghost angezeigt**.
+6. Erst der erste kurze Klick/Tap auf die Karte wählt eine Ankerposition und zeigt dort den halbtransparenten Ghost.
+7. Der komplette Footprint wird dargestellt.
+8. Der Ghost wird bei gültiger Position grün und bei ungültiger Position rot hervorgehoben; der notwendige freie Ring wird zusätzlich sichtbar umrandet.
+9. Nach der ersten Positionswahl kann der Ghost auf Desktop weiter der Mausposition folgen; auf Touch verschiebt ein kurzer Tap den Ghost.
+10. **Ziehen verschiebt weiterhin ausschließlich die Karte; Pinch-Zoom bleibt unverändert.**
+11. Ein klarer Hinweis im Overlay erklärt: „Tippen, um eine Position zu wählen.“
+12. Der Bau wird ausschließlich über den sichtbaren **„Bauen“**-Button bestätigt. Dieser bleibt deaktiviert, bis erstmals eine gültige Position gewählt wurde.
+13. „Bauen“ erzeugt an dieser Stelle zunächst eine Baustelle; das fertige Gebäude entsteht erst durch Materiallieferung und Bauarbeit.
+14. Ein sichtbarer **„Abbrechen“**-Button beendet den Modus ohne Bau.
 
-Auf Desktop kann der Ghost weiterhin der Mausposition folgen. Auch dort ist „Bauen“ die explizite Bestätigung; ein Karten-Klick baut nicht unmittelbar.
+Auf Desktop ist „Bauen“ ebenfalls die explizite Bestätigung; ein Karten-Klick baut nicht unmittelbar.
 
 Auf schmalen Displays ordnet der Baumodus seine beiden Aktionsbuttons in einer eigenen Zeile innerhalb des Overlays an, damit weder „Bauen“ noch „Abbrechen“ aus dem sichtbaren Bereich ragen.
 
@@ -76,11 +77,19 @@ Aktuelle PoC-Baukosten:
 
 Diese Werte sind vorläufige Balancewerte für den PoC.
 
-Jede Baustelle besitzt genau einen Bauarbeiter-Slot. Der Spieler weist eine freie Person als Bauarbeiter zu. Der Bauarbeiter holt fehlendes Baumaterial selbst physisch aus erreichbaren Produktionsorten oder fertigen Lagern, jeweils eine Einheit pro Transport. Die Ware wird bei der Planung reserviert und zählt nach Lieferung zum Baustellenbestand.
+Bauarbeiter sind wie Holzfäller ein **globaler Berufspool**, der im Hauptquartier eingestellt wird. Es können global beliebig viele Personen als Bauarbeiter markiert sein. Freie Bauarbeiter suchen selbständig eine erreichbare offene Baustelle und werden automatisch zugewiesen. Pro Baustelle können maximal **zwei Bauarbeiter** gleichzeitig arbeiten. Gibt es keine freie Baustelle, wartet die Person als Bauarbeiter am Hauptquartier beziehungsweise läuft dorthin zurück.
 
-Erst wenn alle erforderlichen Waren geliefert wurden, beginnt der Baufortschritt. Die reine Bauarbeit dauert aktuell ca. 4 Sekunden bei 1×. Nach Fertigstellung wird der Bauarbeiter automatisch wieder frei und läuft zum Hauptquartier. Erst dann werden die normalen Arbeiter-, Träger- und Händlerrollen des Gebäudes freigeschaltet.
+Beide Bauarbeiter können fehlendes Baumaterial selbst physisch aus erreichbaren Produktionsorten oder fertigen Lagern holen, jeweils eine Einheit pro Transport. Die Ware wird bei der Planung reserviert und zählt nach Lieferung zum Baustellenbestand.
 
-Unfertige Lager sind weder Warenquelle noch normales Warenziel und können nicht als Handelsziel verwendet werden. Wird eine Baustelle abgerissen, gehen bereits gelieferte Baumaterialien verloren und der ursprüngliche Boden des Footprints wird wiederhergestellt.
+Erst wenn alle erforderlichen Waren geliefert wurden, beginnt der Baufortschritt. Die normale Bauzeit bei einem Bauarbeiter beträgt **3 Sekunden Grundzeit plus 2 Sekunden pro benötigter Ressourceneinheit**. Dadurch ergeben sich aktuell bei 1×:
+
+- Lager: 11 Sekunden,
+- Sägewerk: 15 Sekunden,
+- Schreinerei: 11 Sekunden.
+
+Ein zweiter aktiver Bauarbeiter verdoppelt die Baugeschwindigkeit. Zwei Bauarbeiter benötigen daher bei durchgehend gemeinsamer Arbeit nur die halbe verbleibende Bauzeit. Nach Fertigstellung bleiben beide Personen im globalen Bauarbeiter-Pool und werden automatisch zur nächsten offenen Baustelle geschickt; gibt es keine, warten sie am HQ. Erst mit der Fertigstellung werden die normalen Arbeiter-, Träger- und Händlerrollen des Gebäudes freigeschaltet.
+
+Unfertige Lager sind weder Warenquelle noch normales Warenziel und können nicht als Handelsziel verwendet werden. Wird eine Baustelle abgerissen, gehen bereits gelieferte Baumaterialien verloren; zugewiesene Bauarbeiter kehren in den Pool zurück und werden neu disponiert. Der ursprüngliche Boden des Footprints wird wiederhergestellt.
 
 ## Zeit und Spielgeschwindigkeit
 
@@ -172,7 +181,8 @@ Beim Abriss:
 - verschwindet die gesamte Footprint-Fläche,
 - alle darunter gespeicherten Wiesen-/Wegkacheln werden wiederhergestellt,
 - lokale Waren beziehungsweise gelieferte Baumaterialien verfallen,
-- zugewiesene Personen werden frei und laufen zum HQ,
+- zugewiesene normale Gebäude-Personen werden frei und laufen zum HQ,
+- zugewiesene Bauarbeiter bleiben Bauarbeiter und werden automatisch neu disponiert,
 - betroffene Transporte und Handelsrouten werden bereinigt.
 
 HQ und aktive Wälder können nicht manuell abgerissen werden.
@@ -200,6 +210,8 @@ Debug-Bevölkerungssteuerung:
 - +1 erzeugt eine freie Person am HQ,
 - −1 entfernt nur eine freie Person, die tatsächlich am HQ steht.
 
+Im HQ werden außerdem die globalen Pools für Holzfäller und Bauarbeiter über +/− gesteuert.
+
 ## Bedienung
 
 Die Karte ist dauerhaft bildschirmfüllend. Status und Steuerungen liegen als kompakte Overlays darüber.
@@ -219,7 +231,8 @@ Referenzgerät ist ein iPhone 13 Mini mit 375 × 812 CSS-Pixeln.
 - Kartenzoom: 0,7× bis 3,5×.
 - Desktop: Mausrad-Zoom und Pointer-Drag.
 - Touch: ein Finger verschiebt, zwei Finger zoomen.
-- Im Baumodus verschiebt ein kurzer Tap nur den Ghost; Ziehen bleibt Pan.
+- Im Baumodus wird der Ghost erst nach dem ersten kurzen Klick/Tap angezeigt.
+- Danach verschiebt ein kurzer Tap auf Touch nur den Ghost; Ziehen bleibt Pan.
 - Der Bau wird im Baumodus ausschließlich mit „Bauen“ bestätigt oder mit „Abbrechen“ verworfen.
 - Im Baumodus zeigen normal helle Kacheln die aktuell gültigen Ankerpositionen; die übrige Karte bleibt leicht abgedunkelt.
 - Overlays berücksichtigen Safe Areas.
@@ -231,7 +244,7 @@ Pro festem Simulationsschritt:
 1. Bewegungsfortschritt vergeben und Kachelankünfte abschließen.
 2. Wiesenverkehr registrieren; neue Wege können entstehen und Routen neu geplant werden.
 3. Ankünfte, Abholungen und Lieferungen verarbeiten; notwendige direkte Folgereaktionen werden für denselben Tick markiert.
-4. Baufortschritt und Produktion fortschreiben oder abschließen.
+4. Baustellenfortschritt anhand der Zahl aktiver Bauarbeiter und danach Produktion fortschreiben oder abschließen.
 5. Erschöpfte Wälder entfernen und betroffene Holzfäller sofort neu zuweisen.
 6. Neue Beschaffungs-, Bauarbeiter-, Händler- und Warteentscheidungen nur in der regulären 1-Hz-Entscheidungsrunde oder bei einer markierten Sofortreaktion planen.
 
