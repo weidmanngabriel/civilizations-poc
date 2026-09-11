@@ -198,6 +198,9 @@ export function buildWithFootprint(
   created.baseTerrains = baseTerrains;
   for (const position of footprint) {
     const tile = world.tiles.find((candidate) => same(candidate, position))!;
+    tile.bush = undefined;
+    tile.bushAvailable = undefined;
+    tile.bushRegrowTick = undefined;
     tile.terrain = "building";
     tile.trafficTicks = undefined;
   }

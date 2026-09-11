@@ -20,6 +20,9 @@ export interface Hex {
 export interface Tile extends Hex {
   terrain: "grass" | "road" | "forest" | "field" | "mountain" | "river" | "building";
   trafficTicks?: number[];
+  bush?: boolean;
+  bushAvailable?: boolean;
+  bushRegrowTick?: number;
 }
 export interface Recipe {
   input?: Good;
@@ -81,6 +84,7 @@ export interface FarmTask {
 }
 export interface HungerState {
   foodSource?: BuildingId;
+  foodBush?: Hex;
   resumeActive: boolean;
 }
 export interface Person {

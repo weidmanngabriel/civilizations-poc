@@ -1,8 +1,8 @@
-import type { Building, Hex, Tile, World } from "./model";
+import type { Building, Hex, Person, Tile, World } from "./model";
 import { attachNeeds } from "./needs";
 
 export const CONFIG = {
-  population: 8,
+  population: 12,
   simulationHz: 60,
   decisionIntervalTicks: 60,
   duration: 240,
@@ -21,6 +21,9 @@ export const CONFIG = {
   farmFieldRadius: 3,
   farmActionDurationTicks: 10 * 60,
   fieldStageDurationTicks: 30 * 60,
+  bushFoodValue: 40,
+  bushRegrowMinTicks: 120 * 60,
+  bushRegrowMaxTicks: 180 * 60,
   mapColumns: 41,
   mapRows: 25,
 } as const;
@@ -37,7 +40,9 @@ const compactFootprint = (center: Hex): Hex[] => [
   { q: center.q + 1, r: center.r + 1 },
 ];
 
-export function createWorld(population: number = CONFIG.population): World {
+export function createWorld(population?: number): World {
+  const usesDefaultStart = population === undefined;
+  const populationCount = population ?? CONFIG.population;
   const hqPosition = at(6, 20);
   const buildings: Building[] = [
     {
@@ -47,9 +52,19 @@ export function createWorld(population: number = CONFIG.population): World {
       position: hqPosition,
       footprint: compactFootprint(hqPosition),
       workers: 0,
-      carriers: 0,
+      carriers: 1,
+      merchants: 0,
       input: 0,
       output: 0,
+      inventory: {
+        wood: 0,
+        plank: 0,
+        woodenTool: 0,
+        wheat: 0,
+        flour: 0,
+        water: 0,
+        bread: usesDefaultStart ? 10 : 0,
+      },
       baseTerrain: "grass",
     },
   ];
@@ -61,6 +76,11 @@ export function createWorld(population: number = CONFIG.population): World {
     [25, 13], [26, 13], [27, 13], [25, 14], [26, 14], [27, 14],
     [34, 21], [35, 21], [36, 21], [37, 21], [35, 22], [36, 22],
     [32, 5], [33, 5], [34, 5], [33, 6], [34, 6], [35, 6],
+  ];
+
+  const bushTiles = [
+    [8, 7], [15, 3], [28, 4], [31, 7], [17, 10], [14, 12], [21, 13],
+    [9, 14], [38, 15], [24, 17], [15, 18], [9, 19], [12, 20], [30, 19],
   ];
 
   const river = [
@@ -85,38 +105,52 @@ export function createWorld(population: number = CONFIG.population): World {
           (occupied) => occupied.q === position.q && occupied.r === position.r,
         ),
       );
+      const terrain: Tile["terrain"] = occupiedByBuilding
+        ? "building"
+        : inList(river)
+          ? "river"
+          : inList(mountains)
+            ? "mountain"
+            : inList(forestTiles)
+              ? "forest"
+              : "grass";
+      const bush = terrain === "grass" && inList(bushTiles);
       tiles.push({
         ...position,
-        terrain: occupiedByBuilding
-          ? "building"
-          : inList(river)
-            ? "river"
-            : inList(mountains)
-              ? "mountain"
-              : inList(forestTiles)
-                ? "forest"
-                : "grass",
+        terrain,
+        ...(bush ? { bush: true, bushAvailable: true } : {}),
       });
     }
 
+  const people: Person[] = Array.from({ length: populationCount }, (_, i) => ({
+    id: i + 1,
+    position: { ...buildings[0]!.position },
+    hunger: 100,
+    hungerAccumulator: 0,
+    active: false,
+    progress: 0,
+    movement: 0,
+    path: [],
+  }));
+
+  if (usesDefaultStart) {
+    if (people[0]) {
+      people[0].assignment = { building: "hq", role: "carrier" };
+      people[0].active = true;
+    }
+    for (const person of people.slice(1, Math.min(3, people.length))) person.builder = true;
+    for (const person of people.slice(3, Math.min(5, people.length))) person.woodcutter = true;
+  }
+
   return attachNeeds({
     round: 0,
-    nextId: population + 1,
+    nextId: populationCount + 1,
     nextForestId: 1,
     nextBuildingId: 1,
     nextFieldId: 1,
     rngState: 0x1a2b3c4d,
     buildings,
     tiles,
-    people: Array.from({ length: population }, (_, i) => ({
-      id: i + 1,
-      position: { ...buildings[0]!.position },
-      hunger: 100,
-      hungerAccumulator: 0,
-      active: false,
-      progress: 0,
-      movement: 0,
-      path: [],
-    })),
+    people,
   });
 }
