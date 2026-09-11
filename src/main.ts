@@ -93,7 +93,7 @@ const game = new Phaser.Game({
   render: { antialias: true },
 });
 
-scene.events.on(Phaser.Scenes.Events.POST_UPDATE, (_time: number, delta: number) => {
-  performanceProfiler.recordFrame(delta);
+scene.events.on(Phaser.Scenes.Events.POST_UPDATE, () => {
+  performanceProfiler.recordFrame(game.loop.delta);
 });
 installMobileMapTouchControls(game, scene);
