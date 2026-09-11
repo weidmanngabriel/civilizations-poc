@@ -28,8 +28,6 @@ export const CONFIG = {
   mapRows: 25,
 } as const;
 
-const NEUTRAL_WORLD_POPULATION = 8;
-
 const at = (col: number, row: number): Hex => ({
   q: col - Math.floor(row / 2),
   r: row,
@@ -161,7 +159,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
 }
 
 /** Neutral deterministic world used by simulation tests and low-level scenarios. */
-export function createWorld(population: number = NEUTRAL_WORLD_POPULATION): World {
+export function createWorld(population: number = CONFIG.population): World {
   return createScenario({ population, suppliedStart: false });
 }
 

@@ -47,7 +47,7 @@ Each person stores hunger from 0 to 100, a fractional hunger accumulator and opt
 
 Two creation entry points are intentionally separated:
 
-- `createWorld(population = 8)` creates the neutral deterministic world used by existing low-level tests and isolated simulation scenarios. It keeps the historical empty start: no bushes, no starting food and no assigned roles.
+- `createWorld(population = CONFIG.population)` creates the neutral deterministic world used by existing low-level tests and isolated simulation scenarios. It uses the configured population count but no bushes, starting food or assigned roles.
 - `createDefaultGameWorld()` creates the real player-facing PoC start and is the function used by `src/main.ts`.
 
 The real game start uses 12 people:
