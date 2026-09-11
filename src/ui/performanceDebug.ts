@@ -62,3 +62,28 @@ export function renderPerformanceDebug(container: HTMLElement, world: World): vo
       <div><small>Pathfinding-Zeit/s · 30 s</small>${sparkline(snapshot.history, (point) => point.pathMs)}</div>
     </div>`;
 }
+
+export function installPerformanceDebugPanel(world: World): void {
+  const panel = document.querySelector<HTMLElement>("#debug-panel");
+  const header = panel?.querySelector<HTMLElement>(".debug-header");
+  if (!panel || !header) return;
+
+  header.querySelector("strong")!.textContent = "Debug / Performance";
+  const container = document.createElement("section");
+  container.id = "performance-debug";
+  header.insertAdjacentElement("afterend", container);
+
+  const people = document.querySelector<HTMLElement>("#people");
+  if (people) {
+    const heading = document.createElement("div");
+    heading.className = "debug-subheading";
+    heading.textContent = "Personen und Transportaufträge";
+    people.insertAdjacentElement("beforebegin", heading);
+  }
+
+  const refresh = () => {
+    if (!panel.hidden) renderPerformanceDebug(container, world);
+  };
+  refresh();
+  window.setInterval(refresh, 250);
+}
