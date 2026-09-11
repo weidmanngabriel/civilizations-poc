@@ -99,7 +99,7 @@ Food candidates are evaluated with the normal weighted pathfinder and sorted by 
 
 Bread can come from a finished warehouse or from the HQ inventory and restores hunger to 100. A bush restores 40 points, capped at 100.
 
-Reservations are person-local: bread uses the source building id, bushes use a hex position. Other hungry people exclude an already reserved portion/source while planning.
+Reservations are person-local: bread uses the source building id, bushes use a hex position. Other hungry people exclude an already reserved portion/source while planning. Once a reserved food source and its route remain valid, the existing path is reused across simulation ticks. Pathfinding runs again only when the source becomes invalid, the route no longer targets the reserved source, or a new source must be selected. This avoids multiplying identical hunger route searches at 2× and 3× simulation speed without changing food-choice semantics.
 
 Critical interruption leaves `progress`, `farmTask` and `trip` intact. After eating, the target is reconstructed in this order:
 
@@ -208,13 +208,21 @@ Harvest returns one physical wheat to the farm through the existing trip primiti
 
 ## Rendering
 
-`game/MainScene.ts` renders the authoritative map and people.
+`game/MainScene.ts` remains the source of map drawing rules, selection rendering and camera/input behavior. `game/IncrementalMainScene.ts` extends it with a presentation cache so normal animation frames do not rebuild the complete Phaser display tree.
+
+The incremental scene separates presentation work into three layers:
+
+- map terrain, building labels and selection outlines redraw only when a compact signature of terrain/building/selection state changes,
+- inventory slot graphics and labels redraw only when displayed input/output values change,
+- person markers are persistent Phaser objects; normal frames update their position, color, role icon and cargo visibility instead of destroying and recreating them.
+
+Build-mode and merchant-target highlights are also signature-cached and redraw only when their relevant mode/hover/world state changes. `src/main.ts` coalesces all `renderWorld()` requests to at most one `requestAnimationFrame`, so faster simulation speeds can perform multiple deterministic ticks without multiplying presentation renders within the same browser frame.
 
 `game/hungerIndicators.ts` wraps scene creation and adds presentation-only hunger badges above people.
 
 `game/bushIndicators.ts` uses the same safe scene-lifecycle pattern. It draws a small green bush above grass tiles with `bush === true`; full bushes show berry dots while empty bushes remain muted green. It never changes simulation state.
 
-Both overlays rebuild their small containers on `POST_UPDATE`. Their rebuild cost and newly created Phaser object counts are tracked by the performance diagnostics so this implementation can be replaced if it becomes a bottleneck.
+Both overlays still rebuild their small containers on `POST_UPDATE`. Their rebuild cost and newly created Phaser object counts are tracked by the performance diagnostics so this implementation can be replaced if it becomes a bottleneck.
 
 ## Performance diagnostics
 
@@ -226,7 +234,7 @@ The global probes measure:
 - deterministic simulation tick duration and achieved ticks per second,
 - scheduler backlog and selected simulation speed,
 - weighted and step-based pathfinding duration and call rate,
-- complete `renderWorld()` duration and call rate,
+- complete incremental `renderWorld()` duration and call rate,
 - current world counts for tiles, people, active buildings, fields, forests, moving people and transport trips.
 
 Stage 2a adds deliberately coarse feature-level timings. Simulation work is split into non-overlapping high-level buckets for hunger/food, movement, transport/logistics, construction, farm/fields, production and work planning. The profiler compares the sum of these buckets with complete tick time; the positive remainder is displayed as **simulation other / unaccounted** so expensive work that has not yet been instrumented remains visible instead of disappearing from the report.
@@ -235,9 +243,9 @@ Pathfinding is also attributed by the feature that requested the route: hunger, 
 
 Presentation profiling separately measures `renderWorld()`, the hunger overlay and the bush overlay. The two overlays also record how many new Phaser objects they create per second, because object churn and later garbage collection can matter even when the immediate JavaScript duration looks small.
 
-`src/main.ts` wraps the `MainScene.renderWorld()` instance for presentation measurements and records real browser frame intervals from a dedicated `requestAnimationFrame` loop. This frame probe deliberately does not depend on Phaser scene lifecycle events. Mobile touch controls are installed before the profiler loop so diagnostic failures cannot prevent map input initialization. The simulation scheduler in `ui/controls.ts` still measures each complete `tick(w)` call directly; subsystem probes inside `simulation.ts` and `needs.ts` explain portions of that total. `simulation/hex.ts` remains the single timing point for actual route-search execution while callers supply the current pathfinding reason.
+`src/main.ts` measures the coalesced incremental render and records real browser frame intervals from a dedicated `requestAnimationFrame` loop. This frame probe deliberately does not depend on Phaser scene lifecycle events. Mobile touch controls are installed before the profiler loop so diagnostic failures cannot prevent map input initialization. The simulation scheduler in `ui/controls.ts` still measures each complete `tick(w)` call directly; subsystem probes inside `simulation.ts` and `needs.ts` explain portions of that total. `simulation/hex.ts` remains the single timing point for actual route-search execution while callers supply the current pathfinding reason.
 
-The Debug panel refreshes at 4 Hz only while visible. It shows the global cards and 30-second sparklines plus a top-consumer summary, a 10-second feature-cost table and a 10-second pathfinding-reason table. Synthetic stress scenarios and deeper browser/Phaser/garbage-collector profiling remain later steps if the in-app measurements cannot explain a performance problem.
+The Debug panel refreshes at 4 Hz only while visible. It shows the global cards and 30-second sparklines plus a top-consumer summary, a 10-second feature-cost table and a 10-second pathfinding-reason table. Simulation features additionally expose `ms/Tick`, which normalizes feature cost across 0.5×, 1×, 2× and 3×. Table scroll positions are preserved across the 4 Hz DOM refresh so horizontal inspection remains usable on mobile. Synthetic stress scenarios and deeper browser/Phaser/garbage-collector profiling remain later steps if the in-app measurements cannot explain a performance problem.
 
 ## UI and mobile
 
@@ -255,18 +263,8 @@ Reference mobile behavior:
 
 `npm test` runs deterministic Node tests through `tsx`. `npm run build` performs TypeScript checking plus the Vite production build.
 
-Coverage includes movement, placement, construction, production, farms, forests, merchants, inventory integer rules, profession experience, hunger and start/bush rules.
+Coverage includes movement, placement, construction, production, farms, forests, merchants, inventory integer rules, profession experience, hunger, performance-profiler invariants and start/bush rules.
 
-The start/needs suites verify:
-
-- 12-person player start with 0/2 HQ carriers, two builders, two woodcutters and eight free people,
-- 10 bread in HQ,
-- normal production output capacity 10 and forest output capacity 3,
-- HQ bread consumption,
-- light hunger stopping new task planning at the activity boundary,
-- +40 berry nutrition,
-- 2–3 minute bush regrowth,
-- permanent bush destruction by building placement,
-- manual HQ carrier collection into the HQ inventory.
+The needs/performance suites additionally verify that a valid reserved hunger route is reused across ticks and that feature timing is normalized into per-tick cost without applying that normalization to presentation-only features.
 
 `.github/workflows/deploy.yml` runs tests and production build on pushes to `main`, then deploys GitHub Pages. Branch pushes do not deploy.

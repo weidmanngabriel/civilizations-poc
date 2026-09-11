@@ -58,13 +58,37 @@ const sparkline = (
 const metric = (label: string, value: string, detail: string): string =>
   `<div class="perf-metric"><small>${label}</small><strong>${value}</strong><span>${detail}</span></div>`;
 
-const featureRow = (feature: FeatureMetric): string =>
-  `<tr><td>${FEATURE_LABELS[feature.key]}</td><td>${format(feature.msPerSecond, 2)}</td><td>${format(feature.average, 3)}</td><td>${format(feature.p95, 3)}</td><td>${format(feature.callsPerSecond, 1)}</td><td>${feature.objectsPerSecond > 0 ? format(feature.objectsPerSecond, 0) : "–"}</td></tr>`;
+const featureRow = (feature: FeatureMetric): string => {
+  const perTick = feature.msPerTick > 0 ? format(feature.msPerTick, 4) : "–";
+  return `<tr><td>${FEATURE_LABELS[feature.key]}</td><td>${format(feature.msPerSecond, 2)}</td><td>${perTick}</td><td>${format(feature.average, 3)}</td><td>${format(feature.p95, 3)}</td><td>${format(feature.callsPerSecond, 1)}</td><td>${feature.objectsPerSecond > 0 ? format(feature.objectsPerSecond, 0) : "–"}</td></tr>`;
+};
 
 const pathReasonRow = (reason: PathReasonMetric): string =>
   `<tr><td>${PATH_REASON_LABELS[reason.reason]}</td><td>${format(reason.msPerSecond, 2)}</td><td>${format(reason.callsPerSecond, 1)}</td><td>${format(reason.average, 3)}</td><td>${format(reason.p95, 3)}</td></tr>`;
 
+type ScrollPosition = { left: number; top: number };
+
+const tableScrollPositions = (container: HTMLElement): ScrollPosition[] =>
+  Array.from(container.querySelectorAll<HTMLElement>(".perf-table-wrap")).map((element) => ({
+    left: element.scrollLeft,
+    top: element.scrollTop,
+  }));
+
+const restoreTableScrollPositions = (
+  container: HTMLElement,
+  positions: ScrollPosition[],
+): void => {
+  const tables = container.querySelectorAll<HTMLElement>(".perf-table-wrap");
+  positions.forEach((position, index) => {
+    const table = tables[index];
+    if (!table) return;
+    table.scrollLeft = position.left;
+    table.scrollTop = position.top;
+  });
+};
+
 export function renderPerformanceDebug(container: HTMLElement, world: World): void {
+  const scrollPositions = tableScrollPositions(container);
   const snapshot = performanceProfiler.snapshot();
   const activeBuildings = world.buildings.filter((building) => !building.retired);
   const fields = activeBuildings.filter((building) => building.kind === "field").length;
@@ -124,13 +148,14 @@ export function renderPerformanceDebug(container: HTMLElement, world: World): vo
       <div class="perf-consumers">${consumerSummary || "<span>Noch keine Samples</span>"}</div>
     </div>
     <div class="perf-section">
-      <div class="perf-section-title"><strong>Features · 10-s-Fenster</strong><small>Objekte/s zeigt neu erzeugte Phaser-Objekte der Overlays</small></div>
-      <div class="perf-table-wrap"><table class="perf-table"><thead><tr><th>Feature</th><th>ms/s</th><th>Ø ms</th><th>p95</th><th>Aufr./s</th><th>Obj./s</th></tr></thead><tbody>${featuresByCost.map(featureRow).join("")}</tbody></table></div>
+      <div class="perf-section-title"><strong>Features · 10-s-Fenster</strong><small>ms/Tick normalisiert Simulationsarbeit über 0,5× bis 3× · Objekte/s zeigt neu erzeugte Phaser-Objekte der Overlays</small></div>
+      <div class="perf-table-wrap"><table class="perf-table"><thead><tr><th>Feature</th><th>ms/s</th><th>ms/Tick</th><th>Ø ms</th><th>p95</th><th>Aufr./s</th><th>Obj./s</th></tr></thead><tbody>${featuresByCost.map(featureRow).join("")}</tbody></table></div>
     </div>
     <div class="perf-section">
       <div class="perf-section-title"><strong>Pathfinding nach Auslöser</strong><small>Nur Attribution; die Zeit nicht zusätzlich zu den Feature-Kosten addieren</small></div>
       <div class="perf-table-wrap"><table class="perf-table"><thead><tr><th>Auslöser</th><th>ms/s</th><th>Suchen/s</th><th>Ø ms</th><th>p95</th></tr></thead><tbody>${visiblePathReasons.length ? visiblePathReasons.map(pathReasonRow).join("") : "<tr><td colspan=\"5\">Noch keine Pfadsuchen</td></tr>"}</tbody></table></div>
     </div>`;
+  restoreTableScrollPositions(container, scrollPositions);
 }
 
 export function installPerformanceDebugPanel(world: World): void {

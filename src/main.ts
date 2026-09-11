@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { performanceNow, performanceProfiler } from "./debug/performanceProfiler";
-import { MainScene } from "./game/MainScene";
+import { IncrementalMainScene } from "./game/IncrementalMainScene";
 import { installBushIndicators } from "./game/bushIndicators";
 import { installHungerIndicators } from "./game/hungerIndicators";
 import {
@@ -59,15 +59,20 @@ const showBuildVersion = (): void => {
 preventPageZoom();
 
 const world = createDefaultGameWorld();
-const scene = new MainScene(world);
+const scene = new IncrementalMainScene(world);
 const rawRenderWorld = scene.renderWorld.bind(scene);
+let renderFrame: number | undefined;
 scene.renderWorld = () => {
-  const started = performanceNow();
-  try {
-    rawRenderWorld();
-  } finally {
-    performanceProfiler.recordRender(performanceNow() - started);
-  }
+  if (renderFrame !== undefined) return;
+  renderFrame = window.requestAnimationFrame(() => {
+    renderFrame = undefined;
+    const started = performanceNow();
+    try {
+      rawRenderWorld();
+    } finally {
+      performanceProfiler.recordRender(performanceNow() - started);
+    }
+  });
 };
 installBushIndicators(scene, world);
 installHungerIndicators(scene, world);

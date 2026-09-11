@@ -36,6 +36,7 @@ export type MetricStats = {
 export type FeatureMetric = MetricStats & {
   key: PerformanceFeature;
   msPerSecond: number;
+  msPerTick: number;
   callsPerSecond: number;
   objectsPerSecond: number;
 };
@@ -253,6 +254,7 @@ export class PerformanceProfiler {
     const recentPaths = recent(this.paths, current);
     const recentRenders = recent(this.renders, current);
     const oneSecondFrames = recent(this.frames, current, 1000);
+    const tickCount = recentTicks.length;
 
     const features = PERFORMANCE_FEATURES.map((key): FeatureMetric => {
       const samples = recent(this.features.get(key) ?? [], current);
@@ -261,6 +263,10 @@ export class PerformanceProfiler {
         key,
         ...sampleStats,
         msPerSecond: sampleStats.total / (STATS_WINDOW_MS / 1000),
+        msPerTick:
+          SIMULATION_FEATURES.has(key) && tickCount > 0
+            ? sampleStats.total / tickCount
+            : 0,
         callsPerSecond: rate(samples, 1000, current),
         objectsPerSecond:
           samples.reduce((sum, sample) => sum + sample.count, 0) /
