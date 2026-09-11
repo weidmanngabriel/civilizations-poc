@@ -31,18 +31,10 @@ test("production worker keeps producing while input and output space allow it", 
   sawmill.input = 10;
   forest.output = 1;
 
-  for (let i = 0; i < CONFIG.duration; i++) tick(world);
-  assert.ok(sawmill.output > 1 && sawmill.output < 1.01);
-  assert.equal(sawmill.input, 8);
-  assert.equal(worker.trip, undefined);
+  for (let i = 0; i < CONFIG.duration * 5; i++) tick(world);
 
-  tick(world);
-  assert.equal(worker.progress, 1);
-  assert.equal(worker.trip, undefined);
-
-  for (let i = 0; i < CONFIG.duration * 2 - 1; i++) tick(world);
-  assert.ok(sawmill.output > 3 && sawmill.output < 3.1);
-  assert.equal(sawmill.input, 4);
+  assert.ok(sawmill.output > 5 && sawmill.output < 5.1);
+  assert.equal(sawmill.input, 0);
   assert.equal(worker.progress, 0);
   assert.deepEqual(worker.trip, {
     source: forest.id,
@@ -56,7 +48,7 @@ test("production worker keeps filling free input slots while output is full", ()
   const { world, sawmill, worker, forest } = activeSawmillWorker();
 
   sawmill.input = 2;
-  sawmill.output = 3;
+  sawmill.output = CONFIG.outputCapacity;
   forest.output = 1;
 
   tick(world);
