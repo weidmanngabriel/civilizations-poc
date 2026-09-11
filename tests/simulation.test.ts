@@ -202,7 +202,7 @@ test("one woodcutter occupies one forest and stops when three output slots are f
   const { forest } = woodcutterAtForest(w);
   assert.equal(assigned(w, forest.id, "worker").length, 1);
   rounds(w, CONFIG.duration * 3);
-  assert.equal(forest.output, CONFIG.outputCapacity);
+  assert.equal(forest.output, CONFIG.forestOutputCapacity);
   const stoppedAt = forest.output;
   rounds(w, CONFIG.duration * 2);
   assert.equal(forest.output, stoppedAt);
