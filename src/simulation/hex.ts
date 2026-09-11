@@ -1,3 +1,4 @@
+import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 import type { Hex, Tile } from "./model";
 
 export const key = (h: Hex): string => `${h.q},${h.r}`;
@@ -36,6 +37,15 @@ const reconstructPath = (
   return path;
 };
 
+const profilePath = <T>(run: () => T): T => {
+  const started = performanceNow();
+  try {
+    return run();
+  } finally {
+    performanceProfiler.recordPath(performanceNow() - started);
+  }
+};
+
 /** Returns the quickest path, excluding the start, or null when unreachable. */
 export function findPath(
   tiles: Tile[],
@@ -43,53 +53,57 @@ export function findPath(
   end: Hex,
   roadSpeedMultiplier = 1.3,
 ): Hex[] | null {
-  const allowed = new Map(tiles.filter(walkable).map((tile) => [key(tile), tile]));
-  if (!allowed.has(key(start)) || !allowed.has(key(end))) return null;
+  return profilePath(() => {
+    const allowed = new Map(tiles.filter(walkable).map((tile) => [key(tile), tile]));
+    if (!allowed.has(key(start)) || !allowed.has(key(end))) return null;
 
-  const distances = new Map<string, number>([[key(start), 0]]);
-  const previous = new Map<string, Hex | null>([[key(start), null]]);
-  const open: Hex[] = [start];
+    const distances = new Map<string, number>([[key(start), 0]]);
+    const previous = new Map<string, Hex | null>([[key(start), null]]);
+    const open: Hex[] = [start];
 
-  while (open.length) {
-    let bestIndex = 0;
-    for (let i = 1; i < open.length; i += 1) {
-      if (distances.get(key(open[i]!))! < distances.get(key(open[bestIndex]!))!)
-        bestIndex = i;
+    while (open.length) {
+      let bestIndex = 0;
+      for (let i = 1; i < open.length; i += 1) {
+        if (distances.get(key(open[i]!))! < distances.get(key(open[bestIndex]!))!)
+          bestIndex = i;
+      }
+      const current = open.splice(bestIndex, 1)[0]!;
+      if (same(current, end)) return reconstructPath(previous, start, current);
+
+      const currentDistance = distances.get(key(current))!;
+      for (const next of neighbors(current)) {
+        const tile = allowed.get(key(next));
+        if (!tile) continue;
+        const nextDistance = currentDistance + movementCost(tile, roadSpeedMultiplier);
+        const knownDistance = distances.get(key(next));
+        if (knownDistance !== undefined && knownDistance <= nextDistance + 1e-9) continue;
+        distances.set(key(next), nextDistance);
+        previous.set(key(next), current);
+        if (!open.some((candidate) => same(candidate, next))) open.push(next);
+      }
     }
-    const current = open.splice(bestIndex, 1)[0]!;
-    if (same(current, end)) return reconstructPath(previous, start, current);
-
-    const currentDistance = distances.get(key(current))!;
-    for (const next of neighbors(current)) {
-      const tile = allowed.get(key(next));
-      if (!tile) continue;
-      const nextDistance = currentDistance + movementCost(tile, roadSpeedMultiplier);
-      const knownDistance = distances.get(key(next));
-      if (knownDistance !== undefined && knownDistance <= nextDistance + 1e-9) continue;
-      distances.set(key(next), nextDistance);
-      previous.set(key(next), current);
-      if (!open.some((candidate) => same(candidate, next))) open.push(next);
-    }
-  }
-  return null;
+    return null;
+  });
 }
 
 /** Returns the fewest reachable tile steps, ignoring terrain speed. */
 export function findPathBySteps(tiles: Tile[], start: Hex, end: Hex): Hex[] | null {
-  const allowed = new Set(tiles.filter(walkable).map(key));
-  if (!allowed.has(key(start)) || !allowed.has(key(end))) return null;
-  const queue = [start];
-  const previous = new Map<string, Hex | null>([[key(start), null]]);
-  for (let i = 0; i < queue.length; i += 1) {
-    const current = queue[i]!;
-    if (same(current, end)) return reconstructPath(previous, start, current);
-    for (const next of neighbors(current))
-      if (allowed.has(key(next)) && !previous.has(key(next))) {
-        previous.set(key(next), current);
-        queue.push(next);
-      }
-  }
-  return null;
+  return profilePath(() => {
+    const allowed = new Set(tiles.filter(walkable).map(key));
+    if (!allowed.has(key(start)) || !allowed.has(key(end))) return null;
+    const queue = [start];
+    const previous = new Map<string, Hex | null>([[key(start), null]]);
+    for (let i = 0; i < queue.length; i += 1) {
+      const current = queue[i]!;
+      if (same(current, end)) return reconstructPath(previous, start, current);
+      for (const next of neighbors(current))
+        if (allowed.has(key(next)) && !previous.has(key(next))) {
+          previous.set(key(next), current);
+          queue.push(next);
+        }
+    }
+    return null;
+  });
 }
 
 export function pathTravelCost(
