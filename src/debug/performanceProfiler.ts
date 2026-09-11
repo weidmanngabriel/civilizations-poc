@@ -66,7 +66,7 @@ const rate = (samples: TimedSample[], windowMs: number, current: number): number
   return count / (windowMs / 1000);
 };
 
-class PerformanceProfiler {
+export class PerformanceProfiler {
   private frames: FrameSample[] = [];
   private ticks: TimedSample[] = [];
   private paths: TimedSample[] = [];
@@ -75,6 +75,7 @@ class PerformanceProfiler {
   private simulationSpeed = 1;
   private simulationBacklogMs = 0;
   private lastTrimAt = 0;
+  private lastAnimationFrameAt: number | undefined;
 
   private trim(current: number, force = false): void {
     if (!force && current - this.lastTrimAt < TRIM_INTERVAL_MS) return;
@@ -90,6 +91,15 @@ class PerformanceProfiler {
     if (!validDuration(duration) || !Number.isFinite(at)) return;
     target.push({ at, duration });
     this.trim(at);
+  }
+
+  recordAnimationFrame(timestamp: number): void {
+    if (!Number.isFinite(timestamp)) return;
+    if (this.lastAnimationFrameAt !== undefined) {
+      const duration = timestamp - this.lastAnimationFrameAt;
+      if (duration >= 0) this.record(this.frames, duration, timestamp);
+    }
+    this.lastAnimationFrameAt = timestamp;
   }
 
   recordFrame(duration: number, at = now()): void {
