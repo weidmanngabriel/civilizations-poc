@@ -16,6 +16,7 @@ import "./style.css";
 import "./map-interaction.css";
 import "./build-placement.css";
 import "./build-menu.css";
+import "./performance-debug.css";
 
 const preventPageZoom = (): void => {
   document.addEventListener(
