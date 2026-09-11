@@ -13,19 +13,25 @@ test("start world has twelve people, HQ bread, initial roles and forty-two bushe
 
   assert.equal(world.people.length, 12);
   assert.equal(hq.inventory?.bread, 10);
+  assert.equal(hq.carriers, 2);
   assert.equal(world.tiles.filter((tile) => tile.bush).length, 42);
   assert.equal(
     world.people.filter(
       (person) => person.assignment?.building === "hq" && person.assignment.role === "carrier",
     ).length,
-    1,
+    0,
   );
   assert.equal(world.people.filter((person) => person.builder).length, 2);
   assert.equal(world.people.filter((person) => person.woodcutter).length, 2);
   assert.equal(
     world.people.filter((person) => !person.assignment && !person.builder && !person.woodcutter).length,
-    7,
+    8,
   );
+});
+
+test("production output holds ten units while forests still hold three", () => {
+  assert.equal(CONFIG.outputCapacity, 10);
+  assert.equal(CONFIG.forestOutputCapacity, 3);
 });
 
 test("HQ bread is a valid food source", () => {
@@ -89,7 +95,6 @@ test("an HQ carrier collects nearby production output into HQ inventory", () => 
   const carrier = world.people[0]!;
   carrier.assignment = { building: "hq", role: "carrier" };
   carrier.active = true;
-  hq.carriers = 1;
   hq.inventory ??= {};
 
   const sourceTile = world.tiles.find((tile) => {
