@@ -222,14 +222,14 @@ Stage-one diagnostics are intentionally lightweight and observational. `src/debu
 
 The current probes measure:
 
-- Phaser frame duration and FPS,
+- browser animation-frame duration and FPS,
 - deterministic simulation tick duration and achieved ticks per second,
 - scheduler backlog and selected simulation speed,
 - weighted and step-based pathfinding duration and call rate,
 - complete `renderWorld()` duration and call rate,
 - current world counts for tiles, people, active buildings, fields, forests, moving people and transport trips.
 
-`src/main.ts` wraps the `MainScene.renderWorld()` instance and listens to Phaser `POST_UPDATE` for presentation measurements. The simulation scheduler in `ui/controls.ts` measures each real `tick(w)` call directly. `simulation/hex.ts` measures pathfinding at the two public route-search entry points.
+`src/main.ts` wraps the `MainScene.renderWorld()` instance for presentation measurements and records real browser frame intervals from a dedicated `requestAnimationFrame` loop. This frame probe deliberately does not depend on Phaser scene lifecycle events. Mobile touch controls are installed before the profiler loop so diagnostic failures cannot prevent map input initialization. The simulation scheduler in `ui/controls.ts` measures each real `tick(w)` call directly. `simulation/hex.ts` measures pathfinding at the two public route-search entry points.
 
 The existing Debug panel receives a performance section from `ui/performanceDebug.ts`. It refreshes at 4 Hz only while the panel is visible and shows current values plus four 30-second sparklines for FPS, frame time, simulation tick time and total pathfinding time per second. The diagnostics deliberately do not yet include subsystem-level simulation profiling or synthetic stress scenarios; those belong to later profiling stages once the first bottleneck has been identified.
 
