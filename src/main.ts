@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { performanceNow, performanceProfiler } from "./debug/performanceProfiler";
 import { MainScene } from "./game/MainScene";
 import { installBushIndicators } from "./game/bushIndicators";
 import { installHungerIndicators } from "./game/hungerIndicators";
@@ -10,6 +11,7 @@ import { createDefaultGameWorld } from "./simulation/scenario";
 import { installTileSelectionGuard, mountBuildMenu } from "./ui/buildMenu";
 import { mountControls } from "./ui/controls";
 import { installHqStoragePanel } from "./ui/hqStoragePanel";
+import { installPerformanceDebugPanel } from "./ui/performanceDebug";
 import "./style.css";
 import "./map-interaction.css";
 import "./build-placement.css";
@@ -57,10 +59,23 @@ preventPageZoom();
 
 const world = createDefaultGameWorld();
 const scene = new MainScene(world);
+const rawRenderWorld = scene.renderWorld.bind(scene);
+scene.renderWorld = () => {
+  const started = performanceNow();
+  try {
+    rawRenderWorld();
+  } finally {
+    performanceProfiler.recordRender(performanceNow() - started);
+  }
+};
+scene.update = (_time: number, delta: number) => {
+  performanceProfiler.recordFrame(delta);
+};
 installBushIndicators(scene, world);
 installHungerIndicators(scene, world);
 installTileSelectionGuard();
 mountControls(world, () => scene.renderWorld());
+installPerformanceDebugPanel(world);
 installHqStoragePanel(world);
 mountBuildMenu(world);
 showBuildVersion();
