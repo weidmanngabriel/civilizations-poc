@@ -33,6 +33,12 @@ import {
   woodcuttingSpeedMultiplier,
   workerProfession,
 } from "./experience";
+import {
+  performanceNow,
+  performanceProfiler,
+  type PathReason,
+  type PerformanceFeature,
+} from "../debug/performanceProfiler";
 
 export const building = (w: World, id: BuildingId): Building =>
   w.buildings.find((b) => b.id === id)!;
@@ -68,16 +74,37 @@ const outputCapacityFor = (b: Building): number =>
   b.forestRemaining !== undefined ? CONFIG.forestOutputCapacity : CONFIG.outputCapacity;
 const foodDueBeforeNewTask = (p: Person): boolean =>
   Boolean(p.hungerState) || (p.hunger ?? 100) <= 40;
-const route = (w: World, p: Person, b: Building) => {
-  p.path = findPath(
-    w.tiles,
-    p.position,
-    b.position,
-    CONFIG.roadSpeedMultiplier,
+
+const routeReason = (p: Person): PathReason => {
+  if (p.hungerState) return "hunger";
+  if (p.farmTask) return "farm";
+  if (p.woodcutter) return "woodcutter";
+  if (p.builder || p.assignment?.role === "builder") return "builder";
+  if (p.assignment?.role === "merchant") return "merchant";
+  if (p.assignment?.role === "carrier") return "logistics";
+  return "other";
+};
+
+const route = (
+  w: World,
+  p: Person,
+  b: Building,
+  reason: PathReason = routeReason(p),
+) => {
+  p.path = performanceProfiler.withPathReason(reason, () =>
+    findPath(
+      w.tiles,
+      p.position,
+      b.position,
+      CONFIG.roadSpeedMultiplier,
+    ),
   ) ?? [];
 };
 const tileAt = (w: World, position: Hex): Tile =>
   w.tiles.find((tile) => same(tile, position))!;
+
+const measureFeature = <T>(key: PerformanceFeature, run: () => T): T =>
+  performanceProfiler.profileFeature(key, run);
 
 export const warehouseStock = (b: Building, good: Good): number =>
   b.kind === "warehouse" && !isUnderConstruction(b)
@@ -189,23 +216,23 @@ function cancel(w: World, p: Person): void {
 }
 
 function rerouteCurrentTask(w: World, p: Person): void {
-  if (rerouteFarmTask(w, p)) return;
+  if (performanceProfiler.withPathReason("reroute", () => rerouteFarmTask(w, p))) return;
   if (p.trip) {
     const target = w.buildings.find(
       (b) => b.id === (p.trip!.picked ? p.trip!.target : p.trip!.source),
     );
-    if (target) route(w, p, target);
+    if (target) route(w, p, target, "reroute");
     else p.path = [];
     return;
   }
   if (p.assignment) {
     const target = w.buildings.find((b) => b.id === p.assignment!.building);
-    if (target) route(w, p, target);
+    if (target) route(w, p, target, "reroute");
     else p.path = [];
     return;
   }
   const hq = w.buildings.find((b) => b.id === "hq");
-  if (hq && !same(p.position, hq.position)) route(w, p, hq);
+  if (hq && !same(p.position, hq.position)) route(w, p, hq, "reroute");
 }
 
 const roleLimit = (b: Building, role: Role): number => {
@@ -310,51 +337,53 @@ type ForestCandidate =
   | { kind: "passive"; tile: Tile; path: Hex[] };
 
 function forestCandidates(w: World, origin: Hex): ForestCandidate[] {
-  const active: ForestCandidate[] = w.buildings
-    .filter(
-      (b) =>
-        !b.retired &&
-        b.forestRemaining !== undefined &&
-        b.forestRemaining > 0 &&
-        assigned(w, b.id, "worker").length === 0,
-    )
-    .map((forest) => ({
-      kind: "active" as const,
-      forest,
-      path: findPath(
-        w.tiles,
-        origin,
-        forest.position,
-        CONFIG.roadSpeedMultiplier,
-      ),
-    }))
-    .filter(
-      (candidate): candidate is Extract<ForestCandidate, { kind: "active" }> =>
-        candidate.path !== null,
+  return performanceProfiler.withPathReason("woodcutter", () => {
+    const active: ForestCandidate[] = w.buildings
+      .filter(
+        (b) =>
+          !b.retired &&
+          b.forestRemaining !== undefined &&
+          b.forestRemaining > 0 &&
+          assigned(w, b.id, "worker").length === 0,
+      )
+      .map((forest) => ({
+        kind: "active" as const,
+        forest,
+        path: findPath(
+          w.tiles,
+          origin,
+          forest.position,
+          CONFIG.roadSpeedMultiplier,
+        ),
+      }))
+      .filter(
+        (candidate): candidate is Extract<ForestCandidate, { kind: "active" }> =>
+          candidate.path !== null,
+      );
+    const passive: ForestCandidate[] = w.tiles
+      .filter((tile) => tile.terrain === "forest")
+      .map((tile) => ({
+        kind: "passive" as const,
+        tile,
+        path: findPath(w.tiles, origin, tile, CONFIG.roadSpeedMultiplier),
+      }))
+      .filter(
+        (candidate): candidate is Extract<ForestCandidate, { kind: "passive" }> =>
+          candidate.path !== null,
+      );
+    const candidates = [...active, ...passive];
+    if (!candidates.length) return [];
+    const costs = candidates.map((candidate) =>
+      pathTravelCost(w.tiles, candidate.path, CONFIG.roadSpeedMultiplier),
     );
-  const passive: ForestCandidate[] = w.tiles
-    .filter((tile) => tile.terrain === "forest")
-    .map((tile) => ({
-      kind: "passive" as const,
-      tile,
-      path: findPath(w.tiles, origin, tile, CONFIG.roadSpeedMultiplier),
-    }))
-    .filter(
-      (candidate): candidate is Extract<ForestCandidate, { kind: "passive" }> =>
-        candidate.path !== null,
+    const best = Math.min(...costs);
+    return candidates.filter(
+      (candidate) =>
+        Math.abs(
+          pathTravelCost(w.tiles, candidate.path, CONFIG.roadSpeedMultiplier) - best,
+        ) < 1e-9,
     );
-  const candidates = [...active, ...passive];
-  if (!candidates.length) return [];
-  const costs = candidates.map((candidate) =>
-    pathTravelCost(w.tiles, candidate.path, CONFIG.roadSpeedMultiplier),
-  );
-  const best = Math.min(...costs);
-  return candidates.filter(
-    (candidate) =>
-      Math.abs(
-        pathTravelCost(w.tiles, candidate.path, CONFIG.roadSpeedMultiplier) - best,
-      ) < 1e-9,
-  );
+  });
 }
 
 function activateForest(w: World, tile: Tile): Building {
@@ -385,7 +414,7 @@ function assignWoodcutter(w: World, p: Person): boolean {
     p.active = false;
     p.movement = 0;
     const hq = building(w, "hq");
-    if (!same(p.position, hq.position)) route(w, p, hq);
+    if (!same(p.position, hq.position)) route(w, p, hq, "woodcutter");
     return false;
   }
   const choice = candidates[randomIndex(w, candidates.length)]!;
@@ -412,39 +441,41 @@ export function changeWoodcutters(w: World, delta: 1 | -1): boolean {
   p.assignment = undefined;
   p.woodcutter = undefined;
   p.active = false;
-  route(w, p, building(w, "hq"));
+  route(w, p, building(w, "hq"), "woodcutter");
   return true;
 }
 
 type BuilderCandidate = { site: Building; path: Hex[]; cost: number };
 
 function builderCandidates(w: World, origin: Hex): BuilderCandidate[] {
-  const candidates = w.buildings
-    .filter(
-      (b) =>
-        !b.retired &&
-        isUnderConstruction(b) &&
-        assigned(w, b.id, "builder").length < 2,
-    )
-    .map((site) => {
-      const path = findPath(
-        w.tiles,
-        origin,
-        site.position,
-        CONFIG.roadSpeedMultiplier,
-      );
-      return path
-        ? {
-            site,
-            path,
-            cost: pathTravelCost(w.tiles, path, CONFIG.roadSpeedMultiplier),
-          }
-        : undefined;
-    })
-    .filter((candidate): candidate is BuilderCandidate => Boolean(candidate));
-  if (!candidates.length) return [];
-  const best = Math.min(...candidates.map((candidate) => candidate.cost));
-  return candidates.filter((candidate) => Math.abs(candidate.cost - best) < 1e-9);
+  return performanceProfiler.withPathReason("builder", () => {
+    const candidates = w.buildings
+      .filter(
+        (b) =>
+          !b.retired &&
+          isUnderConstruction(b) &&
+          assigned(w, b.id, "builder").length < 2,
+      )
+      .map((site) => {
+        const path = findPath(
+          w.tiles,
+          origin,
+          site.position,
+          CONFIG.roadSpeedMultiplier,
+        );
+        return path
+          ? {
+              site,
+              path,
+              cost: pathTravelCost(w.tiles, path, CONFIG.roadSpeedMultiplier),
+            }
+          : undefined;
+      })
+      .filter((candidate): candidate is BuilderCandidate => Boolean(candidate));
+    if (!candidates.length) return [];
+    const best = Math.min(...candidates.map((candidate) => candidate.cost));
+    return candidates.filter((candidate) => Math.abs(candidate.cost - best) < 1e-9);
+  });
 }
 
 function assignBuilder(w: World, p: Person): boolean {
@@ -456,7 +487,7 @@ function assignBuilder(w: World, p: Person): boolean {
     p.progress = 0;
     p.movement = 0;
     const hq = building(w, "hq");
-    if (!same(p.position, hq.position)) route(w, p, hq);
+    if (!same(p.position, hq.position)) route(w, p, hq, "builder");
     return false;
   }
   const choice = candidates[randomIndex(w, candidates.length)]!;
@@ -494,7 +525,7 @@ export function changeBuilders(w: World, delta: 1 | -1): boolean {
   p.assignment = undefined;
   p.builder = undefined;
   p.active = false;
-  route(w, p, building(w, "hq"));
+  route(w, p, building(w, "hq"), "builder");
   return true;
 }
 
@@ -502,6 +533,7 @@ type SourceCandidate = { source: Building; good: Good; path: Hex[] };
 
 function requestInput(w: World, p: Person, b: Building): void {
   const construction = isUnderConstruction(b) ? b.construction! : undefined;
+  const pathReason: PathReason = construction ? "builder" : "logistics";
   const isWarehouseCollection = b.kind === "warehouse" && !construction;
   const recipeGoods = (Object.keys(recipeRequirements(b)) as Good[]).filter((good) =>
     inputHasSpace(w, b, good),
@@ -535,15 +567,19 @@ function requestInput(w: World, p: Person, b: Building): void {
         )
           continue;
         if (isWarehouseCollection) {
-          const collectionPath = findPathBySteps(w.tiles, b.position, source.position);
+          const collectionPath = performanceProfiler.withPathReason(pathReason, () =>
+            findPathBySteps(w.tiles, b.position, source.position),
+          );
           if (!collectionPath || collectionPath.length > CONFIG.warehouseCollectionRadius)
             continue;
         }
-        const path = findPath(
-          w.tiles,
-          p.position,
-          source.position,
-          CONFIG.roadSpeedMultiplier,
+        const path = performanceProfiler.withPathReason(pathReason, () =>
+          findPath(
+            w.tiles,
+            p.position,
+            source.position,
+            CONFIG.roadSpeedMultiplier,
+          ),
         );
         if (path) sources.push({ source, good, path });
       }
@@ -590,13 +626,15 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): void {
     return;
   }
   if (!same(p.position, source.position)) {
-    route(w, p, source);
+    route(w, p, source, "merchant");
     return;
   }
   if (
     available(w, source, routeConfig.good) + 1e-9 < CONFIG.carryCapacity ||
     !warehouseHasSpace(w, target, routeConfig.good) ||
-    !findPath(w.tiles, source.position, target.position, CONFIG.roadSpeedMultiplier)
+    !performanceProfiler.withPathReason("merchant", () =>
+      findPath(w.tiles, source.position, target.position, CONFIG.roadSpeedMultiplier),
+    )
   )
     return;
   p.trip = {
@@ -753,7 +791,7 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
       p.active = false;
       p.progress = 0;
       p.movement = 0;
-      route(w, p, building(w, "hq"));
+      route(w, p, building(w, "hq"), "reroute");
     } else if (affectedTrip) {
       rerouteCurrentTask(w, p);
     }
@@ -877,102 +915,116 @@ export function tick(w: World): void {
     w.people.filter((p) => p.path.length > 0).map((p) => p.id),
   );
 
-  if (movePeople(w)) {
-    for (const p of w.people) rerouteCurrentTask(w, p);
-  }
-  for (const p of w.people) {
-    if (movingAtTickStart.has(p.id) && p.path.length === 0)
-      immediateDecisionPeople.add(p.id);
-  }
+  measureFeature("movement", () => {
+    if (movePeople(w)) {
+      for (const p of w.people) rerouteCurrentTask(w, p);
+    }
+    for (const p of w.people) {
+      if (movingAtTickStart.has(p.id) && p.path.length === 0)
+        immediateDecisionPeople.add(p.id);
+    }
+  });
 
-  for (const p of w.people) {
-    if (p.path.length || !p.assignment) continue;
-    const home = building(w, p.assignment.building);
-    if (p.trip) {
-      if (!p.trip.picked) {
-        const source = building(w, p.trip.source);
-        if (!same(p.position, source.position)) continue;
-        if (source.kind === "warehouse" && !isUnderConstruction(source)) {
-          source.inventory![p.trip.good] =
-            (source.inventory![p.trip.good] ?? 0) - CONFIG.carryCapacity;
-        } else if (!(source.kind === "well" && p.trip.good === "water")) {
-          source.output -= CONFIG.carryCapacity;
-        }
-        p.trip.picked = true;
-        p.movement = 0;
-        route(w, p, building(w, p.trip.target));
-      } else {
-        const target = building(w, p.trip.target);
-        if (!same(p.position, target.position)) continue;
-        if (isUnderConstruction(target)) {
-          const delivered = target.construction!.delivered;
-          delivered[p.trip.good] = (delivered[p.trip.good] ?? 0) + CONFIG.carryCapacity;
-        } else if (target.kind === "warehouse") {
-          target.inventory![p.trip.good] =
-            (target.inventory![p.trip.good] ?? 0) + CONFIG.carryCapacity;
-        } else if (target.kind === "farm" && p.trip.good === "wheat") {
-          target.output += CONFIG.carryCapacity + (p.pendingFarmBonus ?? 0);
+  measureFeature("transport", () => {
+    for (const p of w.people) {
+      if (p.path.length || !p.assignment) continue;
+      const home = building(w, p.assignment.building);
+      if (p.trip) {
+        if (!p.trip.picked) {
+          const source = building(w, p.trip.source);
+          if (!same(p.position, source.position)) continue;
+          if (source.kind === "warehouse" && !isUnderConstruction(source)) {
+            source.inventory![p.trip.good] =
+              (source.inventory![p.trip.good] ?? 0) - CONFIG.carryCapacity;
+          } else if (!(source.kind === "well" && p.trip.good === "water")) {
+            source.output -= CONFIG.carryCapacity;
+          }
+          p.trip.picked = true;
+          p.movement = 0;
+          route(w, p, building(w, p.trip.target));
         } else {
-          addProductionInput(target, p.trip.good);
+          const target = building(w, p.trip.target);
+          if (!same(p.position, target.position)) continue;
+          if (isUnderConstruction(target)) {
+            const delivered = target.construction!.delivered;
+            delivered[p.trip.good] = (delivered[p.trip.good] ?? 0) + CONFIG.carryCapacity;
+          } else if (target.kind === "warehouse") {
+            target.inventory![p.trip.good] =
+              (target.inventory![p.trip.good] ?? 0) + CONFIG.carryCapacity;
+          } else if (target.kind === "farm" && p.trip.good === "wheat") {
+            target.output += CONFIG.carryCapacity + (p.pendingFarmBonus ?? 0);
+          } else {
+            addProductionInput(target, p.trip.good);
+          }
+          p.trip = undefined;
+          p.pendingFarmBonus = undefined;
+          p.movement = 0;
+          immediateDecisionPeople.add(p.id);
         }
-        p.trip = undefined;
-        p.pendingFarmBonus = undefined;
-        p.movement = 0;
-        immediateDecisionPeople.add(p.id);
-      }
-    } else if (same(p.position, home.position)) {
-      p.active = true;
-    }
-  }
-
-  advanceConstruction(w);
-  for (const id of advanceFarmSystem(w)) immediateDecisionPeople.add(id);
-
-  for (const p of w.people) {
-    if (!p.assignment || !p.active || p.trip || p.path.length || p.farmTask) continue;
-    const b = building(w, p.assignment.building);
-    if (!same(p.position, b.position)) continue;
-    if (p.assignment.role === "builder" || isUnderConstruction(b) || b.kind === "farm") continue;
-    const recipe = b.recipe;
-    if (p.assignment.role === "worker" && recipe) {
-      const profession = workerProfession(b);
-      const forestHasYield =
-        b.forestRemaining === undefined || b.forestRemaining > producing(w, b.id);
-      const outputHasSpace = outputOccupied(w, b) < outputCapacityFor(b);
-      const workSpeed = b.kind === "forest" ? woodcuttingSpeedMultiplier(p) : 1;
-      if (
-        p.progress === 0 &&
-        forestHasYield &&
-        hasRecipeInputs(b) &&
-        outputHasSpace
-      )
-        p.progress = workSpeed;
-      else if (p.progress > 0) p.progress += workSpeed;
-      if (p.progress > 0 && profession) gainProfessionExperience(p, profession);
-      if (p.progress >= recipe.duration) {
-        consumeRecipeInputs(b);
-        const multiplier =
-          b.kind === "forest"
-            ? 1
-            : profession
-              ? productionMultiplier(p, profession)
-              : 1;
-        b.output += recipeOutputAmount(b) * multiplier;
-        if (b.forestRemaining !== undefined) b.forestRemaining--;
-        p.progress = 0;
-        immediateDecisionPeople.add(p.id);
+      } else if (same(p.position, home.position)) {
+        p.active = true;
       }
     }
-  }
+  });
 
-  retireDepletedForests(w);
-  if (regularDecisionTick) {
-    assignWaitingWoodcutters(w);
-    assignWaitingBuilders(w);
-  }
+  measureFeature("construction", () => advanceConstruction(w));
+  const farmImmediate = measureFeature("farm", () =>
+    performanceProfiler.withPathReason("farm", () => advanceFarmSystem(w)),
+  );
+  for (const id of farmImmediate) immediateDecisionPeople.add(id);
+
+  measureFeature("production", () => {
+    for (const p of w.people) {
+      if (!p.assignment || !p.active || p.trip || p.path.length || p.farmTask) continue;
+      const b = building(w, p.assignment.building);
+      if (!same(p.position, b.position)) continue;
+      if (p.assignment.role === "builder" || isUnderConstruction(b) || b.kind === "farm") continue;
+      const recipe = b.recipe;
+      if (p.assignment.role === "worker" && recipe) {
+        const profession = workerProfession(b);
+        const forestHasYield =
+          b.forestRemaining === undefined || b.forestRemaining > producing(w, b.id);
+        const outputHasSpace = outputOccupied(w, b) < outputCapacityFor(b);
+        const workSpeed = b.kind === "forest" ? woodcuttingSpeedMultiplier(p) : 1;
+        if (
+          p.progress === 0 &&
+          forestHasYield &&
+          hasRecipeInputs(b) &&
+          outputHasSpace
+        )
+          p.progress = workSpeed;
+        else if (p.progress > 0) p.progress += workSpeed;
+        if (p.progress > 0 && profession) gainProfessionExperience(p, profession);
+        if (p.progress >= recipe.duration) {
+          consumeRecipeInputs(b);
+          const multiplier =
+            b.kind === "forest"
+              ? 1
+              : profession
+                ? productionMultiplier(p, profession)
+                : 1;
+          b.output += recipeOutputAmount(b) * multiplier;
+          if (b.forestRemaining !== undefined) b.forestRemaining--;
+          p.progress = 0;
+          immediateDecisionPeople.add(p.id);
+        }
+      }
+    }
+  });
+
+  measureFeature("planning", () => {
+    retireDepletedForests(w);
+    if (regularDecisionTick) {
+      assignWaitingWoodcutters(w);
+      assignWaitingBuilders(w);
+    }
+  });
 
   if (!regularDecisionTick && immediateDecisionPeople.size === 0) return;
 
+  const decisionStarted = performanceNow();
+  let decisionTransportMs = 0;
+  let decisionFarmMs = 0;
   for (const p of w.people) {
     if (!regularDecisionTick && !immediateDecisionPeople.has(p.id)) continue;
     if (foodDueBeforeNewTask(p)) continue;
@@ -980,16 +1032,24 @@ export function tick(w: World): void {
       continue;
     const b = building(w, p.assignment.building);
     if (p.assignment.role === "builder" && isUnderConstruction(b)) {
-      if (!constructionMaterialsComplete(b)) requestInput(w, p, b);
+      if (!constructionMaterialsComplete(b)) {
+        const started = performanceNow();
+        requestInput(w, p, b);
+        decisionTransportMs += performanceNow() - started;
+      }
       continue;
     }
     if (isUnderConstruction(b)) continue;
     if (p.assignment.role === "merchant") {
+      const started = performanceNow();
       requestMerchantTransfer(w, p, b);
+      decisionTransportMs += performanceNow() - started;
       continue;
     }
     if (b.kind === "farm" && p.assignment.role === "worker") {
-      planFarmWorker(w, p, b);
+      const started = performanceNow();
+      performanceProfiler.withPathReason("farm", () => planFarmWorker(w, p, b));
+      decisionFarmMs += performanceNow() - started;
       continue;
     }
     const recipe = b.recipe;
@@ -1004,9 +1064,21 @@ export function tick(w: World): void {
       Boolean(recipe) &&
       workerCanTopUp &&
       (workerMissingInput || outputOccupied(w, b) >= outputCapacityFor(b));
-    if (p.assignment.role === "carrier" || workerNeedsResupply)
+    if (p.assignment.role === "carrier" || workerNeedsResupply) {
+      const started = performanceNow();
       requestInput(w, p, b);
+      decisionTransportMs += performanceNow() - started;
+    }
   }
+  const decisionTotalMs = performanceNow() - decisionStarted;
+  if (decisionTransportMs > 0)
+    performanceProfiler.recordFeature("transport", decisionTransportMs);
+  if (decisionFarmMs > 0)
+    performanceProfiler.recordFeature("farm", decisionFarmMs);
+  performanceProfiler.recordFeature(
+    "planning",
+    Math.max(0, decisionTotalMs - decisionTransportMs - decisionFarmMs),
+  );
 }
 
 export const GOODS: Record<Good, string> = {

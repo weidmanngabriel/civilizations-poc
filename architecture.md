@@ -214,13 +214,13 @@ Harvest returns one physical wheat to the farm through the existing trip primiti
 
 `game/bushIndicators.ts` uses the same safe scene-lifecycle pattern. It draws a small green bush above grass tiles with `bush === true`; full bushes show berry dots while empty bushes remain muted green. It never changes simulation state.
 
-Both overlays rebuild their small containers on `POST_UPDATE`. At the current PoC scale this remains inexpensive.
+Both overlays rebuild their small containers on `POST_UPDATE`. Their rebuild cost and newly created Phaser object counts are tracked by the performance diagnostics so this implementation can be replaced if it becomes a bottleneck.
 
 ## Performance diagnostics
 
-Stage-one diagnostics are intentionally lightweight and observational. `src/debug/performanceProfiler.ts` keeps timestamped samples in a rolling 30-second window and never writes authoritative game state.
+Performance diagnostics are observational only. `src/debug/performanceProfiler.ts` stores timestamped samples in a rolling 30-second window and never writes authoritative game state.
 
-The current probes measure:
+The global probes measure:
 
 - browser animation-frame duration and FPS,
 - deterministic simulation tick duration and achieved ticks per second,
@@ -229,9 +229,15 @@ The current probes measure:
 - complete `renderWorld()` duration and call rate,
 - current world counts for tiles, people, active buildings, fields, forests, moving people and transport trips.
 
-`src/main.ts` wraps the `MainScene.renderWorld()` instance for presentation measurements and records real browser frame intervals from a dedicated `requestAnimationFrame` loop. This frame probe deliberately does not depend on Phaser scene lifecycle events. Mobile touch controls are installed before the profiler loop so diagnostic failures cannot prevent map input initialization. The simulation scheduler in `ui/controls.ts` measures each real `tick(w)` call directly. `simulation/hex.ts` measures pathfinding at the two public route-search entry points.
+Stage 2a adds deliberately coarse feature-level timings. Simulation work is split into non-overlapping high-level buckets for hunger/food, movement, transport/logistics, construction, farm/fields, production and work planning. The profiler compares the sum of these buckets with complete tick time; the positive remainder is displayed as **simulation other / unaccounted** so expensive work that has not yet been instrumented remains visible instead of disappearing from the report.
 
-The existing Debug panel receives a performance section from `ui/performanceDebug.ts`. It refreshes at 4 Hz only while the panel is visible and shows current values plus four 30-second sparklines for FPS, frame time, simulation tick time and total pathfinding time per second. The diagnostics deliberately do not yet include subsystem-level simulation profiling or synthetic stress scenarios; those belong to later profiling stages once the first bottleneck has been identified.
+Pathfinding is also attributed by the feature that requested the route: hunger, woodcutter, builder, logistics, merchant, farm, reroute or other. This pathfinding table is cross-cutting diagnostic attribution, not an additional cost bucket: pathfinding time is already included in the surrounding feature timing and must not be added to it again.
+
+Presentation profiling separately measures `renderWorld()`, the hunger overlay and the bush overlay. The two overlays also record how many new Phaser objects they create per second, because object churn and later garbage collection can matter even when the immediate JavaScript duration looks small.
+
+`src/main.ts` wraps the `MainScene.renderWorld()` instance for presentation measurements and records real browser frame intervals from a dedicated `requestAnimationFrame` loop. This frame probe deliberately does not depend on Phaser scene lifecycle events. Mobile touch controls are installed before the profiler loop so diagnostic failures cannot prevent map input initialization. The simulation scheduler in `ui/controls.ts` still measures each complete `tick(w)` call directly; subsystem probes inside `simulation.ts` and `needs.ts` explain portions of that total. `simulation/hex.ts` remains the single timing point for actual route-search execution while callers supply the current pathfinding reason.
+
+The Debug panel refreshes at 4 Hz only while visible. It shows the global cards and 30-second sparklines plus a top-consumer summary, a 10-second feature-cost table and a 10-second pathfinding-reason table. Synthetic stress scenarios and deeper browser/Phaser/garbage-collector profiling remain later steps if the in-app measurements cannot explain a performance problem.
 
 ## UI and mobile
 

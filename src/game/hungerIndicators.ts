@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import type { Hex, World } from "../simulation/model";
 import { personWorldPosition } from "../simulation/movement";
 import { hungerStatus } from "../simulation/needs";
+import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 
 const HEX_X = 24;
 const HEX_Y = 21;
@@ -22,6 +23,8 @@ export function installHungerIndicators(scene: Phaser.Scene, world: World): void
     const container = scene.add.container(0, 0).setDepth(2000);
 
     const render = () => {
+      const started = performanceNow();
+      let createdObjects = 0;
       container.removeAll(true);
       for (const person of world.people) {
         const status = hungerStatus(person);
@@ -37,7 +40,13 @@ export function installHungerIndicators(scene: Phaser.Scene, world: World): void
           color: "#ffffff",
         }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
         container.add([bubble, icon]);
+        createdObjects += 2;
       }
+      performanceProfiler.recordFeature(
+        "overlayHunger",
+        performanceNow() - started,
+        createdObjects,
+      );
     };
 
     scene.events.on(Phaser.Scenes.Events.POST_UPDATE, render);

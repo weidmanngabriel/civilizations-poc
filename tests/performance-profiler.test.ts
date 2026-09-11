@@ -27,3 +27,37 @@ test("the first animation frame only establishes the timestamp baseline", () => 
   assert.equal(snapshot.fps1s, 0);
   assert.equal(snapshot.frame.count, 0);
 });
+
+test("feature samples expose cost, object churn and unaccounted simulation time", () => {
+  const profiler = new PerformanceProfiler();
+
+  profiler.recordTick(10, 1_000);
+  profiler.recordFeature("movement", 3, 0, 1_000);
+  profiler.recordFeature("overlayBush", 2, 42, 1_000);
+
+  const snapshot = profiler.snapshot(1_000);
+  const movement = snapshot.features.find((feature) => feature.key === "movement")!;
+  const bushOverlay = snapshot.features.find((feature) => feature.key === "overlayBush")!;
+
+  assert.equal(movement.total, 3);
+  assert.equal(movement.msPerSecond, 0.3);
+  assert.equal(bushOverlay.objectsPerSecond, 4.2);
+  assert.equal(snapshot.simulationAccountedMsPerSecond, 0.3);
+  assert.equal(snapshot.simulationOtherMsPerSecond, 0.7);
+});
+
+test("pathfinding samples retain their feature reason", () => {
+  const profiler = new PerformanceProfiler();
+
+  profiler.withPathReason("farm", () => profiler.recordPath(2, 1_000));
+  profiler.recordPath(1, 1_000);
+
+  const snapshot = profiler.snapshot(1_000);
+  const farm = snapshot.pathReasons.find((reason) => reason.reason === "farm")!;
+  const other = snapshot.pathReasons.find((reason) => reason.reason === "other")!;
+
+  assert.equal(farm.count, 1);
+  assert.equal(farm.total, 2);
+  assert.equal(other.count, 1);
+  assert.equal(other.total, 1);
+});

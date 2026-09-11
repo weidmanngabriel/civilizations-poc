@@ -1,5 +1,29 @@
 type TimedSample = { at: number; duration: number };
 type FrameSample = TimedSample;
+type FeatureSample = TimedSample & { count: number };
+type PathSample = TimedSample & { reason: PathReason };
+
+export type PerformanceFeature =
+  | "hunger"
+  | "movement"
+  | "transport"
+  | "construction"
+  | "farm"
+  | "production"
+  | "planning"
+  | "renderWorld"
+  | "overlayHunger"
+  | "overlayBush";
+
+export type PathReason =
+  | "hunger"
+  | "woodcutter"
+  | "builder"
+  | "logistics"
+  | "merchant"
+  | "farm"
+  | "reroute"
+  | "other";
 
 export type MetricStats = {
   average: number;
@@ -7,6 +31,19 @@ export type MetricStats = {
   max: number;
   count: number;
   total: number;
+};
+
+export type FeatureMetric = MetricStats & {
+  key: PerformanceFeature;
+  msPerSecond: number;
+  callsPerSecond: number;
+  objectsPerSecond: number;
+};
+
+export type PathReasonMetric = MetricStats & {
+  reason: PathReason;
+  msPerSecond: number;
+  callsPerSecond: number;
 };
 
 export type PerformanceHistoryPoint = {
@@ -32,11 +69,50 @@ export type PerformanceSnapshot = {
   simulationRunning: boolean;
   simulationSpeed: number;
   simulationBacklogMs: number;
+  features: FeatureMetric[];
+  pathReasons: PathReasonMetric[];
+  simulationAccountedMsPerSecond: number;
+  simulationOtherMsPerSecond: number;
   history: PerformanceHistoryPoint[];
 };
 
+export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
+  "hunger",
+  "movement",
+  "transport",
+  "construction",
+  "farm",
+  "production",
+  "planning",
+  "renderWorld",
+  "overlayHunger",
+  "overlayBush",
+];
+
+export const PATH_REASONS: PathReason[] = [
+  "hunger",
+  "woodcutter",
+  "builder",
+  "logistics",
+  "merchant",
+  "farm",
+  "reroute",
+  "other",
+];
+
+const SIMULATION_FEATURES = new Set<PerformanceFeature>([
+  "hunger",
+  "movement",
+  "transport",
+  "construction",
+  "farm",
+  "production",
+  "planning",
+]);
+
 const HISTORY_MS = 30_000;
 const TRIM_INTERVAL_MS = 1000;
+const STATS_WINDOW_MS = 10_000;
 const now = (): number => globalThis.performance?.now?.() ?? Date.now();
 const validDuration = (duration: number): boolean => Number.isFinite(duration) && duration >= 0;
 
@@ -66,11 +142,16 @@ const rate = (samples: TimedSample[], windowMs: number, current: number): number
   return count / (windowMs / 1000);
 };
 
+const recent = <T extends TimedSample>(samples: T[], current: number, windowMs = STATS_WINDOW_MS): T[] =>
+  samples.filter((sample) => sample.at >= current - windowMs);
+
 export class PerformanceProfiler {
   private frames: FrameSample[] = [];
   private ticks: TimedSample[] = [];
-  private paths: TimedSample[] = [];
+  private paths: PathSample[] = [];
   private renders: TimedSample[] = [];
+  private features = new Map<PerformanceFeature, FeatureSample[]>();
+  private pathReasonStack: PathReason[] = [];
   private simulationRunning = false;
   private simulationSpeed = 1;
   private simulationBacklogMs = 0;
@@ -85,6 +166,8 @@ export class PerformanceProfiler {
     this.ticks = this.ticks.filter((sample) => sample.at >= cutoff);
     this.paths = this.paths.filter((sample) => sample.at >= cutoff);
     this.renders = this.renders.filter((sample) => sample.at >= cutoff);
+    for (const [key, samples] of this.features)
+      this.features.set(key, samples.filter((sample) => sample.at >= cutoff));
   }
 
   private record(target: TimedSample[], duration: number, at: number): void {
@@ -111,11 +194,50 @@ export class PerformanceProfiler {
   }
 
   recordPath(duration: number, at = now()): void {
-    this.record(this.paths, duration, at);
+    if (!validDuration(duration) || !Number.isFinite(at)) return;
+    this.paths.push({
+      at,
+      duration,
+      reason: this.pathReasonStack.at(-1) ?? "other",
+    });
+    this.trim(at);
   }
 
   recordRender(duration: number, at = now()): void {
     this.record(this.renders, duration, at);
+    this.recordFeature("renderWorld", duration, 0, at);
+  }
+
+  recordFeature(
+    key: PerformanceFeature,
+    duration: number,
+    count = 0,
+    at = now(),
+  ): void {
+    if (!validDuration(duration) || !Number.isFinite(count) || count < 0 || !Number.isFinite(at))
+      return;
+    const samples = this.features.get(key) ?? [];
+    samples.push({ at, duration, count });
+    this.features.set(key, samples);
+    this.trim(at);
+  }
+
+  profileFeature<T>(key: PerformanceFeature, run: () => T): T {
+    const started = now();
+    try {
+      return run();
+    } finally {
+      this.recordFeature(key, now() - started);
+    }
+  }
+
+  withPathReason<T>(reason: PathReason, run: () => T): T {
+    this.pathReasonStack.push(reason);
+    try {
+      return run();
+    } finally {
+      this.pathReasonStack.pop();
+    }
   }
 
   setSimulationState(running: boolean, speed: number, backlogMs: number): void {
@@ -126,11 +248,46 @@ export class PerformanceProfiler {
 
   snapshot(current = now()): PerformanceSnapshot {
     this.trim(current, true);
-    const recentFrames = this.frames.filter((sample) => sample.at >= current - 10_000);
-    const recentTicks = this.ticks.filter((sample) => sample.at >= current - 10_000);
-    const recentPaths = this.paths.filter((sample) => sample.at >= current - 10_000);
-    const recentRenders = this.renders.filter((sample) => sample.at >= current - 10_000);
-    const oneSecondFrames = this.frames.filter((sample) => sample.at >= current - 1000);
+    const recentFrames = recent(this.frames, current);
+    const recentTicks = recent(this.ticks, current);
+    const recentPaths = recent(this.paths, current);
+    const recentRenders = recent(this.renders, current);
+    const oneSecondFrames = recent(this.frames, current, 1000);
+
+    const features = PERFORMANCE_FEATURES.map((key): FeatureMetric => {
+      const samples = recent(this.features.get(key) ?? [], current);
+      const sampleStats = stats(samples);
+      return {
+        key,
+        ...sampleStats,
+        msPerSecond: sampleStats.total / (STATS_WINDOW_MS / 1000),
+        callsPerSecond: rate(samples, 1000, current),
+        objectsPerSecond:
+          samples.reduce((sum, sample) => sum + sample.count, 0) /
+          (STATS_WINDOW_MS / 1000),
+      };
+    });
+
+    const pathReasons = PATH_REASONS.map((reason): PathReasonMetric => {
+      const samples = recentPaths.filter((sample) => sample.reason === reason);
+      const sampleStats = stats(samples);
+      return {
+        reason,
+        ...sampleStats,
+        msPerSecond: sampleStats.total / (STATS_WINDOW_MS / 1000),
+        callsPerSecond: rate(samples, 1000, current),
+      };
+    });
+
+    const tickStats = stats(recentTicks);
+    const simulationMsPerSecond = tickStats.total / (STATS_WINDOW_MS / 1000);
+    const simulationAccountedMsPerSecond = features
+      .filter((feature) => SIMULATION_FEATURES.has(feature.key))
+      .reduce((sum, feature) => sum + feature.msPerSecond, 0);
+    const simulationOtherMsPerSecond = Math.max(
+      0,
+      simulationMsPerSecond - simulationAccountedMsPerSecond,
+    );
 
     const history: PerformanceHistoryPoint[] = [];
     for (let secondsAgo = 29; secondsAgo >= 0; secondsAgo -= 1) {
@@ -157,7 +314,7 @@ export class PerformanceProfiler {
       slowFrames16: recentFrames.filter((sample) => sample.duration > 1000 / 60).length,
       slowFrames33: recentFrames.filter((sample) => sample.duration > 1000 / 30).length,
       ticksPerSecond: rate(this.ticks, 1000, current),
-      tick: stats(recentTicks),
+      tick: tickStats,
       pathCallsPerSecond: rate(this.paths, 1000, current),
       path: stats(recentPaths),
       renderCallsPerSecond: rate(this.renders, 1000, current),
@@ -165,6 +322,10 @@ export class PerformanceProfiler {
       simulationRunning: this.simulationRunning,
       simulationSpeed: this.simulationSpeed,
       simulationBacklogMs: this.simulationBacklogMs,
+      features,
+      pathReasons,
+      simulationAccountedMsPerSecond,
+      simulationOtherMsPerSecond,
       history,
     };
   }

@@ -1,6 +1,11 @@
 import type { Building, BuildingId, Good, Hex, HungerState, Person, Tile, World } from "./model";
 import { findPath, findPathBySteps, pathTravelCost, same } from "./hex";
 import { CONFIG } from "./scenario";
+import {
+  performanceNow,
+  performanceProfiler,
+  type PathReason,
+} from "../debug/performanceProfiler";
 
 const SIMULATION_HZ = 60;
 const ROAD_SPEED_MULTIPLIER = 1.3;
@@ -79,8 +84,15 @@ const decayHunger = (person: Person): void => {
   }
 };
 
-const routeTo = (world: World, person: Person, target: Hex): Hex[] | undefined =>
-  findPath(world.tiles, person.position, target, ROAD_SPEED_MULTIPLIER) ?? undefined;
+const routeTo = (
+  world: World,
+  person: Person,
+  target: Hex,
+  reason: PathReason = "hunger",
+): Hex[] | undefined =>
+  performanceProfiler.withPathReason(reason, () =>
+    findPath(world.tiles, person.position, target, ROAD_SPEED_MULTIPLIER),
+  ) ?? undefined;
 
 const foodCandidates = (world: World, person: Person): FoodCandidate[] => {
   const bread: BreadCandidate[] = world.buildings
@@ -366,9 +378,11 @@ const planHqCarrier = (world: World, person: Person, hq: Building): void => {
         sourceStock(source, good) - reservedAtSource(world, source.id, good) < CONFIG.carryCapacity
       )
         continue;
-      const rangePath = findPathBySteps(world.tiles, hq.position, source.position);
+      const rangePath = performanceProfiler.withPathReason("logistics", () =>
+        findPathBySteps(world.tiles, hq.position, source.position),
+      );
       if (!rangePath || rangePath.length > CONFIG.warehouseCollectionRadius) continue;
-      const path = routeTo(world, person, source.position);
+      const path = routeTo(world, person, source.position, "logistics");
       if (!path) continue;
       candidates.push({
         source,
@@ -406,6 +420,7 @@ const advanceHqWarehouseCarrier = (world: World): void => {
 };
 
 export function advanceHungerTick(world: World): void {
+  const hungerStarted = performanceNow();
   cleanupAndRegrowBushes(world);
 
   for (const person of world.people) {
@@ -424,8 +439,11 @@ export function advanceHungerTick(world: World): void {
     if (person.hunger! <= WANTS_TO_EAT_THRESHOLD && atTaskBoundary(person))
       startEating(world, person, false);
   }
+  performanceProfiler.recordFeature("hunger", performanceNow() - hungerStarted);
 
+  const logisticsStarted = performanceNow();
   advanceHqWarehouseCarrier(world);
+  performanceProfiler.recordFeature("transport", performanceNow() - logisticsStarted);
 }
 
 export function attachNeeds(world: World): World {

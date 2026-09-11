@@ -64,6 +64,75 @@
   height: 46px;
   margin-top: 4px;
 }
+.perf-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 3px;
+}
+.perf-section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.perf-section-title strong {
+  font-size: 11px;
+}
+.perf-section-title small {
+  font-size: 8px;
+  color: #65715f;
+  text-align: right;
+}
+.perf-consumers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.perf-consumers span {
+  padding: 5px 7px;
+  border: 1px solid #daddd0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+  font-size: 9px;
+  color: #65715f;
+}
+.perf-consumers strong {
+  color: #263c2d;
+  font-variant-numeric: tabular-nums;
+}
+.perf-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #daddd0;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.38);
+}
+.perf-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+.perf-table th,
+.perf-table td {
+  padding: 5px 7px;
+  border-bottom: 1px solid rgba(218, 221, 208, 0.8);
+  text-align: right;
+  white-space: nowrap;
+}
+.perf-table th:first-child,
+.perf-table td:first-child {
+  text-align: left;
+}
+.perf-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.perf-table th {
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  color: #65715f;
+}
 .debug-subheading {
   margin: 4px 0 7px;
   font-size: 10px;
@@ -75,4 +144,6 @@
   .perf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .perf-charts { grid-template-columns: 1fr; }
   .perf-metric strong { font-size: 15px; }
+  .perf-section-title { align-items: flex-start; flex-direction: column; gap: 2px; }
+  .perf-section-title small { text-align: left; }
 }

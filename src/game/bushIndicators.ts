@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import type { Hex, World } from "../simulation/model";
+import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 
 const HEX_X = 24;
 const HEX_Y = 21;
@@ -19,6 +20,8 @@ export function installBushIndicators(scene: Phaser.Scene, world: World): void {
     const container = scene.add.container(0, 0).setDepth(20);
 
     const render = () => {
+      const started = performanceNow();
+      let createdObjects = 0;
       container.removeAll(true);
       for (const tile of world.tiles) {
         if (!tile.bush || tile.terrain !== "grass") continue;
@@ -35,7 +38,13 @@ export function installBushIndicators(scene: Phaser.Scene, world: World): void {
           graphics.fillCircle(x + 5, y - 1, 1.4);
         }
         container.add(graphics);
+        createdObjects++;
       }
+      performanceProfiler.recordFeature(
+        "overlayBush",
+        performanceNow() - started,
+        createdObjects,
+      );
     };
 
     render();
