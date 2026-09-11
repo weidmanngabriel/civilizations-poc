@@ -3,12 +3,12 @@ import assert from "node:assert/strict";
 import { buildWithFootprint, footprintAt, removeBuildingWithFootprint, validBuildingAnchors } from "../src/simulation/buildingPlacement";
 import { findPathBySteps } from "../src/simulation/hex";
 import { advanceHungerTick } from "../src/simulation/needs";
-import { createWorld, CONFIG } from "../src/simulation/scenario";
+import { createDefaultGameWorld, createWorld, CONFIG } from "../src/simulation/scenario";
 import { tick } from "../src/simulation/simulation";
 import type { Building } from "../src/simulation/model";
 
 test("start world has twelve people, HQ bread and initial roles", () => {
-  const world = createWorld();
+  const world = createDefaultGameWorld();
   const hq = world.buildings.find((building) => building.id === "hq")!;
 
   assert.equal(world.people.length, 12);
@@ -28,7 +28,7 @@ test("start world has twelve people, HQ bread and initial roles", () => {
 });
 
 test("HQ bread is a valid food source", () => {
-  const world = createWorld();
+  const world = createDefaultGameWorld();
   const hq = world.buildings.find((building) => building.id === "hq")!;
   const person = world.people[5]!;
   person.hunger = 20;
@@ -41,12 +41,14 @@ test("HQ bread is a valid food source", () => {
 });
 
 test("berries restore forty hunger and regrow after two to three minutes", () => {
-  const world = createWorld();
+  const world = createDefaultGameWorld();
   const bush = world.tiles.find((tile) => tile.bush && tile.bushAvailable)!;
   const person = world.people[5]!;
   person.position = { q: bush.q, r: bush.r };
   person.hunger = 20;
 
+  // Remove bread so the colocated bush is the selected food source.
+  world.buildings.find((building) => building.id === "hq")!.inventory!.bread = 0;
   advanceHungerTick(world);
 
   assert.equal(person.hunger, 60);
@@ -81,9 +83,15 @@ test("building over a bush removes it permanently and demolition restores grass"
   assert.equal(bushTile.bush, undefined);
 });
 
-test("the initial HQ carrier collects nearby production output into HQ inventory", () => {
+test("an HQ carrier collects nearby production output into HQ inventory", () => {
   const world = createWorld(1);
   const hq = world.buildings.find((building) => building.id === "hq")!;
+  const carrier = world.people[0]!;
+  carrier.assignment = { building: "hq", role: "carrier" };
+  carrier.active = true;
+  hq.carriers = 1;
+  hq.inventory ??= {};
+
   const sourceTile = world.tiles.find((tile) => {
     if (tile.terrain !== "grass") return false;
     const path = findPathBySteps(world.tiles, hq.position, tile);

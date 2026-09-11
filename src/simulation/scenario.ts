@@ -28,6 +28,8 @@ export const CONFIG = {
   mapRows: 25,
 } as const;
 
+const NEUTRAL_WORLD_POPULATION = 8;
+
 const at = (col: number, row: number): Hex => ({
   q: col - Math.floor(row / 2),
   r: row,
@@ -40,9 +42,12 @@ const compactFootprint = (center: Hex): Hex[] => [
   { q: center.q + 1, r: center.r + 1 },
 ];
 
-export function createWorld(population?: number): World {
-  const usesDefaultStart = population === undefined;
-  const populationCount = population ?? CONFIG.population;
+type ScenarioOptions = {
+  population: number;
+  suppliedStart: boolean;
+};
+
+function createScenario({ population, suppliedStart }: ScenarioOptions): World {
   const hqPosition = at(6, 20);
   const buildings: Building[] = [
     {
@@ -52,7 +57,7 @@ export function createWorld(population?: number): World {
       position: hqPosition,
       footprint: compactFootprint(hqPosition),
       workers: 0,
-      carriers: 1,
+      carriers: suppliedStart ? 1 : 0,
       merchants: 0,
       input: 0,
       output: 0,
@@ -63,7 +68,7 @@ export function createWorld(population?: number): World {
         wheat: 0,
         flour: 0,
         water: 0,
-        bread: usesDefaultStart ? 10 : 0,
+        bread: suppliedStart ? 10 : 0,
       },
       baseTerrain: "grass",
     },
@@ -114,7 +119,7 @@ export function createWorld(population?: number): World {
             : inList(forestTiles)
               ? "forest"
               : "grass";
-      const bush = terrain === "grass" && inList(bushTiles);
+      const bush = suppliedStart && terrain === "grass" && inList(bushTiles);
       tiles.push({
         ...position,
         terrain,
@@ -122,7 +127,7 @@ export function createWorld(population?: number): World {
       });
     }
 
-  const people: Person[] = Array.from({ length: populationCount }, (_, i) => ({
+  const people: Person[] = Array.from({ length: population }, (_, i) => ({
     id: i + 1,
     position: { ...buildings[0]!.position },
     hunger: 100,
@@ -133,7 +138,7 @@ export function createWorld(population?: number): World {
     path: [],
   }));
 
-  if (usesDefaultStart) {
+  if (suppliedStart) {
     if (people[0]) {
       people[0].assignment = { building: "hq", role: "carrier" };
       people[0].active = true;
@@ -144,7 +149,7 @@ export function createWorld(population?: number): World {
 
   return attachNeeds({
     round: 0,
-    nextId: populationCount + 1,
+    nextId: population + 1,
     nextForestId: 1,
     nextBuildingId: 1,
     nextFieldId: 1,
@@ -153,4 +158,14 @@ export function createWorld(population?: number): World {
     tiles,
     people,
   });
+}
+
+/** Neutral deterministic world used by simulation tests and low-level scenarios. */
+export function createWorld(population: number = NEUTRAL_WORLD_POPULATION): World {
+  return createScenario({ population, suppliedStart: false });
+}
+
+/** Actual player-facing PoC start scenario. */
+export function createDefaultGameWorld(): World {
+  return createScenario({ population: CONFIG.population, suppliedStart: true });
 }

@@ -6,7 +6,7 @@ import {
   installMobileMapTouchControls,
   preventMobilePageZoom,
 } from "./game/mobileTouch";
-import { createWorld } from "./simulation/scenario";
+import { createDefaultGameWorld } from "./simulation/scenario";
 import { installTileSelectionGuard, mountBuildMenu } from "./ui/buildMenu";
 import { mountControls } from "./ui/controls";
 import "./style.css";
@@ -54,7 +54,7 @@ const showBuildVersion = (): void => {
 
 preventPageZoom();
 
-const world = createWorld();
+const world = createDefaultGameWorld();
 const scene = new MainScene(world);
 installBushIndicators(scene, world);
 installHungerIndicators(scene, world);

@@ -41,22 +41,23 @@ Bushes deliberately remain a lightweight feature on top of grass rather than bec
 
 Each person stores hunger from 0 to 100, a fractional hunger accumulator and optional `HungerState`. `HungerState` can reserve either a bread source building or one bush position while preserving the interrupted work state.
 
-## Standard scenario
+## Scenario creation
 
 `src/simulation/scenario.ts` owns the fixed **41 × 25** map and central balance values.
 
-The real default game start uses 12 people:
+Two creation entry points are intentionally separated:
+
+- `createWorld(population = 8)` creates the neutral deterministic world used by existing low-level tests and isolated simulation scenarios. It keeps the historical empty start: no bushes, no starting food and no assigned roles.
+- `createDefaultGameWorld()` creates the real player-facing PoC start and is the function used by `src/main.ts`.
+
+The real game start uses 12 people:
 
 - one HQ carrier,
 - two builders,
 - two woodcutters,
 - seven free people.
 
-The HQ starts with an inventory containing 10 bread and a carrier capacity of one assigned carrier slot.
-
-Calls such as `createWorld(1)` used by deterministic tests remain neutral: explicit population arguments do not receive the default start-role assignments or bread stock.
-
-Passive forests and bushes are seeded at fixed map positions so replay remains deterministic.
+The HQ starts with 10 bread. Passive forests and bushes are seeded at fixed map positions so replay remains deterministic.
 
 ## Fixed simulation time
 
@@ -71,7 +72,7 @@ normal decision cadence  60 ticks / 1 s
 road traffic window      1920 ticks / 32 s
 farm sow/harvest         600 ticks / 10 s
 field growth stage       1800 ticks / 30 s
-bush regrowth             7200–10800 ticks / 120–180 s
+bush regrowth            7200–10800 ticks / 120–180 s
 ```
 
 ## Hunger and food selection
@@ -231,7 +232,7 @@ Coverage includes movement, placement, construction, production, farms, forests,
 
 The start/bush suite verifies:
 
-- 12-person standard start and initial roles,
+- 12-person player start and initial roles,
 - 10 bread in HQ,
 - HQ bread consumption,
 - +40 berry nutrition,
