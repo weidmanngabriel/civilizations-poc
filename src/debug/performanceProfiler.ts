@@ -36,6 +36,7 @@ export type PerformanceSnapshot = {
 };
 
 const HISTORY_MS = 30_000;
+const TRIM_INTERVAL_MS = 1000;
 const now = (): number => globalThis.performance?.now?.() ?? Date.now();
 
 const percentile = (values: number[], fraction: number): number => {
@@ -72,8 +73,11 @@ class PerformanceProfiler {
   private simulationRunning = false;
   private simulationSpeed = 1;
   private simulationBacklogMs = 0;
+  private lastTrimAt = 0;
 
-  private trim(current: number): void {
+  private trim(current: number, force = false): void {
+    if (!force && current - this.lastTrimAt < TRIM_INTERVAL_MS) return;
+    this.lastTrimAt = current;
     const cutoff = current - HISTORY_MS;
     this.frames = this.frames.filter((sample) => sample.at >= cutoff);
     this.ticks = this.ticks.filter((sample) => sample.at >= cutoff);
@@ -108,7 +112,7 @@ class PerformanceProfiler {
   }
 
   snapshot(current = now()): PerformanceSnapshot {
-    this.trim(current);
+    this.trim(current, true);
     const recentFrames = this.frames.filter((sample) => sample.at >= current - 10_000);
     const recentTicks = this.ticks.filter((sample) => sample.at >= current - 10_000);
     const recentPaths = this.paths.filter((sample) => sample.at >= current - 10_000);
