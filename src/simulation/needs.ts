@@ -6,6 +6,7 @@ const ROAD_SPEED_MULTIPLIER = 1.3;
 const WANTS_TO_EAT_THRESHOLD = 40;
 const CRITICAL_HUNGER_THRESHOLD = 20;
 const HUNGER_MAX = 100;
+const ACCUMULATOR_EPSILON = 1e-9;
 
 type FoodCandidate = {
   warehouse: Building;
@@ -44,8 +45,8 @@ const secondsPerHungerPoint = (person: Person): number => {
 const decayHunger = (person: Person): void => {
   hungerValue(person);
   person.hungerAccumulator! += 1 / (secondsPerHungerPoint(person) * SIMULATION_HZ);
-  while (person.hungerAccumulator! >= 1 && person.hunger! > 0) {
-    person.hungerAccumulator! -= 1;
+  while (person.hungerAccumulator! + ACCUMULATOR_EPSILON >= 1 && person.hunger! > 0) {
+    person.hungerAccumulator = Math.max(0, person.hungerAccumulator! - 1);
     person.hunger!--;
   }
 };
