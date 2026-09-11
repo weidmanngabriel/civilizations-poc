@@ -13,7 +13,8 @@ export const CONFIG = {
   trafficWindowTicks: 32 * 60,
   carryCapacity: 1,
   inputCapacity: 10,
-  outputCapacity: 3,
+  outputCapacity: 10,
+  forestOutputCapacity: 3,
   warehouseCapacityPerGood: 20,
   warehouseCollectionRadius: 10,
   forestYield: 10,
@@ -55,7 +56,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
       position: hqPosition,
       footprint: compactFootprint(hqPosition),
       workers: 0,
-      carriers: suppliedStart ? 1 : 0,
+      carriers: 2,
       merchants: 0,
       input: 0,
       output: 0,
@@ -144,12 +145,8 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
   }));
 
   if (suppliedStart) {
-    if (people[0]) {
-      people[0].assignment = { building: "hq", role: "carrier" };
-      people[0].active = true;
-    }
-    for (const person of people.slice(1, Math.min(3, people.length))) person.builder = true;
-    for (const person of people.slice(3, Math.min(5, people.length))) person.woodcutter = true;
+    for (const person of people.slice(0, Math.min(2, people.length))) person.builder = true;
+    for (const person of people.slice(2, Math.min(4, people.length))) person.woodcutter = true;
   }
 
   return attachNeeds({

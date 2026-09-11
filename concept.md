@@ -11,10 +11,11 @@ Die Standardpartie startet mit **12 Personen** und einem Hauptquartier.
 Das Hauptquartier ist gleichzeitig das erste Lager:
 
 - 10 Brot liegen bereits im HQ,
-- 1 Träger ist dem HQ zugewiesen,
+- zu Beginn ist **kein Träger** dem HQ zugewiesen,
+- das HQ kann maximal **2 Träger** haben,
 - 2 Personen sind Bauarbeiter,
 - 2 Personen sind Holzfäller,
-- 7 Personen sind zunächst frei.
+- 8 Personen sind zunächst frei.
 
 Explizit erzeugte Testwelten mit eigener Bevölkerungszahl bleiben neutral und erhalten diese Startzuweisungen nicht automatisch.
 
@@ -54,6 +55,8 @@ Essenspriorität:
 - über 40: normales Verhalten,
 - 40 bis über 20: aktuelle Tätigkeit beenden, danach essen,
 - 20 oder weniger: aktuelle Tätigkeit sofort pausieren und essen gehen.
+
+Sobald bei leichtem Hunger eine Tätigkeit abgeschlossen ist, wird **keine neue Tätigkeit oder Beschaffungsfahrt mehr begonnen**, bevor die Person gegessen hat. Damit ist die Grenze zwischen zwei Arbeitszyklen der verbindliche Essenszeitpunkt.
 
 Bei einer kritischen Unterbrechung bleibt der Fortschritt erhalten. Nach dem Essen kehrt die Person zu ihrer Aufgabe zurück, sofern das Ziel noch gültig ist.
 
@@ -140,7 +143,7 @@ Aktuell:
 - Bäckerei: 2 Mehl + 1 Wasser → 2 Brot,
 - Brunnen: unerschöpfliches Wasser ohne Arbeiter.
 
-Produktionsinputs und Lagerbestände sind ganzzahlig. Nur lokale Produktionsoutputs dürfen durch Erfahrung Bruchteile enthalten. Jede Transportfahrt bewegt weiterhin exakt 1 Einheit.
+Normale Produktionsstätten können **10 Einheiten lokalen Output** halten. Der Wald behält seine separate Grenze von **3 lokal liegenden Holz**. Produktionsinputs und Lagerbestände sind ganzzahlig. Nur lokale Produktionsoutputs dürfen durch Erfahrung Bruchteile enthalten. Jede Transportfahrt bewegt weiterhin exakt 1 Einheit.
 
 ## Lager und HQ-Lager
 
@@ -148,7 +151,7 @@ Normale Lager und das HQ halten Waren physisch im Inventar. Die Kapazität betr�
 
 Lager-Träger sammeln Nicht-Lager-Quellen innerhalb von 10 erreichbaren Kachelschritten. Sie verschieben keine Ware automatisch zwischen Lagern.
 
-Der initiale HQ-Träger verwendet dieselbe Reichweiten- und Transportlogik. Das HQ ist damit von Beginn an ein funktionsfähiger Versorgungs- und Sammelpunkt.
+Das HQ unterstützt maximal **2 Träger**, startet aber ohne zugewiesenen Träger. Zugewiesene HQ-Träger verwenden dieselbe Reichweiten- und Transportlogik wie Lager-Träger. Das HQ ist damit von Beginn an ein Versorgungs- und Lagerpunkt, während die automatische Sammlung erst nach einer Trägerzuweisung beginnt.
 
 Der HQ-Dialog kombiniert die globale Personalsteuerung mit der Trägerzuweisung und einer vollständigen Anzeige des HQ-Lagerinventars.
 
@@ -170,7 +173,7 @@ Aussaat und Ernte dauern je 10 Sekunden. Eine natürliche Wachstumsstufe dauert 
 
 Holzfäller werden global am HQ verwaltet. Jeder sucht selbständig einen erreichbaren freien Wald. Pro aktivem Wald arbeitet höchstens ein Holzfäller.
 
-Ein Wald besitzt zehn Arbeitszyklen. Jeder Zyklus erzeugt exakt 1 Holz. Am Wald liegen höchstens drei produzierte Holz gleichzeitig. Nach dem zehnten abgeschlossenen Zyklus verschwindet der Wald sofort und die Kachel wird Wiese; bereits produziertes Holz bleibt liegen.
+Ein Wald besitzt zehn Arbeitszyklen. Jeder Zyklus erzeugt exakt 1 Holz. Am Wald liegen höchstens **drei** produzierte Holz gleichzeitig. Nach dem zehnten abgeschlossenen Zyklus verschwindet der Wald sofort und die Kachel wird Wiese; bereits produziertes Holz bleibt liegen.
 
 ## Bedienung und Mobile
 

@@ -59,16 +59,16 @@ test("a forest pauses at three local wood until one slot is free", () => {
   const { world, forest, worker } = activeWoodcutter();
   for (let i = 0; i < CONFIG.duration * 4; i++) tick(world);
 
-  assert.equal(forest.output, CONFIG.outputCapacity);
-  assert.equal(forest.forestRemaining, CONFIG.forestYield - CONFIG.outputCapacity);
+  assert.equal(forest.output, CONFIG.forestOutputCapacity);
+  assert.equal(forest.forestRemaining, CONFIG.forestYield - CONFIG.forestOutputCapacity);
   assert.equal(worker.progress, 0);
   assert.equal(forest.retired, undefined);
 
   forest.output--;
   for (let i = 0; i < CONFIG.duration; i++) tick(world);
 
-  assert.equal(forest.output, CONFIG.outputCapacity);
-  assert.equal(forest.forestRemaining, CONFIG.forestYield - CONFIG.outputCapacity - 1);
+  assert.equal(forest.output, CONFIG.forestOutputCapacity);
+  assert.equal(forest.forestRemaining, CONFIG.forestYield - CONFIG.forestOutputCapacity - 1);
 });
 
 test("a forest allows ten harvest cycles, disappears immediately, and its woodcutter relocates", () => {
