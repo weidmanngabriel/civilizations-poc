@@ -29,11 +29,13 @@ Dependencies flow from presentation toward the simulation. `src/simulation/` mus
 
 Buildable buildings may carry a `footprint` and `baseTerrains` for demolition restoration. Their logical `position` remains the anchor used by jobs and routing. Buildable buildings can additionally carry a `construction` state while unfinished.
 
-People can carry persistent `woodcutter` and `builder` pool flags. Normal workplace roles continue to use `assignment`. Farm workers use a normal worker assignment to the farm plus a transient `farmTask` for sowing, fertilizing or harvesting a specific field position. Each person also stores persistent experience per profession in `experience`; switching jobs does not erase previously earned experience.
+People can carry persistent `woodcutter` and `builder` pool flags. Normal workplace roles continue to use `assignment`. Farm workers use a normal worker assignment to the farm plus a transient `farmTask` for sowing, fertilizing or harvesting a specific field position. Each person also stores persistent experience per profession in `experience`; switching jobs does not erase previously earned experience. Hunger state is stored on the person as `hunger`, fractional `hungerAccumulator` and transient `hungerState` while food is being sought.
 
-`scenario.ts` owns the fixed **41 × 25** map and central balance constants, including farm radius, field limit, action duration and growth duration.
+`scenario.ts` owns the fixed **41 × 25** map and central balance constants, including farm radius, field limit, action duration and growth duration. It creates the initial world and wraps that world with the deterministic needs hook from `needs.ts`.
 
 `simulation.ts` owns the global deterministic tick, assignments, reservations, production, construction, profession pools, forest lifecycle, low-level building creation/removal, roads, merchant routes and status derivation. Farm-specific behavior is delegated to `farm.ts` rather than expanding the generic recipe loop with special cases.
+
+`needs.ts` owns hunger decay, food-source selection, bread reservation between hungry people, interruption at critical hunger and restoration of the paused task. `attachNeeds()` wraps the world in a `Proxy` that observes the simulation round increment at the beginning of each deterministic tick and advances hunger exactly once before movement and work for that tick. This keeps the existing `simulation.ts` tick entry point unchanged while making needs part of simulation time rather than rendering time.
 
 `experience.ts` owns profession-XP progression and the resulting production, construction and logistics modifiers. It also owns the woodcutter-specific work-speed multiplier, keeping profession balance formulas out of the simulation loop.
 
@@ -57,6 +59,28 @@ Important balance constants at 1×:
 - one natural field-growth stage: 1800 ticks / 30 seconds.
 
 Event-driven transitions bypass the 1-Hz planning cadence. Arrivals, deliveries, production completion, farm-action completion, field-stage completion and construction completion can cause an immediate follow-up decision.
+
+## Hunger and needs
+
+Hunger runs on the same deterministic 60 Hz simulation clock. Each person starts at 100 hunger points. A fractional accumulator converts activity-dependent rates into whole hunger-point losses:
+
+```text
+idle / waiting        1 point / 4 s
+walking               1 point / 2 s
+active work           1 point / 1 s
+carrying picked cargo 1 point / 1 s
+```
+
+Active farm actions count as work only after the person has reached the field; walking to the field remains walking. A picked transport counts as active load even while the person is moving.
+
+Two thresholds drive autonomous eating:
+
+- `hunger <= 40`: eat at the next task boundary; current work is allowed to finish,
+- `hunger <= 20`: pause immediately and seek food.
+
+Food sources are completed warehouses with at least one whole bread. Candidate warehouses are routed with the same weighted pathfinder used for normal movement and sorted by travel cost. A hungry person reserves one bread logically through `HungerState.foodSource`; other hungry people account for these reservations when choosing a warehouse. Normal warehouse logistics does not yet know about hunger reservations, so if another logistics action removes the bread first the hungry person re-plans on the next needs tick.
+
+Critical interruption does not destroy the existing job state. `progress`, `farmTask` and `trip` remain intact while `active` is temporarily disabled and the path is redirected to food. Picked cargo stays on the person. After consuming one bread, hunger resets to 100 and the current task target is reconstructed in this order: farm task, transport source/target, workplace assignment, HQ. The person then routes back and continues with preserved progress. If no bread is reachable at critical hunger, the person remains paused and retries every tick.
 
 ## Profession experience
 
@@ -251,6 +275,8 @@ Fields are rendered from the tile plus their associated active field entity. The
 
 Farm is available in the same modal placement mode as other buildings. Touch behavior remains unchanged: one-finger drag pans, two-finger gesture zooms/pans, a short tap moves the placement ghost and only the DOM `Bauen` button confirms.
 
+`game/hungerIndicators.ts` is presentation-only. It reads deterministic hunger state and continuous world positions, then renders a small fork-and-knife badge above people with hunger <= 40. The badge background is yellow for normal hunger demand and red at the critical <= 20 threshold. It does not own or mutate product logic.
+
 ## DOM UI
 
 `ui/controls.ts` owns overlays and the real-time accumulator.
@@ -277,6 +303,8 @@ Candidate sow selection and new farmer decisions run on decision events rather t
 
 Experience updates are constant-time arithmetic on the currently active profession and add no spatial scans.
 
+Hunger decay itself is O(number of people) per simulation tick. Food-source path searches happen only when a person wants to eat, loses its selected food source or is critically hungry without food; they are not performed for every person on every render frame.
+
 ## Testing
 
 `npm test` runs deterministic Node tests through `tsx`; `npm run build` performs TypeScript checking plus the Vite production build.
@@ -295,6 +323,8 @@ Experience coverage verifies the 10/30/60/90-minute progression targets, 2× pro
 Forest coverage additionally verifies fixed one-unit yield per felling cycle, the three-unit local output gate and resume-after-collection behavior, immediate retirement after the tenth completed cycle, leftover-wood collection and the 1.5× maximum woodcutting-speed modifier at 100 experience.
 
 Inventory coverage additionally verifies that fractional production outputs enter both production inputs and warehouses only as whole units, so input and warehouse quantities remain integer-valued.
+
+Hunger coverage verifies the three activity-dependent decay rates, deferred eating at the 40-point threshold, immediate interruption at 20, preserved work progress and the blocked critical state when no bread is reachable.
 
 Existing suites continue to cover placement, construction, movement, decision cadence, forest relocation, merchant routes, worker input, reservations and deterministic replay.
 
