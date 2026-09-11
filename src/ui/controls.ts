@@ -38,6 +38,7 @@ import {
 } from "../simulation/buildingPlacement";
 import { CONFIG } from "../simulation/scenario";
 import { same } from "../simulation/hex";
+import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 import { BUILDING_SVG, GOOD_ICONS, buildingIcon } from "../icons";
 
 const SIMULATION_STEP_MS = 1000 / CONFIG.simulationHz;
@@ -418,6 +419,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const setSimulationSpeed = (speed: SimulationSpeed) => {
     simulationSpeed = speed;
+    performanceProfiler.setSimulationState(isRunning(), simulationSpeed, simulationBudget);
     for (const button of speedButtons)
       button.setAttribute("aria-pressed", String(Number(button.dataset.simSpeed) === speed));
   };
@@ -427,6 +429,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     autoplayFrame = undefined;
     lastAutoplayFrame = 0;
     simulationBudget = 0;
+    performanceProfiler.setSimulationState(false, simulationSpeed, 0);
     autoplayButton.textContent = "Fortsetzen";
     autoplayButton.setAttribute("aria-pressed", "false");
   };
@@ -446,16 +449,20 @@ export function mountControls(w: World, renderMap: () => void): void {
         simulationBudget + 1e-9 >= SIMULATION_STEP_MS &&
         steps < CONFIG.simulationHz
       ) {
+        const tickStarted = performanceNow();
         tick(w);
+        performanceProfiler.recordTick(performanceNow() - tickStarted);
         simulationBudget -= SIMULATION_STEP_MS;
         changed = true;
         steps++;
       }
+      performanceProfiler.setSimulationState(true, simulationSpeed, simulationBudget);
       if (changed) refreshLiveState();
       autoplayFrame = window.requestAnimationFrame(frame);
     };
     autoplayButton.textContent = "Pausieren";
     autoplayButton.setAttribute("aria-pressed", "true");
+    performanceProfiler.setSimulationState(true, simulationSpeed, 0);
     autoplayFrame = window.requestAnimationFrame(frame);
   };
 
