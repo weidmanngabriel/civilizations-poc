@@ -197,12 +197,12 @@ test("production takes one configured cycle and gains a small initial experience
   assert.equal(sawmill.input, 0);
 });
 
-test("one woodcutter occupies one forest and stops after experience overflow reaches capacity", () => {
+test("one woodcutter occupies one forest and stops when three output slots are full", () => {
   const w = createWorld();
   const { forest } = woodcutterAtForest(w);
   assert.equal(assigned(w, forest.id, "worker").length, 1);
   rounds(w, CONFIG.duration * 3);
-  assert.ok(forest.output > 3 && forest.output < 3.1);
+  assert.equal(forest.output, CONFIG.outputCapacity);
   const stoppedAt = forest.output;
   rounds(w, CONFIG.duration * 2);
   assert.equal(forest.output, stoppedAt);
