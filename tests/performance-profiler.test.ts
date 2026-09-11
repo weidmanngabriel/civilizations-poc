@@ -28,7 +28,7 @@ test("the first animation frame only establishes the timestamp baseline", () => 
   assert.equal(snapshot.frame.count, 0);
 });
 
-test("feature samples expose cost, object churn and unaccounted simulation time", () => {
+test("feature samples expose cost, object churn, per-tick cost and unaccounted simulation time", () => {
   const profiler = new PerformanceProfiler();
 
   profiler.recordTick(10, 1_000);
@@ -41,6 +41,8 @@ test("feature samples expose cost, object churn and unaccounted simulation time"
 
   assert.equal(movement.total, 3);
   assert.equal(movement.msPerSecond, 0.3);
+  assert.equal(movement.msPerTick, 3);
+  assert.equal(bushOverlay.msPerTick, 0);
   assert.equal(bushOverlay.objectsPerSecond, 4.2);
   assert.equal(snapshot.simulationAccountedMsPerSecond, 0.3);
   assert.equal(snapshot.simulationOtherMsPerSecond, 0.7);
