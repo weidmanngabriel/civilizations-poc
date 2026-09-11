@@ -10,7 +10,7 @@ const addBreadWarehouse = (world: World, bread = 1): Building => {
     id: "food-warehouse",
     kind: "warehouse",
     name: "Essenslager",
-    position: { ...hq.position },
+    position: { q: hq.position.q + 2, r: hq.position.r },
     workers: 0,
     carriers: 0,
     merchants: 0,
@@ -54,7 +54,10 @@ test("a hungry person finishes current work before eating at 40", () => {
   advanceHungerTick(world);
   assert.ok(person.hungerState);
   assert.equal(person.active, false);
+  assert.ok(person.path.length > 0);
 
+  person.position = { ...warehouse.position };
+  person.path = [];
   advanceHungerTick(world);
   assert.equal(person.hunger, 100);
   assert.equal(person.hungerState, undefined);
@@ -64,7 +67,7 @@ test("a hungry person finishes current work before eating at 40", () => {
 test("critical hunger pauses immediately and keeps work progress", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
-  addBreadWarehouse(world);
+  const warehouse = addBreadWarehouse(world);
   person.hunger = 20;
   person.progress = 72;
   person.active = true;
@@ -74,6 +77,8 @@ test("critical hunger pauses immediately and keeps work progress", () => {
   assert.equal(person.active, false);
   assert.equal(person.progress, 72);
 
+  person.position = { ...warehouse.position };
+  person.path = [];
   advanceHungerTick(world);
   assert.equal(person.hunger, 100);
   assert.equal(person.progress, 72);
@@ -92,5 +97,6 @@ test("critical hunger blocks work while no bread is reachable", () => {
   assert.equal(person.hungerState?.foodSource, undefined);
   assert.equal(person.active, false);
   assert.equal(person.progress, 45);
-  assert.deepEqual(person.path, []);
+  assert.equal(person.path.length, 1);
+  assert.deepEqual(person.path[0], person.position);
 });
