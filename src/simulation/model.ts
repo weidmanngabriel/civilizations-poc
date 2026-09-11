@@ -79,6 +79,10 @@ export interface FarmTask {
   progress: number;
   outputMultiplier?: number;
 }
+export interface HungerState {
+  foodSource?: BuildingId;
+  resumeActive: boolean;
+}
 export interface Person {
   id: number;
   position: Hex;
@@ -89,6 +93,9 @@ export interface Person {
   builder?: boolean;
   experience?: Partial<Record<Profession, number>>;
   pendingFarmBonus?: number;
+  hunger?: number;
+  hungerAccumulator?: number;
+  hungerState?: HungerState;
   active: boolean;
   progress: number;
   movement: number;
