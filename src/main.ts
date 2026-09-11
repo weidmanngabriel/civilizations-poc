@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { MainScene } from "./game/MainScene";
+import { installHungerIndicators } from "./game/hungerIndicators";
 import {
   installMobileMapTouchControls,
   preventMobilePageZoom,
@@ -54,6 +55,7 @@ preventPageZoom();
 
 const world = createWorld();
 const scene = new MainScene(world);
+installHungerIndicators(scene, world);
 installTileSelectionGuard();
 mountControls(world, () => scene.renderWorld());
 mountBuildMenu(world);
