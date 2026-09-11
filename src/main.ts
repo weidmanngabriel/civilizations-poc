@@ -9,6 +9,7 @@ import {
 import { createDefaultGameWorld } from "./simulation/scenario";
 import { installTileSelectionGuard, mountBuildMenu } from "./ui/buildMenu";
 import { mountControls } from "./ui/controls";
+import { installHqStoragePanel } from "./ui/hqStoragePanel";
 import "./style.css";
 import "./map-interaction.css";
 import "./build-placement.css";
@@ -60,6 +61,7 @@ installBushIndicators(scene, world);
 installHungerIndicators(scene, world);
 installTileSelectionGuard();
 mountControls(world, () => scene.renderWorld());
+installHqStoragePanel(world);
 mountBuildMenu(world);
 showBuildVersion();
 

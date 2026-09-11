@@ -22,7 +22,7 @@ Explizit erzeugte Testwelten mit eigener Bevölkerungszahl bleiben neutral und e
 
 Die Welt ist ein festes **41 × 25 Hex-Grid**. Zu Beginn gibt es keine Wege. Wasser und Berge blockieren Bewegung; Wiese, Wald, Acker, Wege und Gebäudekacheln sind begehbar.
 
-Passive Waldgruppen sind über die Karte verteilt. Zusätzlich existieren einzelne **Beerenbüsche** auf Wiesen.
+Passive Waldgruppen sind über die Karte verteilt. Zusätzlich existieren im aktuellen Startzustand **42 Beerenbüsche** auf Wiesen.
 
 ### Beerenbüsche
 
@@ -149,6 +149,8 @@ Normale Lager und das HQ halten Waren physisch im Inventar. Die Kapazität betr�
 Lager-Träger sammeln Nicht-Lager-Quellen innerhalb von 10 erreichbaren Kachelschritten. Sie verschieben keine Ware automatisch zwischen Lagern.
 
 Der initiale HQ-Träger verwendet dieselbe Reichweiten- und Transportlogik. Das HQ ist damit von Beginn an ein funktionsfähiger Versorgungs- und Sammelpunkt.
+
+Der HQ-Dialog kombiniert die globale Personalsteuerung mit der Trägerzuweisung und einer vollständigen Anzeige des HQ-Lagerinventars.
 
 Händler bleiben der separate Mechanismus für Lager-zu-Lager-Transporte.
 

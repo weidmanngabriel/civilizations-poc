@@ -7,12 +7,13 @@ import { createDefaultGameWorld, createWorld, CONFIG } from "../src/simulation/s
 import { tick } from "../src/simulation/simulation";
 import type { Building } from "../src/simulation/model";
 
-test("start world has twelve people, HQ bread and initial roles", () => {
+test("start world has twelve people, HQ bread, initial roles and forty-two bushes", () => {
   const world = createDefaultGameWorld();
   const hq = world.buildings.find((building) => building.id === "hq")!;
 
   assert.equal(world.people.length, 12);
   assert.equal(hq.inventory?.bread, 10);
+  assert.equal(world.tiles.filter((tile) => tile.bush).length, 42);
   assert.equal(
     world.people.filter(
       (person) => person.assignment?.building === "hq" && person.assignment.role === "carrier",
@@ -47,7 +48,6 @@ test("berries restore forty hunger and regrow after two to three minutes", () =>
   person.position = { q: bush.q, r: bush.r };
   person.hunger = 20;
 
-  // Remove bread so the colocated bush is the selected food source.
   world.buildings.find((building) => building.id === "hq")!.inventory!.bread = 0;
   advanceHungerTick(world);
 
