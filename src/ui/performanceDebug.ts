@@ -3,12 +3,14 @@ import { performanceProfiler, type PerformanceHistoryPoint } from "../debug/perf
 
 const format = (value: number, digits = 1): string =>
   Number.isFinite(value) ? value.toFixed(digits).replace(".", ",") : "0";
+const svgNumber = (value: number): string =>
+  Number.isFinite(value) ? value.toFixed(2) : "0";
 
 const sparkline = (
   points: PerformanceHistoryPoint[],
   pick: (point: PerformanceHistoryPoint) => number,
 ): string => {
-  const values = points.map(pick);
+  const values = points.map(pick).map((value) => Number.isFinite(value) ? value : 0);
   const max = Math.max(1, ...values);
   const width = 180;
   const height = 46;
@@ -16,7 +18,7 @@ const sparkline = (
     .map((value, index) => {
       const x = values.length <= 1 ? 0 : (index / (values.length - 1)) * width;
       const y = height - (value / max) * height;
-      return `${format(x, 2)},${format(y, 2)}`;
+      return `${svgNumber(x)},${svgNumber(y)}`;
     })
     .join(" ");
   return `<svg class="perf-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${polyline}" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" /></svg>`;
