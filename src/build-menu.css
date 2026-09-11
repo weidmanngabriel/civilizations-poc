@@ -1,0 +1,169 @@
+.build-menu-shell {
+  position: fixed;
+  left: max(8px, env(safe-area-inset-left));
+  top: max(88px, calc(env(safe-area-inset-top) + 64px));
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.left-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.left-menu-button {
+  width: 56px;
+  min-height: 60px;
+  padding: 7px 5px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: 0 8px 22px rgb(0 0 0 / 28%);
+}
+
+.left-menu-button.active {
+  transform: translateX(2px);
+}
+
+.left-menu-button-icon,
+.build-menu-building-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.left-menu-button-icon svg {
+  width: 25px;
+  height: 25px;
+}
+
+.left-menu-button-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.build-menu-panel {
+  width: min(310px, calc(100vw - 84px - env(safe-area-inset-left)));
+  max-height: min(620px, calc(100vh - 176px));
+  overflow: auto;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgb(27 35 29 / 96%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 34%);
+  backdrop-filter: blur(10px);
+}
+
+.build-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.build-menu-header > div {
+  display: grid;
+  gap: 1px;
+}
+
+.build-menu-header small {
+  opacity: 0.65;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.build-menu-header strong {
+  font-size: 15px;
+}
+
+.build-menu-header button {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 9px;
+  font-size: 20px;
+}
+
+.build-menu-list {
+  display: grid;
+  gap: 6px;
+}
+
+.build-menu-item {
+  width: 100%;
+  min-height: 52px;
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  border-radius: 10px;
+}
+
+.build-menu-building-icon {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+}
+
+.build-menu-building-icon svg {
+  width: 27px;
+  height: 27px;
+}
+
+.build-menu-building-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.build-menu-building-copy > strong {
+  font-size: 13px;
+}
+
+.build-menu-cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 9px;
+  font-size: 11px;
+  opacity: 0.78;
+}
+
+.build-menu-cost-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+main.merchant-target-mode .build-menu-shell {
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+@media (max-width: 520px) {
+  .build-menu-shell {
+    top: max(76px, calc(env(safe-area-inset-top) + 56px));
+    left: max(6px, env(safe-area-inset-left));
+    gap: 6px;
+  }
+
+  .left-menu-button {
+    width: 50px;
+    min-height: 54px;
+  }
+
+  .build-menu-panel {
+    width: min(270px, calc(100vw - 66px - env(safe-area-inset-left)));
+    max-height: calc(100vh - 154px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+}
