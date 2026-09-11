@@ -13,7 +13,12 @@ const pixel = (h: Hex) => ({
 });
 
 export function installHungerIndicators(scene: Phaser.Scene, world: World): void {
-  scene.events.once(Phaser.Scenes.Events.CREATE, () => {
+  const sceneWithCreate = scene as Phaser.Scene & { create?: () => void };
+  const originalCreate = sceneWithCreate.create?.bind(scene);
+
+  sceneWithCreate.create = () => {
+    originalCreate?.();
+
     const container = scene.add.container(0, 0).setDepth(2000);
 
     const render = () => {
@@ -40,5 +45,5 @@ export function installHungerIndicators(scene: Phaser.Scene, world: World): void
       scene.events.off(Phaser.Scenes.Events.POST_UPDATE, render);
       container.destroy(true);
     });
-  });
+  };
 }
