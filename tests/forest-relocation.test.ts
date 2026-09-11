@@ -55,15 +55,13 @@ test("each appointed woodcutter claims a different forest", () => {
   }
 });
 
-test("a forest allows ten harvest cycles, disappears immediately, and its woodcutter relocates", () => {
+test("a forest yields exactly ten wood without collection, disappears, and its woodcutter relocates", () => {
   const { world, forest, worker } = activeWoodcutter();
-  for (let produced = 0; produced < CONFIG.forestYield; produced++) {
-    forest.output = 0;
-    for (let round = 0; round < CONFIG.duration; round++) tick(world);
-  }
+  const maxTicks = CONFIG.duration * CONFIG.forestYield + CONFIG.duration;
+  for (let i = 0; i < maxTicks && !forest.retired; i++) tick(world);
 
   assert.equal(forest.forestRemaining, 0);
-  assert.ok(forest.output > 1 && forest.output < 1.1);
+  assert.equal(forest.output, CONFIG.forestYield);
   assert.equal(forest.retired, true);
   assert.equal(assigned(world, forest.id, "worker").length, 0);
   assert.notEqual(worker.assignment?.building, forest.id);
@@ -73,13 +71,27 @@ test("a forest allows ten harvest cycles, disappears immediately, and its woodcu
   assert.equal(oldTile.terrain, "grass");
 });
 
+test("woodcutter experience speeds up felling by up to 50 percent without increasing yield", () => {
+  const { world, forest, worker } = activeWoodcutter();
+  worker.experience = { woodcutter: 100 };
+
+  const expectedTicks = Math.ceil(CONFIG.duration / 1.5);
+  for (let i = 0; i < expectedTicks - 1; i++) tick(world);
+  assert.equal(forest.output, 0);
+  assert.equal(forest.forestRemaining, CONFIG.forestYield);
+
+  tick(world);
+  assert.equal(forest.output, 1);
+  assert.equal(forest.forestRemaining, CONFIG.forestYield - 1);
+});
+
 test("leftover wood remains collectible after the forest has disappeared", () => {
   const { world, forest } = activeWoodcutter();
   forest.forestRemaining = 1;
   forest.output = 0;
   for (let i = 0; i < CONFIG.duration; i++) tick(world);
   assert.equal(forest.retired, true);
-  assert.ok(forest.output >= 1);
+  assert.equal(forest.output, 1);
 
   const sawmill = buildAt(world, { q: 7, r: 4 }, "sawmill")!;
   changeAssignment(world, sawmill.id, "carrier", 1);
