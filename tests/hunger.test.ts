@@ -65,6 +65,22 @@ test("a hungry person finishes current work before eating at 40", () => {
   assert.equal(warehouse.inventory?.bread, 0);
 });
 
+test("a hungry person keeps a valid food route instead of recalculating it every tick", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  addBreadWarehouse(world);
+  person.hunger = 20;
+
+  advanceHungerTick(world);
+  assert.ok(person.hungerState);
+  assert.ok(person.path.length > 0);
+  const route = person.path;
+
+  advanceHungerTick(world);
+
+  assert.strictEqual(person.path, route);
+});
+
 test("light hunger prevents a new task after the current production cycle", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
