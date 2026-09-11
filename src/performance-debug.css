@@ -103,13 +103,16 @@
 }
 .perf-table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
   border: 1px solid #daddd0;
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.38);
 }
 .perf-table {
   width: 100%;
-  min-width: 520px;
+  min-width: 560px;
   border-collapse: collapse;
   font-size: 9px;
   font-variant-numeric: tabular-nums;
