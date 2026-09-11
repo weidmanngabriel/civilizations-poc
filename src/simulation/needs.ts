@@ -31,6 +31,9 @@ type BushCandidate = {
 };
 
 type FoodCandidate = BreadCandidate | BushCandidate;
+type SelectedFoodTarget =
+  | { kind: "bread"; warehouse: Building }
+  | { kind: "bush"; tile: Tile };
 
 type CollectionCandidate = {
   source: Building;
@@ -245,7 +248,7 @@ const atTaskBoundary = (person: Person): boolean =>
   !person.trip &&
   person.path.length === 0;
 
-const selectedFoodCandidate = (world: World, person: Person): FoodCandidate | undefined => {
+const selectedFoodTarget = (world: World, person: Person): SelectedFoodTarget | undefined => {
   const state = person.hungerState!;
   if (state.foodSource) {
     const warehouse = world.buildings.find((building) => building.id === state.foodSource);
@@ -253,16 +256,8 @@ const selectedFoodCandidate = (world: World, person: Person): FoodCandidate | un
       warehouse &&
       isStorage(warehouse) &&
       breadStock(warehouse) - reservedBread(world, warehouse.id, person.id) >= 1
-    ) {
-      const path = routeTo(world, person, warehouse.position);
-      if (path)
-        return {
-          kind: "bread",
-          warehouse,
-          path,
-          cost: pathTravelCost(world.tiles, path, ROAD_SPEED_MULTIPLIER),
-        };
-    }
+    )
+      return { kind: "bread", warehouse };
   }
   if (state.foodBush) {
     const tile = world.tiles.find((candidate) => same(candidate, state.foodBush!));
@@ -271,39 +266,70 @@ const selectedFoodCandidate = (world: World, person: Person): FoodCandidate | un
       tile.bush &&
       tile.bushAvailable &&
       !reservedBush(world, tile, person.id)
-    ) {
-      const path = routeTo(world, person, tile);
-      if (path)
-        return {
-          kind: "bush",
-          tile,
-          path,
-          cost: pathTravelCost(world.tiles, path, ROAD_SPEED_MULTIPLIER),
-        };
-    }
+    )
+      return { kind: "bush", tile };
   }
   return undefined;
 };
 
+const selectedTargetPosition = (target: SelectedFoodTarget): Hex =>
+  target.kind === "bread" ? target.warehouse.position : target.tile;
+
+const consumeSelectedTarget = (
+  world: World,
+  person: Person,
+  target: SelectedFoodTarget,
+): void => {
+  if (target.kind === "bread") consumeBread(world, person, target.warehouse);
+  else consumeBush(world, person, target.tile);
+};
+
 const ensureFoodRoute = (world: World, person: Person): void => {
   const state = person.hungerState!;
-  let candidate = selectedFoodCandidate(world, person);
-  if (!candidate) {
-    candidate = foodCandidates(world, person)[0];
+  let target = selectedFoodTarget(world, person);
+
+  if (target) {
+    const targetPosition = selectedTargetPosition(target);
+    if (same(person.position, targetPosition)) {
+      person.path = [];
+      consumeSelectedTarget(world, person, target);
+      return;
+    }
+
+    const currentDestination = person.path.at(-1);
+    if (currentDestination && same(currentDestination, targetPosition)) {
+      person.active = false;
+      return;
+    }
+
+    const path = routeTo(world, person, targetPosition);
+    if (path) {
+      person.path = path;
+      person.movement = 0;
+      person.active = false;
+      return;
+    }
+
+    state.foodSource = undefined;
+    state.foodBush = undefined;
+    target = undefined;
+  }
+
+  if (!target) {
+    const candidate = foodCandidates(world, person)[0];
     state.foodSource = candidate?.kind === "bread" ? candidate.warehouse.id : undefined;
     state.foodBush = candidate?.kind === "bush" ? { q: candidate.tile.q, r: candidate.tile.r } : undefined;
     person.movement = 0;
+    if (candidate) {
+      useCandidate(world, person, candidate);
+      if (person.hungerState) person.active = false;
+      return;
+    }
   }
 
-  if (!candidate) {
-    person.active = false;
-    person.movement = 0;
-    person.path = [{ ...person.position }];
-    return;
-  }
-
-  useCandidate(world, person, candidate);
-  if (person.hungerState) person.active = false;
+  person.active = false;
+  person.movement = 0;
+  person.path = [{ ...person.position }];
 };
 
 const cleanupAndRegrowBushes = (world: World): void => {
