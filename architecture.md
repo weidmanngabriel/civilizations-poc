@@ -52,12 +52,12 @@ Two creation entry points are intentionally separated:
 
 The real game start uses 12 people:
 
-- one HQ carrier,
+- zero assigned HQ carriers at start, while the HQ supports up to two,
 - two builders,
 - two woodcutters,
-- seven free people.
+- eight free people.
 
-The HQ starts with 10 bread. Passive forests and bushes are seeded at fixed map positions so replay remains deterministic.
+The HQ starts with 10 bread. Passive forests and 42 bushes are seeded at fixed map positions so replay remains deterministic.
 
 ## Fixed simulation time
 
@@ -93,6 +93,8 @@ Thresholds:
 - hunger <= 40: eat at the next task boundary,
 - hunger <= 20: interrupt immediately.
 
+Task planning in `simulation.ts` also respects the <=40 threshold. Once a current work cycle, transport or other atomic activity has finished, no new assignment, resupply trip, farm action, merchant trip, builder target or forest target may start until eating has been handled. This closes the gap where an immediate same-tick decision could previously skip the intended meal boundary.
+
 Food candidates are evaluated with the normal weighted pathfinder and sorted by travel cost. Bread and bushes therefore compete in one list.
 
 Bread can come from a finished warehouse or from the HQ inventory and restores hunger to 100. A bush restores 40 points, capped at 100.
@@ -120,7 +122,7 @@ Before each needs step, bush metadata is cleaned up if the underlying tile is no
 
 The HQ owns a normal inventory and acts as a bread source directly.
 
-The generic transport delivery code currently recognizes `kind === "warehouse"` as the inventory delivery endpoint. To keep that mature transport path unchanged, `needs.ts` creates an internal retired `hq-storage-proxy` only when the HQ carrier has something to collect. The proxy:
+The generic transport delivery code currently recognizes `kind === "warehouse"` as the inventory delivery endpoint. To keep that mature transport path unchanged, `needs.ts` creates an internal retired `hq-storage-proxy` only when an assigned HQ carrier has something to collect. The proxy:
 
 - sits at the HQ position,
 - is not rendered or selectable because it is retired,
@@ -129,7 +131,7 @@ The generic transport delivery code currently recognizes `kind === "warehouse"` 
 
 From product state there is still one storage location: the HQ. The adapter is an implementation detail until warehouse behavior is generalized to a shared storage capability.
 
-The HQ carrier planner follows the normal warehouse constraints:
+The HQ has capacity for up to two assigned carriers but starts with none. Assigned HQ carriers follow the normal warehouse constraints:
 
 - sources must be non-warehouse production/raw-material sources,
 - source must lie within 10 reachable tile steps of HQ,
@@ -184,7 +186,9 @@ bakery      2 flour + 1 water -> 2 bread
 well        infinite water source
 ```
 
-Warehouses and HQ use 20 units per good. Ordinary warehouse carriers and the initial HQ carrier collect only non-warehouse sources within 10 reachable steps. Merchants remain the mechanism for warehouse-to-warehouse routes.
+Normal production buildings and farms have a local output capacity of 10. Forests deliberately keep their separate local output cap of 3 wood. `simulation.ts` resolves the applicable capacity per building before starting production or resupply decisions.
+
+Warehouses and HQ use 20 units per good. Ordinary warehouse carriers and assigned HQ carriers collect only non-warehouse sources within 10 reachable steps. Merchants remain the mechanism for warehouse-to-warehouse routes.
 
 ## Profession experience
 
@@ -228,16 +232,18 @@ Reference mobile behavior:
 
 `npm test` runs deterministic Node tests through `tsx`. `npm run build` performs TypeScript checking plus the Vite production build.
 
-Coverage includes movement, placement, construction, production, farms, forests, merchants, inventory integer rules, profession experience, hunger and the new start/bush rules.
+Coverage includes movement, placement, construction, production, farms, forests, merchants, inventory integer rules, profession experience, hunger and start/bush rules.
 
-The start/bush suite verifies:
+The start/needs suites verify:
 
-- 12-person player start and initial roles,
+- 12-person player start with 0/2 HQ carriers, two builders, two woodcutters and eight free people,
 - 10 bread in HQ,
+- normal production output capacity 10 and forest output capacity 3,
 - HQ bread consumption,
+- light hunger stopping new task planning at the activity boundary,
 - +40 berry nutrition,
 - 2–3 minute bush regrowth,
 - permanent bush destruction by building placement,
-- HQ carrier collection into the HQ inventory.
+- manual HQ carrier collection into the HQ inventory.
 
 `.github/workflows/deploy.yml` runs tests and production build on pushes to `main`, then deploys GitHub Pages. Branch pushes do not deploy.
