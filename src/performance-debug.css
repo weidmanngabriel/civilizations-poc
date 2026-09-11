@@ -1,0 +1,78 @@
+#performance-debug {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #daddd0;
+}
+.perf-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.perf-metric {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid #daddd0;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.52);
+}
+.perf-metric small {
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.perf-metric strong {
+  display: block;
+  margin: 2px 0;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.perf-metric span,
+.perf-warning-row,
+.perf-world {
+  font-size: 9px;
+  color: #65715f;
+}
+.perf-warning-row,
+.perf-world {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+}
+.perf-warning-row strong,
+.perf-world strong {
+  color: #263c2d;
+  font-variant-numeric: tabular-nums;
+}
+.perf-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.perf-charts > div {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid #daddd0;
+  border-radius: 7px;
+  color: #527047;
+}
+.perf-chart {
+  display: block;
+  width: 100%;
+  height: 46px;
+  margin-top: 4px;
+}
+.debug-subheading {
+  margin: 4px 0 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #65715f;
+}
+@media (max-width: 620px) {
+  .perf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .perf-charts { grid-template-columns: 1fr; }
+  .perf-metric strong { font-size: 15px; }
+}
