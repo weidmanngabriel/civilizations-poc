@@ -110,7 +110,7 @@ Die aktuelle Zielkurve wird mit zunehmender Erfahrung langsamer:
 
 100 % ist damit bewusst erreichbar, aber deutlich aufwendiger als die ersten Erfahrungsstufen.
 
-Für Holzfäller, Sägewerker, Schreiner, Müller, Bäcker und Farmer steigt der erzeugte Output linear mit der Erfahrung:
+Für Sägewerker, Schreiner, Müller, Bäcker und Farmer steigt der erzeugte Output linear mit der Erfahrung:
 
 ```text
 Output-Multiplikator = 1 + Erfahrung / 100
@@ -118,7 +118,15 @@ Output-Multiplikator = 1 + Erfahrung / 100
 
 0 % bedeutet normale Leistung, 50 % bedeutet 1,5× Output und 100 % bedeutet 2× Output. Bauarbeiter verwenden dieselbe Kurve für ihren persönlichen Baufortschritt.
 
-Träger und Händler verändern dagegen **nicht** ihre Traglast. Sie transportieren weiterhin genau eine Einheit je Fahrt. Ihre Erfahrung beschleunigt nur die Bewegung während aktiver Logistik:
+Holzfäller sind eine bewusste Ausnahme: Erfahrung erhöht nicht die Holzmenge, sondern nur die Abbaugeschwindigkeit:
+
+```text
+Abbaugeschwindigkeits-Multiplikator = 1 + 0,5 × Erfahrung / 100
+```
+
+Damit arbeitet ein Holzfäller bei 100 % Erfahrung maximal 50 % schneller, erzeugt aber weiterhin exakt eine Einheit Holz je abgeschlossenem Abbauzyklus.
+
+Träger und Händler verändern ebenfalls **nicht** ihre Traglast. Sie transportieren weiterhin genau eine Einheit je Fahrt. Ihre Erfahrung beschleunigt nur die Bewegung während aktiver Logistik:
 
 ```text
 Geschwindigkeits-Multiplikator = 1 + 0,5 × Erfahrung / 100
@@ -130,7 +138,7 @@ Damit erreichen Träger und Händler bei 100 % Erfahrung maximal +50 % Bewegungs
 
 Nichts produziert ohne konkrete Person.
 
-- Wald: ca. 4 Sekunden → 1 Holz Grundoutput.
+- Wald: ca. 4 Sekunden Grundzeit → exakt 1 Holz; Holzfäller-Erfahrung verkürzt die Abbauzeit bis maximal auf zwei Drittel der Grundzeit.
 - Sägewerk: 2 Holz → 1 Brett Grundoutput in ca. 4 Sekunden.
 - Schreinerei: 2 Bretter → 1 Holzwerkzeug Grundoutput in ca. 4 Sekunden.
 - Farm: Farmer bewirtschaftet bis zu vier umliegende Acker und erzeugt nach der Ernte je Acker 1 Weizen Grundoutput.
@@ -139,11 +147,11 @@ Nichts produziert ohne konkrete Person.
 - Brunnen: unerschöpfliche Wasserquelle ohne zugewiesenen Arbeiter. Bäcker und Lager-Träger können dort Wasser holen.
 - Lager: Träger sammeln verfügbare Waren aus nahe gelegenen Produktions- und Rohstofforten ein.
 
-Berufserfahrung multipliziert den jeweiligen Grundoutput. Nur lokale **Produktions-Outputs** dürfen dadurch Bruchteile enthalten und werden in der UI mit einer Nachkommastelle dargestellt; intern bleibt eine höhere Genauigkeit erhalten. Produktionsinputs und Lagerbestände bleiben immer ganzzahlig.
+Berufserfahrung multipliziert den jeweiligen Grundoutput bei normalen Produktionsberufen. Holzfäller behalten dagegen einen festen Output von genau 1 Holz je Abbauzyklus und werden mit Erfahrung nur schneller. Nur lokale **Produktions-Outputs** dürfen durch Output-Boni Bruchteile enthalten und werden in der UI mit einer Nachkommastelle dargestellt; intern bleibt eine höhere Genauigkeit erhalten. Produktionsinputs und Lagerbestände bleiben immer ganzzahlig.
 
 Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt weiterhin genau **1,0 Einheit** pro Transportweg. Bei Produktionsgebäuden mit mehreren Inputs wird zuerst nur der Bedarf für den nächsten vollständigen Produktionslauf beschafft; erst wenn dafür keine fehlende Zutat mehr gezielt geholt werden kann, werden freie Inputplätze weiter aufgefüllt.
 
-Ein bereits gestarteter Produktionsvorgang darf beim Abschluss durch den Erfahrungsbonus über die nominelle Output-Kapazität hinausgehen. Solange der aktuelle Output danach mindestens die Kapazitätsgrenze erreicht, startet kein neuer Produktionsvorgang.
+Ein bereits gestarteter Produktionsvorgang darf beim Abschluss durch den Erfahrungsbonus über die nominelle Output-Kapazität hinausgehen. Solange der aktuelle Output danach mindestens die Kapazitätsgrenze erreicht, startet kein neuer Produktionsvorgang. Wälder sind hiervon ausgenommen: Sie bauen ihre zehn festen Zyklen vollständig ab, auch wenn das produzierte Holz noch nicht abgeholt wurde.
 
 ## Farm, Acker und Weizen
 
@@ -189,7 +197,7 @@ erntereifen Acker ernten
 
 ## Inventare, Lager und Reservierungen
 
-Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 **ganze** Einheiten, normale Outputs haben eine nominelle Kapazität von 3 Einheiten und dürfen durch Erfahrungsboni Dezimalwerte enthalten. Erfahrung kann einen bereits laufenden Produktionsvorgang beim Abschluss über diese Output-Grenze bringen. Farmen halten geernteten Weizen in ihrem lokalen Output, nachdem der Farmer ihn vom Feld zurückgebracht hat.
+Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 **ganze** Einheiten, normale Outputs haben eine nominelle Kapazität von 3 Einheiten und dürfen durch Erfahrungsboni Dezimalwerte enthalten. Erfahrung kann einen bereits laufenden Produktionsvorgang beim Abschluss über diese Output-Grenze bringen. Farmen halten geernteten Weizen in ihrem lokalen Output, nachdem der Farmer ihn vom Feld zurückgebracht hat. Wald-Output ist nicht auf diese nominellen 3 Einheiten begrenzt, weil ein beanspruchter Wald seine zehn festen Holzzyklen unabhängig von der Abholung vollständig beendet.
 
 Lager halten aktuell maximal 20 **ganze** Einheiten je Warentyp:
 
@@ -237,7 +245,7 @@ Holzfäller sind ein globaler Beruf und werden keinem Wald manuell zugewiesen.
 - Bei gleichwertigen Kandidaten entscheidet ein reproduzierbarer Seed-Zufall.
 - Passive Waldkacheln werden beim Anspruch zu aktiven Wald-Arbeitsstätten.
 
-Jeder aktive Wald besitzt 10 Arbeitszyklen Holzvorrat und maximal 3 nominelle lokale Output-Kapazität. Erfahrung erhöht den Output je abgeschlossenem Arbeitszyklus, nicht die Zahl der Zyklen. Nach dem zehnten abgeschlossenen Zyklus verschwindet der Wald sofort und seine Kachel wird Wiese. Bereits produziertes Restholz bleibt dort liegen.
+Jeder aktive Wald besitzt **genau 10 Arbeitszyklen Holzvorrat**. Jeder abgeschlossene Zyklus erzeugt exakt **1 Holz**, unabhängig von der Erfahrung. Die Erfahrung eines Holzfällers erhöht stattdessen die Abbaugeschwindigkeit linear bis maximal **+50 % bei 100 % Erfahrung**. Der Wald arbeitet seine zehn Zyklen vollständig ab, auch wenn das Holz noch nicht abgeholt wird; sein lokaler Holzbestand ist deshalb nicht auf die normale Output-Kapazität von 3 begrenzt. Nach dem zehnten abgeschlossenen Zyklus verschwindet der Wald sofort und seine Kachel wird Wiese. Bereits produziertes Restholz bleibt dort liegen.
 
 ## Bevölkerung und Hauptquartier
 
@@ -282,7 +290,7 @@ Pro festem Simulationsschritt:
 3. Ankünfte, Abholungen und Lieferungen verarbeiten.
 4. Baustellenfortschritt und Bauarbeiter-Erfahrung fortschreiben.
 5. Ackerwachstum und laufende Farmeraktionen fortschreiben; Düngen beschleunigt das aktuelle Feldwachstum und aktive Farmerarbeit sammelt Erfahrung.
-6. Normale Produktion und zugehörige Berufserfahrung fortschreiben oder abschließen.
+6. Normale Produktion und zugehörige Berufserfahrung fortschreiben oder abschließen; beim Wald erhöht Holzfäller-Erfahrung den Arbeitsfortschritt statt den Output.
 7. Erschöpfte Wälder entfernen und Holzfäller neu zuweisen.
 8. Neue Beschaffungs-, Farmer-, Bauarbeiter- und Händlerentscheidungen in der regulären 1-Hz-Runde oder bei markierter Sofortreaktion planen.
 
