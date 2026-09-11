@@ -35,7 +35,7 @@ People can carry persistent `woodcutter` and `builder` pool flags. Normal workpl
 
 `simulation.ts` owns the global deterministic tick, assignments, reservations, production, construction, profession pools, forest lifecycle, low-level building creation/removal, roads, merchant routes and status derivation. Farm-specific behavior is delegated to `farm.ts` rather than expanding the generic recipe loop with special cases.
 
-`experience.ts` owns profession-XP progression and the resulting production, construction and logistics modifiers. Keeping these rules separate avoids spreading balance formulas across the simulation loop.
+`experience.ts` owns profession-XP progression and the resulting production, construction and logistics modifiers. It also owns the woodcutter-specific work-speed multiplier, keeping profession balance formulas out of the simulation loop.
 
 `farm.ts` owns field selection, seeded random field placement, field lifecycle, growth, fertilizing acceleration, harvest and cleanup when a farm is demolished.
 
@@ -71,7 +71,7 @@ Experience is stored per person and profession from 0 to 100. Only active profes
 
 Thus an uninterrupted profession can reach 100 after about 90 minutes of active work. Experience remains when a person changes profession and later returns.
 
-Production professions use `1 + experience / 100` as their output multiplier, so 100 experience doubles output. Builders use the same multiplier for their personal construction contribution. Carrier and merchant load size remains exactly one unit; instead their active logistics movement uses `1 + 0.5 × experience / 100`, capped naturally at 1.5× at 100 experience.
+Normal production professions use `1 + experience / 100` as their output multiplier, so 100 experience doubles output. Woodcutters are deliberately excluded from that rule: they always create exactly one wood per completed felling cycle and instead use `1 + 0.5 × experience / 100` as a work-speed multiplier, capped at 1.5× at 100 experience. Builders use the production curve for their personal construction contribution. Carrier and merchant load size remains exactly one unit; their active logistics movement also uses `1 + 0.5 × experience / 100`, capped naturally at 1.5× at 100 experience.
 
 The profession-specific effects are deterministic and based entirely on simulation ticks. Roads multiply movement independently, so an experienced carrier or merchant also benefits from the normal road speed bonus.
 
@@ -132,18 +132,20 @@ Demolishing a farm additionally removes its still-active field entities and rest
 
 Generic production still uses recipes and local input/output capacities. Recipes may define an output amount greater than one. Only local production-output quantities may contain fractions; production inputs and warehouse inventories remain whole-number quantities. A completed production cycle may push a local output above its nominal capacity because its experience multiplier is applied at completion. No new production cycle starts while the current output is at or above the nominal capacity.
 
+Forests intentionally diverge from the normal output-capacity gate. A claimed forest owns a finite count of ten felling cycles and completes all ten even when produced wood has not yet been collected. Each cycle adds exactly one wood, so a forest can temporarily hold up to ten wood locally before retiring. This keeps resource depletion independent from downstream logistics while preserving the physical leftover stock after the forest tile disappears.
+
 Trips deliberately remain whole-unit logistics. An unpicked trip reserves exactly one unit of source stock, an incoming trip reserves exactly one unit of destination capacity and a picked trip physically carries exactly one unit. A trip can only be planned when at least 1.0 unit is available at the source and at least 1.0 unit fits at the destination. Thus a production source with 4.7 units becomes 3.7 after pickup, while the destination receives exactly one whole unit. A residual 0.7 cannot be transported until production raises it to at least 1.0. For multi-input recipes, procurement prioritizes ingredients still missing for the next complete batch before topping up already-sufficient inputs; if no prioritized source is reachable, normal top-up remains available.
 
 Current generic recipes:
 
-- forest: 1 wood / ~4 seconds,
+- forest: exactly 1 wood per cycle, ~4 seconds base duration and up to 1.5× faster with woodcutter experience,
 - sawmill: 2 wood → 1 plank / ~4 seconds,
 - carpenter: 2 plank → 1 wooden tool / ~4 seconds,
 - mill: 1 wheat → 1 flour / ~4 seconds,
 - bakery: 2 flour + 1 water → 2 bread / ~4 seconds,
 - well: infinite water source with no worker and no production timer.
 
-The base output listed above is multiplied by worker experience. Production time itself remains unchanged for these professions.
+The base output of normal production professions is multiplied by worker experience. Woodcutters are the exception: their output stays fixed at one wood and experience increases felling progress per simulation tick instead. Production time itself remains unchanged for the other generic professions.
 
 Farm production deliberately does **not** use the generic recipe loop because it is spatial and multi-stage. The farmer works on separate field entities, picks up one physical wheat when harvest completes and transports it through the existing trip primitive back to the farm. Any fractional experience bonus from that harvest is credited to the farm output when the farmer arrives, so the trip primitive itself still carries exactly one unit. The farm then acts as the normal wheat source for warehouse collection.
 
@@ -231,7 +233,7 @@ Merchants remain the only automatic warehouse-to-warehouse mechanism and can sel
 
 Woodcutters are appointed globally. Each chooses the quickest reachable unoccupied active or passive forest; ties use seeded PRNG state.
 
-A passive forest tile becomes a dynamic one-tile forest building when claimed. Every active forest starts with 10 yield. At zero yield the forest retires immediately and its tile becomes grass. Experience increases the wood produced per completed felling cycle but does not increase the forest's finite count of ten work cycles. Residual produced wood remains collectible.
+A passive forest tile becomes a dynamic one-tile forest building when claimed. Every active forest starts with ten finite felling cycles. Each completed cycle creates exactly one wood and decrements that finite count by one. Woodcutter experience does not change yield; it increases felling progress with `1 + 0.5 × experience / 100`, reaching 1.5× work speed at 100 experience. Forest output is exempt from the generic three-unit production-output gate so depletion does not stall while wood waits for collection. At zero remaining cycles the forest retires immediately and its tile becomes grass. Residual produced wood remains collectible from the retired forest entity.
 
 The farm implementation intentionally follows the same useful separation between terrain lifecycle and physical produced output, but field lifecycle is driven by a farm worker rather than a persistent resource node.
 
@@ -289,6 +291,8 @@ Farm coverage verifies:
 - warehouse carriers can collect wheat from a retired harvested field.
 
 Experience coverage verifies the 10/30/60/90-minute progression targets, 2× production cap, 1.5× logistics-speed cap, fractional production overflow, exact whole-unit pickup from fractional stocks and refusal to transport remainders below 1.0.
+
+Forest coverage additionally verifies fixed one-unit yield per felling cycle, ten total wood per forest without requiring collection, immediate retirement after the tenth cycle, leftover-wood collection and the 1.5× maximum woodcutting-speed modifier at 100 experience.
 
 Inventory coverage additionally verifies that fractional production outputs enter both production inputs and warehouses only as whole units, so input and warehouse quantities remain integer-valued.
 
