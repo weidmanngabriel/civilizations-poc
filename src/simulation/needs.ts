@@ -170,7 +170,7 @@ const ensureFoodRoute = (world: World, person: Person): void => {
   warehouse.inventory.bread = (warehouse.inventory.bread ?? 0) - 1;
   person.hunger = HUNGER_MAX;
   person.hungerAccumulator = 0;
-  const completedState = person.hungerState;
+  const completedState = person.hungerState!;
   person.hungerState = undefined;
   resumeTask(world, person, completedState);
 };
