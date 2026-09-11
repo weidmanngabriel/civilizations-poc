@@ -30,6 +30,7 @@ import {
   gainProfessionExperience,
   logisticsSpeedMultiplier,
   productionMultiplier,
+  woodcuttingSpeedMultiplier,
   workerProfession,
 } from "./experience";
 
@@ -931,18 +932,26 @@ export function tick(w: World): void {
       const profession = workerProfession(b);
       const forestHasYield =
         b.forestRemaining === undefined || b.forestRemaining > producing(w, b.id);
+      const outputHasSpace =
+        b.kind === "forest" || outputOccupied(w, b) < CONFIG.outputCapacity;
+      const workSpeed = b.kind === "forest" ? woodcuttingSpeedMultiplier(p) : 1;
       if (
         p.progress === 0 &&
         forestHasYield &&
         hasRecipeInputs(b) &&
-        outputOccupied(w, b) < CONFIG.outputCapacity
+        outputHasSpace
       )
-        p.progress = 1;
-      else if (p.progress > 0) p.progress++;
+        p.progress = workSpeed;
+      else if (p.progress > 0) p.progress += workSpeed;
       if (p.progress > 0 && profession) gainProfessionExperience(p, profession);
       if (p.progress >= recipe.duration) {
         consumeRecipeInputs(b);
-        const multiplier = profession ? productionMultiplier(p, profession) : 1;
+        const multiplier =
+          b.kind === "forest"
+            ? 1
+            : profession
+              ? productionMultiplier(p, profession)
+              : 1;
         b.output += recipeOutputAmount(b) * multiplier;
         if (b.forestRemaining !== undefined) b.forestRemaining--;
         p.progress = 0;
@@ -1055,8 +1064,6 @@ export function status(w: World, b: Building): string {
       .map((p) => `${Math.round((p.progress / b.recipe!.duration) * 100)} %`);
     if (progress.length) return `Holzabbau: ${progress.join(" · ")}`;
     if (!workers.length) return "Kein Holzfäller am Wald";
-    if (outputOccupied(w, b) >= CONFIG.outputCapacity)
-      return "Holz liegt bereit – Abholung abwarten";
     if (workers.every((p) => !p.active)) return "Holzfäller auf dem Weg";
     return "Bereit zum Holzabbau";
   }

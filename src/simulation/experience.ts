@@ -36,6 +36,9 @@ export function gainProfessionExperience(
 export const productionMultiplier = (p: Person, profession: Profession): number =>
   1 + professionExperience(p, profession) / 100;
 
+export const woodcuttingSpeedMultiplier = (p: Person): number =>
+  1 + 0.5 * professionExperience(p, "woodcutter") / 100;
+
 export const logisticsSpeedMultiplier = (p: Person, profession: "carrier" | "merchant"): number =>
   1 + 0.5 * professionExperience(p, profession) / 100;
 
