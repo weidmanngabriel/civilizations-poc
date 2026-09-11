@@ -64,6 +64,10 @@ const producing = (w: World, id: BuildingId) =>
 const recipeOutputAmount = (b: Building): number => b.recipe?.outputAmount ?? 1;
 export const outputOccupied = (w: World, b: Building): number =>
   b.output + heldOutput(w, b.id) + producing(w, b.id) * recipeOutputAmount(b);
+const outputCapacityFor = (b: Building): number =>
+  b.forestRemaining !== undefined ? CONFIG.forestOutputCapacity : CONFIG.outputCapacity;
+const foodDueBeforeNewTask = (p: Person): boolean =>
+  Boolean(p.hungerState) || (p.hunger ?? 100) <= 40;
 const route = (w: World, p: Person, b: Building) => {
   p.path = findPath(
     w.tiles,
@@ -374,6 +378,7 @@ function activateForest(w: World, tile: Tile): Building {
 }
 
 function assignWoodcutter(w: World, p: Person): boolean {
+  if (foodDueBeforeNewTask(p)) return false;
   const candidates = forestCandidates(w, p.position);
   if (!candidates.length) {
     p.assignment = undefined;
@@ -443,6 +448,7 @@ function builderCandidates(w: World, origin: Hex): BuilderCandidate[] {
 }
 
 function assignBuilder(w: World, p: Person): boolean {
+  if (foodDueBeforeNewTask(p)) return false;
   const candidates = builderCandidates(w, p.position);
   if (!candidates.length) {
     p.assignment = undefined;
@@ -932,7 +938,7 @@ export function tick(w: World): void {
       const profession = workerProfession(b);
       const forestHasYield =
         b.forestRemaining === undefined || b.forestRemaining > producing(w, b.id);
-      const outputHasSpace = outputOccupied(w, b) < CONFIG.outputCapacity;
+      const outputHasSpace = outputOccupied(w, b) < outputCapacityFor(b);
       const workSpeed = b.kind === "forest" ? woodcuttingSpeedMultiplier(p) : 1;
       if (
         p.progress === 0 &&
@@ -969,6 +975,7 @@ export function tick(w: World): void {
 
   for (const p of w.people) {
     if (!regularDecisionTick && !immediateDecisionPeople.has(p.id)) continue;
+    if (foodDueBeforeNewTask(p)) continue;
     if (!p.assignment || !p.active || p.path.length || p.trip || p.progress > 0 || p.farmTask)
       continue;
     const b = building(w, p.assignment.building);
@@ -996,7 +1003,7 @@ export function tick(w: World): void {
       p.assignment.role === "worker" &&
       Boolean(recipe) &&
       workerCanTopUp &&
-      (workerMissingInput || outputOccupied(w, b) >= CONFIG.outputCapacity);
+      (workerMissingInput || outputOccupied(w, b) >= outputCapacityFor(b));
     if (p.assignment.role === "carrier" || workerNeedsResupply)
       requestInput(w, p, b);
   }
@@ -1063,7 +1070,7 @@ export function status(w: World, b: Building): string {
       .map((p) => `${Math.round((p.progress / b.recipe!.duration) * 100)} %`);
     if (progress.length) return `Holzabbau: ${progress.join(" · ")}`;
     if (!workers.length) return "Kein Holzfäller am Wald";
-    if (outputOccupied(w, b) >= CONFIG.outputCapacity)
+    if (outputOccupied(w, b) >= outputCapacityFor(b))
       return "Holz liegt bereit – Abholung abwarten";
     if (workers.every((p) => !p.active)) return "Holzfäller auf dem Weg";
     return "Bereit zum Holzabbau";
@@ -1073,7 +1080,7 @@ export function status(w: World, b: Building): string {
     .map((p) => `${Math.round((p.progress / b.recipe!.duration) * 100)} %`);
   if (progress.length) return `Produktion: ${progress.join(" · ")}`;
   if (!workers.length) return "Kein Arbeiter zugewiesen";
-  if (outputOccupied(w, b) >= CONFIG.outputCapacity)
+  if (outputOccupied(w, b) >= outputCapacityFor(b))
     return "Output belegt – Abholung abwarten";
   if (workers.some((p) => p.trip)) return "Arbeiter beschafft Rohstoffe";
   if (workers.every((p) => !p.active)) return "Arbeiter auf dem Weg";
