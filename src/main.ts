@@ -5,10 +5,12 @@ import {
   preventMobilePageZoom,
 } from "./game/mobileTouch";
 import { createWorld } from "./simulation/scenario";
+import { installTileSelectionGuard, mountBuildMenu } from "./ui/buildMenu";
 import { mountControls } from "./ui/controls";
 import "./style.css";
 import "./map-interaction.css";
 import "./build-placement.css";
+import "./build-menu.css";
 
 const preventPageZoom = (): void => {
   document.addEventListener(
@@ -52,7 +54,9 @@ preventPageZoom();
 
 const world = createWorld();
 const scene = new MainScene(world);
+installTileSelectionGuard();
 mountControls(world, () => scene.renderWorld());
+mountBuildMenu(world);
 showBuildVersion();
 
 const game = new Phaser.Game({
