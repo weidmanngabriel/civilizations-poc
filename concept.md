@@ -253,6 +253,24 @@ Der PoC startet mit acht Personen. Freie Personen sammeln sich am HQ. Freigesetz
 
 Im HQ werden Bevölkerung sowie die globalen Pools für Holzfäller und Bauarbeiter gesteuert. Farmer werden dagegen direkt einer fertigen Farm zugewiesen. Berufserfahrung bleibt an der Person gespeichert, auch wenn sie später wieder freigesetzt oder einem anderen Beruf zugewiesen wird.
 
+## Hunger und Essen
+
+Jede Person besitzt einen Hungerwert von **0 bis 100** und startet bei 100. Der Verbrauch hängt von der aktuellen Belastung ab:
+
+- Herumstehen / Warten: **−1 Punkt alle 4 Sekunden**,
+- normales Laufen: **−1 Punkt alle 2 Sekunden**,
+- aktive Arbeit oder Tragen einer Ware: **−1 Punkt pro Sekunde**.
+
+Aktive Arbeit umfasst aktuell unter anderem Produktion, Holzabbau, Bauen sowie die aktiven Farmaktionen. Ein laufender Transport mit bereits aufgenommener Ware zählt ebenfalls als aktive Belastung.
+
+Bei **40 oder weniger** möchte die Person essen. Sie beendet ihre aktuelle Tätigkeit beziehungsweise ihren laufenden Arbeitszyklus und startet danach keine neue Arbeit, sondern sucht das schnellste erreichbare fertige Lager mit mindestens einem Brot. Bei **20 oder weniger** ist Hunger kritisch: Die aktuelle Tätigkeit wird sofort pausiert und die Person macht sich unmittelbar auf den Weg zum Essen. Der bereits erreichte Arbeitsfortschritt bleibt erhalten und wird nach dem Essen fortgesetzt.
+
+Eine Mahlzeit verbraucht **genau 1 Brot aus dem Lager** und setzt den Hunger wieder auf 100. Mehrere gleichzeitig hungrige Personen berücksichtigen bereits gewählte Brotvorräte untereinander. Ist bei kritischem Hunger kein Brot erreichbar, bleibt die Person pausiert und prüft weiter auf eine verfügbare Nahrungsquelle.
+
+Während eines Hunger-Umwegs bleiben bestehende Aufgaben, Farmaktionen und Transporte erhalten. Eine bereits getragene Ware wird nicht zurückgelegt; die Person nimmt sie auf dem Essensweg mit und setzt den Transport danach fort.
+
+Über jeder Person erscheint bei Hunger ≤ 40 ein kleines Besteck-Symbol auf gelbem Hintergrund. Bei Hunger ≤ 20 wechselt der Hintergrund auf rot. Bei normalem Hungerwert wird kein Symbol angezeigt.
+
 ## Bedienung
 
 Die Karte ist dauerhaft bildschirmfüllend. Status und Steuerungen liegen als kompakte Overlays darüber.
@@ -267,6 +285,7 @@ Die Karte ist dauerhaft bildschirmfüllend. Status und Steuerungen liegen als ko
 - Debug-Personenliste zeigt Farmeraktionen und die aktuelle Berufserfahrung.
 - Waren verwenden, wo sinnvoll, Emojis zusammen mit Zahl und Text; Gebäude verwenden ein einheitliches kleines SVG-Icon-Set.
 - Personen werden auf der Karte zusätzlich über Rollen-Icons erkennbar und nicht mehr nur über ihre ID dargestellt.
+- Hunger wird nur bei relevantem Bedarf direkt über der Person visualisiert: gelbes Besteck bei ≤ 40, rotes Besteck bei ≤ 20.
 
 ## Desktop und Mobile
 
@@ -285,13 +304,14 @@ Referenzgerät ist ein iPhone 13 Mini mit 375 × 812 CSS-Pixeln.
 
 Pro festem Simulationsschritt:
 
-1. Bewegungsfortschritt vergeben, inklusive Erfahrungsbonus aktiver Träger/Händler, und Kachelankünfte abschließen.
-2. Wiesenverkehr registrieren; neue Wege können entstehen und Routen neu geplant werden.
-3. Ankünfte, Abholungen und Lieferungen verarbeiten.
-4. Baustellenfortschritt und Bauarbeiter-Erfahrung fortschreiben.
-5. Ackerwachstum und laufende Farmeraktionen fortschreiben; Düngen beschleunigt das aktuelle Feldwachstum und aktive Farmerarbeit sammelt Erfahrung.
-6. Normale Produktion und zugehörige Berufserfahrung fortschreiben oder abschließen; beim Wald erhöht Holzfäller-Erfahrung den Arbeitsfortschritt statt den Output.
-7. Erschöpfte Wälder entfernen und Holzfäller neu zuweisen.
-8. Neue Beschaffungs-, Farmer-, Bauarbeiter- und Händlerentscheidungen in der regulären 1-Hz-Runde oder bei markierter Sofortreaktion planen.
+1. Hunger anhand des bisherigen Aktivitätszustands fortschreiben und gegebenenfalls Essen planen beziehungsweise kritische Arbeit pausieren.
+2. Bewegungsfortschritt vergeben, inklusive Erfahrungsbonus aktiver Träger/Händler, und Kachelankünfte abschließen.
+3. Wiesenverkehr registrieren; neue Wege können entstehen und Routen neu geplant werden.
+4. Ankünfte, Abholungen und Lieferungen verarbeiten.
+5. Baustellenfortschritt und Bauarbeiter-Erfahrung fortschreiben.
+6. Ackerwachstum und laufende Farmeraktionen fortschreiben; Düngen beschleunigt das aktuelle Feldwachstum und aktive Farmerarbeit sammelt Erfahrung.
+7. Normale Produktion und zugehörige Berufserfahrung fortschreiben oder abschließen; beim Wald erhöht Holzfäller-Erfahrung den Arbeitsfortschritt statt den Output.
+8. Erschöpfte Wälder entfernen und Holzfäller neu zuweisen.
+9. Neue Beschaffungs-, Farmer-, Bauarbeiter- und Händlerentscheidungen in der regulären 1-Hz-Runde oder bei markierter Sofortreaktion planen.
 
 Alle Regeln bleiben deterministisch und hängen von Simulationszeit statt Darstellungs-FPS ab.
