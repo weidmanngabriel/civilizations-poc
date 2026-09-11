@@ -151,7 +151,7 @@ Berufserfahrung multipliziert den jeweiligen Grundoutput bei normalen Produktion
 
 Produzierte Waren bleiben lokal liegen, bis eine Person sie transportiert. Eine Person trägt weiterhin genau **1,0 Einheit** pro Transportweg. Bei Produktionsgebäuden mit mehreren Inputs wird zuerst nur der Bedarf für den nächsten vollständigen Produktionslauf beschafft; erst wenn dafür keine fehlende Zutat mehr gezielt geholt werden kann, werden freie Inputplätze weiter aufgefüllt.
 
-Ein bereits gestarteter Produktionsvorgang darf beim Abschluss durch den Erfahrungsbonus über die nominelle Output-Kapazität hinausgehen. Solange der aktuelle Output danach mindestens die Kapazitätsgrenze erreicht, startet kein neuer Produktionsvorgang. Wälder sind hiervon ausgenommen: Sie bauen ihre zehn festen Zyklen vollständig ab, auch wenn das produzierte Holz noch nicht abgeholt wurde.
+Ein bereits gestarteter Produktionsvorgang darf beim Abschluss durch den Erfahrungsbonus über die nominelle Output-Kapazität hinausgehen. Solange der aktuelle Output danach mindestens die Kapazitätsgrenze erreicht, startet kein neuer Produktionsvorgang. Das gilt auch für Wälder: Sobald dort drei Holz liegen, pausiert der Holzfäller, bis durch Abholung wieder mindestens ein Slot frei ist.
 
 ## Farm, Acker und Weizen
 
@@ -197,7 +197,7 @@ erntereifen Acker ernten
 
 ## Inventare, Lager und Reservierungen
 
-Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 **ganze** Einheiten, normale Outputs haben eine nominelle Kapazität von 3 Einheiten und dürfen durch Erfahrungsboni Dezimalwerte enthalten. Erfahrung kann einen bereits laufenden Produktionsvorgang beim Abschluss über diese Output-Grenze bringen. Farmen halten geernteten Weizen in ihrem lokalen Output, nachdem der Farmer ihn vom Feld zurückgebracht hat. Wald-Output ist nicht auf diese nominellen 3 Einheiten begrenzt, weil ein beanspruchter Wald seine zehn festen Holzzyklen unabhängig von der Abholung vollständig beendet.
+Produktions- und Rohstofforte besitzen lokale Bestände. Produktionsinputs fassen maximal 10 **ganze** Einheiten, normale Outputs haben eine nominelle Kapazität von 3 Einheiten und dürfen durch Erfahrungsboni Dezimalwerte enthalten. Erfahrung kann einen bereits laufenden Produktionsvorgang beim Abschluss über diese Output-Grenze bringen. Farmen halten geernteten Weizen in ihrem lokalen Output, nachdem der Farmer ihn vom Feld zurückgebracht hat. Auch Wald-Output nutzt die normale Kapazität von 3 Einheiten; bei drei liegenden Holz pausiert der Holzfäller bis zur nächsten Abholung.
 
 Lager halten aktuell maximal 20 **ganze** Einheiten je Warentyp:
 
@@ -245,7 +245,7 @@ Holzfäller sind ein globaler Beruf und werden keinem Wald manuell zugewiesen.
 - Bei gleichwertigen Kandidaten entscheidet ein reproduzierbarer Seed-Zufall.
 - Passive Waldkacheln werden beim Anspruch zu aktiven Wald-Arbeitsstätten.
 
-Jeder aktive Wald besitzt **genau 10 Arbeitszyklen Holzvorrat**. Jeder abgeschlossene Zyklus erzeugt exakt **1 Holz**, unabhängig von der Erfahrung. Die Erfahrung eines Holzfällers erhöht stattdessen die Abbaugeschwindigkeit linear bis maximal **+50 % bei 100 % Erfahrung**. Der Wald arbeitet seine zehn Zyklen vollständig ab, auch wenn das Holz noch nicht abgeholt wird; sein lokaler Holzbestand ist deshalb nicht auf die normale Output-Kapazität von 3 begrenzt. Nach dem zehnten abgeschlossenen Zyklus verschwindet der Wald sofort und seine Kachel wird Wiese. Bereits produziertes Restholz bleibt dort liegen.
+Jeder aktive Wald besitzt **genau 10 Arbeitszyklen Holzvorrat**. Jeder abgeschlossene Zyklus erzeugt exakt **1 Holz**, unabhängig von der Erfahrung. Die Erfahrung eines Holzfällers erhöht stattdessen die Abbaugeschwindigkeit linear bis maximal **+50 % bei 100 % Erfahrung**. Am Wald können maximal drei bereits abgebaute Holz liegen. Sind alle drei Output-Slots belegt, pausiert der Holzfäller; nach einer Abholung setzt er den Abbau fort. Nach dem zehnten tatsächlich abgeschlossenen Zyklus verschwindet der Wald sofort und seine Kachel wird Wiese. Bereits produziertes Restholz bleibt dort liegen.
 
 ## Bevölkerung und Hauptquartier
 
