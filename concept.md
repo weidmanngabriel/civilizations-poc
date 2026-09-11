@@ -46,8 +46,10 @@ Wege dürfen vom Footprint überbaut werden. Der vorherige Untergrund jeder bele
 
 ### Baumodus
 
-1. Der Spieler wählt auf einer bebaubaren Kachel einen Gebäudetyp.
-2. Die UI wechselt in einen eigenen Baumodus.
+Am linken Bildschirmrand befindet sich eine vertikale Hauptmenüleiste. Aktuell enthält sie nur den Eintrag **Bauen**; weitere Hauptfunktionen können später ergänzt werden. Ein Klick oder Tap auf **Bauen** öffnet die Liste aller aktuell baubaren Gebäude. Jeder Eintrag zeigt Gebäudename und benötigte Bauressourcen.
+
+1. Der Spieler wählt im linken Baumenü einen Gebäudetyp.
+2. Die UI wechselt in einen eigenen Baumodus und das Baumenü schließt sich.
 3. Die Karte wird leicht abgedunkelt; gültige Ankerkacheln bleiben normal hell.
 4. Beim Start wird noch kein Gebäude-Ghost angezeigt.
 5. Der erste kurze Klick/Tap wählt eine Position und zeigt den Ghost.
@@ -56,6 +58,8 @@ Wege dürfen vom Footprint überbaut werden. Der vorherige Untergrund jeder bele
 8. Desktop-Hover oder ein kurzer Touch-Tap können danach den Ghost verschieben.
 9. Ziehen verschiebt weiterhin nur die Karte; Pinch-Zoom bleibt aktiv.
 10. Der Bau wird ausschließlich über „Bauen“ bestätigt. „Abbrechen“ beendet den Modus ohne Änderung.
+
+Ein normaler Klick oder Tap auf eine freie Kachel öffnet kein Bau- oder Kachelaktionsmenü mehr.
 
 ### Baustellen und Bauarbeiter
 
@@ -91,7 +95,7 @@ Personen bewegen sich kontinuierlich zwischen Hex-Mittelpunkten. Das Grundtempo 
 - Die Wegfindung minimiert Reisezeit und berücksichtigt Wege.
 - Acht Überquerungen einer Wiese innerhalb von 32 Sekunden erzeugen dort dauerhaft einen Weg.
 - Laufende Routen werden nach neuer Wegbildung neu bewertet.
-- Manuelles Bauen und Entfernen von Wegen bleibt möglich.
+- Wege werden nicht manuell gebaut oder entfernt; sie entstehen ausschließlich durch Bewegung.
 
 ## Berufserfahrung
 
@@ -245,8 +249,9 @@ Im HQ werden Bevölkerung sowie die globalen Pools für Holzfäller und Bauarbei
 
 Die Karte ist dauerhaft bildschirmfüllend. Status und Steuerungen liegen als kompakte Overlays darüber.
 
+- Links: vertikale Hauptmenüleiste; aktuell enthält sie nur **Bauen**. Das geöffnete Baumenü listet Gebäudetypen samt Baukosten.
 - Kurzer Klick/Tap auf eine Gebäude-Footprint-Kachel: Gebäude- oder Baustellendialog.
-- Kurzer Klick/Tap auf freie Wiese oder Weg: lokale Bau- und Wegoptionen.
+- Kurzer Klick/Tap auf freie Wiese oder Weg: keine Kachelaktion; im aktiven Baumodus wird damit nur der Placement-Ghost gesetzt oder verschoben.
 - Acker sind sichtbar, aber keine direkt steuerbaren Gebäude.
 - Unten: Pause/Fortsetzen und 0,5× / 1× / 2× / 3×.
 - Oben: Build-Version und Kernmetriken einschließlich Weizenbestand in Lagern.

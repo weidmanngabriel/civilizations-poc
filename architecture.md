@@ -39,7 +39,7 @@ People can carry persistent `woodcutter` and `builder` pool flags. Normal workpl
 
 `farm.ts` owns field selection, seeded random field placement, field lifecycle, growth, fertilizing acceleration, harvest and cleanup when a farm is demolished.
 
-`buildingPlacement.ts` owns user-facing multi-tile placement rules and construction plans. Farm uses the same placement flow as the other buildable buildings.
+`buildingPlacement.ts` owns user-facing multi-tile placement rules and construction plans. Farm uses the same placement flow as the other buildable buildings. The exported `CONSTRUCTION_PLANS` are also the authoritative source for the construction costs displayed in the build menu.
 
 `movement.ts` derives each person's continuous fractional world position from deterministic simulation state. Phaser consumes that position but does not invent renderer-owned movement.
 
@@ -93,7 +93,7 @@ Grass records recent traversal timestamps in `Tile.trafficTicks`.
 - on threshold: grass becomes road immediately,
 - current tasks reroute so agents can exploit the new road.
 
-Fields are not treated as grass traffic counters while they exist. After harvest the tile becomes ordinary grass again.
+Fields are not treated as grass traffic counters while they exist. After harvest the tile becomes ordinary grass again. Manual road editing remains in low-level simulation code for compatibility but is no longer exposed through the player UI; roads are created through movement only.
 
 ## Multi-tile buildings
 
@@ -252,6 +252,8 @@ Farm is available in the same modal placement mode as other buildings. Touch beh
 ## DOM UI
 
 `ui/controls.ts` owns overlays and the real-time accumulator.
+
+`ui/buildMenu.ts` owns the left-side main menu. It currently exposes only **Bauen**. The building list reads construction costs from `CONSTRUCTION_PLANS` and starts the existing placement flow rather than duplicating placement logic. Normal tile-selection events are intercepted before `ui/controls.ts`, so clicking or tapping an empty tile no longer opens the legacy tile action panel. The adapter permits one synchronous internal tile-selection event only when a build-menu item is chosen, then immediately enters placement mode and clears that temporary tile selection.
 
 - farm, mill, bakery and well are offered in the building choices,
 - a finished farm exposes one worker slot labelled Farmer; mill and bakery expose Müller and Bäcker worker labels; well has no worker slot,
