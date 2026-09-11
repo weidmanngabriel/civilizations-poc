@@ -33,15 +33,10 @@ const hungerValue = (person: Person): number => {
   return person.hunger;
 };
 
-const isActivelyWorking = (person: Person): boolean =>
-  Boolean(
-    person.trip?.picked ||
-      person.progress > 0 ||
-      (person.farmTask && person.path.length === 0),
-  );
-
 const secondsPerHungerPoint = (person: Person): number => {
-  if (isActivelyWorking(person)) return 1;
+  if (person.trip?.picked) return 1;
+  if (person.hungerState) return person.hungerState.foodSource && person.path.length > 0 ? 2 : 4;
+  if (person.progress > 0 || (person.farmTask && person.path.length === 0)) return 1;
   if (person.path.length > 0) return 2;
   return 4;
 };
@@ -110,6 +105,16 @@ const resumeTask = (world: World, person: Person, hungerState: HungerState): voi
   person.path = routeTo(world, person, target) ?? [];
 };
 
+const consumeBread = (world: World, person: Person, warehouse: Building): void => {
+  warehouse.inventory ??= {};
+  warehouse.inventory.bread = (warehouse.inventory.bread ?? 0) - 1;
+  person.hunger = HUNGER_MAX;
+  person.hungerAccumulator = 0;
+  const completedState = person.hungerState!;
+  person.hungerState = undefined;
+  resumeTask(world, person, completedState);
+};
+
 const startEating = (world: World, person: Person, critical: boolean): boolean => {
   const candidate = foodCandidates(world, person)[0];
   if (!candidate && !critical) return false;
@@ -120,7 +125,21 @@ const startEating = (world: World, person: Person, critical: boolean): boolean =
   };
   person.active = false;
   person.movement = 0;
-  person.path = candidate?.path ?? [];
+
+  if (candidate && same(person.position, candidate.warehouse.position)) {
+    person.path = [];
+    consumeBread(world, person, candidate.warehouse);
+    return true;
+  }
+
+  if (candidate) {
+    person.path = candidate.path;
+    return true;
+  }
+
+  // A one-step hold path keeps the normal simulation from reactivating a
+  // critically hungry person at its workplace while no food is reachable.
+  person.path = [{ ...person.position }];
   return true;
 };
 
@@ -144,35 +163,37 @@ const ensureFoodRoute = (world: World, person: Person): void => {
     const candidate = foodCandidates(world, person)[0];
     state.foodSource = candidate?.warehouse.id;
     warehouse = candidate?.warehouse;
-    person.path = candidate?.path ?? [];
     person.movement = 0;
+    if (candidate?.warehouse && same(person.position, candidate.warehouse.position)) {
+      person.path = [];
+      consumeBread(world, person, candidate.warehouse);
+      return;
+    }
+    person.path = candidate?.path ?? [{ ...person.position }];
   }
 
   if (!warehouse) {
-    person.path = [];
     person.active = false;
+    person.movement = 0;
+    person.path = [{ ...person.position }];
     return;
   }
 
   if (!same(person.position, warehouse.position)) {
-    person.path = routeTo(world, person, warehouse.position) ?? [];
+    person.path = routeTo(world, person, warehouse.position) ?? [{ ...person.position }];
     person.active = false;
     return;
   }
 
   if (breadStock(warehouse) < 1) {
     state.foodSource = undefined;
-    person.path = [];
+    person.active = false;
+    person.movement = 0;
+    person.path = [{ ...person.position }];
     return;
   }
 
-  warehouse.inventory ??= {};
-  warehouse.inventory.bread = (warehouse.inventory.bread ?? 0) - 1;
-  person.hunger = HUNGER_MAX;
-  person.hungerAccumulator = 0;
-  const completedState = person.hungerState!;
-  person.hungerState = undefined;
-  resumeTask(world, person, completedState);
+  consumeBread(world, person, warehouse);
 };
 
 export function advanceHungerTick(world: World): void {
