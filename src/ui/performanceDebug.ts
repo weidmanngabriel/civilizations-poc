@@ -12,6 +12,7 @@ const format = (value: number, digits = 1): string =>
   Number.isFinite(value) ? value.toFixed(digits).replace(".", ",") : "0";
 const svgNumber = (value: number): string =>
   Number.isFinite(value) ? value.toFixed(2) : "0";
+const TABLE_SCROLL_IDLE_MS = 700;
 
 const FEATURE_LABELS: Record<PerformanceFeature, string> = {
   hunger: "Hunger / Nahrung",
@@ -176,8 +177,36 @@ export function installPerformanceDebugPanel(world: World): void {
     people.insertAdjacentElement("beforebegin", heading);
   }
 
+  let tablePointerActive = false;
+  let tableRefreshBlockedUntil = 0;
+  const isTableInteraction = (target: EventTarget | null): boolean =>
+    target instanceof Element && Boolean(target.closest(".perf-table-wrap"));
+  const blockMomentumRefresh = () => {
+    tableRefreshBlockedUntil = performance.now() + TABLE_SCROLL_IDLE_MS;
+  };
+  const onPointerDown = (event: PointerEvent) => {
+    if (!isTableInteraction(event.target)) return;
+    tablePointerActive = true;
+  };
+  const onPointerRelease = () => {
+    if (!tablePointerActive) return;
+    tablePointerActive = false;
+    blockMomentumRefresh();
+  };
+  const onTableScroll = (event: Event) => {
+    if (!isTableInteraction(event.target)) return;
+    blockMomentumRefresh();
+  };
+
+  container.addEventListener("pointerdown", onPointerDown);
+  container.addEventListener("scroll", onTableScroll, true);
+  window.addEventListener("pointerup", onPointerRelease);
+  window.addEventListener("pointercancel", onPointerRelease);
+
   const refresh = () => {
-    if (!panel.hidden) renderPerformanceDebug(container, world);
+    if (panel.hidden) return;
+    if (tablePointerActive || performance.now() < tableRefreshBlockedUntil) return;
+    renderPerformanceDebug(container, world);
   };
   refresh();
   window.setInterval(refresh, 250);

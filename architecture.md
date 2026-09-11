@@ -218,11 +218,11 @@ The incremental scene separates presentation work into three layers:
 
 Build-mode and merchant-target highlights are also signature-cached and redraw only when their relevant mode/hover/world state changes. `src/main.ts` coalesces all `renderWorld()` requests to at most one `requestAnimationFrame`, so faster simulation speeds can perform multiple deterministic ticks without multiplying presentation renders within the same browser frame.
 
-`game/hungerIndicators.ts` wraps scene creation and adds presentation-only hunger badges above people.
+`game/hungerIndicators.ts` keeps a presentation-only hunger indicator per person once that person first becomes hungry. The bubble and icon stay alive until scene shutdown; normal `POST_UPDATE` work only updates visibility, status color and position.
 
-`game/bushIndicators.ts` uses the same safe scene-lifecycle pattern. It draws a small green bush above grass tiles with `bush === true`; full bushes show berry dots while empty bushes remain muted green. It never changes simulation state.
+`game/bushIndicators.ts` keeps at most one `Graphics` object per bush seeded at scene creation. The current product never creates new bush locations after start, so later bush lifecycle only changes availability or permanently removes the bush. Each `POST_UPDATE` checks those seeded bush references, toggles visibility and redraws only when a bush changes between full and empty.
 
-Both overlays still rebuild their small containers on `POST_UPDATE`. Their rebuild cost and newly created Phaser object counts are tracked by the performance diagnostics so this implementation can be replaced if it becomes a bottleneck.
+Both overlay probes continue to measure update cost and newly created Phaser objects. In stable play `objects/s` should settle at zero; object creation happens only when an indicator is first needed rather than every frame.
 
 ## Performance diagnostics
 
@@ -241,11 +241,11 @@ Stage 2a adds deliberately coarse feature-level timings. Simulation work is spli
 
 Pathfinding is also attributed by the feature that requested the route: hunger, woodcutter, builder, logistics, merchant, farm, reroute or other. This pathfinding table is cross-cutting diagnostic attribution, not an additional cost bucket: pathfinding time is already included in the surrounding feature timing and must not be added to it again.
 
-Presentation profiling separately measures `renderWorld()`, the hunger overlay and the bush overlay. The two overlays also record how many new Phaser objects they create per second, because object churn and later garbage collection can matter even when the immediate JavaScript duration looks small.
+Presentation profiling separately measures `renderWorld()`, the hunger overlay and the bush overlay. The two overlays also record newly created Phaser objects per second; after their initial lazy creation, the persistent implementation should normally report zero object churn.
 
 `src/main.ts` measures the coalesced incremental render and records real browser frame intervals from a dedicated `requestAnimationFrame` loop. This frame probe deliberately does not depend on Phaser scene lifecycle events. Mobile touch controls are installed before the profiler loop so diagnostic failures cannot prevent map input initialization. The simulation scheduler in `ui/controls.ts` still measures each complete `tick(w)` call directly; subsystem probes inside `simulation.ts` and `needs.ts` explain portions of that total. `simulation/hex.ts` remains the single timing point for actual route-search execution while callers supply the current pathfinding reason.
 
-The Debug panel refreshes at 4 Hz only while visible. It shows the global cards and 30-second sparklines plus a top-consumer summary, a 10-second feature-cost table and a 10-second pathfinding-reason table. Simulation features additionally expose `ms/Tick`, which normalizes feature cost across 0.5×, 1×, 2× and 3×. Table scroll positions are preserved across the 4 Hz DOM refresh so horizontal inspection remains usable on mobile. Synthetic stress scenarios and deeper browser/Phaser/garbage-collector profiling remain later steps if the in-app measurements cannot explain a performance problem.
+The Debug panel refreshes at 4 Hz only while visible. It shows the global cards and 30-second sparklines plus a top-consumer summary, a 10-second feature-cost table and a 10-second pathfinding-reason table. Simulation features additionally expose `ms/Tick`, which normalizes feature cost across 0.5×, 1×, 2× and 3×. Table scroll positions are preserved across normal refreshes, and the DOM refresh is suspended while a table pointer is active and for 700 ms after the latest table scroll event so touch and iOS momentum scrolling are not interrupted by element replacement. Synthetic stress scenarios and deeper browser/Phaser/garbage-collector profiling remain later steps if the in-app measurements cannot explain a performance problem.
 
 ## UI and mobile
 
