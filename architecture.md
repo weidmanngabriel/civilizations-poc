@@ -132,7 +132,7 @@ Demolishing a farm additionally removes its still-active field entities and rest
 
 Generic production still uses recipes and local input/output capacities. Recipes may define an output amount greater than one. Only local production-output quantities may contain fractions; production inputs and warehouse inventories remain whole-number quantities. A completed production cycle may push a local output above its nominal capacity because its experience multiplier is applied at completion. No new production cycle starts while the current output is at or above the nominal capacity.
 
-Forests intentionally diverge from the normal output-capacity gate. A claimed forest owns a finite count of ten felling cycles and completes all ten even when produced wood has not yet been collected. Each cycle adds exactly one wood, so a forest can temporarily hold up to ten wood locally before retiring. This keeps resource depletion independent from downstream logistics while preserving the physical leftover stock after the forest tile disappears.
+Forests use the same three-unit output-capacity gate. Each felling cycle adds exactly one wood. Once three wood are stored locally, the woodcutter pauses until collection frees at least one slot; the finite ten-cycle forest reserve therefore depletes only as logistics makes output space available.
 
 Trips deliberately remain whole-unit logistics. An unpicked trip reserves exactly one unit of source stock, an incoming trip reserves exactly one unit of destination capacity and a picked trip physically carries exactly one unit. A trip can only be planned when at least 1.0 unit is available at the source and at least 1.0 unit fits at the destination. Thus a production source with 4.7 units becomes 3.7 after pickup, while the destination receives exactly one whole unit. A residual 0.7 cannot be transported until production raises it to at least 1.0. For multi-input recipes, procurement prioritizes ingredients still missing for the next complete batch before topping up already-sufficient inputs; if no prioritized source is reachable, normal top-up remains available.
 
@@ -233,7 +233,7 @@ Merchants remain the only automatic warehouse-to-warehouse mechanism and can sel
 
 Woodcutters are appointed globally. Each chooses the quickest reachable unoccupied active or passive forest; ties use seeded PRNG state.
 
-A passive forest tile becomes a dynamic one-tile forest building when claimed. Every active forest starts with ten finite felling cycles. Each completed cycle creates exactly one wood and decrements that finite count by one. Woodcutter experience does not change yield; it increases felling progress with `1 + 0.5 × experience / 100`, reaching 1.5× work speed at 100 experience. Forest output is exempt from the generic three-unit production-output gate so depletion does not stall while wood waits for collection. At zero remaining cycles the forest retires immediately and its tile becomes grass. Residual produced wood remains collectible from the retired forest entity.
+A passive forest tile becomes a dynamic one-tile forest building when claimed. Every active forest starts with ten finite felling cycles. Each completed cycle creates exactly one wood and decrements that finite count by one. Woodcutter experience does not change yield; it increases felling progress with `1 + 0.5 × experience / 100`, reaching 1.5× work speed at 100 experience. Forest output uses the normal three-unit production-output gate, so a woodcutter pauses at three stored wood until collection frees a slot. At zero remaining cycles the forest retires immediately and its tile becomes grass. Residual produced wood remains collectible from the retired forest entity.
 
 The farm implementation intentionally follows the same useful separation between terrain lifecycle and physical produced output, but field lifecycle is driven by a farm worker rather than a persistent resource node.
 
@@ -292,7 +292,7 @@ Farm coverage verifies:
 
 Experience coverage verifies the 10/30/60/90-minute progression targets, 2× production cap, 1.5× logistics-speed cap, fractional production overflow, exact whole-unit pickup from fractional stocks and refusal to transport remainders below 1.0.
 
-Forest coverage additionally verifies fixed one-unit yield per felling cycle, ten total wood per forest without requiring collection, immediate retirement after the tenth cycle, leftover-wood collection and the 1.5× maximum woodcutting-speed modifier at 100 experience.
+Forest coverage additionally verifies fixed one-unit yield per felling cycle, the three-unit local output gate and resume-after-collection behavior, immediate retirement after the tenth completed cycle, leftover-wood collection and the 1.5× maximum woodcutting-speed modifier at 100 experience.
 
 Inventory coverage additionally verifies that fractional production outputs enter both production inputs and warehouses only as whole units, so input and warehouse quantities remain integer-valued.
 

@@ -55,13 +55,31 @@ test("each appointed woodcutter claims a different forest", () => {
   }
 });
 
-test("a forest yields exactly ten wood without collection, disappears, and its woodcutter relocates", () => {
+test("a forest pauses at three local wood until one slot is free", () => {
   const { world, forest, worker } = activeWoodcutter();
-  const maxTicks = CONFIG.duration * CONFIG.forestYield + CONFIG.duration;
-  for (let i = 0; i < maxTicks && !forest.retired; i++) tick(world);
+  for (let i = 0; i < CONFIG.duration * 4; i++) tick(world);
+
+  assert.equal(forest.output, CONFIG.outputCapacity);
+  assert.equal(forest.forestRemaining, CONFIG.forestYield - CONFIG.outputCapacity);
+  assert.equal(worker.progress, 0);
+  assert.equal(forest.retired, undefined);
+
+  forest.output--;
+  for (let i = 0; i < CONFIG.duration; i++) tick(world);
+
+  assert.equal(forest.output, CONFIG.outputCapacity);
+  assert.equal(forest.forestRemaining, CONFIG.forestYield - CONFIG.outputCapacity - 1);
+});
+
+test("a forest allows ten harvest cycles, disappears immediately, and its woodcutter relocates", () => {
+  const { world, forest, worker } = activeWoodcutter();
+  for (let produced = 0; produced < CONFIG.forestYield; produced++) {
+    forest.output = 0;
+    for (let round = 0; round < CONFIG.duration; round++) tick(world);
+  }
 
   assert.equal(forest.forestRemaining, 0);
-  assert.equal(forest.output, CONFIG.forestYield);
+  assert.equal(forest.output, 1);
   assert.equal(forest.retired, true);
   assert.equal(assigned(world, forest.id, "worker").length, 0);
   assert.notEqual(worker.assignment?.building, forest.id);
