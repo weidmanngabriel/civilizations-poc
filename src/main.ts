@@ -93,7 +93,11 @@ const game = new Phaser.Game({
   render: { antialias: true },
 });
 
-scene.events.on(Phaser.Scenes.Events.POST_UPDATE, () => {
-  performanceProfiler.recordFrame(game.loop.delta);
-});
+// Install touch controls first so diagnostics can never block mobile map input.
 installMobileMapTouchControls(game, scene);
+
+const profileAnimationFrame = (timestamp: number): void => {
+  performanceProfiler.recordAnimationFrame(timestamp);
+  window.requestAnimationFrame(profileAnimationFrame);
+};
+window.requestAnimationFrame(profileAnimationFrame);
