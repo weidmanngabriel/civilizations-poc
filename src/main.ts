@@ -69,9 +69,6 @@ scene.renderWorld = () => {
     performanceProfiler.recordRender(performanceNow() - started);
   }
 };
-scene.update = (_time: number, delta: number) => {
-  performanceProfiler.recordFrame(delta);
-};
 installBushIndicators(scene, world);
 installHungerIndicators(scene, world);
 installTileSelectionGuard();
@@ -96,4 +93,7 @@ const game = new Phaser.Game({
   render: { antialias: true },
 });
 
+scene.events.on(Phaser.Scenes.Events.POST_UPDATE, (_time: number, delta: number) => {
+  performanceProfiler.recordFrame(delta);
+});
 installMobileMapTouchControls(game, scene);
