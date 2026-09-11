@@ -38,6 +38,7 @@ export type PerformanceSnapshot = {
 const HISTORY_MS = 30_000;
 const TRIM_INTERVAL_MS = 1000;
 const now = (): number => globalThis.performance?.now?.() ?? Date.now();
+const validDuration = (duration: number): boolean => Number.isFinite(duration) && duration >= 0;
 
 const percentile = (values: number[], fraction: number): number => {
   if (!values.length) return 0;
@@ -85,24 +86,26 @@ class PerformanceProfiler {
     this.renders = this.renders.filter((sample) => sample.at >= cutoff);
   }
 
-  recordFrame(duration: number, at = now()): void {
-    this.frames.push({ at, duration });
+  private record(target: TimedSample[], duration: number, at: number): void {
+    if (!validDuration(duration) || !Number.isFinite(at)) return;
+    target.push({ at, duration });
     this.trim(at);
+  }
+
+  recordFrame(duration: number, at = now()): void {
+    this.record(this.frames, duration, at);
   }
 
   recordTick(duration: number, at = now()): void {
-    this.ticks.push({ at, duration });
-    this.trim(at);
+    this.record(this.ticks, duration, at);
   }
 
   recordPath(duration: number, at = now()): void {
-    this.paths.push({ at, duration });
-    this.trim(at);
+    this.record(this.paths, duration, at);
   }
 
   recordRender(duration: number, at = now()): void {
-    this.renders.push({ at, duration });
-    this.trim(at);
+    this.record(this.renders, duration, at);
   }
 
   setSimulationState(running: boolean, speed: number, backlogMs: number): void {
