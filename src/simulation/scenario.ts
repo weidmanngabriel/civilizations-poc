@@ -1,4 +1,5 @@
 import type { Building, Hex, Tile, World } from "./model";
+import { attachNeeds } from "./needs";
 
 export const CONFIG = {
   population: 8,
@@ -98,7 +99,7 @@ export function createWorld(population: number = CONFIG.population): World {
       });
     }
 
-  return {
+  return attachNeeds({
     round: 0,
     nextId: population + 1,
     nextForestId: 1,
@@ -110,10 +111,12 @@ export function createWorld(population: number = CONFIG.population): World {
     people: Array.from({ length: population }, (_, i) => ({
       id: i + 1,
       position: { ...buildings[0]!.position },
+      hunger: 100,
+      hungerAccumulator: 0,
       active: false,
       progress: 0,
       movement: 0,
       path: [],
     })),
-  };
+  });
 }
