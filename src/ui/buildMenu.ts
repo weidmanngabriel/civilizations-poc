@@ -1,4 +1,4 @@
-import type { BuildableBuildingKind, Good, World } from "../simulation/model";
+import type { Good, PlaceableBuildingKind, World } from "../simulation/model";
 import { CONSTRUCTION_PLANS } from "../simulation/buildingPlacement";
 import { GOODS } from "../simulation/simulation";
 import { GOOD_ICONS, buildingIcon } from "../icons";
@@ -8,7 +8,7 @@ const BUILD_MODE_EVENT = "poc-build-mode";
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 
-const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
+const BUILDING_NAMES: Record<PlaceableBuildingKind, string> = {
   warehouse: "Lager",
   house: "Wohnhaus",
   farm: "Farm",
@@ -31,7 +31,7 @@ export function installTileSelectionGuard(): void {
   });
 }
 
-const constructionCost = (kind: BuildableBuildingKind): string =>
+const constructionCost = (kind: PlaceableBuildingKind): string =>
   (Object.entries(CONSTRUCTION_PLANS[kind].required) as [Good, number | undefined][])
     .filter((entry): entry is [Good, number] => entry[1] !== undefined)
     .map(([good, amount]) => `<span class="build-menu-cost-item"><span aria-hidden="true">${GOOD_ICONS[good]}</span>${amount} ${GOODS[good]}</span>`)
@@ -56,7 +56,7 @@ export function mountBuildMenu(world: World): void {
         <button id="build-menu-close" type="button" aria-label="Baumenü schließen">×</button>
       </div>
       <div class="build-menu-list">
-        ${(Object.keys(BUILDING_NAMES) as BuildableBuildingKind[])
+        ${(Object.keys(BUILDING_NAMES) as PlaceableBuildingKind[])
           .map(
             (kind) => `
               <button class="build-menu-item" type="button" data-build-kind="${kind}">
@@ -89,7 +89,7 @@ export function mountBuildMenu(world: World): void {
   menu.addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-build-kind]");
     if (!button) return;
-    const kind = button.dataset.buildKind as BuildableBuildingKind;
+    const kind = button.dataset.buildKind as PlaceableBuildingKind;
     const launcherTile = world.tiles.find((tile) => tile.terrain === "grass" || tile.terrain === "road");
     if (!launcherTile) return;
 
