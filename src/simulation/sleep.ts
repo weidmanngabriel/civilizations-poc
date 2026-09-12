@@ -1,4 +1,4 @@
-import type { Building, Hex, Person, SleepLocationKind, SleepState, Tile, World } from "./model";
+import type { Building, Hex, Person, SleepLocationKind, SleepState, World } from "./model";
 import { findPath, findPathBySteps, pathTravelCost, same } from "./hex";
 import { CONFIG } from "./scenario";
 
@@ -25,8 +25,6 @@ const secondsPerSleepPoint = (person: Person): number => {
 
 const decaySleep = (person: Person): void => {
   sleepValue(person);
-  if (person.sleepState && same(person.position, person.sleepState.target) && person.sleepState.progress > 0)
-    return;
   person.sleepAccumulator! += 1 / (secondsPerSleepPoint(person) * CONFIG.simulationHz);
   while (person.sleepAccumulator! + ACCUMULATOR_EPSILON >= 1 && person.sleep! > 0) {
     person.sleepAccumulator = Math.max(0, person.sleepAccumulator! - 1);
@@ -97,6 +95,18 @@ const chooseSleepTarget = (world: World, person: Person): SleepCandidate | {
     path: [],
   };
 
+const targetStillValid = (world: World, state: SleepState): boolean => {
+  if (state.kind === "ground") return true;
+  if (state.kind === "house")
+    return world.buildings.some(
+      (building) => isCompletedHouse(building) && same(building.position, state.target),
+    );
+  const tile = world.tiles.find((candidate) => same(candidate, state.target));
+  return Boolean(
+    tile && (tile.terrain === "forest" || (tile.terrain === "grass" && tile.bush)),
+  );
+};
+
 const atTaskBoundary = (person: Person): boolean =>
   person.progress === 0 &&
   !person.farmTask &&
@@ -140,7 +150,8 @@ const finishSleeping = (world: World, person: Person): void => {
     : Math.min(SLEEP_MAX, (person.sleep ?? SLEEP_MAX) + restored);
   person.sleepAccumulator = 0;
   person.sleepState = undefined;
-  person.sleepGraceTicks = 1;
+  // Allows the resumed activity one full simulation tick before a partial rest can request sleep again.
+  person.sleepGraceTicks = 2;
   resumeTask(world, person, state);
 };
 
@@ -154,6 +165,7 @@ const startSleeping = (world: World, person: Person): void => {
     resumeBuilder: Boolean(person.builder),
     resumeWoodcutter: Boolean(person.woodcutter),
   };
+  // Pool flags are temporarily removed so the normal planners cannot assign a new job during sleep.
   person.builder = undefined;
   person.woodcutter = undefined;
   person.active = false;
@@ -161,23 +173,27 @@ const startSleeping = (world: World, person: Person): void => {
   person.path = same(person.position, candidate.target) ? [] : candidate.path;
 };
 
+const applyReplacementTarget = (world: World, person: Person, state: SleepState): void => {
+  const replacement = chooseSleepTarget(world, person);
+  state.kind = replacement.kind;
+  state.target = { ...replacement.target };
+  state.progress = 0;
+  person.path = same(person.position, replacement.target) ? [] : replacement.path;
+  person.movement = 0;
+};
+
 const ensureSleepRouteOrProgress = (world: World, person: Person): void => {
   const state = person.sleepState!;
   if (person.hungerState) return;
+
+  if (!targetStillValid(world, state)) applyReplacementTarget(world, person, state);
 
   if (!same(person.position, state.target)) {
     const currentDestination = person.path.at(-1);
     if (!currentDestination || !same(currentDestination, state.target)) {
       const reroute = routeTo(world, person, state.target);
-      if (!reroute) {
-        const replacement = chooseSleepTarget(world, person);
-        state.kind = replacement.kind;
-        state.target = { ...replacement.target };
-        state.progress = 0;
-        person.path = same(person.position, replacement.target) ? [] : replacement.path;
-      } else {
-        person.path = reroute;
-      }
+      if (!reroute) applyReplacementTarget(world, person, state);
+      else person.path = reroute;
       person.movement = 0;
     }
     person.active = false;
@@ -203,6 +219,7 @@ export function advanceSleepTick(world: World): void {
 
     decaySleep(person);
 
+    // Food remains the higher-priority need when both thresholds are reached.
     if (person.hungerState || (person.hunger ?? 100) <= 40) continue;
     if (person.sleepGraceTicks! > 0) continue;
 
