@@ -6,6 +6,7 @@ import { sleepStatus } from "../simulation/sleep";
 const HEX_X = 24;
 const HEX_Y = 21;
 const TEXT_RESOLUTION = 3;
+const ICON_X_OFFSET = 14;
 
 const pixel = (h: Hex) => ({
   x: 34 + HEX_X * (h.q + h.r / 2),
@@ -46,9 +47,9 @@ export function installSleepIndicators(scene: Phaser.Scene, world: World): void 
         const fill = status === "critical" ? 0xd9483b : 0xf2c94c;
 
         if (!indicator) {
-          const bubble = scene.add.circle(position.x + 8, position.y - 13, 6, fill, 0.96)
+          const bubble = scene.add.circle(position.x + ICON_X_OFFSET, position.y - 13, 6, fill, 0.96)
             .setStrokeStyle(1, 0x263c2d, 0.9);
-          const icon = scene.add.text(position.x + 8, position.y - 13.5, "💤", {
+          const icon = scene.add.text(position.x + ICON_X_OFFSET, position.y - 13.5, "💤", {
             fontFamily: "system-ui",
             fontSize: "7px",
             color: "#ffffff",
@@ -59,8 +60,8 @@ export function installSleepIndicators(scene: Phaser.Scene, world: World): void 
         } else {
           if (indicator.status !== status) indicator.bubble.setFillStyle(fill, 0.96);
           indicator.status = status;
-          indicator.bubble.setPosition(position.x + 8, position.y - 13).setVisible(true);
-          indicator.icon.setPosition(position.x + 8, position.y - 13.5).setVisible(true);
+          indicator.bubble.setPosition(position.x + ICON_X_OFFSET, position.y - 13).setVisible(true);
+          indicator.icon.setPosition(position.x + ICON_X_OFFSET, position.y - 13.5).setVisible(true);
         }
       }
     };
