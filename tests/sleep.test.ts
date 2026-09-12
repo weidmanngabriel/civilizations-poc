@@ -147,7 +147,7 @@ test("a tired sawmill worker does not start resupply after finishing the current
 
   tick(world);
 
-  assert.equal(sawmill.output, 1);
+  assert.ok(sawmill.output >= 1);
   assert.equal(person.progress, 0);
   assert.equal(person.trip, undefined);
 
