@@ -1,7 +1,8 @@
 export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread";
 export type BuildingId = string;
 export type BuildingKind = "hq" | "forest" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "warehouse" | "house";
-export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest" | "field">;
+export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest" | "field" | "house">;
+export type PlaceableBuildingKind = BuildableBuildingKind | "house";
 export type Role = "worker" | "carrier" | "merchant" | "builder";
 export type Profession =
   | "woodcutter"
