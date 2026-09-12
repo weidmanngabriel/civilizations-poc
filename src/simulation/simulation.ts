@@ -74,6 +74,10 @@ const outputCapacityFor = (b: Building): number =>
   b.forestRemaining !== undefined ? CONFIG.forestOutputCapacity : CONFIG.outputCapacity;
 const foodDueBeforeNewTask = (p: Person): boolean =>
   Boolean(p.hungerState) || (p.hunger ?? 100) <= 40;
+const sleepDueBeforeNewTask = (p: Person): boolean =>
+  Boolean(p.sleepState) || (p.sleep ?? 100) <= 40;
+const needDueBeforeNewTask = (p: Person): boolean =>
+  foodDueBeforeNewTask(p) || sleepDueBeforeNewTask(p);
 
 const routeReason = (p: Person): PathReason => {
   if (p.hungerState) return "hunger";
@@ -407,7 +411,7 @@ function activateForest(w: World, tile: Tile): Building {
 }
 
 function assignWoodcutter(w: World, p: Person): boolean {
-  if (foodDueBeforeNewTask(p)) return false;
+  if (needDueBeforeNewTask(p)) return false;
   const candidates = forestCandidates(w, p.position);
   if (!candidates.length) {
     p.assignment = undefined;
@@ -479,7 +483,7 @@ function builderCandidates(w: World, origin: Hex): BuilderCandidate[] {
 }
 
 function assignBuilder(w: World, p: Person): boolean {
-  if (foodDueBeforeNewTask(p)) return false;
+  if (needDueBeforeNewTask(p)) return false;
   const candidates = builderCandidates(w, p.position);
   if (!candidates.length) {
     p.assignment = undefined;
@@ -988,6 +992,7 @@ export function tick(w: World): void {
         const workSpeed = b.kind === "forest" ? woodcuttingSpeedMultiplier(p) : 1;
         if (
           p.progress === 0 &&
+          !needDueBeforeNewTask(p) &&
           forestHasYield &&
           hasRecipeInputs(b) &&
           outputHasSpace
@@ -1027,7 +1032,7 @@ export function tick(w: World): void {
   let decisionFarmMs = 0;
   for (const p of w.people) {
     if (!regularDecisionTick && !immediateDecisionPeople.has(p.id)) continue;
-    if (foodDueBeforeNewTask(p)) continue;
+    if (needDueBeforeNewTask(p)) continue;
     if (!p.assignment || !p.active || p.path.length || p.trip || p.progress > 0 || p.farmTask)
       continue;
     const b = building(w, p.assignment.building);
