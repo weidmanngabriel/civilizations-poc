@@ -112,6 +112,7 @@ export interface Person {
   sleep?: number;
   sleepAccumulator?: number;
   sleepState?: SleepState;
+  sleepGraceTicks?: number;
   active: boolean;
   progress: number;
   movement: number;
