@@ -13,6 +13,7 @@ src/
   simulation/   world state, rules, economy, logistics, needs, placement
   game/         Phaser rendering and map input
   ui/           DOM overlays and controls
+  handbook/     player-facing Markdown help pages
   debug/        performance diagnostics
 ```
 
@@ -206,7 +207,11 @@ Because hunger and sleep target validation is event-driven, their pathfinding co
 
 ## UI and mobile
 
-The DOM UI owns simulation speed controls, building dialogs, build mode, merchant target mode and debug output. The map remains fullscreen.
+The DOM UI owns simulation speed controls, building dialogs, build mode, merchant target mode, handbook and debug output. The map remains fullscreen.
+
+The in-app handbook is presentation-only. `src/handbook/*.md` contains the player-facing source text. `src/ui/handbook.ts` imports these files as raw Markdown, renders the intentionally small supported subset (headings, paragraphs, lists and bold text) and owns page navigation/open/close behavior. `src/handbook.css` provides the responsive desktop/mobile layout. The handbook does not mutate authoritative simulation state.
+
+The question-mark handbook button is part of the existing left menu and sits above the build button. On desktop the handbook is a centered modal with page navigation; on mobile it fills the viewport and uses horizontally scrollable page tabs.
 
 Reference mobile behavior:
 
