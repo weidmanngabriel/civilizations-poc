@@ -86,6 +86,7 @@ export interface FarmTask {
 export interface HungerState {
   foodSource?: BuildingId;
   foodBush?: Hex;
+  retryAfterTick?: number;
   resumeActive: boolean;
 }
 export type SleepLocationKind = "house" | "nature" | "ground";
