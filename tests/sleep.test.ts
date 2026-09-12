@@ -157,7 +157,7 @@ test("a tired sawmill worker does not start resupply after finishing the current
   assert.equal(person.assignment, undefined);
 });
 
-test("a completed house is preferred and restores sleep fully", () => {
+test("house sleep restores half of the missing sleep after each five-second phase", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
   const house = addHouse(world);
@@ -165,16 +165,20 @@ test("a completed house is preferred and restores sleep fully", () => {
 
   advanceSleepTick(world);
   assert.equal(person.sleepState?.kind, "house");
-
   person.position = { ...house.position };
   person.path = [];
-  sleepForFullDuration(world);
 
+  for (let i = 0; i < SLEEP_RULES.phaseTicks; i += 1) advanceSleepTick(world);
+  assert.equal(person.sleep, 60);
+  assert.equal(person.sleepState?.completedPhases, 1);
+
+  for (let i = SLEEP_RULES.phaseTicks; i < SLEEP_RULES.durationTicks; i += 1)
+    advanceSleepTick(world);
   assert.equal(person.sleepState, undefined);
   assert.equal(person.sleep, 100);
 });
 
-test("a tree or bush restores 40 sleep points", () => {
+test("a tree or bush restores 20 sleep points per five-second phase", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
   const natureTile = world.tiles.find((tile) => tile.terrain === "grass" && tile.q !== person.position.q)!;
@@ -187,13 +191,17 @@ test("a tree or bush restores 40 sleep points", () => {
   assert.equal(person.sleepState?.kind, "nature");
   assert.deepEqual(person.sleepState?.target, person.position);
 
-  sleepForFullDuration(world);
+  for (let i = 0; i < SLEEP_RULES.phaseTicks; i += 1) advanceSleepTick(world);
+  assert.equal(person.sleep, 40);
+  assert.ok(person.sleepState);
 
+  for (let i = SLEEP_RULES.phaseTicks; i < SLEEP_RULES.durationTicks; i += 1)
+    advanceSleepTick(world);
   assert.equal(person.sleepState, undefined);
   assert.equal(person.sleep, 60);
 });
 
-test("sleeping on the ground restores 20 sleep points", () => {
+test("ground sleep restores 10 sleep points per five-second phase", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
   for (const tile of world.tiles) {
@@ -206,8 +214,12 @@ test("sleeping on the ground restores 20 sleep points", () => {
   advanceSleepTick(world);
   assert.equal(person.sleepState?.kind, "ground");
 
-  sleepForFullDuration(world);
+  for (let i = 0; i < SLEEP_RULES.phaseTicks; i += 1) advanceSleepTick(world);
+  assert.equal(person.sleep, 30);
+  assert.ok(person.sleepState);
 
+  for (let i = SLEEP_RULES.phaseTicks; i < SLEEP_RULES.durationTicks; i += 1)
+    advanceSleepTick(world);
   assert.equal(person.sleepState, undefined);
   assert.equal(person.sleep, 40);
 });
