@@ -30,6 +30,7 @@ const constructionPlan = (required: GoodAmounts): ConstructionPlan => ({
 
 export const CONSTRUCTION_PLANS: Record<BuildableBuildingKind, ConstructionPlan> = {
   warehouse: constructionPlan({ wood: 4 }),
+  house: constructionPlan({ wood: 4 }),
   farm: constructionPlan({ wood: 4 }),
   sawmill: constructionPlan({ wood: 6 }),
   carpenter: constructionPlan({ plank: 4 }),
@@ -38,25 +39,20 @@ export const CONSTRUCTION_PLANS: Record<BuildableBuildingKind, ConstructionPlan>
   well: constructionPlan({ wood: 4 }),
 };
 
+const COMPACT_SHAPE: BuildingPlacementShape = {
+  cells: [
+    { q: 0, r: 0 },
+    { q: 1, r: 0 },
+    { q: 0, r: 1 },
+    { q: 1, r: 1 },
+  ],
+  anchor: { q: 0, r: 0 },
+};
+
 const SHAPES: Record<BuildableBuildingKind, BuildingPlacementShape> = {
-  warehouse: {
-    cells: [
-      { q: 0, r: 0 },
-      { q: 1, r: 0 },
-      { q: 0, r: 1 },
-      { q: 1, r: 1 },
-    ],
-    anchor: { q: 0, r: 0 },
-  },
-  farm: {
-    cells: [
-      { q: 0, r: 0 },
-      { q: 1, r: 0 },
-      { q: 0, r: 1 },
-      { q: 1, r: 1 },
-    ],
-    anchor: { q: 0, r: 0 },
-  },
+  warehouse: COMPACT_SHAPE,
+  house: COMPACT_SHAPE,
+  farm: COMPACT_SHAPE,
   sawmill: {
     cells: [
       { q: 0, r: 0 },
@@ -68,42 +64,10 @@ const SHAPES: Record<BuildableBuildingKind, BuildingPlacementShape> = {
     ],
     anchor: { q: 0, r: 0 },
   },
-  carpenter: {
-    cells: [
-      { q: 0, r: 0 },
-      { q: 1, r: 0 },
-      { q: 0, r: 1 },
-      { q: 1, r: 1 },
-    ],
-    anchor: { q: 0, r: 0 },
-  },
-  mill: {
-    cells: [
-      { q: 0, r: 0 },
-      { q: 1, r: 0 },
-      { q: 0, r: 1 },
-      { q: 1, r: 1 },
-    ],
-    anchor: { q: 0, r: 0 },
-  },
-  bakery: {
-    cells: [
-      { q: 0, r: 0 },
-      { q: 1, r: 0 },
-      { q: 0, r: 1 },
-      { q: 1, r: 1 },
-    ],
-    anchor: { q: 0, r: 0 },
-  },
-  well: {
-    cells: [
-      { q: 0, r: 0 },
-      { q: 1, r: 0 },
-      { q: 0, r: 1 },
-      { q: 1, r: 1 },
-    ],
-    anchor: { q: 0, r: 0 },
-  },
+  carpenter: COMPACT_SHAPE,
+  mill: COMPACT_SHAPE,
+  bakery: COMPACT_SHAPE,
+  well: COMPACT_SHAPE,
 };
 
 export const footprintFromShape = (shape: BuildingPlacementShape, anchorPosition: Hex): Hex[] =>
@@ -186,6 +150,17 @@ export function buildWithFootprint(
 
   const created = buildAt(world, anchorPosition, kind);
   if (!created) return;
+  if (kind === "house") {
+    created.name = "Wohnhaus";
+    created.workers = 0;
+    created.carriers = 0;
+    created.merchants = 0;
+    created.recipe = undefined;
+    created.input = 0;
+    created.output = 0;
+    created.inputInventory = undefined;
+    created.inventory = undefined;
+  }
   const plan = CONSTRUCTION_PLANS[kind];
   created.construction = {
     required: { ...plan.required },
