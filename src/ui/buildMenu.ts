@@ -10,6 +10,7 @@ const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 
 const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
   warehouse: "Lager",
+  house: "Wohnhaus",
   farm: "Farm",
   sawmill: "Sägewerk",
   carpenter: "Schreinerei",
@@ -97,10 +98,26 @@ export function mountBuildMenu(world: World): void {
       detail: { position: { q: launcherTile.q, r: launcherTile.r } },
     }));
 
-    const legacyBuildButton = document.querySelector<HTMLButtonElement>(
+    let legacyBuildButton = document.querySelector<HTMLButtonElement>(
       `#selection-panel button[data-action="build"][data-kind="${kind}"]`,
     );
+    let temporaryButton: HTMLButtonElement | undefined;
+    if (!legacyBuildButton) {
+      const selectionPanel = document.querySelector<HTMLElement>("#selection-panel");
+      if (selectionPanel) {
+        temporaryButton = document.createElement("button");
+        temporaryButton.type = "button";
+        temporaryButton.hidden = true;
+        temporaryButton.dataset.action = "build";
+        temporaryButton.dataset.kind = kind;
+        selectionPanel.append(temporaryButton);
+        legacyBuildButton = temporaryButton;
+      }
+    }
     legacyBuildButton?.click();
+    temporaryButton?.remove();
+    const placementTitle = document.querySelector<HTMLElement>("#build-placement-title");
+    if (placementTitle) placementTitle.textContent = `${BUILDING_NAMES[kind]} platzieren`;
     setOpen(false);
   });
 
