@@ -93,6 +93,8 @@ export interface SleepState {
   kind: SleepLocationKind;
   target: Hex;
   progress: number;
+  completedPhases: 0 | 1;
+  recoveryPerPhase: number;
   resumeActive: boolean;
   resumeAssignment?: { building: BuildingId; role: Role };
   resumeBuilder: boolean;
