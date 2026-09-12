@@ -1,5 +1,6 @@
 import type { Building, Hex, Person, Tile, World } from "./model";
 import { attachNeeds } from "./needs";
+import { attachSleep } from "./sleep";
 
 export const CONFIG = {
   population: 12,
@@ -138,6 +139,9 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     position: { ...buildings[0]!.position },
     hunger: 100,
     hungerAccumulator: 0,
+    sleep: 100,
+    sleepAccumulator: 0,
+    sleepGraceTicks: 0,
     active: false,
     progress: 0,
     movement: 0,
@@ -149,7 +153,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     for (const person of people.slice(2, Math.min(4, people.length))) person.woodcutter = true;
   }
 
-  return attachNeeds({
+  const world: World = {
     round: 0,
     nextId: population + 1,
     nextForestId: 1,
@@ -159,7 +163,10 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     buildings,
     tiles,
     people,
-  });
+  };
+
+  // Hunger has priority. Sleep runs directly after the hunger step on the same fixed tick.
+  return attachNeeds(attachSleep(world));
 }
 
 /** Neutral deterministic world used by simulation tests and low-level scenarios. */
