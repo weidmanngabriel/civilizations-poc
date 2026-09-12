@@ -3,6 +3,7 @@ import { performanceNow, performanceProfiler } from "./debug/performanceProfiler
 import { IncrementalMainScene } from "./game/IncrementalMainScene";
 import { installBushIndicators } from "./game/bushIndicators";
 import { installHungerIndicators } from "./game/hungerIndicators";
+import { installSleepIndicators } from "./game/sleepIndicators";
 import {
   installMobileMapTouchControls,
   preventMobilePageZoom,
@@ -76,6 +77,7 @@ scene.renderWorld = () => {
 };
 installBushIndicators(scene, world);
 installHungerIndicators(scene, world);
+installSleepIndicators(scene, world);
 installTileSelectionGuard();
 mountControls(world, () => scene.renderWorld());
 installPerformanceDebugPanel(world);
