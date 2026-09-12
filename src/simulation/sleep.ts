@@ -125,7 +125,12 @@ const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
 };
 
 const resumeTask = (world: World, person: Person, state: SleepState): void => {
-  person.assignment = state.resumeAssignment
+  const workplaceStillExists = state.resumeAssignment
+    ? world.buildings.some(
+        (building) => building.id === state.resumeAssignment!.building && !building.retired,
+      )
+    : false;
+  person.assignment = workplaceStillExists && state.resumeAssignment
     ? { ...state.resumeAssignment }
     : undefined;
   person.builder = state.resumeBuilder || undefined;
@@ -153,7 +158,6 @@ const finishSleeping = (world: World, person: Person): void => {
     : Math.min(SLEEP_MAX, (person.sleep ?? SLEEP_MAX) + restored);
   person.sleepAccumulator = 0;
   person.sleepState = undefined;
-  // Allows the resumed activity one full simulation tick before a partial rest can request sleep again.
   person.sleepGraceTicks = 2;
   resumeTask(world, person, state);
 };
@@ -169,7 +173,6 @@ const startSleeping = (world: World, person: Person): void => {
     resumeBuilder: Boolean(person.builder),
     resumeWoodcutter: Boolean(person.woodcutter),
   };
-  // Assignment and pool flags are temporarily removed so the normal work planners cannot reactivate the person while sleeping.
   person.assignment = undefined;
   person.builder = undefined;
   person.woodcutter = undefined;
@@ -224,7 +227,6 @@ export function advanceSleepTick(world: World): void {
 
     decaySleep(person);
 
-    // Food remains the higher-priority need when both thresholds are reached.
     if (person.hungerState || (person.hunger ?? 100) <= 40) continue;
     if (person.sleepGraceTicks! > 0) continue;
 
