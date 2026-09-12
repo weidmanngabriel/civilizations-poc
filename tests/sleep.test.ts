@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createWorld } from "../src/simulation/scenario";
+import { CONFIG, createWorld } from "../src/simulation/scenario";
 import { advanceSleepTick, SLEEP_RULES } from "../src/simulation/sleep";
 import { tick } from "../src/simulation/simulation";
 import type { Building, World } from "../src/simulation/model";
@@ -111,6 +111,50 @@ test("sleep temporarily removes a workplace assignment so production cannot cont
   const restoredAssignment = person.assignment as { building: string } | undefined;
   assert.equal(restoredAssignment?.building, workplace.id);
   assert.equal(person.progress, preservedProgress);
+});
+
+test("a tired sawmill worker does not start resupply after finishing the current cycle", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const sawmill: Building = {
+    id: "test-sawmill-boundary",
+    kind: "sawmill",
+    name: "Testsägewerk",
+    position: { ...person.position },
+    workers: 1,
+    carriers: 0,
+    input: 2,
+    output: 0,
+    recipe: { input: "wood", amount: 2, output: "plank", duration: CONFIG.duration },
+  };
+  const warehouse: Building = {
+    id: "test-wood-source",
+    kind: "warehouse",
+    name: "Testlager",
+    position: { ...person.position },
+    workers: 0,
+    carriers: 0,
+    merchants: 0,
+    input: 0,
+    output: 0,
+    inventory: { wood: 5 },
+  };
+  world.buildings.push(sawmill, warehouse);
+  person.assignment = { building: sawmill.id, role: "worker" };
+  person.active = true;
+  person.progress = CONFIG.duration - 1;
+  person.sleep = 40;
+
+  tick(world);
+
+  assert.ok(sawmill.output >= 1);
+  assert.equal(person.progress, 0);
+  assert.equal(person.trip, undefined);
+
+  tick(world);
+
+  assert.ok(person.sleepState);
+  assert.equal(person.assignment, undefined);
 });
 
 test("a completed house is preferred and restores sleep fully", () => {
