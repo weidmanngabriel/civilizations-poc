@@ -125,6 +125,9 @@ const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
 };
 
 const resumeTask = (world: World, person: Person, state: SleepState): void => {
+  person.assignment = state.resumeAssignment
+    ? { ...state.resumeAssignment }
+    : undefined;
   person.builder = state.resumeBuilder || undefined;
   person.woodcutter = state.resumeWoodcutter || undefined;
   person.active = false;
@@ -162,10 +165,12 @@ const startSleeping = (world: World, person: Person): void => {
     target: { ...candidate.target },
     progress: 0,
     resumeActive: person.active,
+    resumeAssignment: person.assignment ? { ...person.assignment } : undefined,
     resumeBuilder: Boolean(person.builder),
     resumeWoodcutter: Boolean(person.woodcutter),
   };
-  // Pool flags are temporarily removed so the normal planners cannot assign a new job during sleep.
+  // Assignment and pool flags are temporarily removed so the normal work planners cannot reactivate the person while sleeping.
+  person.assignment = undefined;
   person.builder = undefined;
   person.woodcutter = undefined;
   person.active = false;
