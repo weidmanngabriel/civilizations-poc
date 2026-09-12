@@ -131,6 +131,7 @@ export interface World {
   nextBuildingId: number;
   nextFieldId: number;
   rngState: number;
+  nextBushRegrowTick?: number;
   people: Person[];
   buildings: Building[];
   tiles: Tile[];
