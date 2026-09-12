@@ -25,7 +25,7 @@ Presentation reads simulation state; it must not invent authoritative game state
 
 ## Core model
 
-`src/simulation/model.ts` defines people, assignments, trips, buildings, fields, inventories, terrain and hunger state.
+`src/simulation/model.ts` defines people, assignments, trips, buildings, fields, inventories, terrain, hunger and sleep state.
 
 A tile keeps its normal terrain plus optional bush state:
 
@@ -40,6 +40,10 @@ Tile
 Bushes deliberately remain a lightweight feature on top of grass rather than becoming buildings or transportable goods. This lets normal grass pathfinding and placement rules continue to work.
 
 Each person stores hunger from 0 to 100, a fractional hunger accumulator and optional `HungerState`. `HungerState` can reserve either a bread source building or one bush position while preserving the interrupted work state.
+
+Each person also stores sleep from 0 to 100, a fractional sleep accumulator and optional `SleepState`. `SleepState` stores the selected sleep quality and target plus the interrupted assignment/pool state. During sleep the normal assignment and builder/woodcutter pool flags are temporarily removed so existing production, transport and planning code cannot reactivate the person. They are restored after waking if the referenced workplace still exists.
+
+`BuildingKind` includes `house`. To avoid widening older building-management code unnecessarily, `PlaceableBuildingKind` adds `house` on top of the existing `BuildableBuildingKind` union and is used by placement/build-menu code.
 
 ## Scenario creation
 
@@ -57,7 +61,9 @@ The real game start uses 12 people:
 - two woodcutters,
 - eight free people.
 
-The HQ starts with 10 bread. Passive forests and 42 bushes are seeded at fixed map positions so replay remains deterministic.
+The HQ starts with 10 bread. Passive forests and 42 bushes are seeded at fixed map positions so replay remains deterministic. New people start with hunger 100 and sleep 100.
+
+The deterministic world is wrapped by both needs hooks. Hunger is the outer hook and therefore runs first on each `round` increment; sleep runs immediately afterwards before movement/work for that simulation tick.
 
 ## Fixed simulation time
 
@@ -71,6 +77,7 @@ base movement            2.5 tiles / s
 normal decision cadence  60 ticks / 1 s
 road traffic window      1920 ticks / 32 s
 farm sow/harvest         600 ticks / 10 s
+sleep action             600 ticks / 10 s
 field growth stage       1800 ticks / 30 s
 bush regrowth            7200–10800 ticks / 120–180 s
 ```
@@ -93,13 +100,13 @@ Thresholds:
 - hunger <= 40: eat at the next task boundary,
 - hunger <= 20: interrupt immediately.
 
-Task planning in `simulation.ts` also respects the <=40 threshold. Once a current work cycle, transport or other atomic activity has finished, no new assignment, resupply trip, farm action, merchant trip, builder target or forest target may start until eating has been handled. This closes the gap where an immediate same-tick decision could previously skip the intended meal boundary.
+Task planning in `simulation.ts` also respects the <=40 threshold. Once a current work cycle, transport or other atomic activity has finished, no new assignment, resupply trip, farm action, merchant trip, builder target or forest target may start until eating has been handled.
 
 Food candidates are evaluated with the normal weighted pathfinder and sorted by travel cost. Bread and bushes therefore compete in one list.
 
 Bread can come from a finished warehouse or from the HQ inventory and restores hunger to 100. A bush restores 40 points, capped at 100.
 
-Reservations are person-local: bread uses the source building id, bushes use a hex position. Other hungry people exclude an already reserved portion/source while planning. Once a reserved food source and its route remain valid, the existing path is reused across simulation ticks. Pathfinding runs again only when the source becomes invalid, the route no longer targets the reserved source, or a new source must be selected. This avoids multiplying identical hunger route searches at 2× and 3× simulation speed without changing food-choice semantics.
+Reservations are person-local: bread uses the source building id, bushes use a hex position. Other hungry people exclude an already reserved portion/source while planning. Once a reserved food source and its route remain valid, the existing path is reused across simulation ticks. Pathfinding runs again only when the source becomes invalid, the route no longer targets the reserved source, or a new source must be selected.
 
 Critical interruption leaves `progress`, `farmTask` and `trip` intact. After eating, the target is reconstructed in this order:
 
@@ -107,6 +114,38 @@ Critical interruption leaves `progress`, `farmTask` and `trip` intact. After eat
 2. current transport source/target,
 3. workplace assignment,
 4. HQ.
+
+## Sleep need and sleep-place selection
+
+`src/simulation/sleep.ts` owns sleep decay, sleep-place selection, the fixed 10-second sleep action and task restoration.
+
+Decay rates:
+
+```text
+idle / waiting           1 point / 8 s
+walking                  1 point / 4 s
+active work              1 point / 2 s
+picked cargo             1 point / 2 s
+```
+
+Thresholds mirror hunger:
+
+- sleep <= 40: sleep at the next task boundary,
+- sleep <= 20: interrupt immediately.
+
+When hunger and sleep are due together, hunger has priority. Sleep selection is intentionally local: candidates must be within eight reachable steps according to the step-count pathfinder. Quality is prioritized before distance:
+
+```text
+completed house          -> sleep = 100
+forest tile / bush tile  -> +40
+no local option           -> current ground tile, +20
+```
+
+Within one quality class the weighted route with the lowest travel cost wins. The selected house/nature target is revalidated while travelling; demolition or terrain changes cause a new local choice. Ground sleep never requires pathfinding.
+
+A sleeping person keeps `progress`, `farmTask`, `trip` and merchant configuration. The normal assignment plus builder/woodcutter pool flags are temporarily stored in `SleepState` and removed from the live person so existing simulation planners skip the sleeper. On wake they are restored and the task target is reconstructed with the same priority used for hunger. Partial recovery gets a one-tick wake grace before another sleep request can begin.
+
+Housing is deliberately minimal in this PoC stage: a completed house is a shared sleep destination with no resident assignment, family model or capacity yet.
 
 ## Bush lifecycle
 
@@ -150,13 +189,14 @@ Eight traversals of one grass tile within 32 seconds turn it into a road. On the
 
 ## Buildings and placement
 
-User-buildable kinds are warehouse, farm, sawmill, carpenter, mill, bakery and well. The HQ is a four-tile initial building.
+User-placeable kinds are warehouse, house, farm, sawmill, carpenter, mill, bakery and well. The HQ is a four-tile initial building.
 
 Footprints:
 
 ```text
 HQ          4
 Warehouse   4
+House       4
 Farm        4
 Sawmill     6
 Carpenter   4
@@ -164,6 +204,8 @@ Mill        4
 Bakery      4
 Well        4
 ```
+
+The house currently costs four wood, has no workers, inventory or recipe, and becomes a valid sleep target only when construction is complete.
 
 Footprint and one-tile clearance ring must lie on grass/road. Because bushes are stored as metadata on grass, they are valid placement cells. Only footprint cells destroy bushes; bushes in the clearance ring stay untouched.
 
@@ -220,32 +262,21 @@ Build-mode and merchant-target highlights are also signature-cached and redraw o
 
 `game/hungerIndicators.ts` keeps a presentation-only hunger indicator per person once that person first becomes hungry. The bubble and icon stay alive until scene shutdown; normal `POST_UPDATE` work only updates visibility, status color and position.
 
-`game/bushIndicators.ts` keeps at most one `Graphics` object per bush seeded at scene creation. The current product never creates new bush locations after start, so later bush lifecycle only changes availability or permanently removes the bush. Each `POST_UPDATE` checks those seeded bush references, toggles visibility and redraws only when a bush changes between full and empty.
+`game/sleepIndicators.ts` follows the same persistent presentation-only pattern for sleep. It renders a separate `💤` badge to the right of the hunger badge, yellow at <=40 sleep and red at <=20. It does not mutate simulation state.
 
-Both overlay probes continue to measure update cost and newly created Phaser objects. In stable play `objects/s` should settle at zero; object creation happens only when an indicator is first needed rather than every frame.
+`game/bushIndicators.ts` keeps at most one `Graphics` object per bush seeded at scene creation. The current product never creates new bush locations after start, so later bush lifecycle only changes availability or permanently removes the bush. Each `POST_UPDATE` checks those seeded bush references, toggles visibility and redraws only when a bush changes between full and empty.
 
 ## Performance diagnostics
 
 Performance diagnostics are observational only. `src/debug/performanceProfiler.ts` stores timestamped samples in a rolling 30-second window and never writes authoritative game state.
 
-The global probes measure:
+The global probes measure browser frame duration/FPS, deterministic tick cost and rate, scheduler backlog, pathfinding cost/call rate, incremental render cost and world counts.
 
-- browser animation-frame duration and FPS,
-- deterministic simulation tick duration and achieved ticks per second,
-- scheduler backlog and selected simulation speed,
-- weighted and step-based pathfinding duration and call rate,
-- complete incremental `renderWorld()` duration and call rate,
-- current world counts for tiles, people, active buildings, fields, forests, moving people and transport trips.
+Simulation feature timings remain deliberately coarse: hunger/food, movement, transport/logistics, construction, farm/fields, production and planning are measured explicitly; remaining work appears as **simulation other / unaccounted**. Sleep currently falls into this remainder rather than introducing a second needs-specific profiler category.
 
-Stage 2a adds deliberately coarse feature-level timings. Simulation work is split into non-overlapping high-level buckets for hunger/food, movement, transport/logistics, construction, farm/fields, production and work planning. The profiler compares the sum of these buckets with complete tick time; the positive remainder is displayed as **simulation other / unaccounted** so expensive work that has not yet been instrumented remains visible instead of disappearing from the report.
+Pathfinding attribution remains cross-cutting and is not added twice to feature cost. Hunger, woodcutter, builder, logistics, merchant, farm, reroute and other are the current attribution reasons; sleep route searches currently use the generic pathfinder without adding a new profiler reason.
 
-Pathfinding is also attributed by the feature that requested the route: hunger, woodcutter, builder, logistics, merchant, farm, reroute or other. This pathfinding table is cross-cutting diagnostic attribution, not an additional cost bucket: pathfinding time is already included in the surrounding feature timing and must not be added to it again.
-
-Presentation profiling separately measures `renderWorld()`, the hunger overlay and the bush overlay. The two overlays also record newly created Phaser objects per second; after their initial lazy creation, the persistent implementation should normally report zero object churn.
-
-`src/main.ts` measures the coalesced incremental render and records real browser frame intervals from a dedicated `requestAnimationFrame` loop. This frame probe deliberately does not depend on Phaser scene lifecycle events. Mobile touch controls are installed before the profiler loop so diagnostic failures cannot prevent map input initialization. The simulation scheduler in `ui/controls.ts` still measures each complete `tick(w)` call directly; subsystem probes inside `simulation.ts` and `needs.ts` explain portions of that total. `simulation/hex.ts` remains the single timing point for actual route-search execution while callers supply the current pathfinding reason.
-
-The Debug panel refreshes at 4 Hz only while visible. It shows the global cards and 30-second sparklines plus a top-consumer summary, a 10-second feature-cost table and a 10-second pathfinding-reason table. Simulation features additionally expose `ms/Tick`, which normalizes feature cost across 0.5×, 1×, 2× and 3×. Table scroll positions are preserved across normal refreshes, and the DOM refresh is suspended while a table pointer is active and for 700 ms after the latest table scroll event so touch and iOS momentum scrolling are not interrupted by element replacement. Synthetic stress scenarios and deeper browser/Phaser/garbage-collector profiling remain later steps if the in-app measurements cannot explain a performance problem.
+The Debug panel refreshes at 4 Hz only while visible. It keeps its existing rolling summaries and preserves table scrolling behavior on touch devices.
 
 ## UI and mobile
 
@@ -259,11 +290,15 @@ Reference mobile behavior:
 - map zoom 0.7×–3.5×,
 - build ghost selected by short tap and confirmed only by the DOM build button.
 
+The left build menu includes the Wohnhaus. The existing generic placement flow is reused rather than introducing a separate housing placement mode.
+
 ## Testing and deployment
 
 `npm test` runs deterministic Node tests through `tsx`. `npm run build` performs TypeScript checking plus the Vite production build.
 
-Coverage includes movement, placement, construction, production, farms, forests, merchants, inventory integer rules, profession experience, hunger, performance-profiler invariants and start/bush rules.
+Coverage includes movement, placement, construction, production, farms, forests, merchants, inventory integer rules, profession experience, hunger, sleep, performance-profiler invariants and start/bush rules.
+
+Sleep coverage verifies idle/walking/work decay, deferred and critical interruption, house/nature/ground recovery, the eight-step locality limit and hunger priority.
 
 The needs/performance suites additionally verify that a valid reserved hunger route is reused across ticks and that feature timing is normalized into per-tick cost without applying that normalization to presentation-only features.
 
