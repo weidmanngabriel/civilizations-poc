@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createWorld } from "../src/simulation/scenario";
 import { advanceSleepTick, SLEEP_RULES } from "../src/simulation/sleep";
+import { tick } from "../src/simulation/simulation";
 import type { Building, World } from "../src/simulation/model";
 
 const addHouse = (world: World, qOffset = 2): Building => {
@@ -71,6 +72,44 @@ test("critical tiredness interrupts immediately and preserves work progress", ()
   assert.ok(person.sleepState);
   assert.equal(person.active, false);
   assert.equal(person.progress, 72);
+});
+
+test("sleep temporarily removes a workplace assignment so production cannot continue", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const workplace: Building = {
+    id: "test-sawmill",
+    kind: "sawmill",
+    name: "Testsägewerk",
+    position: { ...person.position },
+    workers: 1,
+    carriers: 0,
+    input: 2,
+    output: 0,
+    recipe: { input: "wood", amount: 2, output: "plank", duration: 240 },
+  };
+  world.buildings.push(workplace);
+  person.assignment = { building: workplace.id, role: "worker" };
+  person.active = true;
+  person.progress = 72;
+  person.sleep = 20;
+
+  advanceSleepTick(world);
+  assert.equal(person.assignment, undefined);
+  assert.equal(person.sleepState?.resumeAssignment?.building, workplace.id);
+
+  const preservedProgress = person.progress;
+  tick(world);
+  assert.equal(person.progress, preservedProgress);
+
+  const sleepTarget = person.sleepState!.target;
+  person.position = { ...sleepTarget };
+  person.path = [];
+  person.sleepState!.progress = SLEEP_RULES.durationTicks - 1;
+  advanceSleepTick(world);
+
+  assert.equal(person.assignment?.building, workplace.id);
+  assert.equal(person.progress, preservedProgress);
 });
 
 test("a completed house is preferred and restores sleep fully", () => {
