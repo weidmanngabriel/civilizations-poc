@@ -499,11 +499,6 @@ export function advanceHungerTick(world: World): void {
 }
 
 export function attachNeeds(world: World): World {
-  const hq = world.buildings.find((building) => building.id === "hq");
-  if (hq) {
-    hq.inventory ??= {};
-    ensureHqStorageProxy(world, hq);
-  }
   return new Proxy(world, {
     set(target, property, value, receiver) {
       if (
