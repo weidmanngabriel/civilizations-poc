@@ -18,7 +18,7 @@ const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "wheat", "flour", "wat
 
 type BreadCandidate = {
   kind: "bread";
-  warehouse: Building;
+  source: Building;
   path: Hex[];
   cost: number;
 };
@@ -32,7 +32,7 @@ type BushCandidate = {
 
 type FoodCandidate = BreadCandidate | BushCandidate;
 type SelectedFoodTarget =
-  | { kind: "bread"; warehouse: Building }
+  | { kind: "bread"; source: Building }
   | { kind: "bush"; tile: Tile };
 
 type CollectionCandidate = {
@@ -47,13 +47,21 @@ const isStorage = (building: Building): boolean =>
   !building.retired &&
   (!building.construction || building.construction.complete);
 
-const breadStock = (building: Building): number =>
-  isStorage(building) ? (building.inventory?.bread ?? 0) : 0;
+const isCompletedBakery = (building: Building): boolean =>
+  building.kind === "bakery" &&
+  !building.retired &&
+  (!building.construction || building.construction.complete);
 
-const reservedBread = (world: World, warehouseId: BuildingId, exceptPersonId?: number): number =>
+const breadStock = (building: Building): number => {
+  if (isStorage(building)) return building.inventory?.bread ?? 0;
+  if (isCompletedBakery(building)) return building.output;
+  return 0;
+};
+
+const reservedBread = (world: World, sourceId: BuildingId, exceptPersonId?: number): number =>
   world.people.filter(
     (person) =>
-      person.id !== exceptPersonId && person.hungerState?.foodSource === warehouseId,
+      person.id !== exceptPersonId && person.hungerState?.foodSource === sourceId,
   ).length;
 
 const reservedBush = (world: World, tile: Hex, exceptPersonId?: number): boolean =>
@@ -100,16 +108,15 @@ const routeTo = (
 const foodCandidates = (world: World, person: Person): FoodCandidate[] => {
   const bread: BreadCandidate[] = world.buildings
     .filter(
-      (warehouse) =>
-        isStorage(warehouse) &&
-        breadStock(warehouse) - reservedBread(world, warehouse.id, person.id) >= 1,
+      (source) =>
+        breadStock(source) - reservedBread(world, source.id, person.id) >= 1,
     )
-    .map((warehouse) => {
-      const path = routeTo(world, person, warehouse.position);
+    .map((source) => {
+      const path = routeTo(world, person, source.position);
       if (!path) return undefined;
       return {
         kind: "bread" as const,
-        warehouse,
+        source,
         path,
         cost: pathTravelCost(world.tiles, path, ROAD_SPEED_MULTIPLIER),
       };
@@ -140,7 +147,7 @@ const foodCandidates = (world: World, person: Person): FoodCandidate[] => {
     if (Math.abs(a.cost - b.cost) > 1e-9) return a.cost - b.cost;
     if (a.kind !== b.kind) return a.kind === "bread" ? -1 : 1;
     if (a.kind === "bread" && b.kind === "bread")
-      return a.warehouse.id.localeCompare(b.warehouse.id);
+      return a.source.id.localeCompare(b.source.id);
     if (a.kind === "bush" && b.kind === "bush")
       return a.tile.r - b.tile.r || a.tile.q - b.tile.q;
     return 0;
@@ -182,9 +189,13 @@ const finishEating = (world: World, person: Person): void => {
   resumeTask(world, person, completedState);
 };
 
-const consumeBread = (world: World, person: Person, warehouse: Building): void => {
-  warehouse.inventory ??= {};
-  warehouse.inventory.bread = (warehouse.inventory.bread ?? 0) - 1;
+const consumeBread = (world: World, person: Person, source: Building): void => {
+  if (isStorage(source)) {
+    source.inventory ??= {};
+    source.inventory.bread = (source.inventory.bread ?? 0) - 1;
+  } else {
+    source.output -= 1;
+  }
   person.hunger = HUNGER_MAX;
   finishEating(world, person);
 };
@@ -207,9 +218,9 @@ const consumeBush = (world: World, person: Person, tile: Tile): void => {
 
 const useCandidate = (world: World, person: Person, candidate: FoodCandidate): void => {
   if (candidate.kind === "bread") {
-    if (same(person.position, candidate.warehouse.position)) {
+    if (same(person.position, candidate.source.position)) {
       person.path = [];
-      consumeBread(world, person, candidate.warehouse);
+      consumeBread(world, person, candidate.source);
     } else {
       person.path = candidate.path;
     }
@@ -229,7 +240,7 @@ const assignFoodCandidate = (
   state: HungerState,
   candidate: FoodCandidate | undefined,
 ): boolean => {
-  state.foodSource = candidate?.kind === "bread" ? candidate.warehouse.id : undefined;
+  state.foodSource = candidate?.kind === "bread" ? candidate.source.id : undefined;
   state.foodBush = candidate?.kind === "bush" ? { q: candidate.tile.q, r: candidate.tile.r } : undefined;
   state.retryAfterTick = candidate ? undefined : world.round + CONFIG.decisionIntervalTicks;
   person.movement = 0;
@@ -262,13 +273,12 @@ const atTaskBoundary = (person: Person): boolean =>
 const selectedFoodTarget = (world: World, person: Person): SelectedFoodTarget | undefined => {
   const state = person.hungerState!;
   if (state.foodSource) {
-    const warehouse = world.buildings.find((building) => building.id === state.foodSource);
+    const source = world.buildings.find((building) => building.id === state.foodSource);
     if (
-      warehouse &&
-      isStorage(warehouse) &&
-      breadStock(warehouse) - reservedBread(world, warehouse.id, person.id) >= 1
+      source &&
+      breadStock(source) - reservedBread(world, source.id, person.id) >= 1
     )
-      return { kind: "bread", warehouse };
+      return { kind: "bread", source };
   }
   if (state.foodBush) {
     const tile = world.tiles.find((candidate) => same(candidate, state.foodBush!));
@@ -284,14 +294,14 @@ const selectedFoodTarget = (world: World, person: Person): SelectedFoodTarget | 
 };
 
 const selectedTargetPosition = (target: SelectedFoodTarget): Hex =>
-  target.kind === "bread" ? target.warehouse.position : target.tile;
+  target.kind === "bread" ? target.source.position : target.tile;
 
 const consumeSelectedTarget = (
   world: World,
   person: Person,
   target: SelectedFoodTarget,
 ): void => {
-  if (target.kind === "bread") consumeBread(world, person, target.warehouse);
+  if (target.kind === "bread") consumeBread(world, person, target.source);
   else consumeBush(world, person, target.tile);
 };
 
@@ -388,7 +398,10 @@ const ensureHqStorageProxy = (world: World, hq: Building): Building => {
       carriers: 0,
       merchants: 0,
       input: 0,
-      output: 0,
+      // The generic production-supply planner ignores retired outputless sources before
+      // reading warehouse inventory. A one-unit internal sentinel keeps this hidden
+      // adapter eligible while actual stock still comes exclusively from `inventory`.
+      output: CONFIG.carryCapacity,
       inventory: hq.inventory,
       retired: true,
     };
@@ -396,6 +409,7 @@ const ensureHqStorageProxy = (world: World, hq: Building): Building => {
   }
   proxy.position = { ...hq.position };
   proxy.inventory = hq.inventory;
+  proxy.output = CONFIG.carryCapacity;
   return proxy;
 };
 
@@ -447,6 +461,7 @@ const advanceHqWarehouseCarrier = (world: World): void => {
   const hq = world.buildings.find((building) => building.id === "hq");
   if (!hq) return;
   hq.inventory ??= {};
+  ensureHqStorageProxy(world, hq);
 
   if (world.round % CONFIG.decisionIntervalTicks !== 0) return;
   for (const person of world.people.filter(
@@ -484,6 +499,11 @@ export function advanceHungerTick(world: World): void {
 }
 
 export function attachNeeds(world: World): World {
+  const hq = world.buildings.find((building) => building.id === "hq");
+  if (hq) {
+    hq.inventory ??= {};
+    ensureHqStorageProxy(world, hq);
+  }
   return new Proxy(world, {
     set(target, property, value, receiver) {
       if (
