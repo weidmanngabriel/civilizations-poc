@@ -67,6 +67,8 @@ Nahrungsquellen sind aktuell:
 
 Die Person vergleicht erreichbare Nahrung nach Reisezeit und nutzt die schnellste verfügbare Quelle. Reservierungen verhindern, dass mehrere hungrige Personen gleichzeitig dasselbe Brot oder denselben Busch fest einplanen.
 
+Die Nahrungssuche ist ereignisgetrieben: Sobald eine Person tatsächlich essen muss, wird einmal ein Ziel gewählt und ein Weg berechnet. Während sie dorthin läuft, wird die Quelle nicht ständig neu geprüft. Erst bei Ankunft wird kontrolliert, ob Brot oder Beeren noch verfügbar sind. Ist das Ziel dann ungültig, sucht die Person ein neues Ziel. Wenn momentan gar keine Nahrung erreichbar ist, bleibt die Person für das Bedürfnis blockiert und versucht die Suche höchstens einmal pro Simulationssekunde erneut.
+
 ## Müdigkeit und Schlaf
 
 Jede Person besitzt zusätzlich einen Schlafwert von 0 bis 100. **100 bedeutet vollständig ausgeruht.** Müdigkeit entwickelt sich langsamer als Hunger und hängt ebenfalls von der Belastung ab.
@@ -85,13 +87,17 @@ Schlafpriorität entspricht grundsätzlich Hunger:
 
 Wenn Hunger und Schlaf gleichzeitig fällig sind, hat **Hunger Vorrang**. Fortschritt, Transporte und Arbeitsaufgaben bleiben während eines Schlafumwegs erhalten und werden danach fortgesetzt.
 
-Jeder Schlafvorgang dauert **10 Simulationssekunden**. Eine Person sucht Schlafmöglichkeiten nur innerhalb von maximal **8 erreichbaren Kachelschritten**. Die Qualitätsreihenfolge ist verbindlich:
+Jeder Schlafvorgang dauert **10 Simulationssekunden**, besteht aber aus **zwei Phasen à 5 Sekunden**. Nach jeder Phase wird bereits die Hälfte der gesamten vorgesehenen Erholung gutgeschrieben. Wird Schlaf später zwischen den Phasen unterbrochen, bleibt die bereits erhaltene Erholung erhalten.
 
-1. fertiges Wohnhaus innerhalb der Reichweite: Schlaf wird vollständig auf **100** gesetzt,
-2. Baum oder Busch innerhalb der Reichweite: **+40 Schlafpunkte**,
-3. wenn beides fehlt: die Person schläft an ihrer aktuellen Position auf dem Boden und erhält **+20 Schlafpunkte**.
+Eine Person sucht Schlafmöglichkeiten nur innerhalb von maximal **8 erreichbaren Kachelschritten**. Die Qualitätsreihenfolge ist verbindlich:
+
+1. fertiges Wohnhaus innerhalb der Reichweite: nach 5 Sekunden wird die Hälfte der bis 100 fehlenden Erholung gutgeschrieben, nach weiteren 5 Sekunden der Rest bis **100**,
+2. Baum oder Busch innerhalb der Reichweite: **+20 nach 5 Sekunden und weitere +20 nach 10 Sekunden**,
+3. wenn beides fehlt: die Person schläft an ihrer aktuellen Position auf dem Boden und erhält **+10 nach 5 Sekunden und weitere +10 nach 10 Sekunden**.
 
 Bei mehreren Möglichkeiten derselben Qualitätsstufe wird der kürzeste erreichbare Weg verwendet. Ein Wohnhaus braucht in dieser PoC-Stufe noch keine feste Bewohner- oder Familienzuweisung und hat noch keine Schlafplatzkapazität.
+
+Auch die Schlafplatzsuche ist ereignisgetrieben: Ziel und Weg werden beim Schlafentscheid einmal festgelegt. Während des Laufens wird nicht ständig neu gesucht. Erst wenn der Weg endet, wird das Ziel geprüft; ist es dann ungültig oder nicht mehr erreichbar, wird ein neuer lokaler Schlafplatz gewählt.
 
 Nach einem Teil-Schlaf darf die vorherige Tätigkeit zunächst wieder aufgenommen werden, bevor bei weiterhin niedrigem Schlaf erneut eine Schlafentscheidung getroffen wird. Dadurch kann insbesondere Bodenschlaf mit nur +20 die Simulation fortsetzen, ohne im selben Moment erneut zu starten.
 
