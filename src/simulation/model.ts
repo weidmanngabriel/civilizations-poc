@@ -1,7 +1,8 @@
 export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread";
 export type BuildingId = string;
-export type BuildingKind = "hq" | "forest" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "warehouse";
-export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest" | "field">;
+export type BuildingKind = "hq" | "forest" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "warehouse" | "house";
+export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest" | "field" | "house">;
+export type PlaceableBuildingKind = BuildableBuildingKind | "house";
 export type Role = "worker" | "carrier" | "merchant" | "builder";
 export type Profession =
   | "woodcutter"
@@ -87,6 +88,16 @@ export interface HungerState {
   foodBush?: Hex;
   resumeActive: boolean;
 }
+export type SleepLocationKind = "house" | "nature" | "ground";
+export interface SleepState {
+  kind: SleepLocationKind;
+  target: Hex;
+  progress: number;
+  resumeActive: boolean;
+  resumeAssignment?: { building: BuildingId; role: Role };
+  resumeBuilder: boolean;
+  resumeWoodcutter: boolean;
+}
 export interface Person {
   id: number;
   position: Hex;
@@ -100,6 +111,10 @@ export interface Person {
   hunger?: number;
   hungerAccumulator?: number;
   hungerState?: HungerState;
+  sleep?: number;
+  sleepAccumulator?: number;
+  sleepState?: SleepState;
+  sleepGraceTicks?: number;
   active: boolean;
   progress: number;
   movement: number;

@@ -2,7 +2,7 @@
 
 ## PoC 1: Produktionslogistik auf einem Hex-Grid
 
-Ziel des Proof of Concept ist eine personenbasierte Produktions- und Logistiksimulation. Waren liegen physisch an Orten, Personen bewegen sie sichtbar über die Karte und räumliche Planung wirkt direkt auf Produktions- und Versorgungswege.
+Ziel des Proof of Concept ist eine personenbasierte Produktions- und Logistiksimulation. Waren liegen physisch an Orten, Personen bewegen sie sichtbar über die Karte und räumliche Planung wirkt direkt auf Produktions- und Versorgungswege. Bedürfnisse konkurrieren mit Arbeit um die Zeit einzelner Personen.
 
 ## Startzustand
 
@@ -67,6 +67,34 @@ Nahrungsquellen sind aktuell:
 
 Die Person vergleicht erreichbare Nahrung nach Reisezeit und nutzt die schnellste verfügbare Quelle. Reservierungen verhindern, dass mehrere hungrige Personen gleichzeitig dasselbe Brot oder denselben Busch fest einplanen.
 
+## Müdigkeit und Schlaf
+
+Jede Person besitzt zusätzlich einen Schlafwert von 0 bis 100. **100 bedeutet vollständig ausgeruht.** Müdigkeit entwickelt sich langsamer als Hunger und hängt ebenfalls von der Belastung ab.
+
+Verbrauch bei 1×:
+
+- herumstehen/warten: 1 Punkt alle 8 Sekunden,
+- laufen: 1 Punkt alle 4 Sekunden,
+- aktive Arbeit oder Tragen: 1 Punkt alle 2 Sekunden.
+
+Schlafpriorität entspricht grundsätzlich Hunger:
+
+- über 40: normales Verhalten,
+- 40 bis über 20: aktuelle Tätigkeit beenden, danach schlafen,
+- 20 oder weniger: aktuelle Tätigkeit sofort pausieren und schlafen gehen.
+
+Wenn Hunger und Schlaf gleichzeitig fällig sind, hat **Hunger Vorrang**. Fortschritt, Transporte und Arbeitsaufgaben bleiben während eines Schlafumwegs erhalten und werden danach fortgesetzt.
+
+Jeder Schlafvorgang dauert **10 Simulationssekunden**. Eine Person sucht Schlafmöglichkeiten nur innerhalb von maximal **8 erreichbaren Kachelschritten**. Die Qualitätsreihenfolge ist verbindlich:
+
+1. fertiges Wohnhaus innerhalb der Reichweite: Schlaf wird vollständig auf **100** gesetzt,
+2. Baum oder Busch innerhalb der Reichweite: **+40 Schlafpunkte**,
+3. wenn beides fehlt: die Person schläft an ihrer aktuellen Position auf dem Boden und erhält **+20 Schlafpunkte**.
+
+Bei mehreren Möglichkeiten derselben Qualitätsstufe wird der kürzeste erreichbare Weg verwendet. Ein Wohnhaus braucht in dieser PoC-Stufe noch keine feste Bewohner- oder Familienzuweisung und hat noch keine Schlafplatzkapazität.
+
+Nach einem Teil-Schlaf darf die vorherige Tätigkeit zunächst wieder aufgenommen werden, bevor bei weiterhin niedrigem Schlaf erneut eine Schlafentscheidung getroffen wird. Dadurch kann insbesondere Bodenschlaf mit nur +20 die Simulation fortsetzen, ohne im selben Moment erneut zu starten.
+
 ## Gebäude und Platzierung
 
 Gebäude besitzen feste zusammenhängende Footprints und eine Ankerposition.
@@ -75,6 +103,7 @@ Aktuelle Größen:
 
 - HQ: 4 Kacheln,
 - Lager: 4,
+- Wohnhaus: 4,
 - Farm: 4,
 - Sägewerk: 6,
 - Schreinerei: 4,
@@ -95,6 +124,7 @@ Das linke Hauptmenü enthält den Baumodus. Nach Wahl eines Gebäudes wird die K
 Aktuelle Baukosten:
 
 - Lager: 4 Holz,
+- Wohnhaus: 4 Holz,
 - Farm: 4 Holz,
 - Sägewerk: 6 Holz,
 - Schreinerei: 4 Bretter,
@@ -184,4 +214,6 @@ Die Karte belegt den gesamten Viewport. Overlays liegen darüber. Referenzgerät
 - Desktop: Mausrad und Drag,
 - Touch: ein Finger verschiebt, zwei Finger zoomen,
 - Hunger wird über ein kleines gelbes beziehungsweise rotes Bestecksymbol über der Person angezeigt,
+- Müdigkeit wird analog über ein eigenes `💤`-Symbol angezeigt: gelb bei Schlafbedarf, rot bei kritischer Müdigkeit,
+- Hunger- und Schlafsymbol liegen getrennt nebeneinander, falls beide Bedürfnisse gleichzeitig sichtbar sind,
 - Büsche werden direkt auf der Karte dargestellt; volle Büsche zeigen Beeren, leere nur das Buschgrün.
