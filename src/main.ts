@@ -11,12 +11,14 @@ import {
 import { createDefaultGameWorld } from "./simulation/scenario";
 import { installTileSelectionGuard, mountBuildMenu } from "./ui/buildMenu";
 import { mountControls } from "./ui/controls";
+import { mountHandbook } from "./ui/handbook";
 import { installHqStoragePanel } from "./ui/hqStoragePanel";
 import { installPerformanceDebugPanel } from "./ui/performanceDebug";
 import "./style.css";
 import "./map-interaction.css";
 import "./build-placement.css";
 import "./build-menu.css";
+import "./handbook.css";
 import "./performance-debug.css";
 
 const preventPageZoom = (): void => {
@@ -83,6 +85,7 @@ mountControls(world, () => scene.renderWorld());
 installPerformanceDebugPanel(world);
 installHqStoragePanel(world);
 mountBuildMenu(world);
+mountHandbook();
 showBuildVersion();
 
 const game = new Phaser.Game({

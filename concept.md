@@ -214,6 +214,14 @@ Holzfäller werden global am HQ verwaltet. Jeder sucht selbständig einen erreic
 
 Ein Wald besitzt zehn Arbeitszyklen. Jeder Zyklus erzeugt exakt 1 Holz. Am Wald liegen höchstens **drei** produzierte Holz gleichzeitig. Nach dem zehnten abgeschlossenen Zyklus verschwindet der Wald sofort und die Kachel wird Wiese; bereits produziertes Holz bleibt liegen.
 
+## In-App-Handbuch
+
+Das linke Hauptmenü enthält oberhalb des Baubuttons einen Fragezeichen-Button für das Handbuch. Das Handbuch besteht aus kurzen, thematisch getrennten Seiten und ist auf Spielerwissen zugeschnitten.
+
+Es erklärt das Verhalten der Spielwelt und die wichtigsten mentalen Modelle – etwa selbständig arbeitende Bewohner, Bedürfnisse, räumliche Bauplanung, physische Warenflüsse, Lager/Händler und organisch entstehende Wege. Interne Algorithmen, genaue Schwellenwerte, Kapazitäten und andere Balancezahlen werden dort nur genannt, wenn sie für eine Spielerentscheidung wirklich notwendig sind. Werte, die direkt in der jeweiligen Bedienoberfläche sichtbar sind, müssen nicht zusätzlich im Handbuch wiederholt werden.
+
+Die Inhalte liegen als Markdown-Dateien unter `src/handbook/*.md`, damit sie unabhängig vom UI-Code leicht gepflegt werden können. Die erste Version gliedert sich in Willkommen, Bewohner, Bauen, Waren & Logistik, Welt & Wege und Probleme lösen.
+
 ## Bedienung und Mobile
 
 Die Karte belegt den gesamten Viewport. Overlays liegen darüber. Referenzgerät ist ein iPhone 13 Mini mit 375 × 812 CSS-Pixeln.
