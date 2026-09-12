@@ -3,6 +3,7 @@ import type {
   Building,
   GoodAmounts,
   Hex,
+  PlaceableBuildingKind,
   World,
 } from "./model";
 import { key, neighbors, same } from "./hex";
@@ -28,7 +29,7 @@ const constructionPlan = (required: GoodAmounts): ConstructionPlan => ({
   duration: constructionDuration(required),
 });
 
-export const CONSTRUCTION_PLANS: Record<BuildableBuildingKind, ConstructionPlan> = {
+export const CONSTRUCTION_PLANS: Record<PlaceableBuildingKind, ConstructionPlan> = {
   warehouse: constructionPlan({ wood: 4 }),
   house: constructionPlan({ wood: 4 }),
   farm: constructionPlan({ wood: 4 }),
@@ -49,7 +50,7 @@ const COMPACT_SHAPE: BuildingPlacementShape = {
   anchor: { q: 0, r: 0 },
 };
 
-const SHAPES: Record<BuildableBuildingKind, BuildingPlacementShape> = {
+const SHAPES: Record<PlaceableBuildingKind, BuildingPlacementShape> = {
   warehouse: COMPACT_SHAPE,
   house: COMPACT_SHAPE,
   farm: COMPACT_SHAPE,
@@ -76,7 +77,7 @@ export const footprintFromShape = (shape: BuildingPlacementShape, anchorPosition
     r: anchorPosition.r + cell.r - shape.anchor.r,
   }));
 
-export const footprintAt = (kind: BuildableBuildingKind, anchorPosition: Hex): Hex[] =>
+export const footprintAt = (kind: PlaceableBuildingKind, anchorPosition: Hex): Hex[] =>
   footprintFromShape(SHAPES[kind], anchorPosition);
 
 export const buildingFootprint = (building: Building): Hex[] =>
@@ -108,7 +109,7 @@ const createPlacementLookup = (world: World): PlacementLookup => ({
 const canPlaceWithLookup = (
   lookup: PlacementLookup,
   anchorPosition: Hex,
-  kind: BuildableBuildingKind,
+  kind: PlaceableBuildingKind,
 ): boolean => {
   const footprint = footprintAt(kind, anchorPosition);
   const ring = footprintRing(footprint);
@@ -120,14 +121,14 @@ const canPlaceWithLookup = (
 export function canPlaceBuilding(
   world: World,
   anchorPosition: Hex,
-  kind: BuildableBuildingKind,
+  kind: PlaceableBuildingKind,
 ): boolean {
   return canPlaceWithLookup(createPlacementLookup(world), anchorPosition, kind);
 }
 
 export function validBuildingAnchors(
   world: World,
-  kind: BuildableBuildingKind,
+  kind: PlaceableBuildingKind,
 ): Hex[] {
   const lookup = createPlacementLookup(world);
   return world.tiles
@@ -138,7 +139,7 @@ export function validBuildingAnchors(
 export function buildWithFootprint(
   world: World,
   anchorPosition: Hex,
-  kind: BuildableBuildingKind,
+  kind: PlaceableBuildingKind,
 ): Building | undefined {
   if (!canPlaceBuilding(world, anchorPosition, kind)) return;
   const footprint = footprintAt(kind, anchorPosition);
@@ -148,9 +149,10 @@ export function buildWithFootprint(
     baseTerrains[key(position)] = tile.terrain as "grass" | "road";
   }
 
-  const created = buildAt(world, anchorPosition, kind);
+  const created = buildAt(world, anchorPosition, kind as BuildableBuildingKind);
   if (!created) return;
   if (kind === "house") {
+    created.kind = "house";
     created.name = "Wohnhaus";
     created.workers = 0;
     created.carriers = 0;
