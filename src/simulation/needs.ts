@@ -197,8 +197,10 @@ const nextRandom = (world: World): number => {
 const consumeBush = (world: World, person: Person, tile: Tile): void => {
   tile.bushAvailable = false;
   const span = CONFIG.bushRegrowMaxTicks - CONFIG.bushRegrowMinTicks;
-  tile.bushRegrowTick =
+  const regrowTick =
     world.round + CONFIG.bushRegrowMinTicks + (nextRandom(world) % (span + 1));
+  tile.bushRegrowTick = regrowTick;
+  world.nextBushRegrowTick = Math.min(world.nextBushRegrowTick ?? regrowTick, regrowTick);
   person.hunger = Math.min(HUNGER_MAX, (person.hunger ?? HUNGER_MAX) + CONFIG.bushFoodValue);
   finishEating(world, person);
 };
@@ -332,20 +334,29 @@ const ensureFoodRoute = (world: World, person: Person): void => {
 };
 
 const cleanupAndRegrowBushes = (world: World): void => {
-  if (world.round % CONFIG.decisionIntervalTicks !== 0) return;
+  const cleanupDue = world.round % CONFIG.decisionIntervalTicks === 0;
+  const regrowDue =
+    world.nextBushRegrowTick !== undefined && world.round >= world.nextBushRegrowTick;
+  if (!cleanupDue && !regrowDue) return;
+
+  let nextRegrowTick: number | undefined;
   for (const tile of world.tiles) {
     if (!tile.bush) continue;
-    if (tile.terrain !== "grass") {
+    if (cleanupDue && tile.terrain !== "grass") {
       tile.bush = undefined;
       tile.bushAvailable = undefined;
       tile.bushRegrowTick = undefined;
       continue;
     }
-    if (!tile.bushAvailable && tile.bushRegrowTick !== undefined && world.round >= tile.bushRegrowTick) {
+    if (tile.bushRegrowTick === undefined) continue;
+    if (world.round >= tile.bushRegrowTick) {
       tile.bushAvailable = true;
       tile.bushRegrowTick = undefined;
+      continue;
     }
+    nextRegrowTick = Math.min(nextRegrowTick ?? tile.bushRegrowTick, tile.bushRegrowTick);
   }
+  world.nextBushRegrowTick = nextRegrowTick;
 };
 
 const sourceStock = (building: Building, good: Good): number => {
