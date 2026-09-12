@@ -1,12 +1,14 @@
 import type { Building, Hex, Person, SleepLocationKind, SleepState, World } from "./model";
 import { findPath, findPathBySteps, pathTravelCost, same } from "./hex";
 import { CONFIG } from "./scenario";
+import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 
 const SLEEP_MAX = 100;
 const WANTS_TO_SLEEP_THRESHOLD = 40;
 const CRITICAL_SLEEP_THRESHOLD = 20;
 const SLEEP_RADIUS_STEPS = 8;
-const SLEEP_DURATION_TICKS = 10 * 60;
+const SLEEP_PHASE_TICKS = 5 * 60;
+const SLEEP_DURATION_TICKS = SLEEP_PHASE_TICKS * 2;
 const ACCUMULATOR_EPSILON = 1e-9;
 
 const sleepValue = (person: Person): number => {
@@ -33,7 +35,9 @@ const decaySleep = (person: Person): void => {
 };
 
 const routeTo = (world: World, person: Person, target: Hex): Hex[] | undefined =>
-  findPath(world.tiles, person.position, target, CONFIG.roadSpeedMultiplier) ?? undefined;
+  performanceProfiler.withPathReason("sleep", () =>
+    findPath(world.tiles, person.position, target, CONFIG.roadSpeedMultiplier),
+  ) ?? undefined;
 
 const isCompletedHouse = (building: Building): boolean =>
   building.kind === "house" &&
@@ -41,7 +45,9 @@ const isCompletedHouse = (building: Building): boolean =>
   (!building.construction || building.construction.complete);
 
 const withinSleepRadius = (world: World, origin: Hex, target: Hex): boolean => {
-  const path = findPathBySteps(world.tiles, origin, target);
+  const path = performanceProfiler.withPathReason("sleep", () =>
+    findPathBySteps(world.tiles, origin, target),
+  );
   return Boolean(path && path.length <= SLEEP_RADIUS_STEPS);
 };
 
@@ -152,14 +158,16 @@ const resumeTask = (world: World, person: Person, state: SleepState): void => {
 
 const finishSleeping = (world: World, person: Person): void => {
   const state = person.sleepState!;
-  const restored = state.kind === "house" ? SLEEP_MAX : state.kind === "nature" ? 40 : 20;
-  person.sleep = state.kind === "house"
-    ? SLEEP_MAX
-    : Math.min(SLEEP_MAX, (person.sleep ?? SLEEP_MAX) + restored);
   person.sleepAccumulator = 0;
   person.sleepState = undefined;
   person.sleepGraceTicks = 2;
   resumeTask(world, person, state);
+};
+
+const recoveryPerPhase = (person: Person, kind: SleepLocationKind): number => {
+  if (kind === "house") return Math.max(0, (SLEEP_MAX - (person.sleep ?? SLEEP_MAX)) / 2);
+  if (kind === "nature") return 20;
+  return 10;
 };
 
 const startSleeping = (world: World, person: Person): void => {
@@ -168,6 +176,8 @@ const startSleeping = (world: World, person: Person): void => {
     kind: candidate.kind,
     target: { ...candidate.target },
     progress: 0,
+    completedPhases: 0,
+    recoveryPerPhase: recoveryPerPhase(person, candidate.kind),
     resumeActive: person.active,
     resumeAssignment: person.assignment ? { ...person.assignment } : undefined,
     resumeBuilder: Boolean(person.builder),
@@ -186,57 +196,87 @@ const applyReplacementTarget = (world: World, person: Person, state: SleepState)
   state.kind = replacement.kind;
   state.target = { ...replacement.target };
   state.progress = 0;
+  state.completedPhases = 0;
+  state.recoveryPerPhase = recoveryPerPhase(person, replacement.kind);
   person.path = same(person.position, replacement.target) ? [] : replacement.path;
   person.movement = 0;
+};
+
+const applySleepPhase = (person: Person, state: SleepState): void => {
+  person.sleep = Math.min(SLEEP_MAX, (person.sleep ?? SLEEP_MAX) + state.recoveryPerPhase);
+  person.sleepAccumulator = 0;
 };
 
 const ensureSleepRouteOrProgress = (world: World, person: Person): void => {
   const state = person.sleepState!;
   if (person.hungerState) return;
 
-  if (!targetStillValid(world, state)) applyReplacementTarget(world, person, state);
-
-  if (!same(person.position, state.target)) {
-    const currentDestination = person.path.at(-1);
-    if (!currentDestination || !same(currentDestination, state.target)) {
-      const reroute = routeTo(world, person, state.target);
-      if (!reroute) applyReplacementTarget(world, person, state);
-      else person.path = reroute;
-      person.movement = 0;
-    }
+  // A selected route is trusted while travelling. Revalidation happens only after arrival
+  // (or if the route disappeared before reaching the stored target).
+  if (person.path.length > 0) {
     person.active = false;
     return;
   }
 
-  person.path = [];
+  if (!same(person.position, state.target)) {
+    if (!targetStillValid(world, state)) {
+      applyReplacementTarget(world, person, state);
+      return;
+    }
+    const reroute = routeTo(world, person, state.target);
+    if (!reroute) applyReplacementTarget(world, person, state);
+    else person.path = reroute;
+    person.movement = 0;
+    person.active = false;
+    return;
+  }
+
+  if (state.progress === 0 && state.completedPhases === 0 && !targetStillValid(world, state)) {
+    applyReplacementTarget(world, person, state);
+    return;
+  }
+
   person.active = false;
   person.movement = 0;
   state.progress++;
-  if (state.progress >= SLEEP_DURATION_TICKS) finishSleeping(world, person);
+
+  if (state.completedPhases === 0 && state.progress >= SLEEP_PHASE_TICKS) {
+    applySleepPhase(person, state);
+    state.completedPhases = 1;
+  }
+  if (state.progress >= SLEEP_DURATION_TICKS) {
+    applySleepPhase(person, state);
+    finishSleeping(world, person);
+  }
 };
 
 export function advanceSleepTick(world: World): void {
-  for (const person of world.people) {
-    sleepValue(person);
-    if (person.sleepGraceTicks! > 0) person.sleepGraceTicks!--;
+  const started = performanceNow();
+  try {
+    for (const person of world.people) {
+      sleepValue(person);
+      if (person.sleepGraceTicks! > 0) person.sleepGraceTicks!--;
 
-    if (person.sleepState) {
-      ensureSleepRouteOrProgress(world, person);
-      continue;
+      if (person.sleepState) {
+        ensureSleepRouteOrProgress(world, person);
+        continue;
+      }
+
+      decaySleep(person);
+
+      if (person.hungerState || (person.hunger ?? 100) <= 40) continue;
+      if (person.sleepGraceTicks! > 0) continue;
+
+      if (person.sleep! <= CRITICAL_SLEEP_THRESHOLD) {
+        startSleeping(world, person);
+        continue;
+      }
+
+      if (person.sleep! <= WANTS_TO_SLEEP_THRESHOLD && atTaskBoundary(person))
+        startSleeping(world, person);
     }
-
-    decaySleep(person);
-
-    if (person.hungerState || (person.hunger ?? 100) <= 40) continue;
-    if (person.sleepGraceTicks! > 0) continue;
-
-    if (person.sleep! <= CRITICAL_SLEEP_THRESHOLD) {
-      startSleeping(world, person);
-      continue;
-    }
-
-    if (person.sleep! <= WANTS_TO_SLEEP_THRESHOLD && atTaskBoundary(person))
-      startSleeping(world, person);
+  } finally {
+    performanceProfiler.recordFeature("sleep", performanceNow() - started);
   }
 }
 
@@ -263,6 +303,7 @@ export const sleepStatus = (person: Person): "normal" | "tired" | "critical" => 
 
 export const SLEEP_RULES = {
   radiusSteps: SLEEP_RADIUS_STEPS,
+  phaseTicks: SLEEP_PHASE_TICKS,
   durationTicks: SLEEP_DURATION_TICKS,
   natureRecovery: 40,
   groundRecovery: 20,
