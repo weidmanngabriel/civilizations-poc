@@ -108,7 +108,8 @@ test("sleep temporarily removes a workplace assignment so production cannot cont
   person.sleepState!.progress = SLEEP_RULES.durationTicks - 1;
   advanceSleepTick(world);
 
-  assert.equal(person.assignment?.building, workplace.id);
+  const restoredAssignment = person.assignment as { building: string } | undefined;
+  assert.equal(restoredAssignment?.building, workplace.id);
   assert.equal(person.progress, preservedProgress);
 });
 
