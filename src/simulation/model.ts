@@ -86,6 +86,7 @@ export interface FarmTask {
 export interface HungerState {
   foodSource?: BuildingId;
   foodBush?: Hex;
+  retryAfterTick?: number;
   resumeActive: boolean;
 }
 export type SleepLocationKind = "house" | "nature" | "ground";
@@ -93,6 +94,8 @@ export interface SleepState {
   kind: SleepLocationKind;
   target: Hex;
   progress: number;
+  completedPhases: 0 | 1;
+  recoveryPerPhase: number;
   resumeActive: boolean;
   resumeAssignment?: { building: BuildingId; role: Role };
   resumeBuilder: boolean;
@@ -128,6 +131,7 @@ export interface World {
   nextBuildingId: number;
   nextFieldId: number;
   rngState: number;
+  nextBushRegrowTick?: number;
   people: Person[];
   buildings: Building[];
   tiles: Tile[];

@@ -16,6 +16,7 @@ const TABLE_SCROLL_IDLE_MS = 700;
 
 const FEATURE_LABELS: Record<PerformanceFeature, string> = {
   hunger: "Hunger / Nahrung",
+  sleep: "Schlaf / Schlafplatz",
   movement: "Bewegung",
   transport: "Logistik / Transport",
   construction: "Baustellen",
@@ -29,6 +30,7 @@ const FEATURE_LABELS: Record<PerformanceFeature, string> = {
 
 const PATH_REASON_LABELS: Record<PathReason, string> = {
   hunger: "Hunger / Nahrung",
+  sleep: "Schlaf / Schlafplatz",
   woodcutter: "Holzfäller",
   builder: "Bauarbeiter",
   logistics: "Träger / Versorgung",

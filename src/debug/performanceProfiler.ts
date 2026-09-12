@@ -5,6 +5,7 @@ type PathSample = TimedSample & { reason: PathReason };
 
 export type PerformanceFeature =
   | "hunger"
+  | "sleep"
   | "movement"
   | "transport"
   | "construction"
@@ -17,6 +18,7 @@ export type PerformanceFeature =
 
 export type PathReason =
   | "hunger"
+  | "sleep"
   | "woodcutter"
   | "builder"
   | "logistics"
@@ -79,6 +81,7 @@ export type PerformanceSnapshot = {
 
 export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
   "hunger",
+  "sleep",
   "movement",
   "transport",
   "construction",
@@ -92,6 +95,7 @@ export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
 
 export const PATH_REASONS: PathReason[] = [
   "hunger",
+  "sleep",
   "woodcutter",
   "builder",
   "logistics",
@@ -103,6 +107,7 @@ export const PATH_REASONS: PathReason[] = [
 
 const SIMULATION_FEATURES = new Set<PerformanceFeature>([
   "hunger",
+  "sleep",
   "movement",
   "transport",
   "construction",
