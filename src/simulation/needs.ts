@@ -221,25 +221,34 @@ const useCandidate = (world: World, person: Person, candidate: FoodCandidate): v
   }
 };
 
-const startEating = (world: World, person: Person, critical: boolean): boolean => {
-  const candidate = foodCandidates(world, person)[0];
-  if (!candidate && !critical) return false;
+const assignFoodCandidate = (
+  world: World,
+  person: Person,
+  state: HungerState,
+  candidate: FoodCandidate | undefined,
+): boolean => {
+  state.foodSource = candidate?.kind === "bread" ? candidate.warehouse.id : undefined;
+  state.foodBush = candidate?.kind === "bush" ? { q: candidate.tile.q, r: candidate.tile.r } : undefined;
+  state.retryAfterTick = candidate ? undefined : world.round + CONFIG.decisionIntervalTicks;
+  person.movement = 0;
+  if (!candidate) {
+    person.path = [];
+    person.active = false;
+    return false;
+  }
+  useCandidate(world, person, candidate);
+  if (person.hungerState) person.active = false;
+  return true;
+};
 
+const startEating = (world: World, person: Person): boolean => {
+  const candidate = foodCandidates(world, person)[0];
   person.hungerState = {
-    foodSource: candidate?.kind === "bread" ? candidate.warehouse.id : undefined,
-    foodBush: candidate?.kind === "bush" ? { q: candidate.tile.q, r: candidate.tile.r } : undefined,
     resumeActive: person.active,
   };
   person.active = false;
   person.movement = 0;
-
-  if (candidate) {
-    useCandidate(world, person, candidate);
-    return true;
-  }
-
-  person.path = [{ ...person.position }];
-  return true;
+  return assignFoodCandidate(world, person, person.hungerState, candidate);
 };
 
 const atTaskBoundary = (person: Person): boolean =>
@@ -286,19 +295,19 @@ const consumeSelectedTarget = (
 
 const ensureFoodRoute = (world: World, person: Person): void => {
   const state = person.hungerState!;
-  let target = selectedFoodTarget(world, person);
 
+  // While travelling, trust the selected target and route. Source validity is checked
+  // only once the route has ended, normally at arrival.
+  if (person.path.length > 0) {
+    person.active = false;
+    return;
+  }
+
+  const target = selectedFoodTarget(world, person);
   if (target) {
     const targetPosition = selectedTargetPosition(target);
     if (same(person.position, targetPosition)) {
-      person.path = [];
       consumeSelectedTarget(world, person, target);
-      return;
-    }
-
-    const currentDestination = person.path.at(-1);
-    if (currentDestination && same(currentDestination, targetPosition)) {
-      person.active = false;
       return;
     }
 
@@ -312,27 +321,18 @@ const ensureFoodRoute = (world: World, person: Person): void => {
 
     state.foodSource = undefined;
     state.foodBush = undefined;
-    target = undefined;
   }
 
-  if (!target) {
-    const candidate = foodCandidates(world, person)[0];
-    state.foodSource = candidate?.kind === "bread" ? candidate.warehouse.id : undefined;
-    state.foodBush = candidate?.kind === "bush" ? { q: candidate.tile.q, r: candidate.tile.r } : undefined;
-    person.movement = 0;
-    if (candidate) {
-      useCandidate(world, person, candidate);
-      if (person.hungerState) person.active = false;
-      return;
-    }
+  if (state.retryAfterTick !== undefined && world.round < state.retryAfterTick) {
+    person.active = false;
+    return;
   }
 
-  person.active = false;
-  person.movement = 0;
-  person.path = [{ ...person.position }];
+  assignFoodCandidate(world, person, state, foodCandidates(world, person)[0]);
 };
 
 const cleanupAndRegrowBushes = (world: World): void => {
+  if (world.round % CONFIG.decisionIntervalTicks !== 0) return;
   for (const tile of world.tiles) {
     if (!tile.bush) continue;
     if (tile.terrain !== "grass") {
@@ -458,12 +458,12 @@ export function advanceHungerTick(world: World): void {
     }
 
     if (person.hunger! <= CRITICAL_HUNGER_THRESHOLD) {
-      startEating(world, person, true);
+      startEating(world, person);
       continue;
     }
 
     if (person.hunger! <= WANTS_TO_EAT_THRESHOLD && atTaskBoundary(person))
-      startEating(world, person, false);
+      startEating(world, person);
   }
   performanceProfiler.recordFeature("hunger", performanceNow() - hungerStarted);
 
