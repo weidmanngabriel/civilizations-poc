@@ -39,9 +39,11 @@ Tile
 
 Bushes deliberately remain a lightweight feature on top of grass rather than becoming buildings or transportable goods. This lets normal grass pathfinding and placement rules continue to work.
 
-Each person stores hunger from 0 to 100, a fractional hunger accumulator and optional `HungerState`. `HungerState` can reserve either a bread source building or one bush position while preserving the interrupted work state.
+Each person stores hunger from 0 to 100, a fractional hunger accumulator and optional `HungerState`. `HungerState` can reserve either a bread source building or one bush position while preserving the interrupted work state. If no food is currently reachable, it also stores `retryAfterTick` so an unsuccessful global food search is retried at most on the normal one-second decision cadence.
 
-Each person also stores sleep from 0 to 100, a fractional sleep accumulator and optional `SleepState`. `SleepState` stores the selected sleep quality and target plus the interrupted assignment/pool state. During sleep the normal assignment and builder/woodcutter pool flags are temporarily removed so existing production, transport and planning code cannot reactivate the person. They are restored after waking if the referenced workplace still exists.
+Each person also stores sleep from 0 to 100, a fractional sleep accumulator and optional `SleepState`. `SleepState` stores the selected sleep quality and target, interrupted assignment/pool state, current sleep progress, the number of completed five-second phases and the recovery amount credited per phase. During sleep the normal assignment and builder/woodcutter pool flags are temporarily removed so existing production, transport and planning code cannot reactivate the person. They are restored after waking if the referenced workplace still exists.
+
+The world stores `nextBushRegrowTick`, the earliest currently scheduled bush regrowth. This avoids scanning every tile on every simulation tick just to discover whether a bush is due.
 
 `BuildingKind` includes `house`. To avoid widening older building-management code unnecessarily, `PlaceableBuildingKind` adds `house` on top of the existing `BuildableBuildingKind` union and is used by placement/build-menu code.
 
@@ -77,6 +79,7 @@ base movement            2.5 tiles / s
 normal decision cadence  60 ticks / 1 s
 road traffic window      1920 ticks / 32 s
 farm sow/harvest         600 ticks / 10 s
+sleep phase              300 ticks / 5 s
 sleep action             600 ticks / 10 s
 field growth stage       1800 ticks / 30 s
 bush regrowth            7200–10800 ticks / 120–180 s
@@ -106,7 +109,9 @@ Food candidates are evaluated with the normal weighted pathfinder and sorted by 
 
 Bread can come from a finished warehouse or from the HQ inventory and restores hunger to 100. A bush restores 40 points, capped at 100.
 
-Reservations are person-local: bread uses the source building id, bushes use a hex position. Other hungry people exclude an already reserved portion/source while planning. Once a reserved food source and its route remain valid, the existing path is reused across simulation ticks. Pathfinding runs again only when the source becomes invalid, the route no longer targets the reserved source, or a new source must be selected.
+Reservations are person-local: bread uses the source building id, bushes use a hex position. Other hungry people exclude an already reserved portion/source while planning.
+
+Food selection is event-driven. When eating becomes due, one candidate and its path are selected. While the person is travelling, the selected source is not revalidated and no new hunger pathfinding runs. Once the route ends, normally at arrival, the stored source is checked. If food is still present, it is consumed; if the source disappeared, was consumed or became unreachable, a new candidate is selected at that point. If no candidate exists, the person remains blocked by hunger and the expensive candidate search is retried at most once every `CONFIG.decisionIntervalTicks` (currently one simulated second).
 
 Critical interruption leaves `progress`, `farmTask` and `trip` intact. After eating, the target is reconstructed in this order:
 
@@ -136,14 +141,16 @@ Thresholds mirror hunger:
 When hunger and sleep are due together, hunger has priority. Sleep selection is intentionally local: candidates must be within eight reachable steps according to the step-count pathfinder. Quality is prioritized before distance:
 
 ```text
-completed house          -> sleep = 100
-forest tile / bush tile  -> +40
-no local option           -> current ground tile, +20
+completed house          -> missing recovery to 100
+forest tile / bush tile  -> +40 total
+no local option           -> current ground tile, +20 total
 ```
 
-Within one quality class the weighted route with the lowest travel cost wins. The selected house/nature target is revalidated while travelling; demolition or terrain changes cause a new local choice. Ground sleep never requires pathfinding.
+The ten-second sleep consists of two five-second phases. `SleepState.recoveryPerPhase` is fixed when the sleep starts. A house stores half of the amount missing to 100; nature stores 20; ground stores 10. The first phase credits that amount after 300 ticks and the second phase credits it again after 600 ticks. Because the first credit is written directly to the person's sleep value, it remains if a future manual order, combat event or other system interrupts sleep between phases.
 
-A sleeping person keeps `progress`, `farmTask`, `trip` and merchant configuration. The normal assignment plus builder/woodcutter pool flags are temporarily stored in `SleepState` and removed from the live person so existing simulation planners skip the sleeper. On wake they are restored and the task target is reconstructed with the same priority used for hunger. Partial recovery gets a one-tick wake grace before another sleep request can begin.
+Within one quality class the weighted route with the lowest travel cost wins. Sleep routing is event-driven like hunger: the selected target and route are trusted while travelling. When the path ends, the target is checked. If it disappeared or became unreachable, a new local target is selected then. Ground sleep never requires pathfinding.
+
+A sleeping person keeps `progress`, `farmTask`, `trip` and merchant configuration. The normal assignment plus builder/woodcutter pool flags are temporarily stored in `SleepState` and removed from the live person so existing simulation planners skip the sleeper. On wake they are restored and the task target is reconstructed with the same priority used for hunger. Partial recovery gets a short wake grace before another sleep request can begin.
 
 Housing is deliberately minimal in this PoC stage: a completed house is a shared sleep destination with no resident assignment, family model or capacity yet.
 
@@ -151,9 +158,9 @@ Housing is deliberately minimal in this PoC stage: a completed house is a shared
 
 Bush lifecycle also lives in `needs.ts` because it advances in simulation time.
 
-A full bush becomes empty immediately when eaten. Its regrowth tick is chosen through the existing deterministic world RNG between 120 and 180 seconds in the future.
+A full bush becomes empty immediately when eaten. Its regrowth tick is chosen through the existing deterministic world RNG between 120 and 180 seconds in the future. `World.nextBushRegrowTick` keeps the earliest due time. Normal needs ticks therefore do not scan the map for regrowth. A scan occurs only when the earliest scheduled regrowth is due; that scan restores all due bushes and calculates the next earliest event.
 
-Before each needs step, bush metadata is cleaned up if the underlying tile is no longer grass. This is intentional: construction, fields or organic roads permanently destroy the bush.
+Terrain cleanup is intentionally less frequent as well: once per normal one-second decision cadence the bush list is checked for bushes whose underlying tile is no longer grass. Construction placement already removes bushes from its footprint immediately, while this periodic cleanup handles terrain changes such as organic roads.
 
 `buildingPlacement.ts` explicitly clears bush metadata on every footprint tile when a building is placed. The stored restoration terrain remains grass/road only, so demolition restores ordinary grass rather than resurrecting a bush.
 
@@ -185,7 +192,7 @@ The planner runs on the existing one-second decision cadence. Standard simulatio
 
 Road movement cost is `1 / 1.3`, corresponding to a 30% speed increase.
 
-Eight traversals of one grass tile within 32 seconds turn it into a road. On the next needs step any bush metadata on that now-non-grass tile is removed permanently.
+Eight traversals of one grass tile within 32 seconds turn it into a road. Periodic bush cleanup removes any bush metadata on that now-non-grass tile permanently.
 
 ## Buildings and placement
 
@@ -272,9 +279,9 @@ Performance diagnostics are observational only. `src/debug/performanceProfiler.t
 
 The global probes measure browser frame duration/FPS, deterministic tick cost and rate, scheduler backlog, pathfinding cost/call rate, incremental render cost and world counts.
 
-Simulation feature timings remain deliberately coarse: hunger/food, movement, transport/logistics, construction, farm/fields, production and planning are measured explicitly; remaining work appears as **simulation other / unaccounted**. Sleep currently falls into this remainder rather than introducing a second needs-specific profiler category.
+Simulation feature timings remain deliberately coarse: hunger/food, sleep/sleep-place handling, movement, transport/logistics, construction, farm/fields, production and planning are measured explicitly; remaining work appears as **simulation other / unaccounted**. Hunger and sleep are separate feature rows so need-system costs can be compared directly.
 
-Pathfinding attribution remains cross-cutting and is not added twice to feature cost. Hunger, woodcutter, builder, logistics, merchant, farm, reroute and other are the current attribution reasons; sleep route searches currently use the generic pathfinder without adding a new profiler reason.
+Pathfinding attribution remains cross-cutting and is not added twice to feature cost. Hunger and sleep have their own path reasons alongside woodcutter, builder, logistics, merchant, farm, reroute and other. Because selected hunger/sleep routes are trusted while travelling, these path counts should primarily rise when a need starts, an arrival finds an invalid target, or an unexpected path end requires a reroute.
 
 The Debug panel refreshes at 4 Hz only while visible. It keeps its existing rolling summaries and preserves table scrolling behavior on touch devices.
 
@@ -298,8 +305,8 @@ The left build menu includes the Wohnhaus. The existing generic placement flow i
 
 Coverage includes movement, placement, construction, production, farms, forests, merchants, inventory integer rules, profession experience, hunger, sleep, performance-profiler invariants and start/bush rules.
 
-Sleep coverage verifies idle/walking/work decay, deferred and critical interruption, house/nature/ground recovery, the eight-step locality limit and hunger priority.
+Sleep coverage verifies idle/walking/work decay, deferred and critical interruption, two five-second recovery phases for house/nature/ground, the eight-step locality limit and hunger priority.
 
-The needs/performance suites additionally verify that a valid reserved hunger route is reused across ticks and that feature timing is normalized into per-tick cost without applying that normalization to presentation-only features.
+The needs/performance suites additionally verify that selected hunger routes are not revalidated during travel, invalid food is rediscovered only after arrival, unsuccessful searches are throttled, exact bush regrowth still occurs at its due tick, and sleep has separate simulation/pathfinding attribution.
 
 `.github/workflows/deploy.yml` runs tests and production build on pushes to `main`, then deploys GitHub Pages. Branch pushes do not deploy.
