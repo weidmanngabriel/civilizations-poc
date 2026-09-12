@@ -94,6 +94,7 @@ export interface SleepState {
   target: Hex;
   progress: number;
   resumeActive: boolean;
+  resumeAssignment?: { building: BuildingId; role: Role };
   resumeBuilder: boolean;
   resumeWoodcutter: boolean;
 }
