@@ -12,4 +12,6 @@ Wenn eine konkrete Produktfunktion noch nicht definiert ist, erfinde keine umfan
 
 Halte beide Dateien dauerhaft auf dem aktuellen Stand. Ergänze neue fachliche Funktionen in `concept.md` und wichtige technische bzw. architektonische Entscheidungen in `architecture.md`. Aktualisiere bestehende Aussagen, wenn sich Verhalten oder Aufbau ändern, und entferne Inhalte, die nicht mehr dem tatsächlichen Stand der Anwendung entsprechen.
 
+Bei Änderungen an Player-Facing-Funktionen muss zusätzlich geprüft werden, ob das In-App-Handbuch unter `src/handbook/*.md` angepasst werden muss. Spielerrelevante Änderungen dort knapp, spielerzentriert und ohne interne Technikdetails oder unnötige Balancezahlen ergänzen. Das Handbuch soll erklären, wie sich die Spielwelt verhält und was der Spieler daraus ableiten kann, nicht die interne Simulation offenlegen.
+
 Die Dokumentation soll so gepflegt werden, dass ein fähiger Agent die bestehende App und ihre wichtigsten Produkt- und Architekturentscheidungen schnell verstehen und im Zweifel von Grund auf neu implementieren könnte. Es geht vor allem um eine belastbare Highlevel-Übersicht, nicht um jedes Detail.
