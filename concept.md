@@ -63,6 +63,7 @@ Bei einer kritischen Unterbrechung bleibt der Fortschritt erhalten. Nach dem Ess
 Nahrungsquellen sind aktuell:
 
 - Brot aus fertigen Lagern oder dem HQ: setzt Hunger auf 100,
+- Brot, das als fertiger lokaler Output in einer Bäckerei liegt: setzt Hunger ebenfalls auf 100,
 - Beerenbusch: +40 Hungerpunkte.
 
 Die Person vergleicht erreichbare Nahrung nach Reisezeit und nutzt die schnellste verfügbare Quelle. Reservierungen verhindern, dass mehrere hungrige Personen gleichzeitig dasselbe Brot oder denselben Busch fest einplanen.
@@ -186,6 +187,8 @@ Normale Produktionsstätten können **10 Einheiten lokalen Output** halten. Der 
 Normale Lager und das HQ halten Waren physisch im Inventar. Die Kapazität beträgt aktuell 20 Einheiten je Warentyp.
 
 Lager-Träger sammeln Nicht-Lager-Quellen innerhalb von 10 erreichbaren Kachelschritten. Sie verschieben keine Ware automatisch zwischen Lagern.
+
+Produktionsarbeiter dürfen benötigte Zutaten direkt aus normalen Lagern **und aus dem HQ-Inventar** holen. Für diese Beschaffung gibt es keinen separaten HQ-Sonderradius; es gilt dieselbe erreichbare Quellenwahl wie bei einem normalen Lager als Produktionsquelle.
 
 Das HQ unterstützt maximal **2 Träger**, startet aber ohne zugewiesenen Träger. Zugewiesene HQ-Träger verwenden dieselbe Reichweiten- und Transportlogik wie Lager-Träger. Das HQ ist damit von Beginn an ein Versorgungs- und Lagerpunkt, während die automatische Sammlung erst nach einer Trägerzuweisung beginnt.
 
