@@ -53,6 +53,7 @@
 .build-menu-panel {
   width: min(310px, calc(100vw - 84px - env(safe-area-inset-left)));
   max-height: min(620px, calc(100vh - 176px));
+  margin-top: 68px;
   overflow: auto;
   padding: 10px;
   border-radius: 14px;
@@ -165,5 +166,6 @@ main.merchant-target-mode .build-menu-shell {
   .build-menu-panel {
     width: min(270px, calc(100vw - 66px - env(safe-area-inset-left)));
     max-height: calc(100vh - 154px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    margin-top: 60px;
   }
 }
