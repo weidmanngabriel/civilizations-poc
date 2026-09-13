@@ -22,6 +22,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: node scripts/tmp-add-clay-stone.mjs
+      - run: node scripts/tmp-fix-resource-yield.mjs
       - run: npm ci
       - run: npm test
       - run: npm run build
