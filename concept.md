@@ -226,6 +226,28 @@ Holzfäller werden global am HQ verwaltet. Jeder sucht selbständig einen erreic
 
 Ein Wald besitzt zehn Arbeitszyklen. Jeder Zyklus erzeugt exakt 1 Holz. Am Wald liegen höchstens **drei** produzierte Holz gleichzeitig. Nach dem zehnten abgeschlossenen Zyklus verschwindet der Wald sofort und die Kachel wird Wiese; bereits produziertes Holz bleibt liegen.
 
+## Personeninspektion und Personenliste
+
+Bewohner sind einzeln inspizierbare Spielfiguren. Jeder Bewohner erhält über seine persistente Personen-ID einen stabilen, eindeutigen Anzeigenamen. Namen sind in dieser PoC-Stufe noch nicht editierbar und besitzen noch keine Familien- oder Biografielogik.
+
+Ein kurzer Klick oder Tap auf eine Person selektiert sie. Die Trefferfläche ist bewusst größer als die sichtbare Figur, damit die Auswahl auf kleinen Touchscreens zuverlässig funktioniert. Wenn der Finger bewegt wird, bleibt die bestehende Ein-Finger-Geste dagegen ausschließlich Kartenverschiebung. Bei mehreren dicht stehenden Personen wird die Person gewählt, deren dargestellte Position dem Tap am nächsten liegt.
+
+Die selektierte Person erhält einen sichtbaren Auswahlring. Der Personen-Inspector zeigt aktuell:
+
+- Name und Beruf,
+- aktuelle Tätigkeit,
+- Arbeitsplatz beziehungsweise globalen Arbeitspool,
+- Erfahrung im aktuellen Beruf,
+- Hunger,
+- Schlaf,
+- aktuell getragene Ware.
+
+Auf Desktop erscheint der Inspector rechts als Seitenpanel. Auf kleinen Bildschirmen erscheint dieselbe Information als kompaktes Bottom Sheet, damit möglichst viel Karte sichtbar bleibt.
+
+Das linke Hauptmenü besitzt zusätzlich **Personen**. Die Personenliste unterstützt Namenssuche sowie Filter nach aktuellem Beruf und freien Bewohnern. Ein Eintrag selektiert die Person, schließt die Liste und verschiebt die Kamera zur Person. Die Pfeile im Inspector wechseln vorwärts und rückwärts durch die zuletzt verwendete Trefferliste; wurde die Person direkt auf der Karte gewählt, wird durch die Gesamtbevölkerung navigiert.
+
+Die Personenauswahl ist eine reine Bedien- und Präsentationsauswahl. Sie pausiert die Simulation nicht und verändert keine Simulationsregeln.
+
 ## In-App-Handbuch
 
 Das linke Hauptmenü enthält oberhalb des Baubuttons einen Fragezeichen-Button für das Handbuch. Das Handbuch besteht aus kurzen, thematisch getrennten Seiten und ist auf Spielerwissen zugeschnitten.
@@ -242,6 +264,8 @@ Die Karte belegt den gesamten Viewport. Overlays liegen darüber. Referenzgerät
 - Kartenzoom: 0,7× bis 3,5×,
 - Desktop: Mausrad und Drag,
 - Touch: ein Finger verschiebt, zwei Finger zoomen,
+- kurzer Tap auf eine Person öffnet deren Inspector; ein Drag verschiebt weiterhin nur die Karte,
+- der Personen-Inspector ist mobil ein Bottom Sheet und die Personenliste bleibt neben dem linken Menü erreichbar,
 - Hunger wird über ein kleines gelbes beziehungsweise rotes Bestecksymbol über der Person angezeigt,
 - Müdigkeit wird analog über ein eigenes `💤`-Symbol angezeigt: gelb bei Schlafbedarf, rot bei kritischer Müdigkeit,
 - Hunger- und Schlafsymbol liegen getrennt nebeneinander, falls beide Bedürfnisse gleichzeitig sichtbar sind,
