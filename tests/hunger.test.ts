@@ -60,9 +60,30 @@ test("a hungry person finishes current work before eating at 40", () => {
   person.position = { ...warehouse.position };
   person.path = [];
   advanceHungerTick(world);
-  assert.equal(person.hunger, 100);
+  assert.equal(person.hunger, 140);
   assert.equal(person.hungerState, undefined);
   assert.equal(warehouse.inventory?.bread, 0);
+});
+
+test("food recovery is not capped at 100", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const bush = world.tiles.find((tile) => tile.terrain === "grass")!;
+  person.position = { q: bush.q, r: bush.r };
+  person.path = [];
+  person.hunger = 90;
+  person.hungerState = {
+    resumeActive: false,
+    foodBush: { q: bush.q, r: bush.r },
+  };
+  bush.bush = true;
+  bush.bushAvailable = true;
+
+  advanceHungerTick(world);
+
+  assert.equal(person.hunger, 130);
+  assert.equal(person.hungerState, undefined);
+  assert.equal(bush.bushAvailable, false);
 });
 
 test("a hungry person keeps the selected route without revalidating food while travelling", () => {
@@ -169,7 +190,7 @@ test("critical hunger pauses immediately and keeps work progress", () => {
   person.position = { ...warehouse.position };
   person.path = [];
   advanceHungerTick(world);
-  assert.equal(person.hunger, 100);
+  assert.equal(person.hunger, 120);
   assert.equal(person.progress, 72);
 });
 
