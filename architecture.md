@@ -29,6 +29,8 @@ The world stores deterministic RNG state and `nextBushRegrowTick`, allowing bush
 
 `BuildingKind` includes `house`. Placement uses `PlaceableBuildingKind`, while older production management keeps the narrower `BuildableBuildingKind` where possible.
 
+Stable person names are currently derived deterministically from persistent person ids in `src/simulation/personIdentity.ts`. This keeps identity stable for inspection/search without adding UI-only name state to the presentation layer. Editable names and richer biography/family state are intentionally not implemented yet.
+
 ## Scenario creation
 
 `src/simulation/scenario.ts` owns the fixed **41 × 25** map and central balance values.
@@ -201,6 +203,18 @@ Hunger and sleep use separate persistent presentation-only indicators. Bush indi
 
 `src/main.ts` coalesces render requests to at most one `requestAnimationFrame`, keeping rendering independent from simulation speed.
 
+## Person selection and inspection
+
+`src/game/personSelection.ts` is a presentation/input adapter layered around the existing map selection entry point. It does not mutate `World`. It hit-tests against the same continuously interpolated marker positions used by `IncrementalMainScene`, with a fixed screen-space touch radius so small sprites remain selectable on mobile. Person hit-testing is bypassed while build mode or merchant-target mode is active.
+
+The selected person id lives only in the person-selection adapter and DOM panel state. A Phaser graphics ring follows the selected person's interpolated marker position on `POST_UPDATE`. Selection requests from the DOM can also focus the camera on the person; mobile focus uses an upper-screen anchor so the bottom sheet does not cover the target.
+
+Person selection uses custom DOM events, following the existing building/build-mode communication pattern. Selecting a building/tile or entering a modal map mode clears person selection. Selecting a person closes any open building inspector but does not pause or modify simulation state.
+
+`src/ui/personPanel.ts` owns the left-menu person browser and the person inspector. Search and profession/free-person filters operate directly on current simulation state. Selecting from a filtered list stores that result set as the previous/next navigation context. The inspector reads profession, activity, workplace, experience, hunger, sleep and carried cargo from the live person object.
+
+On desktop the inspector is a fixed right-side panel. At mobile widths it becomes a bottom sheet; the person browser stays beside the left menu and fills the remaining usable viewport. The UI refreshes live values without rebuilding the simulation or scene graph.
+
 ## Performance diagnostics
 
 `src/debug/performanceProfiler.ts` stores rolling 30-second observational samples and never mutates authoritative state.
@@ -211,11 +225,11 @@ Because hunger and sleep target validation is event-driven, their pathfinding co
 
 ## UI and mobile
 
-The DOM UI owns simulation speed controls, building dialogs, build mode, merchant target mode, handbook and debug output. The map remains fullscreen.
+The DOM UI owns simulation speed controls, building dialogs, build mode, merchant target mode, handbook, person browser/inspector and debug output. The map remains fullscreen.
 
 The in-app handbook is presentation-only. `src/handbook/*.md` contains the player-facing source text. `src/ui/handbook.ts` imports these files as raw Markdown, renders the intentionally small supported subset (headings, paragraphs, lists and bold text) and owns page navigation/open/close behavior. `src/handbook.css` provides the responsive desktop/mobile layout. The handbook does not mutate authoritative simulation state.
 
-The question-mark handbook button is part of the existing left menu and sits above the build button. On desktop the handbook is a centered modal with page navigation; on mobile it fills the viewport and uses horizontally scrollable page tabs.
+The left menu contains handbook, people and build entry points. On desktop the handbook is a centered modal with page navigation; on mobile it fills the viewport and uses horizontally scrollable page tabs.
 
 Reference mobile behavior:
 
@@ -223,13 +237,15 @@ Reference mobile behavior:
 - one-finger pan,
 - two-finger map zoom/pan,
 - map zoom 0.7×–3.5×,
-- build ghost selected by short tap and confirmed only by the DOM build button.
+- build ghost selected by short tap and confirmed only by the DOM build button,
+- a short tap near a person selects the nearest person marker; movement beyond the existing tap threshold remains map panning,
+- the person inspector is a bottom sheet on small screens.
 
 ## Testing and deployment
 
 `npm test` runs deterministic Node tests through `tsx`. `npm run build` performs TypeScript checking plus the Vite production build.
 
-Coverage includes movement, placement, construction, production, farms, forests, merchants, inventories, profession experience, hunger, sleep, performance diagnostics, HQ logistics and start/bush rules.
+Coverage includes movement, placement, construction, production, farms, forests, merchants, inventories, profession experience, hunger, sleep, performance diagnostics, HQ logistics, start/bush rules and deterministic person naming.
 
 Placement coverage verifies that roads are valid construction terrain and are permanently removed when covered by a building footprint. Sleep coverage verifies that a workplace assignment remains attached while sleep pauses the worker's activity.
 
