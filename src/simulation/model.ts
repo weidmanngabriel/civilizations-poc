@@ -1,7 +1,7 @@
-export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread";
+export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "clay" | "rubble" | "brick" | "stoneBlock";
 export type BuildingId = string;
-export type BuildingKind = "hq" | "forest" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "warehouse" | "house";
-export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest" | "field" | "house">;
+export type BuildingKind = "hq" | "forest" | "clayDeposit" | "stoneDeposit" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "stonemason" | "warehouse" | "house";
+export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest" | "clayDeposit" | "stoneDeposit" | "field" | "house">;
 export type PlaceableBuildingKind = BuildableBuildingKind | "house";
 export type Role = "worker" | "carrier" | "merchant" | "builder";
 export type Profession =
@@ -13,7 +13,11 @@ export type Profession =
   | "sawmillWorker"
   | "carpenter"
   | "miller"
-  | "baker";
+  | "baker"
+  | "clayDigger"
+  | "stonecutter"
+  | "potter"
+  | "stonemason";
 export interface Hex {
   q: number;
   r: number;
@@ -61,6 +65,7 @@ export interface Building {
   baseTerrain?: "grass" | "road";
   baseTerrains?: Record<string, "grass" | "road">;
   forestRemaining?: number;
+  resourceRemaining?: number;
   farmId?: BuildingId;
   fieldStage?: FieldStage;
   fieldGrowthProgress?: number;

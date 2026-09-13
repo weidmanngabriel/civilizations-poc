@@ -17,6 +17,8 @@ const BUILDING_NAMES: Record<PlaceableBuildingKind, string> = {
   mill: "Mühle",
   bakery: "Bäckerei",
   well: "Brunnen",
+  pottery: "Töpferei",
+  stonemason: "Steinmetzhütte",
 };
 
 let allowNextTileSelection = false;

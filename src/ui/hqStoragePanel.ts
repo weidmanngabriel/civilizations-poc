@@ -13,6 +13,10 @@ const GOODS: Record<Good, string> = {
   flour: "Mehl",
   water: "Wasser",
   bread: "Brot",
+  clay: "Lehm",
+  rubble: "Bruchstein",
+  brick: "Backstein",
+  stoneBlock: "Steinquader",
 };
 const ALL_GOODS = Object.keys(GOODS) as Good[];
 

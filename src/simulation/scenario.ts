@@ -19,6 +19,8 @@ export const CONFIG = {
   warehouseCapacityPerGood: 20,
   warehouseCollectionRadius: 10,
   forestYield: 10,
+  resourceYield: 10,
+  resourceOutputCapacity: 3,
   farmMaxFields: 4,
   farmFieldRadius: 3,
   farmActionDurationTicks: 10 * 60,
@@ -69,6 +71,10 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
         flour: 0,
         water: 0,
         bread: suppliedStart ? 10 : 0,
+        clay: 0,
+        rubble: 0,
+        brick: 0,
+        stoneBlock: 0,
       },
       baseTerrain: "grass",
     },
@@ -133,6 +139,48 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
         ...(bush ? { bush: true, bushAvailable: true } : {}),
       });
     }
+
+  if (suppliedStart) {
+    const adjacentGrass = (terrain: Tile["terrain"]): Tile[] =>
+      tiles.filter((tile) =>
+        tile.terrain === "grass" &&
+        [
+          { q: tile.q + 1, r: tile.r },
+          { q: tile.q - 1, r: tile.r },
+          { q: tile.q, r: tile.r + 1 },
+          { q: tile.q, r: tile.r - 1 },
+          { q: tile.q + 1, r: tile.r - 1 },
+          { q: tile.q - 1, r: tile.r + 1 },
+        ].some((neighbor) => tiles.some((candidate) => candidate.q === neighbor.q && candidate.r === neighbor.r && candidate.terrain === terrain)),
+      );
+    const spread = (candidates: Tile[], count: number): Tile[] => {
+      if (candidates.length <= count) return candidates;
+      return Array.from({ length: count }, (_, index) =>
+        candidates[Math.floor((index * (candidates.length - 1)) / Math.max(1, count - 1))]!,
+      );
+    };
+    const addDeposit = (tile: Tile, kind: "clayDeposit" | "stoneDeposit", index: number) => {
+      const clay = kind === "clayDeposit";
+      buildings.push({
+        id: `${kind}-${index + 1}`,
+        kind,
+        name: clay ? `Lehmvorkommen ${index + 1}` : `Steinvorkommen ${index + 1}`,
+        position: { q: tile.q, r: tile.r },
+        workers: 1,
+        carriers: 0,
+        input: 0,
+        output: 0,
+        resourceRemaining: CONFIG.resourceYield,
+        recipe: { amount: 0, output: clay ? "clay" : "rubble", duration: CONFIG.duration },
+      });
+      tile.bush = undefined;
+      tile.bushAvailable = undefined;
+      tile.bushRegrowTick = undefined;
+      tile.terrain = "building";
+    };
+    spread(adjacentGrass("river"), 4).forEach((tile, index) => addDeposit(tile, "clayDeposit", index));
+    spread(adjacentGrass("mountain"), 4).forEach((tile, index) => addDeposit(tile, "stoneDeposit", index));
+  }
 
   const people: Person[] = Array.from({ length: population }, (_, i) => ({
     id: i + 1,

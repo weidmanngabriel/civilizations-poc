@@ -28,9 +28,9 @@ import {
 } from "./farm";
 import {
   gainProfessionExperience,
+  extractionSpeedMultiplier,
   logisticsSpeedMultiplier,
   productionMultiplier,
-  woodcuttingSpeedMultiplier,
   workerProfession,
 } from "./experience";
 import {
@@ -71,7 +71,11 @@ const recipeOutputAmount = (b: Building): number => b.recipe?.outputAmount ?? 1;
 export const outputOccupied = (w: World, b: Building): number =>
   b.output + heldOutput(w, b.id) + producing(w, b.id) * recipeOutputAmount(b);
 const outputCapacityFor = (b: Building): number =>
-  b.forestRemaining !== undefined ? CONFIG.forestOutputCapacity : CONFIG.outputCapacity;
+  b.forestRemaining !== undefined
+    ? CONFIG.forestOutputCapacity
+    : b.resourceRemaining !== undefined
+      ? CONFIG.resourceOutputCapacity
+      : CONFIG.outputCapacity;
 const foodDueBeforeNewTask = (p: Person): boolean =>
   Boolean(p.hungerState) || (p.hunger ?? 100) <= 40;
 const sleepDueBeforeNewTask = (p: Person): boolean =>
@@ -127,6 +131,10 @@ export const ALL_GOODS: Good[] = [
   "flour",
   "water",
   "bread",
+  "clay",
+  "rubble",
+  "brick",
+  "stoneBlock",
 ];
 
 const recipeRequirements = (b: Building): GoodAmounts => {
@@ -649,21 +657,22 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): void {
   };
 }
 
-function retireDepletedForests(w: World): void {
-  for (const forest of w.buildings.filter(
-    (b) => !b.retired && b.forestRemaining === 0,
+function retireDepletedResources(w: World): void {
+  for (const source of w.buildings.filter(
+    (b) => !b.retired && (b.forestRemaining === 0 || b.resourceRemaining === 0),
   )) {
-    forest.retired = true;
-    const tile = tileAt(w, forest.position);
+    source.retired = true;
+    const tile = tileAt(w, source.position);
     tile.terrain = "grass";
     tile.trafficTicks = undefined;
-    for (const person of assigned(w, forest.id, "worker")) {
+    for (const person of assigned(w, source.id, "worker")) {
       person.assignment = undefined;
       person.active = false;
       person.progress = 0;
       person.movement = 0;
       person.path = [];
       if (person.woodcutter) assignWoodcutter(w, person);
+      else route(w, person, building(w, "hq"), "reroute");
     }
   }
 }
@@ -716,6 +725,27 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
       output: 0,
       recipe: { inputs: { flour: 2, water: 1 }, amount: 1, output: "bread", outputAmount: 2, duration: CONFIG.duration },
     };
+  if (kind === "pottery")
+    return {
+      kind,
+      name: "Töpferei",
+      workers: 1,
+      carriers: 2,
+      input: 0,
+      inputInventory: { clay: 0, wood: 0 },
+      output: 0,
+      recipe: { inputs: { clay: 1, wood: 1 }, amount: 1, output: "brick", duration: CONFIG.duration },
+    };
+  if (kind === "stonemason")
+    return {
+      kind,
+      name: "Steinmetzhütte",
+      workers: 1,
+      carriers: 2,
+      input: 0,
+      output: 0,
+      recipe: { input: "rubble", amount: 2, output: "stoneBlock", duration: CONFIG.duration },
+    };
   if (kind === "well")
     return {
       kind,
@@ -750,6 +780,10 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
       flour: 0,
       water: 0,
       bread: 0,
+      clay: 0,
+      rubble: 0,
+      brick: 0,
+      stoneBlock: 0,
     },
   };
 };
@@ -780,7 +814,7 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
   const index = w.buildings.findIndex((b) => b.id === id);
   if (index < 0) return false;
   const removed = w.buildings[index]!;
-  if (removed.kind === "hq" || removed.kind === "forest" || removed.kind === "field") return false;
+  if (removed.kind === "hq" || removed.kind === "forest" || removed.kind === "clayDeposit" || removed.kind === "stoneDeposit" || removed.kind === "field") return false;
 
   if (removed.kind === "farm") removeActiveFarmFields(w, removed.id);
 
@@ -988,12 +1022,20 @@ export function tick(w: World): void {
         const profession = workerProfession(b);
         const forestHasYield =
           b.forestRemaining === undefined || b.forestRemaining > producing(w, b.id);
+        const resourceHasYield =
+          b.resourceRemaining === undefined || b.resourceRemaining > producing(w, b.id);
         const outputHasSpace = outputOccupied(w, b) < outputCapacityFor(b);
-        const workSpeed = b.kind === "forest" ? woodcuttingSpeedMultiplier(p) : 1;
+        const naturalExtraction = b.kind === "forest" || b.resourceRemaining !== undefined;
+        const workSpeed =
+          naturalExtraction &&
+          (profession === "woodcutter" || profession === "clayDigger" || profession === "stonecutter")
+            ? extractionSpeedMultiplier(p, profession)
+            : 1;
         if (
           p.progress === 0 &&
           !needDueBeforeNewTask(p) &&
           forestHasYield &&
+          resourceHasYield &&
           hasRecipeInputs(b) &&
           outputHasSpace
         )
@@ -1003,13 +1045,14 @@ export function tick(w: World): void {
         if (p.progress >= recipe.duration) {
           consumeRecipeInputs(b);
           const multiplier =
-            b.kind === "forest"
+            naturalExtraction
               ? 1
               : profession
                 ? productionMultiplier(p, profession)
                 : 1;
           b.output += recipeOutputAmount(b) * multiplier;
           if (b.forestRemaining !== undefined) b.forestRemaining--;
+          if (b.resourceRemaining !== undefined) b.resourceRemaining--;
           p.progress = 0;
           immediateDecisionPeople.add(p.id);
         }
@@ -1018,7 +1061,7 @@ export function tick(w: World): void {
   });
 
   measureFeature("planning", () => {
-    retireDepletedForests(w);
+    retireDepletedResources(w);
     if (regularDecisionTick) {
       assignWaitingWoodcutters(w);
       assignWaitingBuilders(w);
@@ -1094,6 +1137,10 @@ export const GOODS: Record<Good, string> = {
   flour: "Mehl",
   water: "Wasser",
   bread: "Brot",
+  clay: "Lehm",
+  rubble: "Bruchstein",
+  brick: "Backstein",
+  stoneBlock: "Steinquader",
 };
 
 export function status(w: World, b: Building): string {
@@ -1139,6 +1186,19 @@ export function status(w: World, b: Building): string {
     if (worker.path.length) return `Farmer unterwegs · ${count}/${CONFIG.farmMaxFields} Felder`;
     if (b.output >= CONFIG.outputCapacity) return `Farm-Output voll · ${count}/${CONFIG.farmMaxFields} Felder`;
     return `${count}/${CONFIG.farmMaxFields} Felder aktiv`;
+  }
+  if (b.resourceRemaining !== undefined) {
+    if (b.retired) return "Erschöpft";
+    const label = b.kind === "clayDeposit" ? "Lehmabbau" : "Steinabbau";
+    const worker = b.kind === "clayDeposit" ? "Lehmgräber" : "Steinbrecher";
+    const progress = workers
+      .filter((p) => p.progress > 0)
+      .map((p) => `${Math.round((p.progress / b.recipe!.duration) * 100)} %`);
+    if (progress.length) return `${label}: ${progress.join(" · ")}`;
+    if (!workers.length) return `Kein ${worker} am Vorkommen`;
+    if (outputOccupied(w, b) >= outputCapacityFor(b)) return "Rohstoff liegt bereit – Abholung abwarten";
+    if (workers.every((p) => !p.active)) return `${worker} auf dem Weg`;
+    return `Bereit zum ${label}`;
   }
   if (b.forestRemaining !== undefined) {
     if (b.retired) return "Erschöpft";

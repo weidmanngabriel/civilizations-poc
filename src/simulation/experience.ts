@@ -39,6 +39,11 @@ export const productionMultiplier = (p: Person, profession: Profession): number 
 export const woodcuttingSpeedMultiplier = (p: Person): number =>
   1 + 0.5 * professionExperience(p, "woodcutter") / 100;
 
+export const extractionSpeedMultiplier = (
+  p: Person,
+  profession: "woodcutter" | "clayDigger" | "stonecutter",
+): number => 1 + 0.5 * professionExperience(p, profession) / 100;
+
 export const logisticsSpeedMultiplier = (p: Person, profession: "carrier" | "merchant"): number =>
   1 + 0.5 * professionExperience(p, profession) / 100;
 
@@ -49,6 +54,10 @@ export function workerProfession(building: Building): Profession | undefined {
   if (building.kind === "carpenter") return "carpenter";
   if (building.kind === "mill") return "miller";
   if (building.kind === "bakery") return "baker";
+  if (building.kind === "clayDeposit") return "clayDigger";
+  if (building.kind === "stoneDeposit") return "stonecutter";
+  if (building.kind === "pottery") return "potter";
+  if (building.kind === "stonemason") return "stonemason";
   return undefined;
 }
 
@@ -73,4 +82,8 @@ export const PROFESSION_LABELS: Record<Profession, string> = {
   carpenter: "Schreiner",
   miller: "Müller",
   baker: "Bäcker",
+  clayDigger: "Lehmgräber",
+  stonecutter: "Steinbrecher",
+  potter: "Töpfer",
+  stonemason: "Steinmetz",
 };

@@ -136,8 +136,10 @@ Aktuelle Baukosten:
 - Sägewerk: 6 Holz,
 - Schreinerei: 4 Bretter,
 - Mühle: 4 Holz,
-- Bäckerei: 4 Bretter,
-- Brunnen: 4 Holz.
+- Bäckerei: 2 Bretter + 2 Backstein,
+- Brunnen: 2 Holz + 2 Steinquader,
+- Töpferei: 4 Holz,
+- Steinmetzhütte: 4 Holz.
 
 Die Grundbauzeit beträgt 3 Sekunden plus 2 Sekunden pro benötigter Ressourceneinheit. Bis zu zwei Bauarbeiter arbeiten gleichzeitig an einer Baustelle. Baufortschritt bleibt pro Baustelle erhalten.
 
@@ -168,6 +170,10 @@ Zielkurve:
 
 Normale Produktionsberufe steigern den Output linear bis auf 2×. Holzfäller behalten exakt 1 Holz pro Zyklus und werden stattdessen bis zu 50 % schneller. Träger und Händler behalten eine Traglast von 1 Einheit und werden bis zu 50 % schneller. Bauarbeiter steigern ihre persönliche Bauleistung bis auf 2×.
 
+## Natürliche Lehm- und Steinvorkommen
+
+Zusätzlich zu Wald gibt es endliche Rohstoffvorkommen. Lehmvorkommen liegen auf begehbaren Kacheln direkt in Flussnähe, Steinvorkommen entsprechend in Bergnähe. Jedes Vorkommen enthält genau 10 Einheiten. Ein zugewiesener Lehmgräber beziehungsweise Steinbrecher baut den Rohstoff lokal ab. Nach der zehnten Einheit verschwindet das Vorkommen sofort; bereits lokal abgelegte Ware bleibt liegen und kann weiter transportiert werden.
+
 ## Produktionskette
 
 Aktuell:
@@ -179,6 +185,12 @@ Aktuell:
 - Mühle: 1 Weizen → 1 Mehl,
 - Bäckerei: 2 Mehl + 1 Wasser → 2 Brot,
 - Brunnen: unerschöpfliches Wasser ohne Arbeiter.
+- Lehmvorkommen: 10 × Lehm, danach erschöpft.
+- Steinvorkommen: 10 × Bruchstein, danach erschöpft.
+- Töpferei: 1 Lehm + 1 Holz → 1 Backstein.
+- Steinmetzhütte: 2 Bruchstein → 1 Steinquader.
+
+Backstein und Steinquader sind Baumaterialien. Einfache Startgebäude bleiben bewusst mit Holz baubar; einige fortgeschrittene Gebäude benötigen zusätzlich Backstein oder Steinquader.
 
 Normale Produktionsstätten können **10 Einheiten lokalen Output** halten. Der Wald behält seine separate Grenze von **3 lokal liegenden Holz**. Produktionsinputs und Lagerbestände sind ganzzahlig. Nur lokale Produktionsoutputs dürfen durch Erfahrung Bruchteile enthalten. Jede Transportfahrt bewegt weiterhin exakt 1 Einheit.
 

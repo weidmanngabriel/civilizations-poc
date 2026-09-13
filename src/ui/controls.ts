@@ -64,6 +64,8 @@ const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
   mill: "Mühle",
   bakery: "Bäckerei",
   well: "Brunnen",
+  pottery: "Töpferei",
+  stonemason: "Steinmetzhütte",
 };
 
 const formatOutputAmount = (value: number): string => value.toFixed(1).replace(".", ",");
@@ -106,7 +108,14 @@ export function mountControls(w: World, renderMap: () => void): void {
           ? "Händler"
           : "Bauarbeiter";
   const workerLabel = (b: Building) =>
-    b.kind === "farm" ? "Farmer" : b.kind === "mill" ? "Müller" : b.kind === "bakery" ? "Bäcker" : "Arbeiter";
+    b.kind === "farm" ? "Farmer"
+      : b.kind === "mill" ? "Müller"
+        : b.kind === "bakery" ? "Bäcker"
+          : b.kind === "clayDeposit" ? "Lehmgräber"
+            : b.kind === "stoneDeposit" ? "Steinbrecher"
+              : b.kind === "pottery" ? "Töpfer"
+                : b.kind === "stonemason" ? "Steinmetz"
+                  : "Arbeiter";
   const buildingHeading = (b: Building) => `${buildingIcon(b.kind)}<span>${b.name}</span>`;
   const goodLabel = (good: Good) => `<span class="good-label"><span aria-hidden="true">${GOOD_ICONS[good]}</span><span>${GOODS[good]}</span></span>`;
   const personIcon = (personId: number) => {
@@ -123,6 +132,10 @@ export function mountControls(w: World, renderMap: () => void): void {
       if (workplace?.kind === "bakery") return "🍞";
       if (workplace?.kind === "sawmill") return "🪵";
       if (workplace?.kind === "carpenter") return "🛠️";
+      if (workplace?.kind === "clayDeposit") return "🟤";
+      if (workplace?.kind === "stoneDeposit") return "⛏️";
+      if (workplace?.kind === "pottery") return "🧱";
+      if (workplace?.kind === "stonemason") return "🪨";
     }
     return "👤";
   };
@@ -205,8 +218,12 @@ export function mountControls(w: World, renderMap: () => void): void {
 
     if (b.forestRemaining !== undefined) {
       setField("forest-remaining", String(b.forestRemaining));
-      setField("output", `${formatOutputAmount(b.output)}/${CONFIG.outputCapacity}`);
+      setField("output", `${formatOutputAmount(b.output)}/${CONFIG.forestOutputCapacity}`);
       return;
+    }
+    if (b.resourceRemaining !== undefined) {
+      setField("resource-remaining", String(b.resourceRemaining));
+      setField("output", `${formatOutputAmount(b.output)}/${CONFIG.resourceOutputCapacity}`);
     }
 
     if (isUnderConstruction(b)) {
@@ -222,13 +239,8 @@ export function mountControls(w: World, renderMap: () => void): void {
         `${Math.round((b.construction!.progress / b.construction!.duration) * 100)} %`,
       );
     } else if (b.kind === "warehouse") {
-      setField("warehouse-wood", `${formatWholeAmount(warehouseStock(b, "wood"))}/${CONFIG.warehouseCapacityPerGood}`);
-      setField("warehouse-plank", `${formatWholeAmount(warehouseStock(b, "plank"))}/${CONFIG.warehouseCapacityPerGood}`);
-      setField("warehouse-tool", `${formatWholeAmount(warehouseStock(b, "woodenTool"))}/${CONFIG.warehouseCapacityPerGood}`);
-      setField("warehouse-wheat", `${formatWholeAmount(warehouseStock(b, "wheat"))}/${CONFIG.warehouseCapacityPerGood}`);
-      setField("warehouse-flour", `${formatWholeAmount(warehouseStock(b, "flour"))}/${CONFIG.warehouseCapacityPerGood}`);
-      setField("warehouse-water", `${formatWholeAmount(warehouseStock(b, "water"))}/${CONFIG.warehouseCapacityPerGood}`);
-      setField("warehouse-bread", `${formatWholeAmount(warehouseStock(b, "bread"))}/${CONFIG.warehouseCapacityPerGood}`);
+      for (const good of Object.keys(GOODS) as Good[])
+        setField(`warehouse-${good}`, `${formatWholeAmount(warehouseStock(b, good))}/${CONFIG.warehouseCapacityPerGood}`);
     } else {
       const recipeInputs = b.recipe?.inputs
         ? (Object.keys(b.recipe.inputs) as Good[])
@@ -314,7 +326,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
 
-    const demolish = b.kind === "forest" || b.kind === "field"
+    const demolish = b.kind === "forest" || b.kind === "clayDeposit" || b.kind === "stoneDeposit" || b.kind === "field"
       ? ""
       : `<button data-action="demolish" class="danger">Abreißen</button>`;
 
@@ -334,6 +346,8 @@ export function mountControls(w: World, renderMap: () => void): void {
         : [];
     const recipe = b.forestRemaining !== undefined
       ? `${GOOD_ICONS.wood} 1 Holz / ${b.recipe!.duration / CONFIG.simulationHz} s bei 1× · Vorrat <span data-field="forest-remaining"></span>/${CONFIG.forestYield}`
+      : b.resourceRemaining !== undefined
+        ? `${GOOD_ICONS[b.recipe!.output]} 1 ${GOODS[b.recipe!.output]} / ${b.recipe!.duration / CONFIG.simulationHz} s bei 1× · Vorrat <span data-field="resource-remaining"></span>/${CONFIG.resourceYield}`
       : b.kind === "warehouse"
         ? "Lagert bis zu 20 Einheiten je Warentyp"
         : b.kind === "farm"
@@ -345,8 +359,10 @@ export function mountControls(w: World, renderMap: () => void): void {
               : "Produktion";
     const inventory = b.forestRemaining !== undefined
       ? `<div><span>${goodLabel("wood")} · Output</span><strong data-field="output"></strong></div>`
+      : b.resourceRemaining !== undefined
+        ? `<div><span>${goodLabel(b.recipe!.output)} · Output</span><strong data-field="output"></strong></div>`
       : b.kind === "warehouse"
-        ? `${(["wood", "plank", "woodenTool", "wheat", "flour", "water", "bread"] as Good[]).map((good) => `<div><span>${goodLabel(good)}</span><strong data-field="warehouse-${good === "woodenTool" ? "tool" : good}"></strong></div>`).join("")}`
+        ? `${(Object.keys(GOODS) as Good[]).map((good) => `<div><span>${goodLabel(good)}</span><strong data-field="warehouse-${good}"></strong></div>`).join("")}`
         : b.kind === "farm"
           ? `<div><span>${goodLabel("wheat")} · Output</span><strong data-field="output"></strong></div>`
           : b.kind === "well"

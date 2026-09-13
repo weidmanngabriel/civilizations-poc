@@ -60,6 +60,10 @@ const goodColors: Record<Good, number> = {
   flour: 0xf0e4c8,
   water: 0x77b9d4,
   bread: 0xb8793d,
+  clay: 0x9b6a4d,
+  rubble: 0x8b8f8c,
+  brick: 0xb55d42,
+  stoneBlock: 0xc8c8bd,
 };
 
 type PointerPosition = { x: number; y: number };
@@ -404,6 +408,10 @@ export class MainScene extends Phaser.Scene {
       if (workplace?.kind === "bakery") return "🍞";
       if (workplace?.kind === "sawmill") return "🪵";
       if (workplace?.kind === "carpenter") return "🛠️";
+      if (workplace?.kind === "clayDeposit") return "🟤";
+      if (workplace?.kind === "stoneDeposit") return "⛏️";
+      if (workplace?.kind === "pottery") return "🧱";
+      if (workplace?.kind === "stonemason") return "🪨";
     }
     return "👤";
   }
@@ -453,7 +461,17 @@ export class MainScene extends Phaser.Scene {
         fontStyle: "bold",
         color: "#203226",
       }).setResolution(TEXT_RESOLUTION).setOrigin(0.5));
-      if (b.forestRemaining !== undefined) {
+      if (b.resourceRemaining !== undefined) {
+        if (b.kind === "clayDeposit") {
+          g.fillStyle(0x9b6a4d, 0.95);
+          g.fillCircle(x - 3, y - 11, 4);
+          g.fillCircle(x + 3, y - 10, 3);
+        } else {
+          g.fillStyle(0xaeb3af, 0.95);
+          g.fillTriangle(x - 6, y - 8, x - 1, y - 17, x + 3, y - 8);
+          g.fillTriangle(x, y - 8, x + 5, y - 15, x + 7, y - 8);
+        }
+      } else if (b.forestRemaining !== undefined) {
         this.drawTree(
           g,
           x,

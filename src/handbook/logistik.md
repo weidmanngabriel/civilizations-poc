@@ -1,5 +1,9 @@
 # Waren und Logistik
 
+## Lehm und Stein
+
+Lehmvorkommen findest du in Flussnähe, Steinvorkommen in Bergnähe. Beide sind endlich. Arbeiter bauen dort Lehm beziehungsweise Bruchstein ab; Träger können die fertigen Rohstoffe anschließend abholen. In der Töpferei entstehen aus Lehm und Holz Backsteine. Die Steinmetzhütte verarbeitet Bruchstein zu Steinquadern. Beide Produkte werden als Baumaterial verwendet.
+
 Waren existieren immer an einem konkreten Ort. Eine Produktionsstätte kann nur weiterarbeiten, wenn die benötigten Waren tatsächlich dort ankommen.
 
 Zum Beispiel verarbeitet ein Sägewerk Holz weiter. Das Holz muss aber erst zum Sägewerk gebracht oder von einem Arbeiter abgeholt werden.
