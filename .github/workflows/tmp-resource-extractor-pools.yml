@@ -22,12 +22,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: node scripts/tmp-add-extractor-pools.mjs
+      - run: node scripts/tmp-fix-extractor-test.mjs
       - run: npm ci
       - run: npm test
       - run: npm run build
       - name: Remove temporary implementation helpers
         run: |
           rm scripts/tmp-add-extractor-pools.mjs
+          rm scripts/tmp-fix-extractor-test.mjs
           rm .github/workflows/tmp-resource-extractor-pools.yml
       - name: Commit implementation
         run: |
