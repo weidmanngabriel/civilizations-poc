@@ -1,0 +1,35 @@
+.pwa-update-banner {
+  position: fixed;
+  z-index: 10000;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 24px);
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(20, 32, 24, 0.96);
+  color: #f4f1df;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  transform: translateX(-50%);
+  font: 600 14px/1.2 system-ui, sans-serif;
+}
+
+.pwa-update-banner button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: #d8b85b;
+  color: #1c241d;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pwa-update-banner button:disabled {
+  cursor: default;
+  opacity: 0.7;
+}

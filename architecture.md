@@ -241,6 +241,16 @@ Reference mobile behavior:
 - a short tap near a person selects the nearest person marker; movement beyond the existing tap threshold remains map panning,
 - the person inspector is a bottom sheet on small screens.
 
+## Offline PWA and updates
+
+The production build is an installable PWA. `public/manifest.webmanifest` provides install metadata and `vite.config.ts` emits a versioned `sw.js` plus `version.json` for every build.
+
+The generated service worker precaches `index.html`, the manifest/icon and every Vite bundle asset. Same-origin runtime assets use cache-first behavior. Navigation uses network-first behavior with cached `index.html` as the offline fallback, so an already loaded installation can start and reload without a network connection.
+
+`version.json` is deliberately excluded from all service-worker caches. `src/pwa.ts` checks it with `cache: "no-store"` on startup, every five minutes, when connectivity returns and when the tab becomes visible. A failed check is silent while offline.
+
+When a newer build is detected, the running game is not replaced automatically. A small update banner offers an explicit reload. A waiting service worker is activated only after that action; old versioned caches are removed during activation. This avoids changing code underneath an active simulation session.
+
 ## Testing and deployment
 
 `npm test` runs deterministic Node tests through `tsx`. `npm run build` performs TypeScript checking plus the Vite production build.
@@ -251,4 +261,4 @@ Placement coverage verifies that roads are valid construction terrain and are pe
 
 HQ supply coverage verifies that sawmill, carpenter, mill and bakery workers can source their required goods directly from HQ inventory. Food coverage verifies direct bakery eating and reservation of bakery bread portions.
 
-`.github/workflows/deploy.yml` runs tests and the production build on pushes to `main`, then deploys GitHub Pages. Branch pushes do not deploy.
+`.github/workflows/deploy.yml` runs tests and the production build on pushes to `main`, then deploys GitHub Pages. Branch pushes do not deploy. The production build also emits the PWA service worker and network-only version metadata used by the client update check.
