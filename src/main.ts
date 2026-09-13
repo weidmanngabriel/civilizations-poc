@@ -3,6 +3,7 @@ import { performanceNow, performanceProfiler } from "./debug/performanceProfiler
 import { IncrementalMainScene } from "./game/IncrementalMainScene";
 import { installBushIndicators } from "./game/bushIndicators";
 import { installHungerIndicators } from "./game/hungerIndicators";
+import { installPersonSelection } from "./game/personSelection";
 import { installSleepIndicators } from "./game/sleepIndicators";
 import {
   installMobileMapTouchControls,
@@ -13,12 +14,14 @@ import { installTileSelectionGuard, mountBuildMenu } from "./ui/buildMenu";
 import { mountControls } from "./ui/controls";
 import { mountHandbook } from "./ui/handbook";
 import { installHqStoragePanel } from "./ui/hqStoragePanel";
+import { mountPersonPanel } from "./ui/personPanel";
 import { installPerformanceDebugPanel } from "./ui/performanceDebug";
 import "./style.css";
 import "./map-interaction.css";
 import "./build-placement.css";
 import "./build-menu.css";
 import "./handbook.css";
+import "./person-panel.css";
 import "./performance-debug.css";
 
 const preventPageZoom = (): void => {
@@ -80,12 +83,14 @@ scene.renderWorld = () => {
 installBushIndicators(scene, world);
 installHungerIndicators(scene, world);
 installSleepIndicators(scene, world);
+installPersonSelection(scene, world);
 installTileSelectionGuard();
 mountControls(world, () => scene.renderWorld());
 installPerformanceDebugPanel(world);
 installHqStoragePanel(world);
 mountBuildMenu(world);
 mountHandbook();
+mountPersonPanel(world);
 showBuildVersion();
 
 const game = new Phaser.Game({
