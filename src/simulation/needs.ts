@@ -12,6 +12,7 @@ const ROAD_SPEED_MULTIPLIER = 1.3;
 const WANTS_TO_EAT_THRESHOLD = 40;
 const CRITICAL_HUNGER_THRESHOLD = 20;
 const HUNGER_MAX = 100;
+const BREAD_FOOD_VALUE = 100;
 const ACCUMULATOR_EPSILON = 1e-9;
 const HQ_STORAGE_PROXY_ID = "hq-storage-proxy";
 const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "wheat", "flour", "water", "bread", "clay", "rubble", "brick", "stoneBlock"];
@@ -197,7 +198,7 @@ const consumeBread = (world: World, person: Person, source: Building): void => {
   } else {
     source.output -= 1;
   }
-  person.hunger = HUNGER_MAX;
+  person.hunger = (person.hunger ?? HUNGER_MAX) + BREAD_FOOD_VALUE;
   finishEating(world, person);
 };
 
@@ -213,7 +214,7 @@ const consumeBush = (world: World, person: Person, tile: Tile): void => {
     world.round + CONFIG.bushRegrowMinTicks + (nextRandom(world) % (span + 1));
   tile.bushRegrowTick = regrowTick;
   world.nextBushRegrowTick = Math.min(world.nextBushRegrowTick ?? regrowTick, regrowTick);
-  person.hunger = Math.min(HUNGER_MAX, (person.hunger ?? HUNGER_MAX) + CONFIG.bushFoodValue);
+  person.hunger = (person.hunger ?? HUNGER_MAX) + CONFIG.bushFoodValue;
   finishEating(world, person);
 };
 
@@ -296,7 +297,6 @@ const selectedFoodTarget = (world: World, person: Person): SelectedFoodTarget | 
 
 const selectedTargetPosition = (target: SelectedFoodTarget): Hex =>
   target.kind === "bread" ? target.source.position : target.tile;
-
 const consumeSelectedTarget = (
   world: World,
   person: Person,

@@ -76,7 +76,7 @@ test("hungry person can eat bread directly from a completed bakery", () => {
 
   advanceHungerTick(world);
 
-  assert.equal(person.hunger, 100);
+  assert.equal(person.hunger, 120);
   assert.equal(bakery.output, 1);
   assert.equal(person.hungerState, undefined);
 });

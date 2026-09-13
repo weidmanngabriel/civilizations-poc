@@ -31,7 +31,7 @@ Ein Busch ist eine regenerative Naturquelle, keine transportierbare Ware.
 
 - Ein voller Busch enthält genau eine Portion Beeren.
 - Eine Person kann direkt am Busch essen.
-- Beeren stellen **40 Hungerpunkte** wieder her, maximal bis 100.
+- Beeren stellen **40 Hungerpunkte** wieder her; die volle Wirkung wird auch dann addiert, wenn der Hungerwert dadurch über 100 steigt.
 - Danach ist der Busch leer.
 - Nach einer deterministisch zufälligen Zeit von **2 bis 3 Simulationsminuten** trägt derselbe Busch wieder Beeren.
 - Ein leerer Busch bleibt sichtbar, bis er nachgewachsen oder überschrieben wurde.
@@ -41,7 +41,7 @@ Ein Busch ist eine regenerative Naturquelle, keine transportierbare Ware.
 
 ## Hunger und Essen
 
-Jede Person besitzt Hunger von 0 bis 100.
+Jede Person startet mit Hunger 100. **100 entspricht vollständig versorgt, ist aber kein hartes Maximum:** Nahrung addiert immer ihren vollständigen definierten Wert und ein Überschuss über 100 bleibt erhalten.
 
 Verbrauch bei 1×:
 
@@ -62,9 +62,11 @@ Bei einer kritischen Unterbrechung bleibt der Fortschritt erhalten. Die Arbeitsp
 
 Nahrungsquellen sind aktuell:
 
-- Brot aus fertigen Lagern oder dem HQ: setzt Hunger auf 100,
-- Brot, das als fertiger lokaler Output in einer Bäckerei liegt: setzt Hunger ebenfalls auf 100,
+- Brot aus fertigen Lagern oder dem HQ: +100 Hungerpunkte,
+- Brot, das als fertiger lokaler Output in einer Bäckerei liegt: ebenfalls +100 Hungerpunkte,
 - Beerenbusch: +40 Hungerpunkte.
+
+Keiner dieser Effekte wird bei 100 gedeckelt. Ein vorhandener Überschuss wird normal durch den weiteren Hungerverbrauch wieder abgebaut.
 
 Die Person vergleicht erreichbare Nahrung nach Reisezeit und nutzt die schnellste verfügbare Quelle. Reservierungen verhindern, dass mehrere hungrige Personen gleichzeitig dasselbe Brot oder denselben Busch fest einplanen.
 
@@ -244,7 +246,7 @@ Die selektierte Person erhält einen sichtbaren Auswahlring. Der Personen-Inspec
 
 Auf Desktop erscheint der Inspector rechts als Seitenpanel. Auf kleinen Bildschirmen erscheint dieselbe Information als kompaktes Bottom Sheet, damit möglichst viel Karte sichtbar bleibt.
 
-Das linke Hauptmenü besitzt zusätzlich **Personen**. Die Personenliste unterstützt Namenssuche sowie Filter nach aktuellem Beruf und freien Bewohnern. Ein Eintrag selektiert die Person, schließt die Liste und verschiebt die Kamera zur Person. Die Pfeile im Inspector wechseln vorwärts und rückwärts durch die zuletzt verwendete Trefferliste; wurde die Person direkt auf der Karte gewählt, wird durch die Gesamtbevölkerung navigiert.
+Das linke Hauptmenü besitzt zusätzlich **Personen**. Die Personenliste unterstützt Namenssuche sowie Filter nach aktuellem Beruf und freien Bewohnern. Die Berufsfilter sind eine ausschließlich horizontal scrollbare Leiste; vertikale Gesten beziehungsweise iOS-Bounce sollen dort nicht ausgelöst werden. Ein Eintrag selektiert die Person, schließt die Liste und verschiebt die Kamera zur Person. Auf Desktop liegt die Person dabei nahe der sichtbaren Kartenmitte, auf Mobilgeräten bewusst im oberen Kartenbereich oberhalb des Bottom Sheets. Die Pfeile im Inspector wechseln vorwärts und rückwärts durch die zuletzt verwendete Trefferliste; wurde die Person direkt auf der Karte gewählt, wird durch die Gesamtbevölkerung navigiert.
 
 Die Personenauswahl ist eine reine Bedien- und Präsentationsauswahl. Sie pausiert die Simulation nicht und verändert keine Simulationsregeln.
 
@@ -266,6 +268,7 @@ Die Karte belegt den gesamten Viewport. Overlays liegen darüber. Referenzgerät
 - Touch: ein Finger verschiebt, zwei Finger zoomen,
 - kurzer Tap auf eine Person öffnet deren Inspector; ein Drag verschiebt weiterhin nur die Karte,
 - der Personen-Inspector ist mobil ein Bottom Sheet und die Personenliste bleibt neben dem linken Menü erreichbar,
+- die Berufsfilter der Personenliste scrollen nur horizontal und dürfen keinen vertikalen Scroll/Bounce auslösen,
 - Hunger wird über ein kleines gelbes beziehungsweise rotes Bestecksymbol über der Person angezeigt,
 - Müdigkeit wird analog über ein eigenes `💤`-Symbol angezeigt: gelb bei Schlafbedarf, rot bei kritischer Müdigkeit,
 - Hunger- und Schlafsymbol liegen getrennt nebeneinander, falls beide Bedürfnisse gleichzeitig sichtbar sind,
