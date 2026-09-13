@@ -80,7 +80,7 @@ Food candidates are evaluated with the normal weighted pathfinder and sorted by 
 - HQ inventory,
 - completed bakery local bread output.
 
-Bushes remain direct food sources and restore 40 hunger points. Bread restores hunger to 100.
+Food recovery is additive rather than capped: bushes add 40 hunger points and bread adds 100 hunger points. Hunger may therefore temporarily exceed 100; subsequent decay consumes that surplus normally.
 
 Bread reservations use the source building id, regardless of whether the bread is in storage or bakery output. Bush reservations use tile position. This prevents multiple people planning the same portion.
 
@@ -207,13 +207,13 @@ Hunger and sleep use separate persistent presentation-only indicators. Bush indi
 
 `src/game/personSelection.ts` is a presentation/input adapter layered around the existing map selection entry point. It does not mutate `World`. It hit-tests against the same continuously interpolated marker positions used by `IncrementalMainScene`, with a fixed screen-space touch radius so small sprites remain selectable on mobile. Person hit-testing is bypassed while build mode or merchant-target mode is active.
 
-The selected person id lives only in the person-selection adapter and DOM panel state. A Phaser graphics ring follows the selected person's interpolated marker position on `POST_UPDATE`. Selection requests from the DOM can also focus the camera on the person; mobile focus uses an upper-screen anchor so the bottom sheet does not cover the target.
+The selected person id lives only in the person-selection adapter and DOM panel state. A Phaser graphics ring follows the selected person's interpolated marker position on `POST_UPDATE`. Selection requests from the DOM can also focus the camera on the person; mobile focus uses an upper-screen anchor so the bottom sheet does not cover the target. Camera focus is applied by resolving that screen anchor back through `camera.getWorldPoint()` and shifting the camera by the resulting world-space delta, so current zoom and viewport offsets are handled by Phaser rather than duplicated in custom math.
 
 Person selection uses custom DOM events, following the existing building/build-mode communication pattern. Selecting a building/tile or entering a modal map mode clears person selection. Selecting a person closes any open building inspector but does not pause or modify simulation state.
 
-`src/ui/personPanel.ts` owns the left-menu person browser and the person inspector. Search and profession/free-person filters operate directly on current simulation state. Selecting from a filtered list stores that result set as the previous/next navigation context. The inspector reads profession, activity, workplace, experience, hunger, sleep and carried cargo from the live person object.
+`src/ui/personPanel.ts` owns the left-menu person browser and the person inspector. Search and profession/free-person filters operate directly on current simulation state. Selecting from a filtered list stores that result set as the previous/next navigation context. The inspector reads profession, activity, workplace, experience, hunger, sleep and carried cargo from the live person object. Hunger numbers are not visually capped at 100, although the meter itself remains clipped by its container at the full state.
 
-On desktop the inspector is a fixed right-side panel. At mobile widths it becomes a bottom sheet; the person browser stays beside the left menu and fills the remaining usable viewport. The UI refreshes live values without rebuilding the simulation or scene graph.
+On desktop the inspector is a fixed right-side panel. At mobile widths it becomes a bottom sheet; the person browser stays beside the left menu and fills the remaining usable viewport. The profession filter row is horizontally scrollable only, with vertical overflow and scroll chaining disabled to avoid iOS bounce. The UI refreshes live values without rebuilding the simulation or scene graph.
 
 ## Performance diagnostics
 
@@ -239,6 +239,7 @@ Reference mobile behavior:
 - map zoom 0.7×–3.5×,
 - build ghost selected by short tap and confirmed only by the DOM build button,
 - a short tap near a person selects the nearest person marker; movement beyond the existing tap threshold remains map panning,
+- person-list profession filters scroll horizontally without vertical bounce,
 - the person inspector is a bottom sheet on small screens.
 
 ## Offline PWA and updates
@@ -259,6 +260,6 @@ Coverage includes movement, placement, construction, production, farms, forests,
 
 Placement coverage verifies that roads are valid construction terrain and are permanently removed when covered by a building footprint. Sleep coverage verifies that a workplace assignment remains attached while sleep pauses the worker's activity.
 
-HQ supply coverage verifies that sawmill, carpenter, mill and bakery workers can source their required goods directly from HQ inventory. Food coverage verifies direct bakery eating and reservation of bakery bread portions.
+HQ supply coverage verifies that sawmill, carpenter, mill and bakery workers can source their required goods directly from HQ inventory. Food coverage verifies direct bakery eating, reservation of bakery bread portions and additive food recovery above hunger 100.
 
 `.github/workflows/deploy.yml` runs tests and the production build on pushes to `main`, then deploys GitHub Pages. Branch pushes do not deploy. The production build also emits the PWA service worker and network-only version metadata used by the client update check.
