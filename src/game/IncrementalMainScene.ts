@@ -104,16 +104,18 @@ export class IncrementalMainScene extends MainScene {
         building.position.r,
         building.retired ? 1 : 0,
         underConstruction(building) ? 1 : 0,
-        building.forestRemaining ?? "",
-        building.resourceRemaining ?? "",
         building.fieldStage ?? "",
       ].join(":"))
+      .join("|");
+    const resources = this.worldRef.naturalResources
+      .map((resource) => [resource.id, resource.kind, resource.position.q, resource.position.r, resource.remaining, resource.depleted ? 1 : 0].join(":"))
       .join("|");
     const internals = this.internals();
 
     return [
       terrainHash,
       buildings,
+      resources,
       internals.selectedBuildingId ?? "",
       internals.selectedTile
         ? `${internals.selectedTile.q},${internals.selectedTile.r}`
@@ -122,7 +124,7 @@ export class IncrementalMainScene extends MainScene {
   }
 
   private inventorySignature(): string {
-    return this.worldRef.buildings
+    const buildings = this.worldRef.buildings
       .filter(
         (building) =>
           (!building.retired || building.output > 0) &&
@@ -132,6 +134,10 @@ export class IncrementalMainScene extends MainScene {
         `${building.id}:${building.input}:${building.output}:${building.recipe?.input ?? ""}`,
       )
       .join("|");
+    const resources = this.worldRef.naturalResources
+      .map((resource) => `${resource.id}:${resource.output}`)
+      .join("|");
+    return `${buildings}#${resources}`;
   }
 
   private modalSignature(mapSignature: string): string {
@@ -196,6 +202,17 @@ export class IncrementalMainScene extends MainScene {
           color: "#21372a",
         },
       ).setResolution(TEXT_RESOLUTION));
+    }
+
+    for (const resource of this.worldRef.naturalResources.filter((candidate) => candidate.output > 0)) {
+      const { x, y } = pixel(resource.position);
+      const good: Good = resource.kind === "forest" ? "wood" : resource.kind === "clay" ? "clay" : "rubble";
+      internals.drawSlots(slots, x + 5, y - 1, resource.output, CONFIG.resourceOutputCapacity, good, 3);
+      this.inventoryLabels.add(this.add.text(x + 5, y + 3, "OUT", {
+        fontFamily: "system-ui",
+        fontSize: "5px",
+        color: "#21372a",
+      }).setResolution(TEXT_RESOLUTION));
     }
   }
 

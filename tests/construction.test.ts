@@ -38,14 +38,15 @@ test("builder pool automatically assigns builders and completes construction", (
   assert.ok(sourcePosition);
   world.buildings.push({
     id: "test-wood-source",
-    kind: "forest",
-    name: "Testholz",
+    kind: "warehouse",
+    name: "Testholz-Lager",
     position: { ...sourcePosition! },
     workers: 0,
     carriers: 0,
+    merchants: 0,
     input: 0,
-    output: 4,
-    recipe: { amount: 0, output: "wood", duration: 1 },
+    output: 0,
+    inventory: { wood: 4 },
   });
 
   for (let i = 0; i < 3000 && isUnderConstruction(site!); i++) tick(world);
@@ -64,7 +65,7 @@ test("newly assigned builder goes directly to available construction material", 
   const site = buildWithFootprint(world, origin!, "warehouse")!;
   const sourcePosition = world.tiles.find((tile) => tile.terrain === "grass" && !same(tile, site.position));
   assert.ok(sourcePosition);
-  world.buildings.push({ id: "ready-wood-source", kind: "forest", name: "Bereites Holz", position: { q: sourcePosition!.q, r: sourcePosition!.r }, workers: 0, carriers: 0, input: 0, output: 4, recipe: { amount: 0, output: "wood", duration: 1 } });
+  world.buildings.push({ id: "ready-wood-source", kind: "warehouse", name: "Bereites Holz", position: { q: sourcePosition!.q, r: sourcePosition!.r }, workers: 0, carriers: 0, merchants: 0, input: 0, output: 0, inventory: { wood: 4 } });
   assert.equal(changeBuilders(world, 1), true);
   const builder = assigned(world, site.id, "builder")[0]!;
   assert.equal(builder.trip?.source, "ready-wood-source");

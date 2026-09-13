@@ -48,14 +48,11 @@ export const logisticsSpeedMultiplier = (p: Person, profession: "carrier" | "mer
   1 + 0.5 * professionExperience(p, profession) / 100;
 
 export function workerProfession(building: Building): Profession | undefined {
-  if (building.kind === "forest") return "woodcutter";
   if (building.kind === "farm") return "farmer";
   if (building.kind === "sawmill") return "sawmillWorker";
   if (building.kind === "carpenter") return "carpenter";
   if (building.kind === "mill") return "miller";
   if (building.kind === "bakery") return "baker";
-  if (building.kind === "clayDeposit") return "clayDigger";
-  if (building.kind === "stoneDeposit") return "stonecutter";
   if (building.kind === "pottery") return "potter";
   if (building.kind === "stonemason") return "stonemason";
   return undefined;
@@ -64,6 +61,8 @@ export function workerProfession(building: Building): Profession | undefined {
 export function currentProfession(w: World, p: Person): Profession | undefined {
   if (p.builder) return "builder";
   if (p.woodcutter) return "woodcutter";
+  if (p.extractor === "clay") return "clayDigger";
+  if (p.extractor === "stone") return "stonecutter";
   if (!p.assignment) return undefined;
   if (p.assignment.role === "carrier") return "carrier";
   if (p.assignment.role === "merchant") return "merchant";

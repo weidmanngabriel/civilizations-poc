@@ -2,7 +2,7 @@
 
 ## Lehm und Stein
 
-Lehmvorkommen findest du in Flussnähe, Steinvorkommen in Bergnähe. Beide sind endlich. Lehmgräber und Steinbrecher werden im Hauptquartier zugewiesen, suchen selbständig ein freies passendes Vorkommen und wechseln nach dessen Erschöpfung zum nächsten. Pro Vorkommen arbeitet höchstens eine Person. Träger können die fertigen Rohstoffe anschließend abholen. In der Töpferei entstehen aus Lehm und Holz Backsteine. Die Steinmetzhütte verarbeitet Bruchstein zu Steinquadern. Beide Produkte werden als Baumaterial verwendet.
+Lehmvorkommen findest du in Flussnähe, Steinvorkommen in Bergnähe. Beide sind endlich. Wald, Lehm und Stein sind natürliche Ressourcen, keine Gebäude. Holzfäller, Lehmgräber und Steinbrecher werden ausschließlich am HQ zugewiesen, suchen selbständig freie Rohstoffstellen und wechseln nach deren Erschöpfung automatisch weiter. Direkt an einer Rohstoffstelle gibt es keine Arbeiterzuweisung. Pro Rohstoffstelle arbeitet höchstens eine Person. Träger können die fertigen Rohstoffe anschließend abholen. In der Töpferei entstehen aus Lehm und Holz Backsteine. Die Steinmetzhütte verarbeitet Bruchstein zu Steinquadern. Beide Produkte werden als Baumaterial verwendet.
 
 Waren existieren immer an einem konkreten Ort. Eine Produktionsstätte kann nur weiterarbeiten, wenn die benötigten Waren tatsächlich dort ankommen.
 

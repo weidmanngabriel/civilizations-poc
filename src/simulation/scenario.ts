@@ -1,4 +1,4 @@
-import type { Building, Hex, Person, Tile, World } from "./model";
+import type { Building, Hex, NaturalResource, Person, Tile, World } from "./model";
 import { attachNeeds } from "./needs";
 import { attachSleep } from "./sleep";
 
@@ -140,6 +140,14 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
       });
     }
 
+  const naturalResources: NaturalResource[] = forestTiles.map(([col, row], index) => ({
+    id: `forest-${index + 1}`,
+    kind: "forest",
+    position: at(col!, row!),
+    remaining: CONFIG.forestYield,
+    output: 0,
+  }));
+
   if (suppliedStart) {
     const adjacentGrass = (terrain: Tile["terrain"]): Tile[] =>
       tiles.filter((tile) =>
@@ -159,27 +167,20 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
         candidates[Math.floor((index * (candidates.length - 1)) / Math.max(1, count - 1))]!,
       );
     };
-    const addDeposit = (tile: Tile, kind: "clayDeposit" | "stoneDeposit", index: number) => {
-      const clay = kind === "clayDeposit";
-      buildings.push({
+    const addResource = (tile: Tile, kind: "clay" | "stone", index: number) => {
+      naturalResources.push({
         id: `${kind}-${index + 1}`,
         kind,
-        name: clay ? `Lehmvorkommen ${index + 1}` : `Steinvorkommen ${index + 1}`,
         position: { q: tile.q, r: tile.r },
-        workers: 1,
-        carriers: 0,
-        input: 0,
+        remaining: CONFIG.resourceYield,
         output: 0,
-        resourceRemaining: CONFIG.resourceYield,
-        recipe: { amount: 0, output: clay ? "clay" : "rubble", duration: CONFIG.duration },
       });
       tile.bush = undefined;
       tile.bushAvailable = undefined;
       tile.bushRegrowTick = undefined;
-      tile.terrain = "building";
     };
-    spread(adjacentGrass("river"), 4).forEach((tile, index) => addDeposit(tile, "clayDeposit", index));
-    spread(adjacentGrass("mountain"), 4).forEach((tile, index) => addDeposit(tile, "stoneDeposit", index));
+    spread(adjacentGrass("river"), 4).forEach((tile, index) => addResource(tile, "clay", index));
+    spread(adjacentGrass("mountain"), 4).forEach((tile, index) => addResource(tile, "stone", index));
   }
 
   const people: Person[] = Array.from({ length: population }, (_, i) => ({
@@ -204,11 +205,11 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
   const world: World = {
     round: 0,
     nextId: population + 1,
-    nextForestId: 1,
     nextBuildingId: 1,
     nextFieldId: 1,
     rngState: 0x1a2b3c4d,
     buildings,
+    naturalResources,
     tiles,
     people,
   };

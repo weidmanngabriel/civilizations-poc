@@ -95,7 +95,7 @@ export function renderPerformanceDebug(container: HTMLElement, world: World): vo
   const snapshot = performanceProfiler.snapshot();
   const activeBuildings = world.buildings.filter((building) => !building.retired);
   const fields = activeBuildings.filter((building) => building.kind === "field").length;
-  const forests = activeBuildings.filter((building) => building.forestRemaining !== undefined).length;
+  const forests = world.naturalResources.filter((resource) => resource.kind === "forest" && !resource.depleted).length;
   const moving = world.people.filter((person) => person.path.length > 0).length;
   const trips = world.people.filter((person) => person.trip).length;
   const featuresByCost = [...snapshot.features].sort((a, b) => b.msPerSecond - a.msPerSecond);
