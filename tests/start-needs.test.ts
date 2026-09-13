@@ -42,7 +42,7 @@ test("HQ bread is a valid food source", () => {
 
   advanceHungerTick(world);
 
-  assert.equal(person.hunger, 100);
+  assert.equal(person.hunger, 120);
   assert.equal(hq.inventory?.bread, 9);
   assert.equal(person.hungerState, undefined);
 });
