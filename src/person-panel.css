@@ -104,6 +104,11 @@
   gap: 6px;
   min-height: 40px;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: none;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
   padding: 2px 0 5px;
   scrollbar-width: thin;
 }
