@@ -74,7 +74,7 @@ test("critical tiredness interrupts immediately and preserves work progress", ()
   assert.equal(person.progress, 72);
 });
 
-test("sleep temporarily removes a workplace assignment so production cannot continue", () => {
+test("sleep keeps the workplace assignment while pausing production", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
   const workplace: Building = {
@@ -95,7 +95,7 @@ test("sleep temporarily removes a workplace assignment so production cannot cont
   person.sleep = 20;
 
   advanceSleepTick(world);
-  assert.equal(person.assignment, undefined);
+  assert.equal(person.assignment?.building, workplace.id);
   assert.equal(person.sleepState?.resumeAssignment?.building, workplace.id);
 
   const preservedProgress = person.progress;
@@ -108,8 +108,7 @@ test("sleep temporarily removes a workplace assignment so production cannot cont
   person.sleepState!.progress = SLEEP_RULES.durationTicks - 1;
   advanceSleepTick(world);
 
-  const restoredAssignment = person.assignment as { building: string } | undefined;
-  assert.equal(restoredAssignment?.building, workplace.id);
+  assert.equal(person.assignment?.building, workplace.id);
   assert.equal(person.progress, preservedProgress);
 });
 
@@ -154,7 +153,7 @@ test("a tired sawmill worker does not start resupply after finishing the current
   tick(world);
 
   assert.ok(person.sleepState);
-  assert.equal(person.assignment, undefined);
+  assert.equal(person.assignment?.building, sawmill.id);
 });
 
 test("house sleep restores half of the missing sleep after each five-second phase", () => {
