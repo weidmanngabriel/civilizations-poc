@@ -86,10 +86,11 @@ export function installPersonSelection(scene: Phaser.Scene, world: World): void 
     if (!marker) return;
     const camera = scene.cameras.main;
     const mobile = window.matchMedia("(max-width: 700px)").matches;
-    const targetScreenX = camera.width * (mobile ? 0.5 : 0.44);
-    const targetScreenY = camera.height * (mobile ? 0.32 : 0.5);
-    camera.scrollX = marker.x - targetScreenX / camera.zoom;
-    camera.scrollY = marker.y - targetScreenY / camera.zoom;
+    const targetScreenX = camera.x + camera.width * (mobile ? 0.5 : 0.44);
+    const targetScreenY = camera.y + camera.height * (mobile ? 0.32 : 0.5);
+    const targetWorld = camera.getWorldPoint(targetScreenX, targetScreenY);
+    camera.scrollX += marker.x - targetWorld.x;
+    camera.scrollY += marker.y - targetWorld.y;
   };
 
   const selectPerson = (personId: number, focus = false): void => {
