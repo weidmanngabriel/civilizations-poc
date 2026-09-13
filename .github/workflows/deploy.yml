@@ -1,38 +1,34 @@
-name: Test, build and deploy PoC
+name: Temporary extractor pool validation
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches: [tmp/resource-extractor-pools]
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: pages
-  cancel-in-progress: true
+  contents: write
 jobs:
-  build:
+  validate-and-commit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: tmp/resource-extractor-pools
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: npm
+      - name: Apply extractor pool patch
+        run: node scripts/tmp-add-extractor-pools.mjs
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Commit validated implementation
+        run: |
+          rm scripts/tmp-add-extractor-pools.mjs
+          rm .github/workflows/tmp-resource-extractor-pools.yml
+          git fetch origin main
+          git show origin/main:.github/workflows/deploy.yml > .github/workflows/deploy.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: add clay and stone extractor pools"
+          git push origin HEAD:tmp/resource-extractor-pools
