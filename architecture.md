@@ -23,7 +23,7 @@ Presentation reads simulation state and must not invent authoritative game state
 
 `src/simulation/model.ts` defines people, assignments, trips, buildings, fields, inventories, terrain, hunger and sleep state.
 
-People keep persistent work state while needs temporarily redirect them. Hunger uses `HungerState`; sleep uses `SleepState`. Sleep state stores interrupted assignment/pool data, current phase progress and recovery per five-second phase. Hunger state stores the selected food source or bush plus retry timing when no food is reachable.
+People keep persistent workplace assignments while needs temporarily redirect their activity. Hunger uses `HungerState`; sleep uses `SleepState`. Sleep state stores interrupted pool/resource data, current phase progress and recovery per five-second phase, while the workplace `assignment` remains on the live person. Hunger state stores the selected food source or bush plus retry timing when no food is reachable.
 
 The world stores deterministic RNG state and `nextBushRegrowTick`, allowing bush regrowth to be event-driven instead of scanning the complete map each tick.
 
@@ -70,7 +70,7 @@ active work              1 point / 1 s
 picked cargo             1 point / 1 s
 ```
 
-Hunger <= 40 blocks starting a new task after the current atomic activity. Hunger <= 20 interrupts immediately. Progress, farm tasks and transport state are preserved and resumed afterwards.
+Hunger <= 40 blocks starting a new task after the current atomic activity. Hunger <= 20 interrupts immediately. Progress, farm tasks and transport state are preserved and resumed afterwards. Workplace assignment is not cleared while eating.
 
 Food candidates are evaluated with the normal weighted pathfinder and sorted by travel cost. Current bread sources are:
 
@@ -109,7 +109,7 @@ no local option           -> current ground tile, +20 total
 
 The ten-second action consists of two five-second phases. A house credits half the missing amount after each phase; nature gives +20/+20 and ground +10/+10. Recovery already credited after phase one remains if another system later interrupts sleep.
 
-Sleep target selection is event-driven like hunger. The target and route are trusted while travelling and validated only when the path ends. During sleep, assignment and builder/woodcutter pool flags are stored in `SleepState` and removed from the live person so ordinary planners cannot reactivate the sleeper.
+Sleep target selection is event-driven like hunger. The target and route are trusted while travelling and validated only when the path ends. During sleep, workplace assignment remains persistent so UI and staffing state do not fluctuate. Temporary global-pool/resource flags such as builder, woodcutter or extractor targeting are still stored in `SleepState` and restored afterwards so ordinary planners do not reactivate those activities during sleep.
 
 ## Bush lifecycle
 
@@ -158,7 +158,7 @@ Pottery     4
 Stonemason  4
 ```
 
-Footprint and a complete one-tile clearance ring must fit valid terrain. Bushes count as grass for placement; footprint cells destroy them permanently.
+Footprint and a complete one-tile clearance ring must fit valid terrain. Grass and road are both valid placement terrain; bushes count as grass. Footprint cells destroy bushes permanently, and any road inside the footprint is consumed by construction. Demolition restores footprint cells as grass rather than recreating covered roads.
 
 Construction duration is `(3 + 2 × required units) × 60` ticks. Up to two builders may work on one construction site.
 
@@ -230,6 +230,8 @@ Reference mobile behavior:
 `npm test` runs deterministic Node tests through `tsx`. `npm run build` performs TypeScript checking plus the Vite production build.
 
 Coverage includes movement, placement, construction, production, farms, forests, merchants, inventories, profession experience, hunger, sleep, performance diagnostics, HQ logistics and start/bush rules.
+
+Placement coverage verifies that roads are valid construction terrain and are permanently removed when covered by a building footprint. Sleep coverage verifies that a workplace assignment remains attached while sleep pauses the worker's activity.
 
 HQ supply coverage verifies that sawmill, carpenter, mill and bakery workers can source their required goods directly from HQ inventory. Food coverage verifies direct bakery eating and reservation of bakery bread portions.
 
