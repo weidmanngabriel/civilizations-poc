@@ -17,13 +17,16 @@ jobs:
           node-version: "24"
           cache: npm
       - name: Apply extractor pool patch
-        run: node scripts/tmp-add-extractor-pools.mjs
+        run: |
+          node scripts/tmp-add-extractor-pools.mjs
+          node scripts/tmp-fix-extractor-test.mjs
       - run: npm ci
       - run: npm test
       - run: npm run build
       - name: Commit validated implementation
         run: |
           rm scripts/tmp-add-extractor-pools.mjs
+          rm scripts/tmp-fix-extractor-test.mjs
           rm .github/workflows/tmp-resource-extractor-pools.yml
           git fetch origin main
           git show origin/main:.github/workflows/deploy.yml > .github/workflows/deploy.yml
