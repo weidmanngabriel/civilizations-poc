@@ -20,6 +20,22 @@ const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 type PersonSelectedDetail = { id: number };
 type PersonFilter = "all" | "free" | Profession;
 
+const PROFESSION_ICONS: Record<Profession, string> = {
+  woodcutter: "🪓",
+  builder: "🔨",
+  carrier: "📦",
+  merchant: "🧭",
+  farmer: "🌾",
+  sawmillWorker: "🪵",
+  carpenter: "🛠️",
+  miller: "⚙️",
+  baker: "🍞",
+  clayDigger: "🟤",
+  stonecutter: "⛏️",
+  potter: "🧱",
+  stonemason: "🪨",
+};
+
 const escapeHtml = (value: string): string =>
   value
     .replaceAll("&", "&amp;")
@@ -37,6 +53,11 @@ const professionOf = (world: World, person: Person): Profession | undefined =>
 const professionLabel = (world: World, person: Person): string => {
   const profession = professionOf(world, person);
   return profession ? PROFESSION_LABELS[profession] : "Frei";
+};
+
+const professionIcon = (world: World, person: Person): string => {
+  const profession = professionOf(world, person);
+  return profession ? PROFESSION_ICONS[profession] : "👤";
 };
 
 const workplaceLabel = (world: World, person: Person): string => {
@@ -160,7 +181,7 @@ export function mountPersonPanel(world: World): void {
     list.innerHTML = people.length
       ? people.map((person) => `
           <button class="person-list-item" type="button" data-person-id="${person.id}">
-            <span class="person-list-avatar" aria-hidden="true">👤</span>
+            <span class="person-list-avatar" aria-hidden="true">${professionIcon(world, person)}</span>
             <span class="person-list-copy">
               <strong>${escapeHtml(personName(person.id))}</strong>
               <small>${escapeHtml(professionLabel(world, person))}</small>
