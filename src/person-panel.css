@@ -100,17 +100,23 @@
 
 .person-filter-row {
   display: flex;
+  align-items: center;
   gap: 6px;
+  min-height: 40px;
   overflow-x: auto;
-  padding-bottom: 3px;
+  padding: 2px 0 5px;
   scrollbar-width: thin;
 }
 
 .person-filter-row button {
   flex: 0 0 auto;
-  min-height: 31px;
-  padding: 5px 9px;
+  min-height: 36px;
+  padding: 7px 10px;
   border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
   font-size: 10px;
 }
 
@@ -133,24 +139,25 @@
 
 .person-list-item {
   width: 100%;
-  min-height: 54px;
-  padding: 7px 9px;
+  min-height: 58px;
+  padding: 8px 9px;
   border-radius: 10px;
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   text-align: left;
 }
 
 .person-list-avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   background: rgb(255 255 255 / 8%);
-  font-size: 18px;
+  font-size: 19px;
+  line-height: 1;
 }
 
 .person-list-copy {
@@ -319,6 +326,6 @@ main.merchant-target-mode .person-inspector {
   }
 
   .person-list-item {
-    min-height: 58px;
+    min-height: 62px;
   }
 }
