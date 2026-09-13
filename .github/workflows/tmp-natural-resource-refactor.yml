@@ -23,6 +23,8 @@ jobs:
           cache: npm
       - run: node scripts/tmp-natural-resource-prepatch.mjs
       - run: node scripts/tmp-natural-resource-refactor.mjs
+      - name: Show generated simulation tail
+        run: nl -ba src/simulation/simulation.ts | sed -n '1240,1310p'
       - run: npm ci
       - run: npm test
       - run: npm run build
