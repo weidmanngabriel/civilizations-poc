@@ -270,3 +270,11 @@ Die Karte belegt den gesamten Viewport. Overlays liegen darüber. Referenzgerät
 - Müdigkeit wird analog über ein eigenes `💤`-Symbol angezeigt: gelb bei Schlafbedarf, rot bei kritischer Müdigkeit,
 - Hunger- und Schlafsymbol liegen getrennt nebeneinander, falls beide Bedürfnisse gleichzeitig sichtbar sind,
 - Büsche werden direkt auf der Karte dargestellt; volle Büsche zeigen Beeren, leere nur das Buschgrün.
+
+## PWA und Offlinebetrieb
+
+Die veröffentlichte Anwendung soll nach einem vollständigen ersten Laden ohne Internetverbindung weiter startbar und spielbar sein. Das gilt sowohl für einen normalen Reload als auch für den Start einer zum Homescreen hinzugefügten PWA.
+
+Wenn Internet verfügbar ist, prüft die Anwendung weiterhin regelmäßig auf eine neu veröffentlichte Version. Der Versionscheck darf nicht aus dem Offline-Cache beantwortet werden. Ohne Netz bleibt die aktuell installierte Version einfach nutzbar und der fehlgeschlagene Check erzeugt keine Fehlermeldung.
+
+Eine neue Version wird nicht automatisch während einer laufenden Partie aktiviert. Stattdessen erscheint ein kompakter Hinweis mit der Möglichkeit, bewusst neu zu laden. Erst dann wird auf den neuen Build gewechselt.
