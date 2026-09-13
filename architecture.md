@@ -164,7 +164,7 @@ Construction duration is `(3 + 2 × required units) × 60` ticks. Up to two buil
 
 ## Production, inventories and logistics
 
-Current goods are wood, plank, woodenTool, wheat, flour, water, bread, clay, rubble, brick and stoneBlock. Clay and rubble come from finite natural resource nodes next to rivers and mountains; each node contains 10 units and retires after the last extraction while already produced local output remains collectible. Clay diggers and stonecutters are global HQ-managed pools analogous to woodcutters: each worker claims the nearest reachable free matching node, at most one works per node, and depletion automatically triggers reassignment.
+Current goods are wood, plank, woodenTool, wheat, flour, water, bread, clay, rubble, brick and stoneBlock. Forests, clay deposits and stone deposits are first-class `NaturalResource` objects in `World.naturalResources`, not buildings. A resource stores position, remaining yield and local output; its underlying tile stays authoritative terrain. Forest tiles use forest terrain, while clay and stone are lightweight overlays on walkable grass next to rivers and mountains. Each resource contains 10 units and disappears after the last extraction while already produced local output remains collectible. Woodcutters, clay diggers and stonecutters are global HQ-managed pools: each worker holds a `resourceTarget` rather than a building assignment, claims the nearest reachable free matching resource, at most one works per resource, and depletion automatically triggers reassignment. Transport trips can use either a building source or a natural-resource source, so local raw-material output remains physical without pretending the source is a building.
 
 ```text
 forest      -> 1 wood / cycle

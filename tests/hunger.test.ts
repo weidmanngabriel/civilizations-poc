@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { CONFIG, createWorld } from "../src/simulation/scenario";
 import { advanceHungerTick } from "../src/simulation/needs";
 import { tick } from "../src/simulation/simulation";
-import type { Building, World } from "../src/simulation/model";
+import type { Building, NaturalResource, World } from "../src/simulation/model";
 
 const addBreadWarehouse = (world: World, bread = 1): Building => {
   const hq = world.buildings.find((building) => building.id === "hq")!;
@@ -129,19 +129,15 @@ test("light hunger prevents a new task after the current production cycle", () =
     output: 0,
     recipe: { input: "wood", amount: 2, output: "plank", duration: 240 },
   };
-  const woodSource: Building = {
+  const woodSource: NaturalResource = {
     id: "test-wood",
     kind: "forest",
-    name: "Testholz",
     position: { q: hq.position.q + 3, r: hq.position.r },
-    workers: 0,
-    carriers: 0,
-    input: 0,
+    remaining: 10,
     output: 3,
-    forestRemaining: 10,
-    recipe: { amount: 0, output: "wood", duration: 240 },
   };
-  world.buildings.push(sawmill, woodSource);
+  world.buildings.push(sawmill);
+  world.naturalResources.push(woodSource);
   person.assignment = { building: sawmill.id, role: "worker" };
   person.position = { ...sawmill.position };
   person.active = true;

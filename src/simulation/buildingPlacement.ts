@@ -101,14 +101,22 @@ type PlacementLookup = {
   people: Set<string>;
 };
 
-const createPlacementLookup = (world: World): PlacementLookup => ({
+const createPlacementLookup = (world: World): PlacementLookup => {
+  const occupiedResources = new Set(
+    world.naturalResources.filter((resource) => !resource.depleted).map((resource) => key(resource.position)),
+  );
+  return {
   freeTiles: new Set(
     world.tiles
-      .filter((tile) => tile.terrain === "grass" || tile.terrain === "road")
+      .filter((tile) =>
+        (tile.terrain === "grass" || tile.terrain === "road") &&
+        !occupiedResources.has(key(tile)),
+      )
       .map(key),
   ),
   people: new Set(world.people.map((person) => key(person.position))),
-});
+  };
+};
 
 const canPlaceWithLookup = (
   lookup: PlacementLookup,
@@ -190,7 +198,7 @@ export function buildWithFootprint(
 
 export function removeBuildingWithFootprint(world: World, id: string): boolean {
   const existing = world.buildings.find((building) => building.id === id);
-  if (!existing || existing.kind === "hq" || existing.kind === "forest" || existing.kind === "clayDeposit" || existing.kind === "stoneDeposit" || existing.kind === "field") return false;
+  if (!existing || existing.kind === "hq" || existing.kind === "field") return false;
   const footprint = buildingFootprint(existing);
   const baseTerrains = existing.baseTerrains;
   if (!removeBuilding(world, id)) return false;

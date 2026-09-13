@@ -122,9 +122,13 @@ const atTaskBoundary = (person: Person): boolean =>
 const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
   if (person.farmTask) return person.farmTask.target;
   if (person.trip) {
+    if (!person.trip.picked && person.trip.sourceKind === "resource")
+      return world.naturalResources.find((resource) => resource.id === person.trip!.source)?.position;
     const buildingId = person.trip.picked ? person.trip.target : person.trip.source;
     return world.buildings.find((building) => building.id === buildingId)?.position;
   }
+  if (person.resourceTarget)
+    return world.naturalResources.find((resource) => resource.id === person.resourceTarget)?.position;
   if (person.assignment)
     return world.buildings.find((building) => building.id === person.assignment!.building)?.position;
   return world.buildings.find((building) => building.id === "hq")?.position;
@@ -142,6 +146,18 @@ const resumeTask = (world: World, person: Person, state: SleepState): void => {
   person.builder = state.resumeBuilder || undefined;
   person.woodcutter = state.resumeWoodcutter || undefined;
   person.extractor = state.resumeExtractor;
+  const resourceStillAvailable = state.resumeResourceTarget
+    ? world.naturalResources.some(
+        (resource) =>
+          resource.id === state.resumeResourceTarget &&
+          !resource.depleted &&
+          !world.people.some(
+            (other) => other.id !== person.id && other.resourceTarget === state.resumeResourceTarget,
+          ),
+      )
+    : false;
+  person.resourceTarget = resourceStillAvailable ? state.resumeResourceTarget : undefined;
+  if (state.resumeResourceTarget && !resourceStillAvailable) person.progress = 0;
   person.active = false;
   person.movement = 0;
   const target = currentTaskTarget(world, person);
@@ -184,11 +200,13 @@ const startSleeping = (world: World, person: Person): void => {
     resumeBuilder: Boolean(person.builder),
     resumeWoodcutter: Boolean(person.woodcutter),
     resumeExtractor: person.extractor,
+    resumeResourceTarget: person.resourceTarget,
   };
   person.assignment = undefined;
   person.builder = undefined;
   person.woodcutter = undefined;
   person.extractor = undefined;
+  person.resourceTarget = undefined;
   person.active = false;
   person.movement = 0;
   person.path = same(person.position, candidate.target) ? [] : candidate.path;

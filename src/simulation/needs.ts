@@ -1,4 +1,4 @@
-import type { Building, BuildingId, Good, Hex, HungerState, Person, Tile, World } from "./model";
+import type { Building, BuildingId, Good, Hex, HungerState, NaturalResource, NaturalResourceId, Person, Tile, World } from "./model";
 import { findPath, findPathBySteps, pathTravelCost, same } from "./hex";
 import { CONFIG } from "./scenario";
 import {
@@ -14,7 +14,7 @@ const CRITICAL_HUNGER_THRESHOLD = 20;
 const HUNGER_MAX = 100;
 const ACCUMULATOR_EPSILON = 1e-9;
 const HQ_STORAGE_PROXY_ID = "hq-storage-proxy";
-const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "wheat", "flour", "water", "bread"];
+const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "wheat", "flour", "water", "bread", "clay", "rubble", "brick", "stoneBlock"];
 
 type BreadCandidate = {
   kind: "bread";
@@ -35,12 +35,9 @@ type SelectedFoodTarget =
   | { kind: "bread"; source: Building }
   | { kind: "bush"; tile: Tile };
 
-type CollectionCandidate = {
-  source: Building;
-  good: Good;
-  path: Hex[];
-  cost: number;
-};
+type CollectionCandidate =
+  | { sourceKind: "building"; source: Building; good: Good; path: Hex[]; cost: number }
+  | { sourceKind: "resource"; source: NaturalResource; good: Good; path: Hex[]; cost: number };
 
 const isStorage = (building: Building): boolean =>
   (building.kind === "warehouse" || building.kind === "hq") &&
@@ -157,9 +154,13 @@ const foodCandidates = (world: World, person: Person): FoodCandidate[] => {
 const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
   if (person.farmTask) return person.farmTask.target;
   if (person.trip) {
+    if (!person.trip.picked && person.trip.sourceKind === "resource")
+      return world.naturalResources.find((resource) => resource.id === person.trip!.source)?.position;
     const buildingId = person.trip.picked ? person.trip.target : person.trip.source;
     return world.buildings.find((building) => building.id === buildingId)?.position;
   }
+  if (person.resourceTarget)
+    return world.naturalResources.find((resource) => resource.id === person.resourceTarget)?.position;
   if (person.assignment)
     return world.buildings.find((building) => building.id === person.assignment!.building)
       ?.position;
@@ -176,7 +177,7 @@ const resumeTask = (world: World, person: Person, hungerState: HungerState): voi
   }
   if (same(person.position, target)) {
     person.path = [];
-    person.active = hungerState.resumeActive || Boolean(person.assignment);
+    person.active = hungerState.resumeActive || Boolean(person.assignment) || Boolean(person.resourceTarget);
     return;
   }
   person.path = routeTo(world, person, target) ?? [];
@@ -376,9 +377,21 @@ const sourceStock = (building: Building, good: Good): number => {
   return building.recipe?.output === good ? building.output : 0;
 };
 
-const reservedAtSource = (world: World, id: BuildingId, good: Good): number =>
+const naturalResourceGood = (resource: NaturalResource): Good =>
+  resource.kind === "forest" ? "wood" : resource.kind === "clay" ? "clay" : "rubble";
+
+const reservedAtSource = (
+  world: World,
+  id: BuildingId | NaturalResourceId,
+  good: Good,
+  sourceKind?: "resource",
+): number =>
   world.people.filter(
-    (person) => person.trip?.source === id && person.trip.good === good && !person.trip.picked,
+    (person) =>
+      person.trip?.source === id &&
+      person.trip.good === good &&
+      person.trip.sourceKind === sourceKind &&
+      !person.trip.picked,
   ).length;
 
 const incomingToHq = (world: World, good: Good): number =>
@@ -436,6 +449,26 @@ const planHqCarrier = (world: World, person: Person, hq: Building): void => {
       const path = routeTo(world, person, source.position, "logistics");
       if (!path) continue;
       candidates.push({
+        sourceKind: "building",
+        source,
+        good,
+        path,
+        cost: pathTravelCost(world.tiles, path, ROAD_SPEED_MULTIPLIER),
+      });
+    }
+    for (const source of world.naturalResources) {
+      if (
+        naturalResourceGood(source) !== good ||
+        source.output - reservedAtSource(world, source.id, good, "resource") < CONFIG.carryCapacity
+      ) continue;
+      const rangePath = performanceProfiler.withPathReason("logistics", () =>
+        findPathBySteps(world.tiles, hq.position, source.position),
+      );
+      if (!rangePath || rangePath.length > CONFIG.warehouseCollectionRadius) continue;
+      const path = routeTo(world, person, source.position, "logistics");
+      if (!path) continue;
+      candidates.push({
+        sourceKind: "resource",
         source,
         good,
         path,
@@ -449,6 +482,7 @@ const planHqCarrier = (world: World, person: Person, hq: Building): void => {
   const proxy = ensureHqStorageProxy(world, hq);
   person.trip = {
     source: candidate.source.id,
+    ...(candidate.sourceKind === "resource" ? { sourceKind: "resource" as const } : {}),
     target: proxy.id,
     good: candidate.good,
     picked: false,

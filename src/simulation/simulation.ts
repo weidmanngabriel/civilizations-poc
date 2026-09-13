@@ -5,6 +5,9 @@ import type {
   Good,
   GoodAmounts,
   Hex,
+  NaturalResource,
+  NaturalResourceId,
+  NaturalResourceKind,
   Person,
   Role,
   Tile,
@@ -42,6 +45,10 @@ import {
 
 export const building = (w: World, id: BuildingId): Building =>
   w.buildings.find((b) => b.id === id)!;
+export const naturalResource = (w: World, id: NaturalResourceId): NaturalResource =>
+  w.naturalResources.find((resource) => resource.id === id)!;
+export const resourceWorkers = (w: World, id: NaturalResourceId): Person[] =>
+  w.people.filter((person) => person.resourceTarget === id);
 export const assigned = (w: World, id: BuildingId, role: Role): Person[] =>
   w.people.filter(
     (p) => p.assignment?.building === id && p.assignment.role === role,
@@ -64,9 +71,18 @@ const incoming = (w: World, id: BuildingId, good?: Good) =>
   ).length;
 const heldOutput = (w: World, id: BuildingId) =>
   w.people.filter((p) => p.trip?.source === id && p.trip.picked).length;
-const reservedAtSource = (w: World, id: BuildingId, good: Good) =>
+const reservedAtSource = (
+  w: World,
+  id: BuildingId | NaturalResourceId,
+  good: Good,
+  sourceKind?: "resource",
+) =>
   w.people.filter(
-    (p) => p.trip?.source === id && p.trip.good === good && !p.trip.picked,
+    (p) =>
+      p.trip?.source === id &&
+      p.trip.good === good &&
+      p.trip.sourceKind === sourceKind &&
+      !p.trip.picked,
   ).length;
 const producing = (w: World, id: BuildingId) =>
   w.people.filter((p) => p.assignment?.building === id && p.progress > 0 && !p.farmTask)
@@ -74,12 +90,13 @@ const producing = (w: World, id: BuildingId) =>
 const recipeOutputAmount = (b: Building): number => b.recipe?.outputAmount ?? 1;
 export const outputOccupied = (w: World, b: Building): number =>
   b.output + heldOutput(w, b.id) + producing(w, b.id) * recipeOutputAmount(b);
-const outputCapacityFor = (b: Building): number =>
-  b.forestRemaining !== undefined
-    ? CONFIG.forestOutputCapacity
-    : b.resourceRemaining !== undefined
-      ? CONFIG.resourceOutputCapacity
-      : CONFIG.outputCapacity;
+const outputCapacityFor = (_b: Building): number => CONFIG.outputCapacity;
+const naturalOutputCapacity = (resource: NaturalResource): number =>
+  resource.kind === "forest" ? CONFIG.forestOutputCapacity : CONFIG.resourceOutputCapacity;
+const naturalResourceGood = (resource: NaturalResource): Good =>
+  resource.kind === "forest" ? "wood" : resource.kind === "clay" ? "clay" : "rubble";
+const naturalResourceProfession = (resource: NaturalResource): "woodcutter" | "clayDigger" | "stonecutter" =>
+  resource.kind === "forest" ? "woodcutter" : resource.kind === "clay" ? "clayDigger" : "stonecutter";
 const foodDueBeforeNewTask = (p: Person): boolean =>
   Boolean(p.hungerState) || (p.hunger ?? 100) <= 40;
 const sleepDueBeforeNewTask = (p: Person): boolean =>
@@ -97,21 +114,22 @@ const routeReason = (p: Person): PathReason => {
   return "other";
 };
 
+const routeToPosition = (
+  w: World,
+  p: Person,
+  position: Hex,
+  reason: PathReason = routeReason(p),
+) => {
+  p.path = performanceProfiler.withPathReason(reason, () =>
+    findPath(w.tiles, p.position, position, CONFIG.roadSpeedMultiplier),
+  ) ?? [];
+};
 const route = (
   w: World,
   p: Person,
   b: Building,
   reason: PathReason = routeReason(p),
-) => {
-  p.path = performanceProfiler.withPathReason(reason, () =>
-    findPath(
-      w.tiles,
-      p.position,
-      b.position,
-      CONFIG.roadSpeedMultiplier,
-    ),
-  ) ?? [];
-};
+) => routeToPosition(w, p, b.position, reason);
 const tileAt = (w: World, position: Hex): Tile =>
   w.tiles.find((tile) => same(tile, position))!;
 
@@ -206,12 +224,18 @@ const constructionMaterialsComplete = (b: Building): boolean => {
 
 function returnCargoToSource(w: World, p: Person): void {
   if (!p.trip?.picked) return;
+  const amount = CONFIG.carryCapacity + (p.pendingFarmBonus ?? 0);
+  if (p.trip.sourceKind === "resource") {
+    const source = w.naturalResources.find((resource) => resource.id === p.trip!.source);
+    if (source) source.output += amount;
+    p.pendingFarmBonus = undefined;
+    return;
+  }
   const source = w.buildings.find((b) => b.id === p.trip!.source);
   if (!source || (source.kind === "well" && p.trip.good === "water")) {
     p.pendingFarmBonus = undefined;
     return;
   }
-  const amount = CONFIG.carryCapacity + (p.pendingFarmBonus ?? 0);
   if (source.kind === "warehouse" && !isUnderConstruction(source)) {
     source.inventory ??= {};
     source.inventory[p.trip.good] = (source.inventory[p.trip.good] ?? 0) + amount;
@@ -234,10 +258,22 @@ function cancel(w: World, p: Person): void {
 function rerouteCurrentTask(w: World, p: Person): void {
   if (performanceProfiler.withPathReason("reroute", () => rerouteFarmTask(w, p))) return;
   if (p.trip) {
+    if (!p.trip.picked && p.trip.sourceKind === "resource") {
+      const source = w.naturalResources.find((resource) => resource.id === p.trip!.source);
+      if (source) routeToPosition(w, p, source.position, "reroute");
+      else p.path = [];
+      return;
+    }
     const target = w.buildings.find(
       (b) => b.id === (p.trip!.picked ? p.trip!.target : p.trip!.source),
     );
     if (target) route(w, p, target, "reroute");
+    else p.path = [];
+    return;
+  }
+  if (p.resourceTarget) {
+    const target = w.naturalResources.find((resource) => resource.id === p.resourceTarget);
+    if (target && !target.depleted) routeToPosition(w, p, target.position, "reroute");
     else p.path = [];
     return;
   }
@@ -269,7 +305,7 @@ export function changeAssignment(
   const b = building(w, id),
     people = assigned(w, id, role),
     limit = roleLimit(b, role);
-  if (b.forestRemaining !== undefined || b.resourceRemaining !== undefined || b.kind === "field" || !limit) return false;
+  if (b.kind === "field" || !limit) return false;
   if (delta === 1) {
     const p = freePeople(w)[0];
     if (!p || b.retired || people.length >= limit) return false;
@@ -349,136 +385,56 @@ function randomIndex(w: World, length: number): number {
   return w.rngState % length;
 }
 
-type ForestCandidate =
-  | { kind: "active"; forest: Building; path: Hex[] }
-  | { kind: "passive"; tile: Tile; path: Hex[] };
-
-function forestCandidates(w: World, origin: Hex): ForestCandidate[] {
-  return performanceProfiler.withPathReason("woodcutter", () => {
-    const active: ForestCandidate[] = w.buildings
-      .filter(
-        (b) =>
-          !b.retired &&
-          b.forestRemaining !== undefined &&
-          b.forestRemaining > 0 &&
-          assigned(w, b.id, "worker").length === 0,
-      )
-      .map((forest) => ({
-        kind: "active" as const,
-        forest,
-        path: findPath(
-          w.tiles,
-          origin,
-          forest.position,
-          CONFIG.roadSpeedMultiplier,
-        ),
-      }))
-      .filter(
-        (candidate): candidate is Extract<ForestCandidate, { kind: "active" }> =>
-          candidate.path !== null,
-      );
-    const passive: ForestCandidate[] = w.tiles
-      .filter((tile) => tile.terrain === "forest")
-      .map((tile) => ({
-        kind: "passive" as const,
-        tile,
-        path: findPath(w.tiles, origin, tile, CONFIG.roadSpeedMultiplier),
-      }))
-      .filter(
-        (candidate): candidate is Extract<ForestCandidate, { kind: "passive" }> =>
-          candidate.path !== null,
-      );
-    const candidates = [...active, ...passive];
-    if (!candidates.length) return [];
-    const costs = candidates.map((candidate) =>
-      pathTravelCost(w.tiles, candidate.path, CONFIG.roadSpeedMultiplier),
-    );
-    const best = Math.min(...costs);
-    return candidates.filter(
-      (candidate) =>
-        Math.abs(
-          pathTravelCost(w.tiles, candidate.path, CONFIG.roadSpeedMultiplier) - best,
-        ) < 1e-9,
-    );
-  });
-}
-
-function activateForest(w: World, tile: Tile): Building {
-  const number = w.nextForestId++;
-  const forest: Building = {
-    id: `forest-${number}`,
-    kind: "forest",
-    name: `Wald ${number}`,
-    position: { q: tile.q, r: tile.r },
-    workers: 1,
-    carriers: 0,
-    input: 0,
-    output: 0,
-    forestRemaining: CONFIG.forestYield,
-    recipe: { amount: 0, output: "wood", duration: CONFIG.duration },
-  };
-  w.buildings.push(forest);
-  tile.terrain = "building";
-  tile.trafficTicks = undefined;
-  return forest;
-}
-
-function assignWoodcutter(w: World, p: Person): boolean {
-  if (needDueBeforeNewTask(p)) return false;
-  const candidates = forestCandidates(w, p.position);
-  if (!candidates.length) {
-    p.assignment = undefined;
-    p.active = false;
-    p.movement = 0;
-    const hq = building(w, "hq");
-    if (!same(p.position, hq.position)) route(w, p, hq, "woodcutter");
-    return false;
-  }
-  const choice = candidates[randomIndex(w, candidates.length)]!;
-  const forest =
-    choice.kind === "active" ? choice.forest : activateForest(w, choice.tile);
-  p.assignment = { building: forest.id, role: "worker" };
-  p.active = same(p.position, forest.position);
-  p.movement = 0;
-  p.path = choice.path;
-  return true;
-}
+type NaturalResourceCandidate = { resource: NaturalResource; path: Hex[]; cost: number };
 
 type ExtractorKind = "clay" | "stone";
 
-const extractorBuildingKind = (kind: ExtractorKind) =>
-  kind === "clay" ? "clayDeposit" : "stoneDeposit";
+function naturalResourceCandidates(
+  w: World,
+  origin: Hex,
+  kind: NaturalResourceKind,
+): NaturalResourceCandidate[] {
+  const reason: PathReason = kind === "forest" ? "woodcutter" : "other";
+  return performanceProfiler.withPathReason(reason, () => {
+    const candidates = w.naturalResources
+      .filter(
+        (resource) =>
+          resource.kind === kind &&
+          !resource.depleted &&
+          resource.remaining > 0 &&
+          resourceWorkers(w, resource.id).length === 0,
+      )
+      .map((resource) => {
+        const path = findPath(w.tiles, origin, resource.position, CONFIG.roadSpeedMultiplier);
+        return path ? {
+          resource,
+          path,
+          cost: pathTravelCost(w.tiles, path, CONFIG.roadSpeedMultiplier),
+        } : undefined;
+      })
+      .filter((candidate): candidate is NaturalResourceCandidate => Boolean(candidate));
+    if (!candidates.length) return [];
+    const best = Math.min(...candidates.map((candidate) => candidate.cost));
+    return candidates.filter((candidate) => Math.abs(candidate.cost - best) < 1e-9);
+  });
+}
 
-function assignExtractor(w: World, p: Person, kind: ExtractorKind): boolean {
+function assignNaturalWorker(w: World, p: Person, kind: NaturalResourceKind): boolean {
   if (needDueBeforeNewTask(p)) return false;
-  const candidates = w.buildings
-    .filter((b) =>
-      !b.retired &&
-      b.kind === extractorBuildingKind(kind) &&
-      (b.resourceRemaining ?? 0) > 0 &&
-      assigned(w, b.id, "worker").length === 0,
-    )
-    .map((deposit) => {
-      const path = findPath(w.tiles, p.position, deposit.position, CONFIG.roadSpeedMultiplier);
-      return path ? {
-        deposit,
-        path,
-        cost: pathTravelCost(w.tiles, path, CONFIG.roadSpeedMultiplier),
-      } : undefined;
-    })
-    .filter((candidate): candidate is { deposit: Building; path: Hex[]; cost: number } => Boolean(candidate))
-    .sort((a, b) => a.cost - b.cost || a.deposit.id.localeCompare(b.deposit.id));
-  const choice = candidates[0];
-  if (!choice) {
+  const candidates = naturalResourceCandidates(w, p.position, kind);
+  if (!candidates.length) {
+    p.resourceTarget = undefined;
     p.assignment = undefined;
     p.active = false;
     p.movement = 0;
     const hq = building(w, "hq");
-    if (!same(p.position, hq.position)) route(w, p, hq, "other");
+    if (!same(p.position, hq.position)) route(w, p, hq, kind === "forest" ? "woodcutter" : "other");
     return false;
   }
-  p.assignment = { building: choice.deposit.id, role: "worker" };
-  p.active = same(p.position, choice.deposit.position);
+  const choice = candidates[randomIndex(w, candidates.length)]!;
+  p.assignment = undefined;
+  p.resourceTarget = choice.resource.id;
+  p.active = same(p.position, choice.resource.position);
   p.movement = 0;
   p.path = choice.path;
   return true;
@@ -493,14 +449,15 @@ export function changeExtractors(
     const p = freePeople(w)[0];
     if (!p) return false;
     p.extractor = kind;
-    assignExtractor(w, p, kind);
+    assignNaturalWorker(w, p, kind);
     return true;
   }
   const pool = w.people.filter((p) => p.extractor === kind);
-  const p = pool.find((person) => !person.assignment) ?? pool.at(-1);
+  const p = pool.find((person) => !person.resourceTarget) ?? pool.at(-1);
   if (!p) return false;
   cancel(w, p);
   p.assignment = undefined;
+  p.resourceTarget = undefined;
   p.extractor = undefined;
   p.active = false;
   route(w, p, building(w, "hq"), "other");
@@ -512,13 +469,15 @@ export function changeWoodcutters(w: World, delta: 1 | -1): boolean {
     const p = freePeople(w)[0];
     if (!p) return false;
     p.woodcutter = true;
-    assignWoodcutter(w, p);
+    assignNaturalWorker(w, p, "forest");
     return true;
   }
-  const p = woodcutters(w).at(-1);
+  const pool = woodcutters(w);
+  const p = pool.find((person) => !person.resourceTarget) ?? pool.at(-1);
   if (!p) return false;
   cancel(w, p);
   p.assignment = undefined;
+  p.resourceTarget = undefined;
   p.woodcutter = undefined;
   p.active = false;
   route(w, p, building(w, "hq"), "woodcutter");
@@ -609,7 +568,9 @@ export function changeBuilders(w: World, delta: 1 | -1): boolean {
   return true;
 }
 
-type SourceCandidate = { source: Building; good: Good; path: Hex[] };
+type SourceCandidate =
+  | { sourceKind: "building"; source: Building; good: Good; path: Hex[] }
+  | { sourceKind: "resource"; source: NaturalResource; good: Good; path: Hex[] };
 
 function requestInput(w: World, p: Person, b: Building): void {
   const construction = isUnderConstruction(b) ? b.construction! : undefined;
@@ -661,7 +622,23 @@ function requestInput(w: World, p: Person, b: Building): void {
             CONFIG.roadSpeedMultiplier,
           ),
         );
-        if (path) sources.push({ source, good, path });
+        if (path) sources.push({ sourceKind: "building", source, good, path });
+      }
+      for (const source of w.naturalResources) {
+        if (
+          naturalResourceGood(source) !== good ||
+          source.output - reservedAtSource(w, source.id, good, "resource") + 1e-9 < CONFIG.carryCapacity
+        ) continue;
+        if (isWarehouseCollection) {
+          const collectionPath = performanceProfiler.withPathReason(pathReason, () =>
+            findPathBySteps(w.tiles, b.position, source.position),
+          );
+          if (!collectionPath || collectionPath.length > CONFIG.warehouseCollectionRadius) continue;
+        }
+        const path = performanceProfiler.withPathReason(pathReason, () =>
+          findPath(w.tiles, p.position, source.position, CONFIG.roadSpeedMultiplier),
+        );
+        if (path) sources.push({ sourceKind: "resource", source, good, path });
       }
     }
     sources.sort(
@@ -678,6 +655,7 @@ function requestInput(w: World, p: Person, b: Building): void {
   if (!source) return;
   p.trip = {
     source: source.source.id,
+    ...(source.sourceKind === "resource" ? { sourceKind: "resource" as const } : {}),
     target: b.id,
     good: source.good,
     picked: false,
@@ -726,21 +704,21 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): void {
 }
 
 function retireDepletedResources(w: World): void {
-  for (const source of w.buildings.filter(
-    (b) => !b.retired && (b.forestRemaining === 0 || b.resourceRemaining === 0),
+  for (const resource of w.naturalResources.filter(
+    (candidate) => !candidate.depleted && candidate.remaining === 0,
   )) {
-    source.retired = true;
-    const tile = tileAt(w, source.position);
-    tile.terrain = "grass";
+    resource.depleted = true;
+    const tile = tileAt(w, resource.position);
+    if (resource.kind === "forest") tile.terrain = "grass";
     tile.trafficTicks = undefined;
-    for (const person of assigned(w, source.id, "worker")) {
-      person.assignment = undefined;
+    for (const person of resourceWorkers(w, resource.id)) {
+      person.resourceTarget = undefined;
       person.active = false;
       person.progress = 0;
       person.movement = 0;
       person.path = [];
-      if (person.woodcutter) assignWoodcutter(w, person);
-      else if (person.extractor) assignExtractor(w, person, person.extractor);
+      if (person.woodcutter) assignNaturalWorker(w, person, "forest");
+      else if (person.extractor) assignNaturalWorker(w, person, person.extractor);
       else route(w, person, building(w, "hq"), "reroute");
     }
   }
@@ -748,13 +726,13 @@ function retireDepletedResources(w: World): void {
 
 function assignWaitingWoodcutters(w: World): void {
   for (const person of woodcutters(w)) {
-    if (!person.assignment) assignWoodcutter(w, person);
+    if (!person.resourceTarget) assignNaturalWorker(w, person, "forest");
   }
 }
 
 function assignWaitingExtractors(w: World): void {
   for (const person of w.people) {
-    if (person.extractor && !person.assignment) assignExtractor(w, person, person.extractor);
+    if (person.extractor && !person.resourceTarget) assignNaturalWorker(w, person, person.extractor);
   }
 }
 
@@ -889,7 +867,7 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
   const index = w.buildings.findIndex((b) => b.id === id);
   if (index < 0) return false;
   const removed = w.buildings[index]!;
-  if (removed.kind === "hq" || removed.kind === "forest" || removed.kind === "clayDeposit" || removed.kind === "stoneDeposit" || removed.kind === "field") return false;
+  if (removed.kind === "hq" || removed.kind === "field") return false;
 
   if (removed.kind === "farm") removeActiveFarmFields(w, removed.id);
 
@@ -927,7 +905,10 @@ export function setRoad(w: World, position: Hex, enabled: boolean): boolean {
   const tile = w.tiles.find((candidate) => same(candidate, position));
   if (!tile) return false;
   if (enabled) {
-    if (tile.terrain !== "grass") return false;
+    if (
+      tile.terrain !== "grass" ||
+      w.naturalResources.some((resource) => !resource.depleted && same(resource.position, tile))
+    ) return false;
     tile.terrain = "road";
   } else {
     if (tile.terrain !== "road" || w.people.some((p) => same(p.position, tile)))
@@ -940,7 +921,10 @@ export function setRoad(w: World, position: Hex, enabled: boolean): boolean {
 }
 
 function recordTraffic(w: World, tile: Tile): boolean {
-  if (tile.terrain !== "grass") return false;
+  if (
+    tile.terrain !== "grass" ||
+    w.naturalResources.some((resource) => !resource.depleted && same(resource.position, tile))
+  ) return false;
   const cutoff = w.round - CONFIG.trafficWindowTicks + 1;
   const traffic = (tile.trafficTicks ?? []).filter((tick) => tick >= cutoff);
   traffic.push(w.round);
@@ -984,6 +968,31 @@ function movePeople(w: World): boolean {
     }
   }
   return roadCreated;
+}
+
+function advanceNaturalResourceExtraction(w: World, immediateDecisionPeople: Set<number>): void {
+  for (const p of w.people) {
+    if (!p.resourceTarget || !p.active || p.trip || p.path.length || p.farmTask || p.hungerState || p.sleepState)
+      continue;
+    const resource = w.naturalResources.find((candidate) => candidate.id === p.resourceTarget);
+    if (!resource || resource.depleted || !same(p.position, resource.position)) continue;
+    const profession = naturalResourceProfession(resource);
+    const speed = extractionSpeedMultiplier(p, profession);
+    if (
+      p.progress === 0 &&
+      !needDueBeforeNewTask(p) &&
+      resource.remaining > 0 &&
+      resource.output < naturalOutputCapacity(resource)
+    ) p.progress = speed;
+    else if (p.progress > 0) p.progress += speed;
+    if (p.progress > 0) gainProfessionExperience(p, profession);
+    if (p.progress >= CONFIG.duration) {
+      resource.output += 1;
+      resource.remaining--;
+      p.progress = 0;
+      immediateDecisionPeople.add(p.id);
+    }
+  }
 }
 
 function advanceConstruction(w: World): void {
@@ -1044,13 +1053,19 @@ export function tick(w: World): void {
       const home = building(w, p.assignment.building);
       if (p.trip) {
         if (!p.trip.picked) {
-          const source = building(w, p.trip.source);
-          if (!same(p.position, source.position)) continue;
-          if (source.kind === "warehouse" && !isUnderConstruction(source)) {
-            source.inventory![p.trip.good] =
-              (source.inventory![p.trip.good] ?? 0) - CONFIG.carryCapacity;
-          } else if (!(source.kind === "well" && p.trip.good === "water")) {
+          if (p.trip.sourceKind === "resource") {
+            const source = naturalResource(w, p.trip.source);
+            if (!same(p.position, source.position)) continue;
             source.output -= CONFIG.carryCapacity;
+          } else {
+            const source = building(w, p.trip.source);
+            if (!same(p.position, source.position)) continue;
+            if (source.kind === "warehouse" && !isUnderConstruction(source)) {
+              source.inventory![p.trip.good] =
+                (source.inventory![p.trip.good] ?? 0) - CONFIG.carryCapacity;
+            } else if (!(source.kind === "well" && p.trip.good === "water")) {
+              source.output -= CONFIG.carryCapacity;
+            }
           }
           p.trip.picked = true;
           p.movement = 0;
@@ -1080,6 +1095,12 @@ export function tick(w: World): void {
     }
   });
 
+  for (const p of w.people) {
+    if (!p.resourceTarget || p.path.length) continue;
+    const target = w.naturalResources.find((resource) => resource.id === p.resourceTarget);
+    if (target && !target.depleted && same(p.position, target.position)) p.active = true;
+  }
+
   measureFeature("construction", () => advanceConstruction(w));
   const farmImmediate = measureFeature("farm", () =>
     performanceProfiler.withPathReason("farm", () => advanceFarmSystem(w)),
@@ -1087,6 +1108,7 @@ export function tick(w: World): void {
   for (const id of farmImmediate) immediateDecisionPeople.add(id);
 
   measureFeature("production", () => {
+    advanceNaturalResourceExtraction(w, immediateDecisionPeople);
     for (const p of w.people) {
       if (!p.assignment || !p.active || p.trip || p.path.length || p.farmTask) continue;
       const b = building(w, p.assignment.building);
@@ -1095,22 +1117,11 @@ export function tick(w: World): void {
       const recipe = b.recipe;
       if (p.assignment.role === "worker" && recipe) {
         const profession = workerProfession(b);
-        const forestHasYield =
-          b.forestRemaining === undefined || b.forestRemaining > producing(w, b.id);
-        const resourceHasYield =
-          b.resourceRemaining === undefined || b.resourceRemaining > producing(w, b.id);
         const outputHasSpace = outputOccupied(w, b) < outputCapacityFor(b);
-        const naturalExtraction = b.kind === "forest" || b.resourceRemaining !== undefined;
-        const workSpeed =
-          naturalExtraction &&
-          (profession === "woodcutter" || profession === "clayDigger" || profession === "stonecutter")
-            ? extractionSpeedMultiplier(p, profession)
-            : 1;
+        const workSpeed = 1;
         if (
           p.progress === 0 &&
           !needDueBeforeNewTask(p) &&
-          forestHasYield &&
-          resourceHasYield &&
           hasRecipeInputs(b) &&
           outputHasSpace
         )
@@ -1119,15 +1130,8 @@ export function tick(w: World): void {
         if (p.progress > 0 && profession) gainProfessionExperience(p, profession);
         if (p.progress >= recipe.duration) {
           consumeRecipeInputs(b);
-          const multiplier =
-            naturalExtraction
-              ? 1
-              : profession
-                ? productionMultiplier(p, profession)
-                : 1;
+          const multiplier = profession ? productionMultiplier(p, profession) : 1;
           b.output += recipeOutputAmount(b) * multiplier;
-          if (b.forestRemaining !== undefined) b.forestRemaining--;
-          if (b.resourceRemaining !== undefined) b.resourceRemaining--;
           p.progress = 0;
           immediateDecisionPeople.add(p.id);
         }
@@ -1262,31 +1266,6 @@ export function status(w: World, b: Building): string {
     if (worker.path.length) return `Farmer unterwegs · ${count}/${CONFIG.farmMaxFields} Felder`;
     if (b.output >= CONFIG.outputCapacity) return `Farm-Output voll · ${count}/${CONFIG.farmMaxFields} Felder`;
     return `${count}/${CONFIG.farmMaxFields} Felder aktiv`;
-  }
-  if (b.resourceRemaining !== undefined) {
-    if (b.retired) return "Erschöpft";
-    const label = b.kind === "clayDeposit" ? "Lehmabbau" : "Steinabbau";
-    const worker = b.kind === "clayDeposit" ? "Lehmgräber" : "Steinbrecher";
-    const progress = workers
-      .filter((p) => p.progress > 0)
-      .map((p) => `${Math.round((p.progress / b.recipe!.duration) * 100)} %`);
-    if (progress.length) return `${label}: ${progress.join(" · ")}`;
-    if (!workers.length) return `Kein ${worker} am Vorkommen`;
-    if (outputOccupied(w, b) >= outputCapacityFor(b)) return "Rohstoff liegt bereit – Abholung abwarten";
-    if (workers.every((p) => !p.active)) return `${worker} auf dem Weg`;
-    return `Bereit zum ${label}`;
-  }
-  if (b.forestRemaining !== undefined) {
-    if (b.retired) return "Erschöpft";
-    const progress = workers
-      .filter((p) => p.progress > 0)
-      .map((p) => `${Math.round((p.progress / b.recipe!.duration) * 100)} %`);
-    if (progress.length) return `Holzabbau: ${progress.join(" · ")}`;
-    if (!workers.length) return "Kein Holzfäller am Wald";
-    if (outputOccupied(w, b) >= outputCapacityFor(b))
-      return "Holz liegt bereit – Abholung abwarten";
-    if (workers.every((p) => !p.active)) return "Holzfäller auf dem Weg";
-    return "Bereit zum Holzabbau";
   }
   const progress = workers
     .filter((p) => p.progress > 0)

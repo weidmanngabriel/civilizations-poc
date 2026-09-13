@@ -114,11 +114,9 @@ export function mountControls(w: World, renderMap: () => void): void {
     b.kind === "farm" ? "Farmer"
       : b.kind === "mill" ? "Müller"
         : b.kind === "bakery" ? "Bäcker"
-          : b.kind === "clayDeposit" ? "Lehmgräber"
-            : b.kind === "stoneDeposit" ? "Steinbrecher"
-              : b.kind === "pottery" ? "Töpfer"
-                : b.kind === "stonemason" ? "Steinmetz"
-                  : "Arbeiter";
+          : b.kind === "pottery" ? "Töpfer"
+            : b.kind === "stonemason" ? "Steinmetz"
+              : "Arbeiter";
   const buildingHeading = (b: Building) => `${buildingIcon(b.kind)}<span>${b.name}</span>`;
   const goodLabel = (good: Good) => `<span class="good-label"><span aria-hidden="true">${GOOD_ICONS[good]}</span><span>${GOODS[good]}</span></span>`;
   const personIcon = (personId: number) => {
@@ -137,8 +135,6 @@ export function mountControls(w: World, renderMap: () => void): void {
       if (workplace?.kind === "bakery") return "🍞";
       if (workplace?.kind === "sawmill") return "🪵";
       if (workplace?.kind === "carpenter") return "🛠️";
-      if (workplace?.kind === "clayDeposit") return "🟤";
-      if (workplace?.kind === "stoneDeposit") return "⛏️";
       if (workplace?.kind === "pottery") return "🧱";
       if (workplace?.kind === "stonemason") return "🪨";
     }
@@ -161,7 +157,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   }
 
   const assignmentControl = (b: Building, role: Role, limit: number): string => {
-    if (b.forestRemaining !== undefined || b.kind === "field" || !limit) return "";
+    if (b.kind === "field" || !limit) return "";
     const label = role === "worker" ? workerLabel(b) : roleLabel(role);
     const detail = role === "merchant"
       ? "Handelsroute je Händler"
@@ -231,16 +227,6 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
 
-    if (b.forestRemaining !== undefined) {
-      setField("forest-remaining", String(b.forestRemaining));
-      setField("output", `${formatOutputAmount(b.output)}/${CONFIG.forestOutputCapacity}`);
-      return;
-    }
-    if (b.resourceRemaining !== undefined) {
-      setField("resource-remaining", String(b.resourceRemaining));
-      setField("output", `${formatOutputAmount(b.output)}/${CONFIG.resourceOutputCapacity}`);
-    }
-
     if (isUnderConstruction(b)) {
       for (const good of Object.keys(b.construction!.required) as Good[]) {
         setField(
@@ -296,13 +282,24 @@ export function mountControls(w: World, renderMap: () => void): void {
         selectionPanel.hidden = true;
         return;
       }
-      const buildable = tile.terrain === "grass" || tile.terrain === "road";
-      const roadAction = tile.terrain === "grass"
+      const naturalResource = w.naturalResources.find(
+        (resource) => !resource.depleted && same(resource.position, tile),
+      );
+      const buildable = !naturalResource && (tile.terrain === "grass" || tile.terrain === "road");
+      const roadAction = naturalResource
+        ? ""
+        : tile.terrain === "grass"
         ? `<button data-action="road" data-enabled="true">Weg bauen</button>`
         : tile.terrain === "road"
           ? `<button data-action="road" data-enabled="false" ${w.people.some((p) => same(p.position, tile)) ? "disabled" : ""}>Weg entfernen</button>`
           : "";
-      const tileName = tile.terrain === "grass"
+      const tileName = naturalResource?.kind === "clay"
+        ? "Lehmvorkommen"
+        : naturalResource?.kind === "stone"
+          ? "Steinvorkommen"
+          : naturalResource?.kind === "forest"
+            ? "Wald"
+            : tile.terrain === "grass"
         ? "Wiese"
         : tile.terrain === "road"
           ? "Weg"
@@ -341,7 +338,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
 
-    const demolish = b.kind === "forest" || b.kind === "clayDeposit" || b.kind === "stoneDeposit" || b.kind === "field"
+    const demolish = b.kind === "field"
       ? ""
       : `<button data-action="demolish" class="danger">Abreißen</button>`;
 
@@ -359,11 +356,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       : b.recipe?.input
         ? [[b.recipe.input, b.recipe.amount] as [Good, number]]
         : [];
-    const recipe = b.forestRemaining !== undefined
-      ? `${GOOD_ICONS.wood} 1 Holz / ${b.recipe!.duration / CONFIG.simulationHz} s bei 1× · Vorrat <span data-field="forest-remaining"></span>/${CONFIG.forestYield}`
-      : b.resourceRemaining !== undefined
-        ? `${GOOD_ICONS[b.recipe!.output]} 1 ${GOODS[b.recipe!.output]} / ${b.recipe!.duration / CONFIG.simulationHz} s bei 1× · Vorrat <span data-field="resource-remaining"></span>/${CONFIG.resourceYield}`
-      : b.kind === "warehouse"
+    const recipe = b.kind === "warehouse"
         ? "Lagert bis zu 20 Einheiten je Warentyp"
         : b.kind === "farm"
           ? `Ein Farmer bewirtschaftet bis zu ${CONFIG.farmMaxFields} zufällige Acker im Radius ${CONFIG.farmFieldRadius}. Säen und Ernten dauern je 10 s; nach der Ernte trägt der Farmer den Weizen zurück zur Farm.`
@@ -372,11 +365,7 @@ export function mountControls(w: World, renderMap: () => void): void {
             : b.recipe
               ? `${recipeInputs.map(([good, amount]) => `${GOOD_ICONS[good]} ${amount} ${GOODS[good]}`).join(" + ")} → ${GOOD_ICONS[b.recipe.output]} ${b.recipe.outputAmount ?? 1} ${GOODS[b.recipe.output]}`
               : "Produktion";
-    const inventory = b.forestRemaining !== undefined
-      ? `<div><span>${goodLabel("wood")} · Output</span><strong data-field="output"></strong></div>`
-      : b.resourceRemaining !== undefined
-        ? `<div><span>${goodLabel(b.recipe!.output)} · Output</span><strong data-field="output"></strong></div>`
-      : b.kind === "warehouse"
+    const inventory = b.kind === "warehouse"
         ? `${(Object.keys(GOODS) as Good[]).map((good) => `<div><span>${goodLabel(good)}</span><strong data-field="warehouse-${good}"></strong></div>`).join("")}`
         : b.kind === "farm"
           ? `<div><span>${goodLabel("wheat")} · Output</span><strong data-field="output"></strong></div>`
@@ -407,12 +396,18 @@ export function mountControls(w: World, renderMap: () => void): void {
           : p.farmTask?.kind === "harvest"
             ? "Erntet"
             : undefined;
+      const targetResource = p.resourceTarget
+        ? w.naturalResources.find((resource) => resource.id === p.resourceTarget)
+        : undefined;
+      const resourceLabel = targetResource
+        ? targetResource.kind === "forest" ? "Wald" : targetResource.kind === "clay" ? "Lehmvorkommen" : "Steinvorkommen"
+        : undefined;
       const assignment = p.woodcutter
-        ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald")
+        ? (resourceLabel ? `Holzfäller · ${resourceLabel}` : "Holzfäller · wartet auf Wald")
         : p.extractor === "clay"
-          ? (p.assignment ? `Lehmgräber · ${building(w, p.assignment.building).name}` : "Lehmgräber · wartet auf Vorkommen")
+          ? (resourceLabel ? `Lehmgräber · ${resourceLabel}` : "Lehmgräber · wartet auf Vorkommen")
           : p.extractor === "stone"
-            ? (p.assignment ? `Steinbrecher · ${building(w, p.assignment.building).name}` : "Steinbrecher · wartet auf Vorkommen")
+            ? (resourceLabel ? `Steinbrecher · ${resourceLabel}` : "Steinbrecher · wartet auf Vorkommen")
         : p.builder
           ? (p.assignment ? `Bauarbeiter · ${building(w, p.assignment.building).name}` : "Bauarbeiter · wartet auf Baustelle")
           : p.assignment
@@ -422,21 +417,32 @@ export function mountControls(w: World, renderMap: () => void): void {
       const experience = profession
         ? `${PROFESSION_LABELS[profession]} · ${Math.round(professionExperience(p, profession))} %`
         : "–";
+      const tripPlace = p.trip
+        ? p.trip.picked
+          ? building(w, p.trip.target).name
+          : p.trip.sourceKind === "resource"
+            ? (w.naturalResources.find((resource) => resource.id === p.trip!.source)?.kind === "forest" ? "Wald" : "Vorkommen")
+            : building(w, p.trip.source).name
+        : undefined;
       const state = p.trip
-        ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOOD_ICONS[p.trip.good]} ${GOODS[p.trip.good]} · ${building(w, p.trip.picked ? p.trip.target : p.trip.source).name}`
+        ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOOD_ICONS[p.trip.good]} ${GOODS[p.trip.good]} · ${tripPlace}`
         : farmAction
           ? `${farmAction}${p.path.length ? " · auf dem Weg" : ""}`
           : p.assignment?.role === "merchant" && p.merchantRoute?.target
             ? `${GOODS[p.merchantRoute.good]} → Ziellager${p.path.length ? " · Rückweg" : ""}`
             : p.progress
-              ? `${p.woodcutter ? "Fällt Holz" : p.builder ? "Baut" : "Produziert"} · ${Math.round((p.progress / (p.assignment && isUnderConstruction(building(w, p.assignment.building)) ? building(w, p.assignment.building).construction!.duration : CONFIG.duration)) * 100)} %`
+              ? `${p.woodcutter ? "Fällt Holz" : p.extractor === "clay" ? "Gräbt Lehm" : p.extractor === "stone" ? "Bricht Stein" : p.builder ? "Baut" : "Produziert"} · ${Math.round((p.progress / (p.assignment && isUnderConstruction(building(w, p.assignment.building)) ? building(w, p.assignment.building).construction!.duration : CONFIG.duration)) * 100)} %`
               : p.path.length
-                ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.woodcutter ? "Sucht / wartet auf Wald" : p.builder ? "Sucht / wartet auf Baustelle" : "Auf dem Rückweg zum HQ")
+                ? (p.assignment ? "Auf dem Weg zur Arbeitsstätte" : p.resourceTarget ? "Auf dem Weg zur Rohstoffquelle" : p.woodcutter ? "Sucht / wartet auf Wald" : p.extractor ? "Sucht / wartet auf Vorkommen" : p.builder ? "Sucht / wartet auf Baustelle" : "Auf dem Rückweg zum HQ")
                 : p.assignment
                   ? "An der Arbeitsstätte"
-                  : p.woodcutter
-                    ? "Wartet auf Wald"
-                    : p.builder
+                  : p.resourceTarget
+                    ? "An der Rohstoffquelle"
+                    : p.woodcutter
+                      ? "Wartet auf Wald"
+                      : p.extractor
+                        ? "Wartet auf Vorkommen"
+                        : p.builder
                       ? "Wartet auf Baustelle"
                       : "Am HQ";
       return `<tr><td><span class="person-id"><span aria-hidden="true">${personIcon(p.id)}</span><span>${p.id}</span></span></td><td>${assignment}</td><td>${experience}</td><td>${state}</td></tr>`;

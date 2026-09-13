@@ -1,7 +1,9 @@
 export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "clay" | "rubble" | "brick" | "stoneBlock";
 export type BuildingId = string;
-export type BuildingKind = "hq" | "forest" | "clayDeposit" | "stoneDeposit" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "stonemason" | "warehouse" | "house";
-export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "forest" | "clayDeposit" | "stoneDeposit" | "field" | "house">;
+export type BuildingKind = "hq" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "stonemason" | "warehouse" | "house";
+export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "field" | "house">;
+export type NaturalResourceId = string;
+export type NaturalResourceKind = "forest" | "clay" | "stone";
 export type PlaceableBuildingKind = BuildableBuildingKind | "house";
 export type Role = "worker" | "carrier" | "merchant" | "builder";
 export type Profession =
@@ -64,15 +66,22 @@ export interface Building {
   construction?: ConstructionState;
   baseTerrain?: "grass" | "road";
   baseTerrains?: Record<string, "grass" | "road">;
-  forestRemaining?: number;
-  resourceRemaining?: number;
   farmId?: BuildingId;
   fieldStage?: FieldStage;
   fieldGrowthProgress?: number;
   retired?: boolean;
 }
+export interface NaturalResource {
+  id: NaturalResourceId;
+  kind: NaturalResourceKind;
+  position: Hex;
+  remaining: number;
+  output: number;
+  depleted?: boolean;
+}
 export interface Trip {
-  source: BuildingId;
+  source: BuildingId | NaturalResourceId;
+  sourceKind?: "resource";
   target: BuildingId;
   good: Good;
   picked: boolean;
@@ -106,6 +115,7 @@ export interface SleepState {
   resumeBuilder: boolean;
   resumeWoodcutter: boolean;
   resumeExtractor?: "clay" | "stone";
+  resumeResourceTarget?: NaturalResourceId;
 }
 export interface Person {
   id: number;
@@ -115,6 +125,7 @@ export interface Person {
   farmTask?: FarmTask;
   woodcutter?: boolean;
   extractor?: "clay" | "stone";
+  resourceTarget?: NaturalResourceId;
   builder?: boolean;
   experience?: Partial<Record<Profession, number>>;
   pendingFarmBonus?: number;
@@ -134,12 +145,12 @@ export interface Person {
 export interface World {
   round: number;
   nextId: number;
-  nextForestId: number;
   nextBuildingId: number;
   nextFieldId: number;
   rngState: number;
   nextBushRegrowTick?: number;
   people: Person[];
   buildings: Building[];
+  naturalResources: NaturalResource[];
   tiles: Tile[];
 }

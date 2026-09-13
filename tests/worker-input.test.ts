@@ -7,6 +7,7 @@ import {
   building,
   changeAssignment,
   changeWoodcutters,
+  naturalResource,
   tick,
   woodcutters,
 } from "../src/simulation/simulation";
@@ -22,7 +23,7 @@ function activeSawmillWorker() {
   worker.active = true;
   changeWoodcutters(world, 1);
   const woodcutter = woodcutters(world)[0]!;
-  const forest = building(world, woodcutter.assignment!.building);
+  const forest = naturalResource(world, woodcutter.resourceTarget!);
   return { world, sawmill, worker, forest };
 }
 
@@ -38,6 +39,7 @@ test("production worker keeps producing while input and output space allow it", 
   assert.equal(worker.progress, 0);
   assert.deepEqual(worker.trip, {
     source: forest.id,
+    sourceKind: "resource",
     target: sawmill.id,
     good: "wood",
     picked: false,
@@ -56,6 +58,7 @@ test("production worker keeps filling free input slots while output is full", ()
   assert.equal(worker.progress, 0);
   assert.deepEqual(worker.trip, {
     source: forest.id,
+    sourceKind: "resource",
     target: sawmill.id,
     good: "wood",
     picked: false,

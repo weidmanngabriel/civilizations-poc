@@ -17,6 +17,7 @@ import {
   changeAssignment,
   changePopulation,
   changeWoodcutters,
+  naturalResource,
   removeBuilding,
   setRoad,
   tick,
@@ -66,7 +67,7 @@ function carrierAt(w: World, id: BuildingId) {
 function woodcutterAtForest(w: World) {
   changeWoodcutters(w, 1);
   const p = woodcutters(w).at(-1)!;
-  const forest = building(w, p.assignment!.building);
+  const forest = naturalResource(w, p.resourceTarget!);
   p.position = { ...forest.position };
   p.path = [];
   p.movement = 0;
@@ -100,10 +101,12 @@ function assertInvariants(w: World) {
         assert.ok(reserved <= stock + 1e-9);
       }
     }
-    if (b.forestRemaining !== undefined) {
-      assert.ok(b.forestRemaining >= 0 && b.forestRemaining <= CONFIG.forestYield);
-      assert.ok(assigned(w, b.id, "worker").length <= 1);
-    }
+  }
+  for (const resource of w.naturalResources) {
+    const capacity = resource.kind === "forest" ? CONFIG.forestOutputCapacity : CONFIG.resourceOutputCapacity;
+    assert.ok(resource.remaining >= 0 && resource.remaining <= CONFIG.resourceYield);
+    assert.ok(resource.output >= 0 && resource.output <= capacity);
+    assert.ok(w.people.filter((person) => person.resourceTarget === resource.id).length <= 1);
   }
 }
 
@@ -200,7 +203,7 @@ test("production takes one configured cycle and gains a small initial experience
 test("one woodcutter occupies one forest and stops when three output slots are full", () => {
   const w = createWorld();
   const { forest } = woodcutterAtForest(w);
-  assert.equal(assigned(w, forest.id, "worker").length, 1);
+  assert.equal(w.people.filter((person) => person.resourceTarget === forest.id).length, 1);
   rounds(w, CONFIG.duration * 3);
   assert.equal(forest.output, CONFIG.forestOutputCapacity);
   const stoppedAt = forest.output;

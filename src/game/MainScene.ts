@@ -383,7 +383,6 @@ export class MainScene extends Phaser.Scene {
   }
 
   private buildingLabel(b: Building): string {
-    if (b.kind === "forest") return "WALD";
     if (b.kind === "hq") return "HQ";
     const prefix = underConstruction(b) ? "BAU: " : "";
     if (b.kind === "farm") return `${prefix}FARM`;
@@ -410,8 +409,6 @@ export class MainScene extends Phaser.Scene {
       if (workplace?.kind === "bakery") return "🍞";
       if (workplace?.kind === "sawmill") return "🪵";
       if (workplace?.kind === "carpenter") return "🛠️";
-      if (workplace?.kind === "clayDeposit") return "🟤";
-      if (workplace?.kind === "stoneDeposit") return "⛏️";
       if (workplace?.kind === "pottery") return "🧱";
       if (workplace?.kind === "stonemason") return "🪨";
     }
@@ -447,8 +444,26 @@ export class MainScene extends Phaser.Scene {
         g.lineBetween(x - 2, y + 2, x - 3, y - 2);
       }
       if (tile.terrain === "forest") {
-        this.drawTree(g, x - 3, y + 1);
-        this.drawTree(g, x + 3, y - 1);
+        const forest = this.world.naturalResources.find(
+          (resource) => resource.kind === "forest" && !resource.depleted && same(resource.position, tile),
+        );
+        const alpha = forest
+          ? Math.max(MIN_FOREST_ALPHA, forest.remaining / CONFIG.forestYield)
+          : 1;
+        this.drawTree(g, x - 3, y + 1, alpha);
+        this.drawTree(g, x + 3, y - 1, alpha);
+      }
+      const resource = this.world.naturalResources.find(
+        (candidate) => !candidate.depleted && candidate.kind !== "forest" && same(candidate.position, tile),
+      );
+      if (resource?.kind === "clay") {
+        g.fillStyle(0x9b6a4d, 0.95);
+        g.fillCircle(x - 3, y + 1, 4);
+        g.fillCircle(x + 3, y + 2, 3);
+      } else if (resource?.kind === "stone") {
+        g.fillStyle(0xaeb3af, 0.95);
+        g.fillTriangle(x - 6, y + 5, x - 1, y - 4, x + 3, y + 5);
+        g.fillTriangle(x, y + 5, x + 5, y - 2, x + 7, y + 5);
       }
       if (tile.terrain === "field") this.drawField(g, tile, x, y);
     }
@@ -463,24 +478,7 @@ export class MainScene extends Phaser.Scene {
         fontStyle: "bold",
         color: "#203226",
       }).setResolution(TEXT_RESOLUTION).setOrigin(0.5));
-      if (b.resourceRemaining !== undefined) {
-        if (b.kind === "clayDeposit") {
-          g.fillStyle(0x9b6a4d, 0.95);
-          g.fillCircle(x - 3, y - 11, 4);
-          g.fillCircle(x + 3, y - 10, 3);
-        } else {
-          g.fillStyle(0xaeb3af, 0.95);
-          g.fillTriangle(x - 6, y - 8, x - 1, y - 17, x + 3, y - 8);
-          g.fillTriangle(x, y - 8, x + 5, y - 15, x + 7, y - 8);
-        }
-      } else if (b.forestRemaining !== undefined) {
-        this.drawTree(
-          g,
-          x,
-          y - 11,
-          Math.max(MIN_FOREST_ALPHA, b.forestRemaining / CONFIG.forestYield),
-        );
-      } else if (underConstruction(b)) {
+      if (underConstruction(b)) {
         g.lineStyle(2, 0x785d3e, 0.95);
         g.strokeRect(x - 6, y - 18, 12, 8);
         g.lineBetween(x - 6, y - 18, x + 6, y - 10);
@@ -641,6 +639,17 @@ export class MainScene extends Phaser.Scene {
         3,
       );
       this.markers.add(this.add.text(x + 5, b.recipe?.input ? y + 7 : y + 3, "OUT", {
+        fontFamily: "system-ui",
+        fontSize: "5px",
+        color: "#21372a",
+      }).setResolution(TEXT_RESOLUTION));
+    }
+
+    for (const resource of this.world.naturalResources.filter((candidate) => candidate.output > 0)) {
+      const { x, y } = pixel(resource.position);
+      const good: Good = resource.kind === "forest" ? "wood" : resource.kind === "clay" ? "clay" : "rubble";
+      this.drawSlots(slots, x + 5, y - 1, resource.output, CONFIG.resourceOutputCapacity, good, 3);
+      this.markers.add(this.add.text(x + 5, y + 3, "OUT", {
         fontFamily: "system-ui",
         fontSize: "5px",
         color: "#21372a",
