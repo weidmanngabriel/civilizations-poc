@@ -44,8 +44,8 @@ const escapeHtml = (value: string): string =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 
-const clampNeed = (value: number | undefined): number =>
-  Math.max(0, Math.min(100, Math.round(value ?? 100)));
+const displayNeed = (value: number | undefined): number =>
+  Math.max(0, Math.round(value ?? 100));
 
 const professionOf = (world: World, person: Person): Profession | undefined =>
   currentProfession(world, person);
@@ -187,8 +187,8 @@ export function mountPersonPanel(world: World): void {
               <small>${escapeHtml(professionLabel(world, person))}</small>
             </span>
             <span class="person-list-needs">
-              <span title="Hunger">🍴 <b data-person-hunger="${person.id}">${clampNeed(person.hunger)}</b></span>
-              <span title="Schlaf">💤 <b data-person-sleep="${person.id}">${clampNeed(person.sleep)}</b></span>
+              <span title="Hunger">🍴 <b data-person-hunger="${person.id}">${displayNeed(person.hunger)}</b></span>
+              <span title="Schlaf">💤 <b data-person-sleep="${person.id}">${displayNeed(person.sleep)}</b></span>
             </span>
           </button>`).join("")
       : `<div class="person-empty-state">Keine passende Person gefunden.</div>`;
@@ -213,11 +213,10 @@ export function mountPersonPanel(world: World): void {
     for (const person of world.people) {
       const hunger = list.querySelector<HTMLElement>(`[data-person-hunger="${person.id}"]`);
       const sleep = list.querySelector<HTMLElement>(`[data-person-sleep="${person.id}"]`);
-      if (hunger) hunger.textContent = String(clampNeed(person.hunger));
-      if (sleep) sleep.textContent = String(clampNeed(person.sleep));
+      if (hunger) hunger.textContent = String(displayNeed(person.hunger));
+      if (sleep) sleep.textContent = String(displayNeed(person.sleep));
     }
   };
-
   const currentNavigation = (): number[] => {
     if (
       selectedPersonId !== undefined &&
@@ -242,8 +241,8 @@ export function mountPersonPanel(world: World): void {
     const profession = professionOf(world, person);
     const professionText = profession ? PROFESSION_LABELS[profession] : "Frei";
     const experience = profession ? Math.round(professionExperience(person, profession)) : undefined;
-    const hunger = clampNeed(person.hunger);
-    const sleep = clampNeed(person.sleep);
+    const hunger = displayNeed(person.hunger);
+    const sleep = displayNeed(person.sleep);
     const workplace = workplaceLabel(world, person);
     const activity = activityLabel(person);
     const cargo = cargoLabel(person);
