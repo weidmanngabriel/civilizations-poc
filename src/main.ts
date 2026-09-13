@@ -9,6 +9,7 @@ import {
   installMobileMapTouchControls,
   preventMobilePageZoom,
 } from "./game/mobileTouch";
+import { installPwaSupport } from "./pwa";
 import { createDefaultGameWorld } from "./simulation/scenario";
 import { installTileSelectionGuard, mountBuildMenu } from "./ui/buildMenu";
 import { mountControls } from "./ui/controls";
@@ -63,6 +64,7 @@ const showBuildVersion = (): void => {
 };
 
 preventPageZoom();
+installPwaSupport();
 
 const world = createDefaultGameWorld();
 const scene = new IncrementalMainScene(world);
