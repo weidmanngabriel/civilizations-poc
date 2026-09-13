@@ -21,12 +21,14 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - run: node scripts/tmp-natural-resource-prepatch.mjs
       - run: node scripts/tmp-natural-resource-refactor.mjs
       - run: npm ci
       - run: npm test
       - run: npm run build
       - name: Commit validated refactor
         run: |
+          rm scripts/tmp-natural-resource-prepatch.mjs
           rm scripts/tmp-natural-resource-refactor.mjs
           rm .github/workflows/tmp-natural-resource-refactor.yml
           git config user.name "github-actions[bot]"
