@@ -48,10 +48,14 @@ export const assigned = (w: World, id: BuildingId, role: Role): Person[] =>
   );
 export const woodcutters = (w: World): Person[] =>
   w.people.filter((p) => p.woodcutter);
+export const clayDiggers = (w: World): Person[] =>
+  w.people.filter((p) => p.extractor === "clay");
+export const stonecutters = (w: World): Person[] =>
+  w.people.filter((p) => p.extractor === "stone");
 export const builders = (w: World): Person[] =>
   w.people.filter((p) => p.builder);
 export const freePeople = (w: World): Person[] =>
-  w.people.filter((p) => !p.assignment && !p.woodcutter && !p.builder);
+  w.people.filter((p) => !p.assignment && !p.woodcutter && !p.extractor && !p.builder);
 export const isUnderConstruction = (b: Building): boolean =>
   Boolean(b.construction && !b.construction.complete);
 const incoming = (w: World, id: BuildingId, good?: Good) =>
@@ -265,7 +269,7 @@ export function changeAssignment(
   const b = building(w, id),
     people = assigned(w, id, role),
     limit = roleLimit(b, role);
-  if (b.forestRemaining !== undefined || b.kind === "field" || !limit) return false;
+  if (b.forestRemaining !== undefined || b.resourceRemaining !== undefined || b.kind === "field" || !limit) return false;
   if (delta === 1) {
     const p = freePeople(w)[0];
     if (!p || b.retired || people.length >= limit) return false;
@@ -331,6 +335,7 @@ export function changePopulation(w: World, delta: 1 | -1): boolean {
     (p) =>
       !p.assignment &&
       !p.woodcutter &&
+      !p.extractor &&
       !p.builder &&
       same(p.position, hq.position),
   );
@@ -436,6 +441,69 @@ function assignWoodcutter(w: World, p: Person): boolean {
   p.active = same(p.position, forest.position);
   p.movement = 0;
   p.path = choice.path;
+  return true;
+}
+
+type ExtractorKind = "clay" | "stone";
+
+const extractorBuildingKind = (kind: ExtractorKind) =>
+  kind === "clay" ? "clayDeposit" : "stoneDeposit";
+
+function assignExtractor(w: World, p: Person, kind: ExtractorKind): boolean {
+  if (needDueBeforeNewTask(p)) return false;
+  const candidates = w.buildings
+    .filter((b) =>
+      !b.retired &&
+      b.kind === extractorBuildingKind(kind) &&
+      (b.resourceRemaining ?? 0) > 0 &&
+      assigned(w, b.id, "worker").length === 0,
+    )
+    .map((deposit) => {
+      const path = findPath(w.tiles, p.position, deposit.position, CONFIG.roadSpeedMultiplier);
+      return path ? {
+        deposit,
+        path,
+        cost: pathTravelCost(w.tiles, path, CONFIG.roadSpeedMultiplier),
+      } : undefined;
+    })
+    .filter((candidate): candidate is { deposit: Building; path: Hex[]; cost: number } => Boolean(candidate))
+    .sort((a, b) => a.cost - b.cost || a.deposit.id.localeCompare(b.deposit.id));
+  const choice = candidates[0];
+  if (!choice) {
+    p.assignment = undefined;
+    p.active = false;
+    p.movement = 0;
+    const hq = building(w, "hq");
+    if (!same(p.position, hq.position)) route(w, p, hq, "other");
+    return false;
+  }
+  p.assignment = { building: choice.deposit.id, role: "worker" };
+  p.active = same(p.position, choice.deposit.position);
+  p.movement = 0;
+  p.path = choice.path;
+  return true;
+}
+
+export function changeExtractors(
+  w: World,
+  kind: ExtractorKind,
+  delta: 1 | -1,
+): boolean {
+  if (delta === 1) {
+    const p = freePeople(w)[0];
+    if (!p) return false;
+    p.extractor = kind;
+    assignExtractor(w, p, kind);
+    return true;
+  }
+  const pool = w.people.filter((p) => p.extractor === kind);
+  const p = pool.find((person) => !person.assignment) ?? pool.at(-1);
+  if (!p) return false;
+  cancel(w, p);
+  p.assignment = undefined;
+  p.extractor = undefined;
+  p.active = false;
+  route(w, p, building(w, "hq"), "other");
   return true;
 }
 
@@ -672,6 +740,7 @@ function retireDepletedResources(w: World): void {
       person.movement = 0;
       person.path = [];
       if (person.woodcutter) assignWoodcutter(w, person);
+      else if (person.extractor) assignExtractor(w, person, person.extractor);
       else route(w, person, building(w, "hq"), "reroute");
     }
   }
@@ -680,6 +749,12 @@ function retireDepletedResources(w: World): void {
 function assignWaitingWoodcutters(w: World): void {
   for (const person of woodcutters(w)) {
     if (!person.assignment) assignWoodcutter(w, person);
+  }
+}
+
+function assignWaitingExtractors(w: World): void {
+  for (const person of w.people) {
+    if (person.extractor && !person.assignment) assignExtractor(w, person, person.extractor);
   }
 }
 
@@ -1064,6 +1139,7 @@ export function tick(w: World): void {
     retireDepletedResources(w);
     if (regularDecisionTick) {
       assignWaitingWoodcutters(w);
+      assignWaitingExtractors(w);
       assignWaitingBuilders(w);
     }
   });

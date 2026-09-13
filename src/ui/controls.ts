@@ -11,8 +11,10 @@ import {
   assigned,
   building,
   builders,
+  clayDiggers,
   changeAssignment,
   changeBuilders,
+  changeExtractors,
   changePopulation,
   changeWoodcutters,
   freePeople,
@@ -25,6 +27,7 @@ import {
   totalWarehouseStock,
   warehouseStock,
   woodcutters,
+  stonecutters,
 } from "../simulation/simulation";
 import {
   currentProfession,
@@ -122,6 +125,8 @@ export function mountControls(w: World, renderMap: () => void): void {
     const p = w.people.find((candidate) => candidate.id === personId);
     if (!p) return "👤";
     if (p.woodcutter) return "🪓";
+    if (p.extractor === "clay") return "🟤";
+    if (p.extractor === "stone") return "⛏️";
     if (p.builder) return "🔨";
     if (p.assignment?.role === "merchant") return "🧭";
     if (p.assignment?.role === "carrier") return "📦";
@@ -202,15 +207,25 @@ export function mountControls(w: World, renderMap: () => void): void {
       setField("population-count", String(w.people.length));
       setField("free-count", String(freePeople(w).length));
       setField("woodcutter-count", String(woodcutters(w).length));
+      setField("clay-digger-count", String(clayDiggers(w).length));
+      setField("stonecutter-count", String(stonecutters(w).length));
       setField("builder-pool-count", String(builders(w).length));
       const populationMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="population"][data-delta="-1"]');
       const woodcutterMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="woodcutter"][data-delta="-1"]');
       const woodcutterPlus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="woodcutter"][data-delta="1"]');
+      const clayDiggerMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="clay-digger"][data-delta="-1"]');
+      const clayDiggerPlus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="clay-digger"][data-delta="1"]');
+      const stonecutterMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="stonecutter"][data-delta="-1"]');
+      const stonecutterPlus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="stonecutter"][data-delta="1"]');
       const builderMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="builder-pool"][data-delta="-1"]');
       const builderPlus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="builder-pool"][data-delta="1"]');
       if (populationMinus) populationMinus.disabled = !canRemovePopulation();
       if (woodcutterMinus) woodcutterMinus.disabled = woodcutters(w).length === 0;
       if (woodcutterPlus) woodcutterPlus.disabled = freePeople(w).length === 0;
+      if (clayDiggerMinus) clayDiggerMinus.disabled = clayDiggers(w).length === 0;
+      if (clayDiggerPlus) clayDiggerPlus.disabled = freePeople(w).length === 0;
+      if (stonecutterMinus) stonecutterMinus.disabled = stonecutters(w).length === 0;
+      if (stonecutterPlus) stonecutterPlus.disabled = freePeople(w).length === 0;
       if (builderMinus) builderMinus.disabled = builders(w).length === 0;
       if (builderPlus) builderPlus.disabled = freePeople(w).length === 0;
       return;
@@ -321,7 +336,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
     selectionPanel.hidden = false;
     if (b.kind === "hq") {
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Sammelpunkt und globale Personalsteuerung</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> frei</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><div class="assignment"><div>Holzfäller<small>Jeder sucht selbständig einen freien Wald</small></div><div class="stepper"><button data-action="woodcutter" data-delta="-1">−</button><output data-field="woodcutter-count"></output><button data-action="woodcutter" data-delta="1">+</button></div></div><div class="assignment"><div>Bauarbeiter<small>Werden automatisch auf Baustellen verteilt</small></div><div class="stepper"><button data-action="builder-pool" data-delta="-1">−</button><output data-field="builder-pool-count"></output><button data-action="builder-pool" data-delta="1">+</button></div></div><p class="status" data-field="status"></p>`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Sammelpunkt und globale Personalsteuerung</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> frei</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><div class="assignment"><div>Holzfäller<small>Jeder sucht selbständig einen freien Wald</small></div><div class="stepper"><button data-action="woodcutter" data-delta="-1">−</button><output data-field="woodcutter-count"></output><button data-action="woodcutter" data-delta="1">+</button></div></div><div class="assignment"><div>Lehmgräber<small>Suchen selbständig freie Lehmvorkommen</small></div><div class="stepper"><button data-action="clay-digger" data-delta="-1">−</button><output data-field="clay-digger-count"></output><button data-action="clay-digger" data-delta="1">+</button></div></div><div class="assignment"><div>Steinbrecher<small>Suchen selbständig freie Steinvorkommen</small></div><div class="stepper"><button data-action="stonecutter" data-delta="-1">−</button><output data-field="stonecutter-count"></output><button data-action="stonecutter" data-delta="1">+</button></div></div><div class="assignment"><div>Bauarbeiter<small>Werden automatisch auf Baustellen verteilt</small></div><div class="stepper"><button data-action="builder-pool" data-delta="-1">−</button><output data-field="builder-pool-count"></output><button data-action="builder-pool" data-delta="1">+</button></div></div><p class="status" data-field="status"></p>`;
       updateSelectionLiveState();
       return;
     }
@@ -394,6 +409,10 @@ export function mountControls(w: World, renderMap: () => void): void {
             : undefined;
       const assignment = p.woodcutter
         ? (p.assignment ? `Holzfäller · ${building(w, p.assignment.building).name}` : "Holzfäller · wartet auf Wald")
+        : p.extractor === "clay"
+          ? (p.assignment ? `Lehmgräber · ${building(w, p.assignment.building).name}` : "Lehmgräber · wartet auf Vorkommen")
+          : p.extractor === "stone"
+            ? (p.assignment ? `Steinbrecher · ${building(w, p.assignment.building).name}` : "Steinbrecher · wartet auf Vorkommen")
         : p.builder
           ? (p.assignment ? `Bauarbeiter · ${building(w, p.assignment.building).name}` : "Bauarbeiter · wartet auf Baustelle")
           : p.assignment
@@ -631,6 +650,8 @@ export function mountControls(w: World, renderMap: () => void): void {
     const delta = Number(button.dataset.delta) as 1 | -1;
     if (action === "population") changePopulation(w, delta);
     if (action === "woodcutter") changeWoodcutters(w, delta);
+    if (action === "clay-digger") changeExtractors(w, "clay", delta);
+    if (action === "stonecutter") changeExtractors(w, "stone", delta);
     if (action === "builder-pool") changeBuilders(w, delta);
     if (action === "assignment")
       changeAssignment(

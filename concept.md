@@ -172,7 +172,7 @@ Normale Produktionsberufe steigern den Output linear bis auf 2×. Holzfäller be
 
 ## Natürliche Lehm- und Steinvorkommen
 
-Zusätzlich zu Wald gibt es endliche Rohstoffvorkommen. Lehmvorkommen liegen auf begehbaren Kacheln direkt in Flussnähe, Steinvorkommen entsprechend in Bergnähe. Jedes Vorkommen enthält genau 10 Einheiten. Ein zugewiesener Lehmgräber beziehungsweise Steinbrecher baut den Rohstoff lokal ab. Nach der zehnten Einheit verschwindet das Vorkommen sofort; bereits lokal abgelegte Ware bleibt liegen und kann weiter transportiert werden.
+Zusätzlich zu Wald gibt es endliche Rohstoffvorkommen. Lehmvorkommen liegen auf begehbaren Kacheln direkt in Flussnähe, Steinvorkommen entsprechend in Bergnähe. Jedes Vorkommen enthält genau 10 Einheiten. Lehmgräber und Steinbrecher werden global am HQ verwaltet. Jeder sucht selbständig das nächste erreichbare freie Vorkommen seines Typs; pro Vorkommen arbeitet höchstens eine Person. Nach der zehnten Einheit verschwindet das Vorkommen sofort, der Abbauer sucht automatisch das nächste passende Vorkommen und bereits lokal abgelegte Ware bleibt liegen und kann weiter transportiert werden.
 
 ## Produktionskette
 

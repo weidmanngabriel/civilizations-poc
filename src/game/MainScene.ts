@@ -398,6 +398,8 @@ export class MainScene extends Phaser.Scene {
 
   private personMarker(p: Person): string {
     if (p.woodcutter) return "🪓";
+    if (p.extractor === "clay") return "🟤";
+    if (p.extractor === "stone") return "⛏️";
     if (p.builder) return "🔨";
     if (p.assignment?.role === "merchant") return "🧭";
     if (p.assignment?.role === "carrier") return "📦";
@@ -654,7 +656,7 @@ export class MainScene extends Phaser.Scene {
       const pos = pixel(personWorldPosition(this.world, p));
       const x = pos.x + (moving ? ((p.id % 3) - 1) * 2 : ((i % 4) - 1.5) * 8);
       const y = pos.y + (moving ? 1 : 1 + Math.floor(i / 4) * 8);
-      const color = !p.assignment && !p.woodcutter && !p.builder
+      const color = !p.assignment && !p.woodcutter && !p.extractor && !p.builder
         ? 0xdde5db
         : p.assignment?.role === "worker" || p.woodcutter
           ? 0x234636
