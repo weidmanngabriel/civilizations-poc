@@ -154,6 +154,8 @@ Carpenter   4
 Mill        4
 Bakery      4
 Well        4
+Pottery     4
+Stonemason  4
 ```
 
 Footprint and a complete one-tile clearance ring must fit valid terrain. Bushes count as grass for placement; footprint cells destroy them permanently.
@@ -162,7 +164,7 @@ Construction duration is `(3 + 2 × required units) × 60` ticks. Up to two buil
 
 ## Production, inventories and logistics
 
-Current goods are wood, plank, woodenTool, wheat, flour, water and bread.
+Current goods are wood, plank, woodenTool, wheat, flour, water, bread, clay, rubble, brick and stoneBlock. Clay and rubble come from finite natural resource nodes next to rivers and mountains; each node contains 10 units and retires after the last extraction while already produced local output remains collectible.
 
 ```text
 forest      -> 1 wood / cycle
@@ -170,6 +172,8 @@ sawmill     2 wood -> 1 plank
 carpenter   2 plank -> 1 woodenTool
 mill        1 wheat -> 1 flour
 bakery      2 flour + 1 water -> 2 bread
+pottery     1 clay + 1 wood -> 1 brick
+stonemason  2 rubble -> 1 stoneBlock
 well        infinite water source
 ```
 

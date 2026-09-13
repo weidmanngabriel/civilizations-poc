@@ -105,6 +105,7 @@ export class IncrementalMainScene extends MainScene {
         building.retired ? 1 : 0,
         underConstruction(building) ? 1 : 0,
         building.forestRemaining ?? "",
+        building.resourceRemaining ?? "",
         building.fieldStage ?? "",
       ].join(":"))
       .join("|");

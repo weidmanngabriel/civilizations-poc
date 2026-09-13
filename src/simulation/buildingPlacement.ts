@@ -36,8 +36,10 @@ export const CONSTRUCTION_PLANS: Record<PlaceableBuildingKind, ConstructionPlan>
   sawmill: constructionPlan({ wood: 6 }),
   carpenter: constructionPlan({ plank: 4 }),
   mill: constructionPlan({ wood: 4 }),
-  bakery: constructionPlan({ plank: 4 }),
-  well: constructionPlan({ wood: 4 }),
+  bakery: constructionPlan({ plank: 2, brick: 2 }),
+  well: constructionPlan({ wood: 2, stoneBlock: 2 }),
+  pottery: constructionPlan({ wood: 4 }),
+  stonemason: constructionPlan({ wood: 4 }),
 };
 
 const COMPACT_SHAPE: BuildingPlacementShape = {
@@ -69,6 +71,8 @@ const SHAPES: Record<PlaceableBuildingKind, BuildingPlacementShape> = {
   mill: COMPACT_SHAPE,
   bakery: COMPACT_SHAPE,
   well: COMPACT_SHAPE,
+  pottery: COMPACT_SHAPE,
+  stonemason: COMPACT_SHAPE,
 };
 
 export const footprintFromShape = (shape: BuildingPlacementShape, anchorPosition: Hex): Hex[] =>
@@ -186,7 +190,7 @@ export function buildWithFootprint(
 
 export function removeBuildingWithFootprint(world: World, id: string): boolean {
   const existing = world.buildings.find((building) => building.id === id);
-  if (!existing || existing.kind === "hq" || existing.kind === "forest" || existing.kind === "field") return false;
+  if (!existing || existing.kind === "hq" || existing.kind === "forest" || existing.kind === "clayDeposit" || existing.kind === "stoneDeposit" || existing.kind === "field") return false;
   const footprint = buildingFootprint(existing);
   const baseTerrains = existing.baseTerrains;
   if (!removeBuilding(world, id)) return false;
