@@ -246,7 +246,7 @@ export class IncrementalMainScene extends MainScene {
         ? ((person.id % 3) - 1) * 2
         : ((groupIndex % 4) - 1.5) * 8);
       const y = position.y + (moving ? 1 : 1 + Math.floor(groupIndex / 4) * 8);
-      const color = !person.assignment && !person.woodcutter && !person.builder
+      const color = !person.assignment && !person.woodcutter && !person.extractor && !person.builder
         ? 0xdde5db
         : person.assignment?.role === "worker" || person.woodcutter
           ? 0x234636

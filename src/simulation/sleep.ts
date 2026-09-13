@@ -141,6 +141,7 @@ const resumeTask = (world: World, person: Person, state: SleepState): void => {
     : undefined;
   person.builder = state.resumeBuilder || undefined;
   person.woodcutter = state.resumeWoodcutter || undefined;
+  person.extractor = state.resumeExtractor;
   person.active = false;
   person.movement = 0;
   const target = currentTaskTarget(world, person);
@@ -182,10 +183,12 @@ const startSleeping = (world: World, person: Person): void => {
     resumeAssignment: person.assignment ? { ...person.assignment } : undefined,
     resumeBuilder: Boolean(person.builder),
     resumeWoodcutter: Boolean(person.woodcutter),
+    resumeExtractor: person.extractor,
   };
   person.assignment = undefined;
   person.builder = undefined;
   person.woodcutter = undefined;
+  person.extractor = undefined;
   person.active = false;
   person.movement = 0;
   person.path = same(person.position, candidate.target) ? [] : candidate.path;

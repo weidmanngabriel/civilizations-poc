@@ -164,7 +164,7 @@ Construction duration is `(3 + 2 × required units) × 60` ticks. Up to two buil
 
 ## Production, inventories and logistics
 
-Current goods are wood, plank, woodenTool, wheat, flour, water, bread, clay, rubble, brick and stoneBlock. Clay and rubble come from finite natural resource nodes next to rivers and mountains; each node contains 10 units and retires after the last extraction while already produced local output remains collectible.
+Current goods are wood, plank, woodenTool, wheat, flour, water, bread, clay, rubble, brick and stoneBlock. Clay and rubble come from finite natural resource nodes next to rivers and mountains; each node contains 10 units and retires after the last extraction while already produced local output remains collectible. Clay diggers and stonecutters are global HQ-managed pools analogous to woodcutters: each worker claims the nearest reachable free matching node, at most one works per node, and depletion automatically triggers reassignment.
 
 ```text
 forest      -> 1 wood / cycle

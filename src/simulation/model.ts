@@ -105,6 +105,7 @@ export interface SleepState {
   resumeAssignment?: { building: BuildingId; role: Role };
   resumeBuilder: boolean;
   resumeWoodcutter: boolean;
+  resumeExtractor?: "clay" | "stone";
 }
 export interface Person {
   id: number;
@@ -113,6 +114,7 @@ export interface Person {
   merchantRoute?: MerchantRoute;
   farmTask?: FarmTask;
   woodcutter?: boolean;
+  extractor?: "clay" | "stone";
   builder?: boolean;
   experience?: Partial<Record<Profession, number>>;
   pendingFarmBonus?: number;
