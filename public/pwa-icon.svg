@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Weltwunder">
+  <rect width="512" height="512" rx="96" fill="#17291f"/>
+  <path d="M256 70 408 158v176L256 442 104 334V158L256 70Z" fill="#d8b85b"/>
+  <path d="M256 128 358 187v118L256 364 154 305V187l102-59Z" fill="#304d35"/>
+  <path d="m256 178 58 34v68l-58 34-58-34v-68l58-34Z" fill="#f4f1df"/>
+</svg>
