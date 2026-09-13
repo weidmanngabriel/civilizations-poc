@@ -85,21 +85,34 @@ test("placement fails when the required free ring contains blocked terrain", () 
   assert.equal(canPlaceBuilding(world, origin, "warehouse"), false);
 });
 
-test("demolishing a multi-tile building restores every occupied tile", () => {
+test("demolishing a multi-tile building restores every occupied grass tile", () => {
   const world = createWorld();
   const origin = findValidOrigin(world, "sawmill");
   const footprint = footprintAt("sawmill", origin);
-  const before = footprint.map((position) => ({
-    position,
-    terrain: world.tiles.find((tile) => same(tile, position))!.terrain,
-  }));
   const created = buildWithFootprint(world, origin, "sawmill");
   assert.ok(created);
   assert.equal(removeBuildingWithFootprint(world, created!.id), true);
-  for (const entry of before) {
+  for (const position of footprint) {
     assert.equal(
-      world.tiles.find((tile) => same(tile, entry.position))!.terrain,
-      entry.terrain,
+      world.tiles.find((tile) => same(tile, position))!.terrain,
+      "grass",
     );
   }
+});
+
+test("roads are valid placement terrain but are removed by the building footprint", () => {
+  const world = createWorld();
+  const origin = findValidOrigin(world, "warehouse");
+  const footprint = footprintAt("warehouse", origin);
+  const roadPosition = footprint[1]!;
+  const roadTile = world.tiles.find((tile) => same(tile, roadPosition))!;
+  roadTile.terrain = "road";
+
+  assert.equal(canPlaceBuilding(world, origin, "warehouse"), true);
+  const created = buildWithFootprint(world, origin, "warehouse");
+  assert.ok(created);
+  assert.equal(roadTile.terrain, "building");
+
+  assert.equal(removeBuildingWithFootprint(world, created!.id), true);
+  assert.equal(roadTile.terrain, "grass");
 });

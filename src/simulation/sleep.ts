@@ -135,14 +135,6 @@ const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
 };
 
 const resumeTask = (world: World, person: Person, state: SleepState): void => {
-  const workplaceStillExists = state.resumeAssignment
-    ? world.buildings.some(
-        (building) => building.id === state.resumeAssignment!.building && !building.retired,
-      )
-    : false;
-  person.assignment = workplaceStillExists && state.resumeAssignment
-    ? { ...state.resumeAssignment }
-    : undefined;
   person.builder = state.resumeBuilder || undefined;
   person.woodcutter = state.resumeWoodcutter || undefined;
   person.extractor = state.resumeExtractor;
@@ -202,7 +194,7 @@ const startSleeping = (world: World, person: Person): void => {
     resumeExtractor: person.extractor,
     resumeResourceTarget: person.resourceTarget,
   };
-  person.assignment = undefined;
+  // Workplace assignment is persistent identity. Sleep pauses activity, not the assignment itself.
   person.builder = undefined;
   person.woodcutter = undefined;
   person.extractor = undefined;

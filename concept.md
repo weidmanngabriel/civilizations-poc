@@ -58,7 +58,7 @@ Essenspriorität:
 
 Sobald bei leichtem Hunger eine Tätigkeit abgeschlossen ist, wird **keine neue Tätigkeit oder Beschaffungsfahrt mehr begonnen**, bevor die Person gegessen hat. Damit ist die Grenze zwischen zwei Arbeitszyklen der verbindliche Essenszeitpunkt.
 
-Bei einer kritischen Unterbrechung bleibt der Fortschritt erhalten. Nach dem Essen kehrt die Person zu ihrer Aufgabe zurück, sofern das Ziel noch gültig ist.
+Bei einer kritischen Unterbrechung bleibt der Fortschritt erhalten. Die Arbeitsplatz-Zuweisung bleibt während des Essens bestehen. Nach dem Essen kehrt die Person zu ihrer Aufgabe zurück, sofern das Ziel noch gültig ist.
 
 Nahrungsquellen sind aktuell:
 
@@ -86,7 +86,7 @@ Schlafpriorität entspricht grundsätzlich Hunger:
 - 40 bis über 20: aktuelle Tätigkeit beenden, danach schlafen,
 - 20 oder weniger: aktuelle Tätigkeit sofort pausieren und schlafen gehen.
 
-Wenn Hunger und Schlaf gleichzeitig fällig sind, hat **Hunger Vorrang**. Fortschritt, Transporte und Arbeitsaufgaben bleiben während eines Schlafumwegs erhalten und werden danach fortgesetzt.
+Wenn Hunger und Schlaf gleichzeitig fällig sind, hat **Hunger Vorrang**. Fortschritt, Transporte und Arbeitsaufgaben bleiben während eines Schlafumwegs erhalten und werden danach fortgesetzt. Eine bestehende Arbeitsplatz-Zuweisung bleibt auch während des Schlafens bestehen und verschwindet nicht vorübergehend aus der Gebäudeanzeige.
 
 Jeder Schlafvorgang dauert **10 Simulationssekunden**, besteht aber aus **zwei Phasen à 5 Sekunden**. Nach jeder Phase wird bereits die Hälfte der gesamten vorgesehenen Erholung gutgeschrieben. Wird Schlaf später zwischen den Phasen unterbrochen, bleibt die bereits erhaltene Erholung erhalten.
 
@@ -120,9 +120,9 @@ Aktuelle Größen:
 
 Ein Gebäude darf nur platziert werden, wenn Footprint und ein kompletter Ring von einer freien Kachel innerhalb der Karte liegen. Wiese und Wege sind freie Untergründe; Büsche liegen logisch auf Wiese und dürfen im Footprint überbaut werden. Personen dürfen nicht auf Footprint-Kacheln stehen.
 
-Der freie Ring wird nicht verändert. Nur der tatsächliche Footprint überschreibt den Untergrund.
+Der freie Ring wird nicht verändert. Nur der tatsächliche Footprint überschreibt den Untergrund. Wege im Footprint werden beim Bauen entfernt und wie Wiese behandelt.
 
-Beim Abriss wird der gespeicherte Untergrund wiederhergestellt. Ein zuvor überbauter Busch wird dabei bewusst nicht rekonstruiert.
+Beim Abriss entsteht auf allen Footprint-Kacheln normale Wiese. Ein zuvor überbauter Weg oder Busch wird bewusst nicht rekonstruiert.
 
 ## Baumodus und Baustellen
 

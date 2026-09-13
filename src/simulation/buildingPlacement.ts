@@ -157,8 +157,8 @@ export function buildWithFootprint(
   const footprint = footprintAt(kind, anchorPosition);
   const baseTerrains: Record<string, "grass" | "road"> = {};
   for (const position of footprint) {
-    const tile = world.tiles.find((candidate) => same(candidate, position))!;
-    baseTerrains[key(position)] = tile.terrain as "grass" | "road";
+    // Roads never survive construction. After demolition every footprint tile becomes grass.
+    baseTerrains[key(position)] = "grass";
   }
 
   const created = buildAt(world, anchorPosition, kind as BuildableBuildingKind);
