@@ -16,9 +16,15 @@ const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 
 const NODES: TechNode[] = [
   { id: "civil", label: "👤 Ungelernter Wikinger", x: 70, y: 610, kind: "base" },
+  { id: "barracks", label: "Kaserne", subtitle: "von Anfang an verfügbar", x: 70, y: 530, kind: "building" },
+  { id: "house", label: "Wohnhaus", subtitle: "von Anfang an verfügbar", x: 70, y: 1040, kind: "building" },
+  { id: "farmBuilding", label: "Farm", subtitle: "von Anfang an verfügbar", x: 70, y: 1130, kind: "building" },
+  { id: "well", label: "Brunnen", subtitle: "von Anfang an verfügbar", x: 70, y: 1220, kind: "building" },
+  { id: "school", label: "🏫 Schule", subtitle: "von Anfang an verfügbar", x: 70, y: 1410, kind: "special" },
+
   { id: "extractor", label: "⛏ Abbauer", x: 350, y: 130, kind: "base" },
   { id: "farmer", label: "🌾 Bauer", x: 350, y: 390, kind: "base" },
-  { id: "barracks", label: "Kaserne", subtitle: "von Anfang an verfügbar", x: 350, y: 530, kind: "building" },
+  { id: "soldier", label: "🛡 Soldat", subtitle: "Ausbildung in der Kaserne", x: 350, y: 530, kind: "profession" },
   { id: "hunter", label: "🏹 Jäger", x: 350, y: 620, kind: "base" },
   { id: "carrier", label: "📦 Träger", x: 350, y: 850, kind: "base" },
   { id: "builder", label: "🔨 Bauarbeiter", x: 350, y: 1020, kind: "base" },
@@ -32,13 +38,8 @@ const NODES: TechNode[] = [
   { id: "mushroom", label: "Pilz-Erfahrung", x: 640, y: 290, kind: "resource" },
   { id: "iron", label: "Eisenabbau", x: 640, y: 380, kind: "resource" },
   { id: "gold", label: "Goldabbau", x: 640, y: 470, kind: "resource" },
-  { id: "soldier", label: "🛡 Soldat", subtitle: "Ausbildung in der Kaserne", x: 640, y: 530, kind: "profession" },
-  { id: "warehouse", label: "Lager", subtitle: "nach Träger", x: 640, y: 940, kind: "building" },
-  { id: "house", label: "Wohnhaus", subtitle: "von Anfang an verfügbar", x: 640, y: 1040, kind: "building" },
-  { id: "farmBuilding", label: "Farm", subtitle: "von Anfang an verfügbar", x: 640, y: 1130, kind: "building" },
-  { id: "well", label: "Brunnen", subtitle: "von Anfang an verfügbar", x: 640, y: 1220, kind: "building" },
+  { id: "warehouse", label: "Lager", subtitle: "nach Träger", x: 640, y: 850, kind: "building" },
   { id: "sawmill", label: "Sägewerk", subtitle: "nach Holzfäller", x: 640, y: 1320, kind: "building" },
-  { id: "school", label: "🏫 Schule", subtitle: "von Anfang an verfügbar", x: 640, y: 1410, kind: "special" },
 
   { id: "carpenter", label: "🪚 Schreiner", x: 930, y: 20, kind: "profession" },
   { id: "potter", label: "🏺 Töpfer", x: 930, y: 110, kind: "profession" },
@@ -83,11 +84,10 @@ const NODES: TechNode[] = [
 
 const EDGES: TechEdge[] = [
   { from: "civil", to: "extractor" }, { from: "civil", to: "farmer" },
-  { from: "civil", to: "barracks" }, { from: "barracks", to: "soldier" },
+  { from: "barracks", to: "soldier" },
   { from: "civil", to: "hunter" }, { from: "civil", to: "carrier" },
   { from: "civil", to: "builder" }, { from: "civil", to: "fisher" }, { from: "civil", to: "scout" },
   { from: "civil", to: "woodcutter" },
-  { from: "civil", to: "house" }, { from: "civil", to: "farmBuilding" }, { from: "civil", to: "well" }, { from: "civil", to: "school" },
   { from: "carrier", to: "warehouse" }, { from: "woodcutter", to: "sawmill" },
   { from: "extractor", to: "wood" }, { from: "extractor", to: "clay" },
   { from: "extractor", to: "stone" }, { from: "extractor", to: "mushroom" },
