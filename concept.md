@@ -1,104 +1,114 @@
 # Produktkonzept
 
-Diese Datei ist der aktuelle Einstieg in das Produktkonzept. Die bisherige ausführliche Beschreibung bleibt in [`concept-detail.md`](./concept-detail.md) erhalten und gilt für alle unveränderten Bereiche weiter. Vor größeren Produktänderungen bitte beide Dateien lesen. Bei Widersprüchen beschreibt diese Datei den neueren Stand.
+Diese Datei ist der aktuelle Einstieg in das Produktkonzept. Ausführliche unveränderte Regeln bleiben in [`concept-detail.md`](./concept-detail.md) dokumentiert. Bei Widersprüchen beschreibt diese Datei den neueren Stand.
+
+Der aktive Umbau wird in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md) geführt.
 
 ## PoC 1: personenbasierte Produktionslogistik
 
-Ziel bleibt eine personenbasierte Produktions- und Logistiksimulation auf einem Hex-Grid. Waren liegen physisch an Orten, Personen bewegen sie sichtbar über die Karte und räumliche Planung wirkt direkt auf Produktion, Versorgung und Transport. Hunger und Schlaf konkurrieren mit Arbeit um die Zeit jeder einzelnen Person.
+Ziel bleibt eine personenbasierte Produktions- und Logistiksimulation auf einem Hex-Grid. Waren liegen physisch an Orten, Personen bewegen sie sichtbar über die Karte und räumliche Planung wirkt direkt auf Produktion, Versorgung und Transport. Hunger und Schlaf konkurrieren mit Arbeit um die Zeit einzelner Personen.
 
-Die bestehende Welt, Gebäude, Produktionsketten, Bedürfnisse, Lagerlogik, Händler, Felder, natürliche Ressourcen, organischen Wege und die mobile Bedienung bleiben unverändert wie in [`concept-detail.md`](./concept-detail.md) beschrieben, soweit sie nicht unten ausdrücklich überschrieben werden.
+## Feineres Raumraster — Phase A abgeschlossen
 
-## Feineres Raumraster — Phase A
+Die Welt verwendet intern ein **5× feineres Raster pro Raumachse**: aus 41 × 25 werden 205 × 125 Mikrozellen. Die sichtbare Kartengröße bleibt ungefähr gleich.
 
-Der aktive Umbau ist in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md) beschrieben. Die Welt verwendet jetzt ein **5× feineres Raster pro Raumachse**: aus der bisherigen 41 × 25-Struktur wird intern eine 205 × 125-Mikrozellenwelt. Die sichtbare Ausdehnung der Karte bleibt ungefähr gleich.
+Das Mikroraster ist kein sichtbarer Brettspiel-Look. Gebäude und Äcker behalten ungefähr ihre räumliche Größe und belegen entsprechend viele Mikrozellen. Auch der freie Abstand um Gebäude bleibt im Weltmaßstab erhalten.
 
-Das feinere Raster ist kein neuer Brettspiel-Look. Die Mikrozellen dienen vor allem Platzierung, Wegfindung, Ressourcen und späteren physischen Warenablagen; im normalen Spiel soll die Landschaft weiterhin zusammenhängend wirken.
+Bewohner bewegen sich weiterhin flüssig. Laufgeschwindigkeit und räumliche Reichweiten wurden auf das feinere Raster umgerechnet; die Bewohnerdarstellung bleibt bewusst gut lesbar und ist nicht auf Mikrozellengröße geschrumpft.
 
-Gebäude behalten ungefähr ihre bisherige Bildschirmgröße und belegen dafür deutlich mehr Mikrozellen. Auch Äcker behalten ungefähr ihre bisherige räumliche Größe. Der vorgeschriebene freie Abstand um Gebäude bleibt in Weltmaßstab erhalten und wird entsprechend in mehr Zellen ausgedrückt.
+## Physische Rohstoffhaufen — Phase B
 
-Bewohner bewegen sich weiterhin flüssig und nicht sichtbar zellenweise. Ihre Laufgeschwindigkeit und räumliche Reichweiten werden auf das feinere Raster umgerechnet, damit sich Entfernungen im Spiel nicht plötzlich verfünffachen. Die Bewohnerdarstellung ist leicht größer als zuvor, damit Figuren trotz des feineren Rasters gut lesbar bleiben.
+Phase B führt die technische Grundlage für echte lose Waren auf der Karte ein, ohne die bestehende Holz-/Lehm-/Steinwirtschaft bereits vollständig umzuschalten.
 
-Die Rohstoffwirtschaft bleibt während Phase A absichtlich noch im bisherigen Übergangsmodell: Wald-, Lehm- und Steinvorkommen besitzen weiterhin ihren bisherigen lokalen Output. Einzelne Bäume und physische Rohstoffhaufen mit maximal drei Einheiten werden erst in den folgenden Phasen eingeführt.
+Ein loser Warenhaufen besitzt:
+
+- eine konkrete Mikrozelle,
+- genau einen Warentyp,
+- 1 bis maximal 3 physische Einheiten.
+
+Mehrere Einheiten desselben Typs dürfen auf derselben Zelle bis zur Kapazität 3 gestapelt werden. Verschiedene lose Warentypen teilen sich aktuell keine Zelle. Wird die letzte Einheit abgeholt, verschwindet der Haufen.
+
+### Verbindliche Bewegungsregel
+
+**Lose Warenhaufen sind niemals Hindernisse.** Bewohner können immer darüberlaufen. Ein Haufen verändert weder Untergrund noch Wegfindung, Bewegungskosten oder Kollision.
+
+Für die Ablage gilt trotzdem eine eigene Platzregel: Ein neuer Haufen wird nicht direkt auf Wasser, Berg, einem Gebäude-Footprint oder einer noch aktiven natürlichen Ressourcenquelle erzeugt. Diese Ablageregel macht den Haufen selbst danach nicht blockierend.
+
+### Reservierungen
+
+Wenn eine zukünftige Transportperson eine physische Einheit einplant, wird genau diese Menge am konkreten Haufen reserviert. Die Ware bleibt bis zur tatsächlichen Abholung sichtbar und physisch vorhanden. Dadurch können mehrere Personen nicht dieselbe Einheit gleichzeitig einplanen.
+
+### Ablagewahl
+
+Die neue Ablagelogik ist deterministisch:
+
+1. zuerst wird innerhalb der erlaubten Suchreichweite ein bereits vorhandener Haufen desselben Typs mit weniger als 3 Einheiten gesucht,
+2. sonst wird die nächstgelegene gültige freie Zelle gewählt,
+3. bei Gleichstand entscheidet eine feste Koordinaten-/ID-Reihenfolge.
+
+Die genaue maximale Suchreichweite wird erst mit der Holz-End-to-End-Umstellung in Phase C als Balancingwert festgelegt.
+
+### Übergangsphase
+
+Wald, Lehm und Stein verwenden im aktuell spielbaren Wirtschaftskreislauf noch den bisherigen lokalen Ressourcen-Output. `NaturalResource.output` ist ab Phase B nur noch ein Übergangsmechanismus.
+
+Phase C stellt zuerst Holz vollständig um:
+
+**Baum → Abbauer Holz → physischer Holzhaufen → Abholung → Sägewerk.**
+
+Erst danach werden Lehm und Stein migriert.
 
 ## Berufserfahrung
 
-Erfahrung wird pro Person und Beruf von 0 bis 100 gespeichert und bleibt bei Berufswechsel erhalten.
+Erfahrung wird pro Person und Beruf von 0 bis 100 gespeichert und bleibt bei Berufswechsel erhalten. Jede erfolgreich abgeschlossene berufliche Tätigkeit gibt genau 1 Erfahrungspunkt; abgebrochene oder nur teilweise ausgeführte Tätigkeiten geben keinen Punkt.
 
-Die Progression ist vollständig aktionsbasiert:
+Aktuelle Beispiele:
 
-- jede erfolgreich abgeschlossene berufliche Tätigkeit gibt **genau 1 Erfahrungspunkt**,
-- nach **100 abgeschlossenen Tätigkeiten** sind **100 % Erfahrung** erreicht,
-- Erfahrung wird bei 100 gedeckelt,
-- abgebrochene oder nur teilweise ausgeführte Tätigkeiten geben keine Erfahrung.
+- Produktionsberuf: ein fertiger Produktionszyklus,
+- Abbauer: eine vollständig gewonnene Rohstoffeinheit,
+- Träger/Händler: eine erfolgreich zugestellte Ware,
+- Farmer: fertige Aussaat, Düngung oder Ernte,
+- Bauarbeiter: ein fertiger Bau-Arbeitszyklus.
 
-Als abgeschlossene Tätigkeit zählt aktuell:
-
-- Produktionsberufe: ein vollständig beendeter Produktionszyklus,
-- Abbauer Holz, Abbauer Lehm und Abbauer Stein: eine vollständig gewonnene Rohstoffeinheit,
-- Träger und Händler: eine erfolgreich zugestellte Ware,
-- Farmer: eine erfolgreich beendete Aussaat, Düngung oder Ernte,
-- Bauarbeiter: ein vollständig abgearbeiteter Bau-Arbeitszyklus.
-
-Damit misst Erfahrung Wiederholung erfolgreicher Arbeit und nicht mehr die verstrichene Arbeitszeit. Schnelle Tätigkeiten können deshalb schneller Erfahrung aufbauen als langsame Tätigkeiten. Das ist beabsichtigt.
-
-Die bestehenden Effekte der Erfahrung bleiben gleich:
-
-- normale Produktionsberufe steigern ihren Output linear bis auf 2×,
-- Bauarbeiter steigern ihre Bauleistung bis auf 2×,
-- Abbauer behalten den festen Ertrag je Tätigkeit und werden bis zu 50 % schneller,
-- Träger und Händler behalten eine Traglast von genau 1 Einheit und werden bis zu 50 % schneller.
+Mit Phase C wird bei Abbauarbeit der erfolgreiche Abschluss künftig erst nach der physischen Ablage der gewonnenen Einheit zählen.
 
 ## Technologie-Freischaltungen
 
-Der Technologiebaum steuert die Verfügbarkeit der bereits implementierten Gebäude. Eine Technologie wird dauerhaft freigeschaltet, sobald **irgendeine Person erstmals 10 Erfahrungspunkte** im zugeordneten Beruf erreicht. Die Freischaltung bleibt bestehen, auch wenn diese Person später den Beruf wechselt oder die Siedlung verlässt.
+Eine Technologie wird dauerhaft freigeschaltet, sobald irgendeine Person erstmals 10 XP im zugeordneten Beruf erreicht:
 
-Aktuelle Freischaltungen:
+- Träger → Lager,
+- Abbauer Holz → Sägewerk,
+- Sägewerker → Schreinerei,
+- Farmer → Mühle,
+- Müller → Bäckerei,
+- Abbauer Lehm → Töpferei,
+- Abbauer Stein → Steinmetzhütte.
 
-- Träger 10 XP → Lager,
-- Abbauer Holz 10 XP → Sägewerk,
-- Sägewerker 10 XP → Schreinerei,
-- Farmer 10 XP → Mühle,
-- Müller 10 XP → Bäckerei,
-- Abbauer Lehm 10 XP → Töpferei,
-- Abbauer Stein 10 XP → Steinmetzhütte.
-
-Wohnhaus, Farm und Brunnen sind von Anfang an freigeschaltet. Bereits vorhandene Berufe ohne implementierte Folgetechnologie sammeln weiterhin Erfahrung, lösen aktuell aber keine zusätzliche Freischaltung aus.
-
-Nicht implementierte Zweige wie Militär, Jäger oder Fischer bleiben im Technologiebaum als geplante Struktur sichtbar, besitzen aber noch keine erfundene Spielregel. Die Freischaltlogik ist datengetrieben aufgebaut, sodass spätere Berufe und Technologien durch neue Zuordnungen ergänzt werden können.
-
-Der Technologiebaum zeigt den aktuellen Zustand live an. Abbau-Berufe werden nach dem Muster **Abbauer + Ressource** benannt. Aktuell implementiert sind **Abbauer Holz**, **Abbauer Lehm** und **Abbauer Stein**; geplante Zweige folgen derselben Konvention, z. B. **Abbauer Pilz** und **Abbauer Gold**. Die sichtbaren Ketten folgen der tatsächlichen Spiellogik, zum Beispiel **Abbauer Holz → Sägewerk → Sägewerker → Schreinerei**. Zusammengehörige Ketten liegen in eigenen horizontalen Spuren mit mehr Abstand, damit Verbindungen möglichst innerhalb ihrer Kette bleiben und sich weniger mit fremden Nodes vermischen. Freigeschaltete Knoten sind hervorgehoben; gesperrte oder noch nicht implementierte Knoten werden nur ausgegraut und nicht geblurt, damit Beschriftungen und Voraussetzungen klar lesbar bleiben.
-
-Das Baumenü verwendet dieselbe autoritative Freischaltlogik und zeigt nur Gebäude, die bereits freigeschaltet sind. Gesperrte Gebäude bleiben ausschließlich im Technologiebaum sichtbar. Die eigentliche Gebäudeplatzierung verweigert weiterhin gesperrte Technologien, sodass die Sperre nicht über einen alternativen UI-Weg umgangen werden kann.
+Wohnhaus, Farm und Brunnen sind von Anfang an freigeschaltet. Baumenü und Gebäudeplatzierung verwenden dieselbe autoritative Freischaltlogik.
 
 ## Gebäudeplatzierung auf Desktop und Touch
 
-Die Bauplatzierung verwendet dieselben Regeln, ist aber an das jeweilige Eingabegerät angepasst:
+- **Desktop:** Bau-Ghost folgt der Maus; kurzer Linksklick bestätigt eine gültige Position; Escape bricht ab.
+- **Touch:** kurzes Tippen setzt den Ghost; Ziehen verschiebt die Karte; der Bauen-Button bestätigt.
 
-- **Desktop:** Der Bau-Ghost folgt sofort der Maus. Ein kurzer Linksklick auf eine gültige Position platziert das Gebäude. Escape bricht den Baumodus ab.
-- **Touch:** Ein kurzes Tippen setzt den Ghost auf die gewünschte Position. Ziehen verschiebt weiterhin die Karte. Der Bauen-Button bestätigt die Platzierung.
-
-In beiden Fällen entscheidet dieselbe Platzierungslogik, ob eine Position gültig ist. Eingabemethoden verändern keine Bauvoraussetzungen. Auf dem Mikroraster wird nicht jede einzelne gültige Ankerzelle über die gesamte Karte hervorgehoben; der Ghost selbst zeigt an seiner aktuellen Position, ob dort gebaut werden kann.
-
-## Spielerkommunikation
-
-Die Personenansicht zeigt weiterhin die aktuelle Berufserfahrung. Das In-App-Handbuch erklärt, dass jede erfolgreich abgeschlossene Tätigkeit einen Punkt bringt, dass Berufserfahrung neue Technologien dauerhaft freischalten kann und wie sich die Gebäudeplatzierung auf Desktop und Touch unterscheidet.
+Beide Wege verwenden dieselbe Platzierungslogik.
 
 ## Unveränderte Produktbereiche
 
 Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`concept-detail.md`](./concept-detail.md), insbesondere:
 
 - Startzustand mit 12 Personen und HQ,
-- Berge, Wasser, Wälder und Beerenbüsche in derselben ungefähr sichtbaren Weltgröße,
-- Hunger und Schlaf mit Unterbrechung und Wiederaufnahme von Arbeit,
-- Gebäude-Footprints mit freiem Ring,
+- Hunger und Schlaf,
+- Beerenbüsche,
 - Bau- und Abrisslogik,
-- feste Simulationsgeschwindigkeit bei 60 Ticks pro Sekunde auf 1×,
+- 60 Simulationsschritte/s bei 1×,
 - organisch entstehende Wege,
-- vorübergehend weiterhin die bisherige Holz-, Lehm- und Steinvorkommen-Logik,
-- Produktionsketten und lokale Outputs,
-- HQ- und Lagerinventare,
-- Händler als einziger automatischer Lager-zu-Lager-Transport,
+- Produktionsketten und Gebäudeinventare,
+- HQ- und Lagerlogik,
+- Händler als Lager-zu-Lager-Mechanismus,
 - Farmen und Felder,
-- Personenliste und Personeninspektor,
+- Personenansicht,
 - Touch- und Desktop-Bedienung,
-- In-App-Handbuch und Technologiebaum.
+- Technologiebaum und Handbuch.
+
+Die dort beschriebene alte 41 × 25-Kartengröße und die langfristige Annahme, dass gewonnene Rohstoffe am Ressourcenobjekt selbst als lokaler Output liegen, werden durch Phase A bzw. Phase B/folgende Phasen überschrieben.
