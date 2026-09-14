@@ -100,6 +100,56 @@
 .tech-tree-node.resource { border-color: #638a59; background: #31472d; }
 .tech-tree-node.special { border-color: #826ca1; background: #403650; }
 
+.technology-tree-legend {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 4;
+  max-width: min(760px, calc(100% - 24px));
+  display: grid;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px solid rgba(235, 217, 164, 0.24);
+  border-radius: 10px;
+  background: rgba(18, 23, 18, 0.9);
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.24);
+  pointer-events: none;
+}
+.technology-tree-legend > strong { font-size: 12px; }
+.technology-tree-legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  font-size: 11px;
+  color: rgba(245, 240, 223, 0.86);
+}
+.technology-tree-legend-items span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.technology-tree-legend-items i {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  border: 2px solid #687063;
+  border-radius: 3px;
+  background: #353d32;
+}
+.technology-tree-legend-items i.base { border-color: #8a8f85; background: #41463f; }
+.technology-tree-legend-items i.profession { border-color: #b7993e; background: #4b4329; }
+.technology-tree-legend-items i.building { border-color: #5f91b5; background: #2c4251; }
+.technology-tree-legend-items i.resource { border-color: #638a59; background: #31472d; }
+.technology-tree-legend-items i.special { border-color: #826ca1; background: #403650; }
+.technology-tree-legend-items i.edge {
+  width: 22px;
+  height: 0;
+  border: 0;
+  border-top: 3px solid rgba(214, 189, 104, 0.75);
+  border-radius: 0;
+  background: transparent;
+}
+.technology-tree-legend-items i.edge.dashed {
+  border-top-style: dashed;
+  border-top-color: rgba(192, 178, 217, 0.75);
+}
+
 .technology-tree-menu-icon {
   display: grid;
   place-items: center;
@@ -118,4 +168,12 @@
   .technology-tree-actions button { min-width: 38px; min-height: 38px; padding: 6px 8px; }
   .technology-tree-actions button[data-tech-zoom="reset"] { min-width: 62px; font-size: 12px; }
   #technology-tree-close { margin-left: 2px; }
+  .technology-tree-legend {
+    gap: 5px;
+    padding: 8px 9px;
+    max-width: calc(100% - 20px);
+    left: max(10px, env(safe-area-inset-left));
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  .technology-tree-legend-items { gap: 5px 10px; font-size: 10px; }
 }
