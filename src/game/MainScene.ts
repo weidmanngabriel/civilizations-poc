@@ -24,7 +24,7 @@ import { HEX_RADIUS, nearestTileAtWorldPoint, pixel } from "./mapGeometry";
 const TEXT_RESOLUTION = 3;
 const MIN_FOREST_ALPHA = 0.35;
 const MIN_CAMERA_ZOOM = 0.7;
-const MAX_CAMERA_ZOOM = 3.5;
+const MAX_CAMERA_ZOOM = 6;
 const WHEEL_ZOOM_SENSITIVITY = 0.0015;
 const TAP_MAX_DISTANCE = 8;
 const TARGET_MODE_DIM_ALPHA = 0.22;
