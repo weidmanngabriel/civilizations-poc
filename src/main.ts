@@ -95,7 +95,7 @@ installHqStoragePanel(world);
 mountBuildMenu(world);
 mountHandbook();
 mountPersonPanel(world);
-mountTechnologyTree();
+mountTechnologyTree(world);
 showBuildVersion();
 
 const game = new Phaser.Game({
