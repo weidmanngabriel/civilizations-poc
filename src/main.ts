@@ -4,6 +4,7 @@ import { IncrementalMainScene } from "./game/IncrementalMainScene";
 import { installBushIndicators } from "./game/bushIndicators";
 import { installDesktopBuildPlacement } from "./game/desktopBuildPlacement";
 import { installHungerIndicators } from "./game/hungerIndicators";
+import { installLooseGoodsIndicators } from "./game/looseGoodsIndicators";
 import { installPersonSelection } from "./game/personSelection";
 import { installSleepIndicators } from "./game/sleepIndicators";
 import {
@@ -87,6 +88,7 @@ scene.renderWorld = () => {
   });
 };
 installBushIndicators(scene, world);
+installLooseGoodsIndicators(scene, world);
 installHungerIndicators(scene, world);
 installSleepIndicators(scene, world);
 installPersonSelection(scene, world);
@@ -118,10 +120,3 @@ const game = new Phaser.Game({
 
 // Keep touch and desktop input adapters separate so neither interaction model regresses the other.
 installMobileMapTouchControls(game, scene);
-installDesktopBuildPlacement(game, scene);
-
-const profileAnimationFrame = (timestamp: number): void => {
-  performanceProfiler.recordAnimationFrame(timestamp);
-  window.requestAnimationFrame(profileAnimationFrame);
-};
-window.requestAnimationFrame(profileAnimationFrame);
