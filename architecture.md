@@ -1,86 +1,57 @@
 # Architecture
 
-This file is the current architectural entry point. The previous detailed reference is preserved in [`architecture-detail.md`](./architecture-detail.md) and remains authoritative for unchanged subsystems. Read that file as well before substantial implementation work. If the two files conflict, this file describes the newer state.
+This file is the current architectural entry point. Detailed unchanged subsystems remain documented in [`architecture-detail.md`](./architecture-detail.md). Read that file as well before substantial implementation work. If the two files conflict, this file describes the newer state.
+
+The active spatial/resource migration is tracked in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md) and must be read before changes to map scale, resources, loose goods, movement, placement, roads, or logistics.
 
 ## Technology and boundaries
 
-The prototype is a browser-first TypeScript application using TypeScript, Vite and Phaser 4 and is deployed statically through GitHub Pages. The deterministic simulation remains independent from Phaser. Presentation reads simulation state and must not invent authoritative state.
+The prototype is a browser-first TypeScript application using TypeScript, Vite and Phaser 4, deployed statically through GitHub Pages.
 
 ```text
 src/
-  simulation/   deterministic world state and rules
+  simulation/   deterministic authoritative world state and rules
   game/         Phaser rendering and map input
   ui/           DOM overlays and controls
   handbook/     player-facing Markdown help
   debug/        performance diagnostics
 ```
 
-The fixed simulation still runs at 60 ticks per displayed real-time second at 1×. Rendering remains decoupled through `requestAnimationFrame`.
+The deterministic simulation remains independent from Phaser. Presentation reads simulation state and never owns authoritative game state. The fixed simulation runs at 60 ticks/s at displayed 1×; rendering stays independent on `requestAnimationFrame`.
 
-## Simulation core wrapper
+## Simulation entry point
 
-The historical implementation of the simulation tick now lives in `src/simulation/simulationCore.ts`. `src/simulation/simulation.ts` is the public simulation entry point and re-exports the existing API while wrapping `tick()` with cross-cutting profession-experience bookkeeping.
+`src/simulation/simulationCore.ts` contains the historical simulation tick. `src/simulation/simulation.ts` is the public simulation entry point and wraps/re-exports the core behavior, including profession-experience bookkeeping and technology progression. New callers should import from `simulation.ts`, not directly from `simulationCore.ts`.
 
-This split keeps the existing economy, logistics, pathfinding, needs integration and production behavior unchanged while moving XP progression from elapsed work time to completed actions. New code should continue to import from `src/simulation/simulation.ts`, not directly from `simulationCore.ts`.
+## Profession experience and technologies
 
-`src/simulation/experience.ts` owns XP values, profession labels and profession multipliers. Its old `gainProfessionExperience()` entry point is retained only as a compatibility no-op because the legacy core still calls it every work tick. Actual XP is granted through `awardProfessionExperience()` by the public simulation wrapper after it observes a completed action.
+Experience is persistent per person and profession from 0–100. One successfully completed professional action gives exactly +1 XP; aborted or partial actions give none.
 
-## Profession experience
+Current action completions:
 
-Experience remains persistent per person and profession from 0 to 100. The progression rule is discrete:
+- production worker: completed recipe cycle,
+- wood/clay/stone extractor: completed extracted unit,
+- carrier/merchant: successful delivery,
+- farmer: completed sow/fertilize/harvest action,
+- builder: completed construction work cycle.
 
-```text
-1 successfully completed professional action = +1 XP
-100 completed actions = 100 XP
-XP is capped at 100
-aborted / incomplete actions = 0 XP
-```
-
-Completion detection is profession-specific:
-
-- production worker: one finished production recipe cycle,
-- wood / clay / stone extractor: one extracted resource unit,
-- carrier / merchant: one successfully delivered transport trip,
-- farmer: one successfully completed sow, fertilize or harvest task,
-- builder: one completed construction work cycle of `CONFIG.duration` active construction ticks.
-
-The simulation keeps the existing internal profession ids `woodcutter`, `clayDigger` and `stonecutter`; player-facing UI consistently labels them **Abbauer Holz**, **Abbauer Lehm** and **Abbauer Stein**. This avoids unnecessary simulation migration while presenting one coherent extractor profession family.
-
-Builders keep transient per-profession action progress in `Person.experienceActionProgress`. That state is part of the simulation model so interruptions do not accidentally erase partial progress and save/load can preserve it later.
-
-Profession effects are unchanged: normal production and builders scale up to 2× contribution/output, while extractors, carriers and merchants scale movement/work speed up to 1.5× without increasing carry capacity or raw-resource yield per action.
-
-## Technology progression
-
-`src/simulation/technology.ts` is the single source of truth for current technology unlock rules. Each implemented rule is data describing a target building technology, its source profession and the XP threshold. The current threshold is 10 XP for all implemented rules, but the rule shape intentionally carries the threshold per entry so future professions or technologies can differ without new unlock code.
-
-The player-facing `World` stores permanent unlocks in `unlockedTechnologies`. `createDefaultGameWorld()` starts with only house, farm and well unlocked. Neutral `createWorld()` scenarios intentionally omit this field; absence means unrestricted sandbox/test behavior so low-level simulation tests do not need to reproduce player progression.
-
-After profession XP is awarded, the public `tick()` calls `updateTechnologyUnlocks()`. The function scans the configured rules, uses the highest XP held by any current person in the relevant profession, and appends newly satisfied technologies to the permanent world list. Once written, an unlock is never removed even if the person who triggered it later changes profession or leaves the world.
-
-Current rules are:
+Current permanent unlock rules at 10 XP are:
 
 ```text
-carrier        10 XP -> warehouse
-woodcutter     10 XP -> sawmill
-sawmillWorker  10 XP -> carpenter
-farmer         10 XP -> mill
-miller         10 XP -> bakery
-clayDigger     10 XP -> pottery
-stonecutter    10 XP -> stonemason
+carrier        -> warehouse
+woodcutter     -> sawmill
+sawmillWorker  -> carpenter
+farmer         -> mill
+miller         -> bakery
+clayDigger     -> pottery
+stonecutter    -> stonemason
 ```
 
-`src/simulation/buildingPlacement.ts` enforces the same state in `canPlaceBuilding()`, `validBuildingAnchors()` and therefore `buildWithFootprint()`. Locked technologies expose no valid anchors and cannot be built even if another UI path attempts placement.
+`src/simulation/technology.ts` is authoritative. `buildingPlacement.ts` enforces unlocks, while UI only presents them.
 
-`src/ui/buildMenu.ts` and `src/ui/technologyTree.ts` only present this simulation-owned state. The build menu shows only currently unlocked buildings. The technology tree remains the place where locked technologies, XP progress and not-yet-implemented branches are visible. Its implemented resource chains follow the real progression order, e.g. Abbauer Holz → Sägewerk → Sägewerker → Schreinerei. `src/ui/technologyTreeLayout.ts` gives those chains dedicated horizontal lanes and recomputes connector geometry after the tree mounts so unrelated branches overlap less. Disabled nodes are visually greyed out without blur so labels and requirements remain readable. UI refresh while those overlays are open is observational only and does not own progression.
+## Fine-grid spatial model — Phase A complete
 
-The historical statement in `architecture-detail.md` that the technology tree is presentation-only is superseded by this section.
-
-## Fine-grid spatial model — Phase A
-
-The active rework is tracked in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md). Phase A refines the simulation grid by a linear factor of **5** while deliberately preserving the previous world scale in screen space and gameplay distances.
-
-`src/simulation/spatial.ts` is the authoritative conversion layer:
+Phase A refined the authoritative spatial grid by a linear factor of 5:
 
 ```text
 old logical world       41 × 25 coarse cells
@@ -88,57 +59,91 @@ refinement              5× per linear axis
 current simulation      205 × 125 micro-cells
 ```
 
-A micro-cell is therefore one fifth of the previous pathfinding step in world-scale terms. `CONFIG.movementPerTick`, warehouse collection radius, farm field radius and sleep search radius are expressed in micro-cell steps but scaled so the former physical distances remain approximately unchanged. Gameplay durations and the 60 Hz simulation cadence do not change.
+`src/simulation/spatial.ts` owns scale conversions. One micro-cell is one fifth of the previous world-scale path step. Movement, warehouse collection radius, farm radius and sleep radius are stored in micro-cell steps but scaled to preserve approximately the same player-facing distance.
 
-Scenario terrain is not mapped back through naive 5 × 5 offset blocks. Hex rows are staggered, so each micro-cell is assigned the terrain of the nearest scaled coarse hex centre. This keeps rivers, mountains, forests and legacy resource positions spatially aligned.
+Scenario terrain is mapped by nearest scaled coarse-hex centre rather than naive 5 × 5 offset blocks, preserving river/mountain/forest alignment across staggered rows.
 
-Buildings keep approximately their former visible size by expanding each old footprint cell into a micro-cell region. The former one-cell clearance is likewise expanded to one former coarse-cell distance. Farm fields also occupy a micro-cell region rather than shrinking to a single tiny cell. Resource economy is intentionally still the legacy `NaturalResource.remaining/output` model during Phase A; individual resource objects and loose ground stacks belong to later phases.
+Buildings and fields preserve approximately their former visible/world-space size by expanding to many micro-cells. The former one-cell building clearance similarly remains one former coarse-cell distance.
 
-`src/simulation/hex.ts` maintains a cached coordinate index for the stable `World.tiles` array and uses heap-backed A* for weighted routing. This replaces repeated full-array tile lookup and the former linear-open-list Dijkstra implementation, which would scale poorly at ~25,000 cells. `findPathBySteps()` retains BFS semantics for true step-radius checks.
+`src/simulation/hex.ts` uses a cached coordinate index for the stable tile array and heap-backed A* for weighted routing; step-radius checks retain BFS semantics. Avoid new per-tick full-map scans.
 
-`src/game/mapGeometry.ts` centralizes simulation-cell → Phaser world-coordinate projection. Cell spacing and hex radius are divided by the same refinement factor, keeping the visible map footprint close to the former size. Pointer hit-testing inverts the projection and checks only nearby coordinates instead of scanning all tiles. The micro-grid is not normally outlined, so terrain still reads as a continuous surface.
+`src/game/mapGeometry.ts` owns micro-cell → Phaser projection. Rendering divides geometric spacing by the same refinement factor, so the visible world remains comparable and the micro-grid is not visually emphasized.
 
-Building placement remains simulation-authoritative. On the fine grid, build mode validates the current ghost location directly rather than rendering every valid micro-cell anchor across the whole map; this avoids both visual grid noise and a large per-hover render cost. Desktop and touch continue to use their existing input-specific confirmation flows.
+## Physical resource model — Phase B
 
-People remain continuous world-space markers independent from micro-cell size. Their marker, label and selection ring are slightly larger than before so residents remain readable against buildings and the denser spatial model.
+Phase B introduces a second, future-facing physical-resource layer without yet migrating the live wood/clay/stone economy end to end.
 
-This section supersedes the old 41 × 25 map, single-cell farm-field size, fixed 24/21 render spacing and old pathfinder descriptions in `architecture-detail.md`.
+### Natural sources
+
+`NaturalResource` remains the source object for forest/tree, clay and stone extraction targets. Sources already have stable ids, positions and depletion state. The historical `NaturalResource.output` field is now explicitly a **compatibility field only**; new physical extraction paths are expected to deposit goods onto ground stacks instead.
+
+The old extraction flow remains active until Phase C migrates wood end to end.
+
+### Loose ground goods
+
+`src/simulation/model.ts` defines `LooseGoodStack`:
+
+```text
+id        stable stack id
+position  concrete micro-cell
+good      exactly one Good type
+amount    integer 1..3
+reserved  integer 0..amount
+```
+
+`World.looseGoods` and `World.nextLooseGoodId` are optional/lazy during the compatibility period so older neutral test fixtures do not need immediate migration. `src/simulation/looseGoods.ts` initializes them deterministically when first used.
+
+A cell may contain only one loose-good type. Compatible stacks can be filled up to exactly 3 units. A stack is removed when pickup reduces it to zero.
+
+### Permanent walkability rule
+
+Loose goods are **never obstacles**. They do not mutate tile terrain, do not participate in collision, do not change movement cost, and are never read by pathfinding. People can always walk over a loose stack.
+
+Placement validity is separate from walkability: a *new* stack is not created on river/mountain terrain, a building footprint, or the position of an active natural-resource source. This restriction only controls where goods may be deposited; once present, a stack never blocks movement.
+
+### Reservations and pickup
+
+Reservations are concrete stack quantities. `availableLooseGoodAmount()` is `amount - reserved`. Reserving goods leaves them physically present until pickup. `pickupReservedLooseGood()` consumes both reservation and physical amount; zero amount removes the stack.
+
+This is deliberately independent from the legacy `Trip` source model until Phase C connects wood logistics to stack ids.
+
+### Deterministic drop search
+
+`findLooseGoodDropPosition()` receives origin, good and an explicit maximum radius. The radius is intentionally supplied by the caller because its gameplay value belongs to Phase C.
+
+Selection order:
+
+1. nearest compatible non-full stack of the same good within radius,
+2. otherwise nearest valid empty cell,
+3. deterministic tie-break by axial coordinates / stable id.
+
+Empty-cell search expands locally by hex rings/BFS and uses the indexed tile map rather than scanning the entire 205 × 125 map.
+
+### Rendering
+
+`src/game/looseGoodsIndicators.ts` is a presentation-only Phaser overlay installed from `src/main.ts`. It reads `World.looseGoods`, renders 1/2/3 physical units as distinct markers, updates only changed stack visuals, and never mutates simulation state.
+
+Visual/resource-density polish remains Phase E; Phase B only establishes readable functional stack rendering.
 
 ## Cross-platform interaction model
 
-Desktop and touch are treated as two first-class input modes. Any player-facing interaction change must be checked in both directions: mobile work must not regress desktop behavior, and desktop work must not regress touch behavior. The interaction details may differ when that better matches the input device, but simulation rules and validation stay shared.
+Desktop and touch remain separate first-class adapters with shared simulation legality.
 
-Building placement currently uses that split explicitly:
+- touch: tap chooses build ghost, drag pans, pinch zooms, DOM **Bauen** button confirms;
+- desktop: ghost follows mouse, short left click confirms a valid position, Escape cancels.
 
-- touch keeps the existing map gesture model: a short tap chooses the build ghost position, dragging pans the map, and the DOM **Bauen** button confirms;
-- desktop uses `src/game/desktopBuildPlacement.ts`: the ghost follows the mouse immediately while build mode is active, a short left click confirms a valid position, and Escape cancels;
-- both paths still feed the same placement position state and `buildWithFootprint()` validation, so input adapters never own building legality.
-
-The older touch-only placement wording in `architecture-detail.md` is superseded by this section. `src/game/mobileTouch.ts` remains the touch-specific map adapter; desktop-specific placement behavior should stay separate rather than being folded into mobile gesture code.
+Both use `buildingPlacement.ts` for legality.
 
 ## Existing architecture
 
-All other current architecture remains as documented in [`architecture-detail.md`](./architecture-detail.md), including:
+All other current architecture remains as documented in [`architecture-detail.md`](./architecture-detail.md), including hunger/sleep, bushes, HQ storage compatibility adapter, organic roads, production/inventories, construction, farms, merchants, person selection, mobile controls, handbook/PWA and performance diagnostics.
 
-- hunger and sleep state machines,
-- event-driven food/sleep target selection,
-- the temporary legacy natural-resource lifecycle until the physical-resource phases replace it,
-- HQ storage adapter,
-- organic roads,
-- inventories, production and logistics,
-- person selection and inspection,
-- mobile controls,
-- handbook and technology-tree presentation,
-- PWA/update behavior,
-- performance diagnostics,
-- automated tests and GitHub Pages deployment.
+Where `architecture-detail.md` still says 41 × 25, fixed 24/21 render spacing, old Dijkstra, or natural-resource output as the intended long-term physical model, the newer Phase-A/Phase-B sections above supersede it.
 
 ## Testing and deployment
 
-`npm test` remains the deterministic Node test suite and `npm run build` performs TypeScript checking plus the Vite production build. Experience regression coverage must verify that XP is granted only at action completion and never merely for elapsed movement or work ticks. Technology regression coverage must verify the exact threshold, permanence of unlocks, correct initial player-facing state and placement rejection for locked buildings.
+`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build.
 
-Fine-grid regression coverage verifies the exact refinement factor, 205 × 125 tile count, preserved world-scale movement/radius semantics, expanded building footprints and spatial alignment of legacy natural-resource nodes.
+Fine-grid tests cover the 5× refinement, 205 × 125 map, scaled distances, footprints and resource alignment. Physical-resource tests cover stack capacity, one-good-per-cell behavior, reservation safety, zero-stack removal, deterministic drop choice and the invariant that loose goods never alter pathfinding.
 
-Player-facing interaction changes must also be reviewed against both desktop mouse/keyboard and touch behavior, even when only one input mode motivated the change.
-
-The deploy workflow runs test, build and GitHub Pages deployment only from `main` (or manual workflow dispatch). Changes should therefore be developed on a temporary branch and squash-merged to `main` once validated, leaving one meaningful commit per adjustment.
+Per current project instruction, changes are made directly on `main` so they can be inspected live. The GitHub Pages workflow is the safety gate: it runs `npm test` before `npm run build`, and deployment runs only after that build job succeeds. No green tests/build means no deployment.
