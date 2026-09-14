@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createWorld } from "../src/simulation/scenario";
 import { findPathBySteps } from "../src/simulation/hex";
+import { canPlaceBuilding } from "../src/simulation/buildingPlacement";
 import {
   assigned,
   buildAt,
@@ -12,14 +13,19 @@ import {
 } from "../src/simulation/simulation";
 import type { Hex, World } from "../src/simulation/model";
 
+function firstValidWarehouse(w: World): Hex {
+  const tile = w.tiles.find((candidate) => canPlaceBuilding(w, candidate, "warehouse"));
+  assert.ok(tile);
+  return { q: tile.q, r: tile.r };
+}
+
 function reachableBuildableTile(w: World, origin: Hex): Hex {
-  const candidate = w.tiles
-    .filter((tile) => tile.terrain === "grass" || tile.terrain === "road")
-    .map((tile) => ({ tile, path: findPathBySteps(w.tiles, origin, tile) }))
-    .filter((entry) => entry.path && entry.path.length >= 2)
-    .sort((a, b) => a.path!.length - b.path!.length)[0];
-  assert.ok(candidate);
-  return { q: candidate.tile.q, r: candidate.tile.r };
+  for (const tile of w.tiles) {
+    if (!canPlaceBuilding(w, tile, "warehouse")) continue;
+    const path = findPathBySteps(w.tiles, origin, tile);
+    if (path && path.length >= 2) return { q: tile.q, r: tile.r };
+  }
+  assert.fail("expected reachable warehouse position");
 }
 
 function runUntil(w: World, predicate: () => boolean, limit = 1000): void {
@@ -29,7 +35,7 @@ function runUntil(w: World, predicate: () => boolean, limit = 1000): void {
 
 test("merchant moves one configured good between two warehouses and returns empty", () => {
   const w = createWorld();
-  const source = buildAt(w, { q: 14, r: 11 }, "warehouse")!;
+  const source = buildAt(w, firstValidWarehouse(w), "warehouse")!;
   const target = buildAt(w, reachableBuildableTile(w, source.position), "warehouse")!;
   source.inventory!.wood = 2;
 
@@ -64,7 +70,7 @@ test("merchant moves one configured good between two warehouses and returns empt
 
 test("merchant waits when destination is full and target demolition clears the route", () => {
   const w = createWorld();
-  const source = buildAt(w, { q: 14, r: 11 }, "warehouse")!;
+  const source = buildAt(w, firstValidWarehouse(w), "warehouse")!;
   const target = buildAt(w, reachableBuildableTile(w, source.position), "warehouse")!;
   source.inventory!.plank = 1;
   target.inventory!.plank = 20;
