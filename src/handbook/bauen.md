@@ -6,6 +6,8 @@ Einige Gebäude werden erst durch Berufserfahrung freigeschaltet. Sobald ein Bew
 
 Die Rohstoffberufe heißen einheitlich **Abbauer Holz**, **Abbauer Lehm** und **Abbauer Stein**. Ihre Erfahrung schaltet die jeweils passende Verarbeitung frei.
 
+Am Desktop folgt der Bau-Ghost direkt der Maus. Ein Linksklick auf eine gültige Position platziert das Gebäude; mit Escape wird der Baumodus abgebrochen. Auf Touch-Geräten wählt ein kurzes Tippen die Ghost-Position, Ziehen verschiebt weiterhin die Karte und der Bauen-Button bestätigt die Platzierung.
+
 Nicht jeder freie Fleck ist geeignet: Gebäude brauchen genügend Platz und etwas Abstand zu ihrer Umgebung. Wiese und Wege zählen dabei als freie Baufläche. Liegt ein Weg im eigentlichen Gebäude-Footprint, wird er beim Bauen entfernt und nach einem späteren Abriss nicht wiederhergestellt.
 
 Nach der Platzierung entsteht zunächst eine Baustelle. Bauarbeiter kümmern sich selbstständig um geeignete Baustellen und die benötigten Baumaterialien.

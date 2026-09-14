@@ -6,7 +6,7 @@ Diese Datei ist der aktuelle Einstieg in das Produktkonzept. Die bisherige ausf�
 
 Ziel bleibt eine personenbasierte Produktions- und Logistiksimulation auf einem Hex-Grid. Waren liegen physisch an Orten, Personen bewegen sie sichtbar über die Karte und räumliche Planung wirkt direkt auf Produktion, Versorgung und Transport. Hunger und Schlaf konkurrieren mit Arbeit um die Zeit jeder einzelnen Person.
 
-Die bestehende Welt, Gebäude, Produktionsketten, Bedürfnisse, Lagerlogik, Händler, Felder, natürliche Ressourcen, organischen Wege und die mobile Bedienung bleiben unverändert wie in [`concept-detail.md`](./concept-detail.md) beschrieben.
+Die bestehende Welt, Gebäude, Produktionsketten, Bedürfnisse, Lagerlogik, Händler, Felder, natürliche Ressourcen, organischen Wege und die mobile Bedienung bleiben unverändert wie in [`concept-detail.md`](./concept-detail.md) beschrieben, soweit sie nicht unten ausdrücklich überschrieben werden.
 
 ## Berufserfahrung
 
@@ -54,13 +54,22 @@ Wohnhaus, Farm und Brunnen sind von Anfang an freigeschaltet. Bereits vorhandene
 
 Nicht implementierte Zweige wie Militär, Jäger oder Fischer bleiben im Technologiebaum als geplante Struktur sichtbar, besitzen aber noch keine erfundene Spielregel. Die Freischaltlogik ist datengetrieben aufgebaut, sodass spätere Berufe und Technologien durch neue Zuordnungen ergänzt werden können.
 
-Der Technologiebaum zeigt den aktuellen Zustand live an. Die drei vorhandenen Rohstoffberufe werden einheitlich als **Abbauer Holz**, **Abbauer Lehm** und **Abbauer Stein** dargestellt. Die sichtbaren Ketten folgen der tatsächlichen Spiellogik, zum Beispiel **Abbauer Holz → Sägewerk → Sägewerker → Schreinerei**. Freigeschaltete Knoten sind hervorgehoben; gesperrte oder noch nicht implementierte Knoten werden nur ausgegraut und nicht geblurt, damit Beschriftungen und Voraussetzungen klar lesbar bleiben.
+Der Technologiebaum zeigt den aktuellen Zustand live an. Die drei vorhandenen Rohstoffberufe werden einheitlich als **Abbauer Holz**, **Abbauer Lehm** und **Abbauer Stein** dargestellt. Die sichtbaren Ketten folgen der tatsächlichen Spiellogik, zum Beispiel **Abbauer Holz → Sägewerk → Sägewerker → Schreinerei**. Zusammengehörige Ketten liegen in eigenen horizontalen Spuren mit mehr Abstand, damit Verbindungen möglichst innerhalb ihrer Kette bleiben und sich weniger mit fremden Nodes vermischen. Freigeschaltete Knoten sind hervorgehoben; gesperrte oder noch nicht implementierte Knoten werden nur ausgegraut und nicht geblurt, damit Beschriftungen und Voraussetzungen klar lesbar bleiben.
 
-Das Baumenü verwendet dieselbe autoritative Freischaltlogik, zeigt aber nur Gebäude, die bereits freigeschaltet sind. Gesperrte Gebäude bleiben ausschließlich im Technologiebaum sichtbar. Die eigentliche Gebäudeplatzierung verweigert weiterhin gesperrte Technologien, sodass die Sperre nicht über einen alternativen UI-Weg umgangen werden kann.
+Das Baumenü verwendet dieselbe autoritative Freischaltlogik und zeigt nur Gebäude, die bereits freigeschaltet sind. Gesperrte Gebäude bleiben ausschließlich im Technologiebaum sichtbar. Die eigentliche Gebäudeplatzierung verweigert weiterhin gesperrte Technologien, sodass die Sperre nicht über einen alternativen UI-Weg umgangen werden kann.
+
+## Gebäudeplatzierung auf Desktop und Touch
+
+Die Bauplatzierung verwendet dieselben Regeln, ist aber an das jeweilige Eingabegerät angepasst:
+
+- **Desktop:** Der Bau-Ghost folgt sofort der Maus. Ein kurzer Linksklick auf eine gültige Position platziert das Gebäude. Escape bricht den Baumodus ab.
+- **Touch:** Ein kurzes Tippen setzt den Ghost auf die gewünschte Position. Ziehen verschiebt weiterhin die Karte. Der Bauen-Button bestätigt die Platzierung.
+
+In beiden Fällen entscheidet dieselbe Platzierungslogik, ob eine Position gültig ist. Eingabemethoden verändern keine Bauvoraussetzungen.
 
 ## Spielerkommunikation
 
-Die Personenansicht zeigt weiterhin die aktuelle Berufserfahrung. Das In-App-Handbuch erklärt, dass jede erfolgreich abgeschlossene Tätigkeit einen Punkt bringt und dass Berufserfahrung neue Technologien dauerhaft freischalten kann.
+Die Personenansicht zeigt weiterhin die aktuelle Berufserfahrung. Das In-App-Handbuch erklärt, dass jede erfolgreich abgeschlossene Tätigkeit einen Punkt bringt, dass Berufserfahrung neue Technologien dauerhaft freischalten kann und wie sich die Gebäudeplatzierung auf Desktop und Touch unterscheidet.
 
 ## Unveränderte Produktbereiche
 

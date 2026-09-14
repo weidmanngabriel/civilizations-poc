@@ -72,9 +72,21 @@ stonecutter    10 XP -> stonemason
 
 `src/simulation/buildingPlacement.ts` enforces the same state in `canPlaceBuilding()`, `validBuildingAnchors()` and therefore `buildWithFootprint()`. Locked technologies expose no valid anchors and cannot be built even if another UI path attempts placement.
 
-`src/ui/buildMenu.ts` and `src/ui/technologyTree.ts` only present this simulation-owned state. The build menu shows only currently unlocked buildings. The technology tree remains the place where locked technologies, XP progress and not-yet-implemented branches are visible. Its implemented resource chains are arranged as extractor profession → unlocked building → building worker profession → next technology, e.g. Abbauer Holz → Sägewerk → Sägewerker → Schreinerei. Disabled nodes are visually greyed out without blur so labels and requirements remain readable. UI refresh while those overlays are open is observational only and does not own progression.
+`src/ui/buildMenu.ts` and `src/ui/technologyTree.ts` only present this simulation-owned state. The build menu shows only currently unlocked buildings. The technology tree remains the place where locked technologies, XP progress and not-yet-implemented branches are visible. Its implemented resource chains follow the real progression order, e.g. Abbauer Holz → Sägewerk → Sägewerker → Schreinerei. `src/ui/technologyTreeLayout.ts` gives those chains dedicated horizontal lanes and recomputes connector geometry after the tree mounts so unrelated branches overlap less. Disabled nodes are visually greyed out without blur so labels and requirements remain readable. UI refresh while those overlays are open is observational only and does not own progression.
 
 The historical statement in `architecture-detail.md` that the technology tree is presentation-only is superseded by this section.
+
+## Cross-platform interaction model
+
+Desktop and touch are treated as two first-class input modes. Any player-facing interaction change must be checked in both directions: mobile work must not regress desktop behavior, and desktop work must not regress touch behavior. The interaction details may differ when that better matches the input device, but simulation rules and validation stay shared.
+
+Building placement currently uses that split explicitly:
+
+- touch keeps the existing map gesture model: a short tap chooses the build ghost position, dragging pans the map, and the DOM **Bauen** button confirms;
+- desktop uses `src/game/desktopBuildPlacement.ts`: the ghost follows the mouse immediately while build mode is active, a short left click confirms a valid position, and Escape cancels;
+- both paths still feed the same placement position state and `buildWithFootprint()` validation, so input adapters never own building legality.
+
+The older touch-only placement wording in `architecture-detail.md` is superseded by this section. `src/game/mobileTouch.ts` remains the touch-specific map adapter; desktop-specific placement behavior should stay separate rather than being folded into mobile gesture code.
 
 ## Existing architecture
 
@@ -99,5 +111,7 @@ All other current architecture remains as documented in [`architecture-detail.md
 ## Testing and deployment
 
 `npm test` remains the deterministic Node test suite and `npm run build` performs TypeScript checking plus the Vite production build. Experience regression coverage must verify that XP is granted only at action completion and never merely for elapsed movement or work ticks. Technology regression coverage must verify the exact threshold, permanence of unlocks, correct initial player-facing state and placement rejection for locked buildings.
+
+Player-facing interaction changes must also be reviewed against both desktop mouse/keyboard and touch behavior, even when only one input mode motivated the change.
 
 The deploy workflow runs test, build and GitHub Pages deployment only from `main` (or manual workflow dispatch). Changes should therefore be developed on a temporary branch and squash-merged to `main` once validated, leaving one meaningful commit per adjustment.
