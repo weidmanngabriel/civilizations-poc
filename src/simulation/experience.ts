@@ -1,36 +1,29 @@
 import type { Building, Person, Profession, World } from "./model";
-import { CONFIG } from "./scenario";
-
-const EXPERIENCE_BANDS = [
-  { from: 0, to: 50, durationTicks: 10 * 60 * CONFIG.simulationHz },
-  { from: 50, to: 80, durationTicks: 20 * 60 * CONFIG.simulationHz },
-  { from: 80, to: 95, durationTicks: 30 * 60 * CONFIG.simulationHz },
-  { from: 95, to: 100, durationTicks: 30 * 60 * CONFIG.simulationHz },
-] as const;
 
 export const professionExperience = (p: Person, profession: Profession): number =>
   p.experience?.[profession] ?? 0;
 
+/**
+ * Legacy compatibility hook for the old time-based simulation core.
+ * XP is now awarded by the public simulation wrapper only when an action completes.
+ */
 export function gainProfessionExperience(
+  _p: Person,
+  _profession: Profession,
+  _workTicks = 1,
+): void {}
+
+export function awardProfessionExperience(
   p: Person,
   profession: Profession,
-  workTicks = 1,
+  completedActions = 1,
 ): void {
-  if (workTicks <= 0) return;
+  if (completedActions <= 0) return;
   const experience = (p.experience ??= {});
-  let xp = experience[profession] ?? 0;
-  let remainingTicks = workTicks;
-
-  for (const band of EXPERIENCE_BANDS) {
-    if (xp >= band.to || remainingTicks <= 0) continue;
-    const gainPerTick = (band.to - band.from) / band.durationTicks;
-    const ticksToBandEnd = (band.to - xp) / gainPerTick;
-    const spentTicks = Math.min(remainingTicks, ticksToBandEnd);
-    xp += spentTicks * gainPerTick;
-    remainingTicks -= spentTicks;
-  }
-
-  experience[profession] = Math.min(100, xp);
+  experience[profession] = Math.min(
+    100,
+    (experience[profession] ?? 0) + completedActions,
+  );
 }
 
 export const productionMultiplier = (p: Person, profession: Profession): number =>

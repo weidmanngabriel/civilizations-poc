@@ -36,7 +36,7 @@ test("mill and bakery turn wheat plus well water into bread", () => {
 
   assert.ok(mill.output > 0 || (bakery.inputInventory?.flour ?? 0) > 0 || bakery.output > 0);
   assert.ok((bakery.inputInventory?.water ?? 0) >= 0);
-  assert.ok(bakery.output > 2 && bakery.output < 2.1, "first bakery batch should be just above two bread as experience starts growing");
+  assert.equal(bakery.output, 2, "the first bakery batch uses the pre-action experience level");
   assert.equal(well.output, 0, "well water must not be depleted");
 });
 
@@ -56,7 +56,6 @@ test("warehouse carriers can collect water from a well", () => {
   assert.ok(warehouseStock(warehouse, "water") > 0);
   assert.equal(well.output, 0);
 });
-
 
 test("bakery fetches only what the next batch needs before topping up another input", () => {
   const world = createWorld(3);

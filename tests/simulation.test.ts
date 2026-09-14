@@ -187,7 +187,7 @@ test("arrival controls activation; release and reassignment never teleport", () 
   assert.deepEqual(p.assignment, { building: carpenter.id, role: "worker" });
 });
 
-test("production takes one configured cycle and gains a small initial experience bonus", () => {
+test("production takes one configured cycle and awards XP after completion", () => {
   const w = createWorld();
   const { sawmill } = placeCore(w);
   const p = workerAt(w, sawmill.id);
@@ -196,7 +196,8 @@ test("production takes one configured cycle and gains a small initial experience
   assert.equal(sawmill.output, 0);
   assert.equal(p.progress, CONFIG.duration - 1);
   tick(w);
-  assert.ok(sawmill.output > 1 && sawmill.output < 1.01);
+  assert.equal(sawmill.output, 1);
+  assert.equal(p.experience?.sawmillWorker, 1);
   assert.equal(sawmill.input, 0);
 });
 

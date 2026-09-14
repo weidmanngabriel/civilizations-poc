@@ -129,7 +129,7 @@ test("harvest takes ten seconds and farmer carries one physical wheat back to th
     "grass",
   );
   for (let i = 0; i < 1000 && farm.output === 0; i++) tick(w);
-  assert.ok(farm.output > 1 && farm.output < 1.1);
+  assert.equal(farm.output, 1);
   assert.equal(farmer.trip, undefined);
 });
 
