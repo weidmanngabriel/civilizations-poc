@@ -9,10 +9,22 @@ import {
   tick,
 } from "../src/simulation/simulation";
 
-function activeBlockedWorker() {
+function twoGrassPositions() {
   const world = createWorld();
-  const sawmill = buildAt(world, { q: 7, r: 4 }, "sawmill")!;
-  const warehouse = buildAt(world, { q: 8, r: 4 }, "warehouse")!;
+  const first = world.tiles.find((tile) => tile.terrain === "grass")!;
+  const second = world.tiles.find(
+    (tile) =>
+      tile.terrain === "grass" &&
+      (Math.abs(tile.q - first.q) >= CONFIG.spatialScale ||
+        Math.abs(tile.r - first.r) >= CONFIG.spatialScale),
+  )!;
+  return { world, first, second };
+}
+
+function activeBlockedWorker() {
+  const { world, first, second } = twoGrassPositions();
+  const sawmill = buildAt(world, first, "sawmill")!;
+  const warehouse = buildAt(world, second, "warehouse")!;
   changeAssignment(world, sawmill.id, "worker", 1);
   const worker = assigned(world, sawmill.id, "worker")[0]!;
   worker.position = { ...sawmill.position };
@@ -66,9 +78,9 @@ test("delivery triggers the required follow-up decision immediately", () => {
 });
 
 test("arrival at a merchant source triggers the next transfer immediately", () => {
-  const world = createWorld();
-  const source = buildAt(world, { q: 7, r: 4 }, "warehouse")!;
-  const target = buildAt(world, { q: 12, r: 4 }, "warehouse")!;
+  const { world, first, second } = twoGrassPositions();
+  const source = buildAt(world, first, "warehouse")!;
+  const target = buildAt(world, second, "warehouse")!;
   source.inventory!.wood = 1;
   changeAssignment(world, source.id, "merchant", 1);
   const merchant = assigned(world, source.id, "merchant")[0]!;
