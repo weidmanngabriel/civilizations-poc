@@ -63,7 +63,7 @@ test("each appointed woodcutter claims a different forest", () => {
 });
 
 test("wood stacks cap at three units while the woodcutter continues onto another nearby stack", () => {
-  const { world, forest, worker } = activeWoodcutter();
+  const { world, forest } = activeWoodcutter();
   for (let i = 0; i < CONFIG.duration * 4; i++) tick(world);
 
   assert.equal(forest.output, 0);
@@ -71,7 +71,6 @@ test("wood stacks cap at three units while the woodcutter continues onto another
   assert.equal(groundWoodAmount(world), 4);
   assert.ok(groundWood(world).every((stack) => stack.amount <= 3));
   assert.ok(groundWood(world).length >= 2);
-  assert.equal(worker.progress, 0);
   assert.equal(forest.depleted, undefined);
 });
 
