@@ -9,6 +9,7 @@ import type {
 import { key, neighbors, same } from "./hex";
 import { CONFIG } from "./scenario";
 import { buildAt, removeBuilding } from "./simulation";
+import { isBuildingUnlocked } from "./technology";
 
 export type BuildingPlacementShape = {
   cells: Hex[];
@@ -106,15 +107,15 @@ const createPlacementLookup = (world: World): PlacementLookup => {
     world.naturalResources.filter((resource) => !resource.depleted).map((resource) => key(resource.position)),
   );
   return {
-  freeTiles: new Set(
-    world.tiles
-      .filter((tile) =>
-        (tile.terrain === "grass" || tile.terrain === "road") &&
-        !occupiedResources.has(key(tile)),
-      )
-      .map(key),
-  ),
-  people: new Set(world.people.map((person) => key(person.position))),
+    freeTiles: new Set(
+      world.tiles
+        .filter((tile) =>
+          (tile.terrain === "grass" || tile.terrain === "road") &&
+          !occupiedResources.has(key(tile)),
+        )
+        .map(key),
+    ),
+    people: new Set(world.people.map((person) => key(person.position))),
   };
 };
 
@@ -135,6 +136,7 @@ export function canPlaceBuilding(
   anchorPosition: Hex,
   kind: PlaceableBuildingKind,
 ): boolean {
+  if (!isBuildingUnlocked(world, kind)) return false;
   return canPlaceWithLookup(createPlacementLookup(world), anchorPosition, kind);
 }
 
@@ -142,6 +144,7 @@ export function validBuildingAnchors(
   world: World,
   kind: PlaceableBuildingKind,
 ): Hex[] {
+  if (!isBuildingUnlocked(world, kind)) return [];
   const lookup = createPlacementLookup(world);
   return world.tiles
     .filter((tile) => canPlaceWithLookup(lookup, tile, kind))
