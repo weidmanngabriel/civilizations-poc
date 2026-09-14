@@ -59,6 +59,19 @@ type SleepCandidate = {
   cost: number;
 };
 
+const natureTargets = (world: World): Hex[] => {
+  const targets = new Map<string, Hex>();
+  for (const resource of world.naturalResources) {
+    if (resource.kind !== "forest" || resource.depleted) continue;
+    targets.set(`${resource.position.q},${resource.position.r}`, { ...resource.position });
+  }
+  for (const tile of world.tiles) {
+    if (tile.terrain !== "grass" || !tile.bush) continue;
+    targets.set(`${tile.q},${tile.r}`, { q: tile.q, r: tile.r });
+  }
+  return [...targets.values()];
+};
+
 const bestCandidate = (
   world: World,
   person: Person,
@@ -66,9 +79,7 @@ const bestCandidate = (
 ): SleepCandidate | undefined => {
   const targets: Hex[] = kind === "house"
     ? world.buildings.filter(isCompletedHouse).map((building) => building.position)
-    : world.tiles
-        .filter((tile) => tile.terrain === "forest" || (tile.terrain === "grass" && tile.bush))
-        .map((tile) => ({ q: tile.q, r: tile.r }));
+    : natureTargets(world);
 
   const candidates = targets
     .filter((target) => withinSleepRadius(world, person.position, target))
@@ -108,9 +119,13 @@ const targetStillValid = (world: World, state: SleepState): boolean => {
     return world.buildings.some(
       (building) => isCompletedHouse(building) && same(building.position, state.target),
     );
-  const tile = world.tiles.find((candidate) => same(candidate, state.target));
-  return Boolean(
-    tile && (tile.terrain === "forest" || (tile.terrain === "grass" && tile.bush)),
+  return (
+    world.naturalResources.some(
+      (resource) => resource.kind === "forest" && !resource.depleted && same(resource.position, state.target),
+    ) ||
+    world.tiles.some(
+      (tile) => tile.terrain === "grass" && Boolean(tile.bush) && same(tile, state.target),
+    )
   );
 };
 
@@ -195,7 +210,6 @@ const startSleeping = (world: World, person: Person): void => {
     resumeExtractor: person.extractor,
     resumeResourceTarget: person.resourceTarget,
   };
-  // Workplace assignment is persistent identity. Sleep pauses activity, not the assignment itself.
   person.builder = undefined;
   person.woodcutter = undefined;
   person.extractor = undefined;
@@ -225,8 +239,6 @@ const ensureSleepRouteOrProgress = (world: World, person: Person): void => {
   const state = person.sleepState!;
   if (person.hungerState) return;
 
-  // A selected route is trusted while travelling. Revalidation happens only after arrival
-  // (or if the route disappeared before reaching the stored target).
   if (person.path.length > 0) {
     person.active = false;
     return;
