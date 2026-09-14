@@ -23,7 +23,7 @@ The historical implementation of the simulation tick now lives in `src/simulatio
 
 This split keeps the existing economy, logistics, pathfinding, needs integration and production behavior unchanged while moving XP progression from elapsed work time to completed actions. New code should continue to import from `src/simulation/simulation.ts`, not directly from `simulationCore.ts`.
 
-`src/simulation/experience.ts` owns XP values and profession multipliers. Its old `gainProfessionExperience()` entry point is retained only as a compatibility no-op because the legacy core still calls it every work tick. Actual XP is granted through `awardProfessionExperience()` by the public simulation wrapper after it observes a completed action.
+`src/simulation/experience.ts` owns XP values, profession labels and profession multipliers. Its old `gainProfessionExperience()` entry point is retained only as a compatibility no-op because the legacy core still calls it every work tick. Actual XP is granted through `awardProfessionExperience()` by the public simulation wrapper after it observes a completed action.
 
 ## Profession experience
 
@@ -39,14 +39,16 @@ aborted / incomplete actions = 0 XP
 Completion detection is profession-specific:
 
 - production worker: one finished production recipe cycle,
-- woodcutter / clay digger / stonecutter: one extracted resource unit,
+- wood / clay / stone extractor: one extracted resource unit,
 - carrier / merchant: one successfully delivered transport trip,
 - farmer: one successfully completed sow, fertilize or harvest task,
 - builder: one completed construction work cycle of `CONFIG.duration` active construction ticks.
 
-Builders therefore keep transient per-profession action progress in `Person.experienceActionProgress`. That state is part of the simulation model so interruptions do not accidentally erase partial progress and save/load can preserve it later.
+The simulation keeps the existing internal profession ids `woodcutter`, `clayDigger` and `stonecutter`; player-facing UI consistently labels them **Abbauer Holz**, **Abbauer Lehm** and **Abbauer Stein**. This avoids unnecessary simulation migration while presenting one coherent extractor profession family.
 
-Profession effects are unchanged: normal production and builders scale up to 2× contribution/output, while woodcutters, extractors, carriers and merchants scale movement/work speed up to 1.5× without increasing carry capacity or raw-resource yield per action.
+Builders keep transient per-profession action progress in `Person.experienceActionProgress`. That state is part of the simulation model so interruptions do not accidentally erase partial progress and save/load can preserve it later.
+
+Profession effects are unchanged: normal production and builders scale up to 2× contribution/output, while extractors, carriers and merchants scale movement/work speed up to 1.5× without increasing carry capacity or raw-resource yield per action.
 
 ## Technology progression
 
@@ -70,7 +72,7 @@ stonecutter    10 XP -> stonemason
 
 `src/simulation/buildingPlacement.ts` enforces the same state in `canPlaceBuilding()`, `validBuildingAnchors()` and therefore `buildWithFootprint()`. Locked technologies expose no valid anchors and cannot be built even if another UI path attempts placement.
 
-`src/ui/buildMenu.ts` and `src/ui/technologyTree.ts` only present this simulation-owned state. The build menu disables locked building entries and shows their XP requirement. The technology tree reads live world state and distinguishes unlocked, progressing/locked, and not-yet-implemented nodes. UI refresh while those overlays are open is observational only and does not own progression.
+`src/ui/buildMenu.ts` and `src/ui/technologyTree.ts` only present this simulation-owned state. The build menu shows only currently unlocked buildings. The technology tree remains the place where locked technologies, XP progress and not-yet-implemented branches are visible. Its implemented resource chains are arranged as extractor profession → unlocked building → building worker profession → next technology, e.g. Abbauer Holz → Sägewerk → Sägewerker → Schreinerei. Disabled nodes are visually greyed out without blur so labels and requirements remain readable. UI refresh while those overlays are open is observational only and does not own progression.
 
 The historical statement in `architecture-detail.md` that the technology tree is presentation-only is superseded by this section.
 

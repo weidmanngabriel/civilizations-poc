@@ -115,11 +115,11 @@
 }
 .tech-tree-node.locked {
   opacity: 0.7;
-  filter: saturate(0.22) brightness(0.72) blur(0.15px);
+  filter: grayscale(0.85) brightness(0.72);
 }
 .tech-tree-node.planned {
   opacity: 0.36;
-  filter: grayscale(1) brightness(0.72) blur(0.25px);
+  filter: grayscale(1) brightness(0.72);
 }
 .tech-tree-node .tech-tree-status {
   margin-top: 1px;

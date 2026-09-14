@@ -65,7 +65,7 @@ export function currentProfession(w: World, p: Person): Profession | undefined {
 }
 
 export const PROFESSION_LABELS: Record<Profession, string> = {
-  woodcutter: "Holzfäller",
+  woodcutter: "Abbauer Holz",
   builder: "Bauarbeiter",
   carrier: "Träger",
   merchant: "Händler",
@@ -74,8 +74,8 @@ export const PROFESSION_LABELS: Record<Profession, string> = {
   carpenter: "Schreiner",
   miller: "Müller",
   baker: "Bäcker",
-  clayDigger: "Lehmgräber",
-  stonecutter: "Steinbrecher",
+  clayDigger: "Abbauer Lehm",
+  stonecutter: "Abbauer Stein",
   potter: "Töpfer",
   stonemason: "Steinmetz",
 };

@@ -1,8 +1,7 @@
 import type { Good, PlaceableBuildingKind, World } from "../simulation/model";
 import { CONSTRUCTION_PLANS } from "../simulation/buildingPlacement";
 import { GOODS } from "../simulation/simulation";
-import { PROFESSION_LABELS } from "../simulation/experience";
-import { isBuildingUnlocked, technologyProgress } from "../simulation/technology";
+import { isBuildingUnlocked } from "../simulation/technology";
 import { GOOD_ICONS, buildingIcon } from "../icons";
 
 const TILE_SELECTED_EVENT = "poc-tile-selected";
@@ -67,7 +66,6 @@ export function mountBuildMenu(world: World): void {
                 <span class="build-menu-building-icon" aria-hidden="true">${buildingIcon(kind)}</span>
                 <span class="build-menu-building-copy">
                   <strong>${BUILDING_NAMES[kind]}</strong>
-                  <span class="build-menu-tech-status" data-build-status="${kind}"></span>
                   <span class="build-menu-cost">${constructionCost(kind)}</span>
                 </span>
               </button>`,
@@ -85,18 +83,7 @@ export function mountBuildMenu(world: World): void {
   const refreshAvailability = (): void => {
     menu.querySelectorAll<HTMLButtonElement>("button[data-build-kind]").forEach((button) => {
       const kind = button.dataset.buildKind as PlaceableBuildingKind;
-      const unlocked = isBuildingUnlocked(world, kind);
-      const progress = technologyProgress(world, kind);
-      button.disabled = !unlocked;
-      button.classList.toggle("locked", !unlocked);
-      const status = menu.querySelector<HTMLElement>(`[data-build-status="${kind}"]`);
-      if (!status) return;
-      if (unlocked) {
-        status.textContent = "✓ Freigeschaltet";
-        return;
-      }
-      const profession = progress.profession ? PROFESSION_LABELS[progress.profession] : "Technologie";
-      status.textContent = `🔒 ${profession}: ${progress.current}/${progress.required} XP`;
+      button.hidden = !isBuildingUnlocked(world, kind);
     });
   };
 
@@ -112,7 +99,7 @@ export function mountBuildMenu(world: World): void {
 
   menu.addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-build-kind]");
-    if (!button || button.disabled) return;
+    if (!button || button.hidden) return;
     const kind = button.dataset.buildKind as PlaceableBuildingKind;
     if (!isBuildingUnlocked(world, kind)) return;
     const launcherTile = world.tiles.find((tile) => tile.terrain === "grass" || tile.terrain === "road");
