@@ -146,6 +146,10 @@ function assertInvariants(w: World) {
     assert.ok(resource.output >= 0 && resource.output <= capacity);
     assert.ok(w.people.filter((person) => person.resourceTarget === resource.id).length <= 1);
   }
+  for (const stack of w.looseGoods ?? []) {
+    assert.ok(stack.amount >= 1 && stack.amount <= 3);
+    assert.ok(stack.reserved >= 0 && stack.reserved <= stack.amount);
+  }
 }
 
 test("six unique hex neighbors, reciprocal adjacency", () => {
@@ -227,15 +231,15 @@ test("production takes one configured cycle and awards XP after completion", () 
   assert.equal(sawmill.input, 0);
 });
 
-test("one woodcutter occupies one forest and stops when three output slots are full", () => {
+test("one woodcutter occupies one forest while physical wood is split into stacks of at most three", () => {
   const w = createWorld();
   const { forest } = woodcutterAtForest(w);
   assert.equal(w.people.filter((person) => person.resourceTarget === forest.id).length, 1);
-  rounds(w, CONFIG.duration * 3);
-  assert.equal(forest.output, CONFIG.forestOutputCapacity);
-  const stoppedAt = forest.output;
-  rounds(w, CONFIG.duration * 2);
-  assert.equal(forest.output, stoppedAt);
+  rounds(w, CONFIG.duration * 5);
+  assert.equal(forest.output, 0);
+  assert.equal(forest.remaining, CONFIG.forestYield - 5);
+  assert.equal((w.looseGoods ?? []).filter((stack) => stack.good === "wood").reduce((sum, stack) => sum + stack.amount, 0), 5);
+  assert.ok((w.looseGoods ?? []).filter((stack) => stack.good === "wood").every((stack) => stack.amount <= 3));
   assertInvariants(w);
 });
 
@@ -265,7 +269,7 @@ test("repeated grass traversal creates a permanent road", () => {
   assert.equal(tile!.terrain, "road");
 });
 
-test("one physical unit cannot be claimed twice; carried cancellation returns it", () => {
+test("one physical unit cannot be claimed twice; carried cancellation returns it to the ground", () => {
   const w = createWorld();
   const { sawmill } = placeCore(w);
   const { forest } = woodcutterAtForest(w);
@@ -276,11 +280,14 @@ test("one physical unit cannot be claimed twice; carried cancellation returns it
   tick(w);
   assert.equal([a, b].filter((p) => p.trip).length, 1);
   const p = [a, b].find((person) => person.trip)!;
+  const sourceId = p.trip!.source;
+  assert.equal((w.looseGoods ?? []).find((stack) => stack.id === sourceId)?.reserved, 1);
   while (!p.trip?.picked) tick(w);
-  assert.equal(forest.output, 0);
+  assert.equal((w.looseGoods ?? []).some((stack) => stack.id === sourceId), false);
   changeAssignment(w, sawmill.id, "carrier", -1);
   changeAssignment(w, sawmill.id, "carrier", -1);
-  assert.equal(forest.output, 1);
+  tick(w);
+  assert.equal((w.looseGoods ?? []).find((stack) => stack.id === sourceId)?.amount, 1);
   assert.equal(p.trip, undefined);
   assertInvariants(w);
 });
