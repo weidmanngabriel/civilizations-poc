@@ -10,6 +10,7 @@ import {
   same,
   walkable,
 } from "../src/simulation/hex";
+import { canPlaceBuilding } from "../src/simulation/buildingPlacement";
 import {
   assigned,
   buildAt,
@@ -24,22 +25,59 @@ import {
   warehouseStock,
   woodcutters,
 } from "../src/simulation/simulation";
-import type { Building, BuildingId, Good, Hex, World } from "../src/simulation/model";
+import type {
+  BuildableBuildingKind,
+  Building,
+  BuildingId,
+  Good,
+  Hex,
+  World,
+} from "../src/simulation/model";
 
 const rounds = (w: World, n: number) => {
   for (let i = 0; i < n; i++) tick(w);
 };
 
-const CORE_POSITIONS = {
-  sawmill: { q: 7, r: 4 },
-  carpenter: { q: 13, r: 7 },
-  warehouse: { q: 14, r: 11 },
-} as const;
+const hexDistance = (a: Hex, b: Hex): number => {
+  const dq = a.q - b.q;
+  const dr = a.r - b.r;
+  return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
+};
+
+function firstValidBuildPosition(w: World, kind: BuildableBuildingKind): Hex {
+  const tile = w.tiles.find((candidate) => canPlaceBuilding(w, candidate, kind));
+  assert.ok(tile, `expected valid ${kind} position`);
+  return { q: tile.q, r: tile.r };
+}
+
+function buildableAtDistance(
+  w: World,
+  origin: Hex,
+  kind: BuildableBuildingKind,
+  predicate: (distance: number) => boolean,
+): Hex {
+  for (const tile of w.tiles) {
+    if (!predicate(hexDistance(origin, tile))) continue;
+    if (!canPlaceBuilding(w, tile, kind)) continue;
+    const path = findPathBySteps(w.tiles, origin, tile);
+    if (path && predicate(path.length)) return { q: tile.q, r: tile.r };
+  }
+  assert.fail(`expected reachable ${kind} position at requested distance`);
+}
 
 function placeCore(w: World) {
-  const sawmill = buildAt(w, CORE_POSITIONS.sawmill, "sawmill")!;
-  const carpenter = buildAt(w, CORE_POSITIONS.carpenter, "carpenter")!;
-  const warehouse = buildAt(w, CORE_POSITIONS.warehouse, "warehouse")!;
+  const sawmill = buildAt(w, firstValidBuildPosition(w, "sawmill"), "sawmill")!;
+  const carpenter = buildAt(w, firstValidBuildPosition(w, "carpenter"), "carpenter")!;
+  const warehouse = buildAt(
+    w,
+    buildableAtDistance(
+      w,
+      sawmill.position,
+      "warehouse",
+      (distance) => distance > CONFIG.warehouseCollectionRadius,
+    ),
+    "warehouse",
+  )!;
   assert.ok(sawmill && carpenter && warehouse);
   return { sawmill, carpenter, warehouse };
 }
@@ -110,16 +148,6 @@ function assertInvariants(w: World) {
   }
 }
 
-function buildableAtDistance(w: World, origin: Hex, predicate: (distance: number) => boolean): Hex {
-  const candidate = w.tiles
-    .filter((t) => t.terrain === "grass" || t.terrain === "road")
-    .map((tile) => ({ tile, path: findPathBySteps(w.tiles, origin, tile) }))
-    .filter((entry) => entry.path && predicate(entry.path.length))
-    .sort((a, b) => a.path!.length - b.path!.length)[0];
-  assert.ok(candidate, "expected a reachable buildable tile at requested distance");
-  return { q: candidate.tile.q, r: candidate.tile.r };
-}
-
 test("six unique hex neighbors, reciprocal adjacency", () => {
   const h = { q: 0, r: 0 };
   assert.equal(new Set(neighbors(h).map(key)).size, 6);
@@ -157,8 +185,6 @@ test("world starts with only the HQ and no roads", () => {
   assert.deepEqual(w.buildings.map((b) => b.kind), ["hq"]);
   assert.equal(w.people.length, CONFIG.population);
   assert.equal(w.tiles.some((tile) => tile.terrain === "road"), false);
-  for (const position of Object.values(CORE_POSITIONS))
-    assert.equal(w.tiles.find((t) => same(t, position))?.terrain, "grass");
 });
 
 test("arrival controls activation; release and reassignment never teleport", () => {
@@ -215,21 +241,28 @@ test("one woodcutter occupies one forest and stops when three output slots are f
 
 test("repeated grass traversal creates a permanent road", () => {
   const w = createWorld(1);
-  const hq = building(w, "hq");
-  const tile = neighbors(hq.position)
-    .map((position) => w.tiles.find((candidate) => same(candidate, position)))
-    .find((candidate) => candidate?.terrain === "grass")!;
+  const tile = w.tiles.find(
+    (candidate) =>
+      candidate.terrain === "grass" &&
+      neighbors(candidate).some((position) =>
+        w.tiles.some((other) => same(other, position) && other.terrain === "grass"),
+      ),
+  );
   assert.ok(tile);
+  const start = neighbors(tile!).find((position) =>
+    w.tiles.some((candidate) => same(candidate, position) && candidate.terrain === "grass"),
+  );
+  assert.ok(start);
   const p = w.people[0]!;
 
   for (let i = 0; i < CONFIG.trafficThreshold; i += 1) {
-    p.position = { ...hq.position };
-    p.path = [{ q: tile.q, r: tile.r }];
+    p.position = { ...start! };
+    p.path = [{ q: tile!.q, r: tile!.r }];
     p.movement = 1;
     tick(w);
   }
 
-  assert.equal(tile.terrain, "road");
+  assert.equal(tile!.terrain, "road");
 });
 
 test("one physical unit cannot be claimed twice; carried cancellation returns it", () => {
@@ -280,9 +313,14 @@ test("production can fetch needed goods from a warehouse beyond the collection r
 
 test("warehouse carriers never move goods from one warehouse to another", () => {
   const w = createWorld();
-  const source = buildAt(w, CORE_POSITIONS.warehouse, "warehouse")!;
+  const source = buildAt(w, firstValidBuildPosition(w, "warehouse"), "warehouse")!;
   source.inventory!.wood = 5;
-  const targetPosition = buildableAtDistance(w, source.position, (distance) => distance >= 1 && distance <= 5);
+  const targetPosition = buildableAtDistance(
+    w,
+    source.position,
+    "warehouse",
+    (distance) => distance >= 1 && distance <= CONFIG.warehouseCollectionRadius,
+  );
   const target = buildAt(w, targetPosition, "warehouse")!;
   const carrier = carrierAt(w, target.id);
   tick(w);
@@ -293,10 +331,15 @@ test("warehouse carriers never move goods from one warehouse to another", () => 
 
 test("warehouse collection is limited to five reachable steps", () => {
   const nearWorld = createWorld();
-  const nearWarehouse = buildAt(nearWorld, CORE_POSITIONS.warehouse, "warehouse")!;
+  const nearWarehouse = buildAt(
+    nearWorld,
+    firstValidBuildPosition(nearWorld, "warehouse"),
+    "warehouse",
+  )!;
   const nearPosition = buildableAtDistance(
     nearWorld,
     nearWarehouse.position,
+    "sawmill",
     (distance) => distance >= 1 && distance <= CONFIG.warehouseCollectionRadius,
   );
   const nearSource = buildAt(nearWorld, nearPosition, "sawmill")!;
@@ -306,10 +349,15 @@ test("warehouse collection is limited to five reachable steps", () => {
   assert.equal(nearCarrier.trip?.source, nearSource.id);
 
   const farWorld = createWorld();
-  const farWarehouse = buildAt(farWorld, CORE_POSITIONS.warehouse, "warehouse")!;
+  const farWarehouse = buildAt(
+    farWorld,
+    firstValidBuildPosition(farWorld, "warehouse"),
+    "warehouse",
+  )!;
   const farPosition = buildableAtDistance(
     farWorld,
     farWarehouse.position,
+    "sawmill",
     (distance) => distance > CONFIG.warehouseCollectionRadius,
   );
   const farSource = buildAt(farWorld, farPosition, "sawmill")!;
@@ -324,8 +372,8 @@ test("warehouse collection is limited to five reachable steps", () => {
 
 test("buildings and roads can still be placed and removed manually", () => {
   const w = createWorld();
-  const grass = w.tiles.find((t) => t.terrain === "grass")!;
-  const position = { q: grass.q, r: grass.r };
+  const position = firstValidBuildPosition(w, "warehouse");
+  const grass = w.tiles.find((tile) => same(tile, position))!;
   const warehouse = buildAt(w, position, "warehouse");
   assert.ok(warehouse);
   assert.equal(grass.terrain, "building");
