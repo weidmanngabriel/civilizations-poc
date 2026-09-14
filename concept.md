@@ -250,6 +250,21 @@ Das linke Hauptmenü besitzt zusätzlich **Personen**. Die Personenliste unterst
 
 Die Personenauswahl ist eine reine Bedien- und Präsentationsauswahl. Sie pausiert die Simulation nicht und verändert keine Simulationsregeln.
 
+## Technologiebaum
+
+Das linke Hauptmenü enthält einen eigenen Button **Technologie**. Er öffnet eine fullscreen Übersicht über den rekonstruierten Berufs- und Gebäude-Technologiebaum des Originalspiels.
+
+Die erste Version ist ausdrücklich **nur eine Ansicht**. Sie schaltet noch nichts frei, wertet keine Erfahrung aus und verändert keine Simulation. Der Baum dient zunächst dazu, die geplanten Abhängigkeiten sichtbar und navigierbar zu machen.
+
+Bedienung:
+
+- Desktop: Mausrad zoomt, Drag verschiebt den Baum.
+- Touch: ein Finger verschiebt, zwei Finger zoomen per Pinch.
+- Zusätzlich gibt es Plus, Minus, eine Fit-/Reset-Funktion und einen Schließen-Button.
+- Die Ansicht belegt den kompletten Bildschirm und bleibt unabhängig von der Phaser-Kamera der Karte.
+
+Der dargestellte Baum unterscheidet Grundberufe, Ressourcen-/Erfahrungsstufen, weiterführende Berufe, Gebäude und besondere Einrichtungen. Gestrichelte Kanten markieren indirekte beziehungsweise lehrbare Beziehungen, etwa über die Schule.
+
 ## In-App-Handbuch
 
 Das linke Hauptmenü enthält oberhalb des Baubuttons einen Fragezeichen-Button für das Handbuch. Das Handbuch besteht aus kurzen, thematisch getrennten Seiten und ist auf Spielerwissen zugeschnitten.
@@ -269,6 +284,7 @@ Die Karte belegt den gesamten Viewport. Overlays liegen darüber. Referenzgerät
 - kurzer Tap auf eine Person öffnet deren Inspector; ein Drag verschiebt weiterhin nur die Karte,
 - der Personen-Inspector ist mobil ein Bottom Sheet und die Personenliste bleibt neben dem linken Menü erreichbar,
 - die Berufsfilter der Personenliste scrollen nur horizontal und dürfen keinen vertikalen Scroll/Bounce auslösen,
+- der Technologiebaum ist fullscreen; ein Finger verschiebt, zwei Finger zoomen,
 - Hunger wird über ein kleines gelbes beziehungsweise rotes Bestecksymbol über der Person angezeigt,
 - Müdigkeit wird analog über ein eigenes `💤`-Symbol angezeigt: gelb bei Schlafbedarf, rot bei kritischer Müdigkeit,
 - Hunger- und Schlafsymbol liegen getrennt nebeneinander, falls beide Bedürfnisse gleichzeitig sichtbar sind,
