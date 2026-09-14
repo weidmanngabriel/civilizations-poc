@@ -36,9 +36,31 @@ Die bestehenden Effekte der Erfahrung bleiben gleich:
 - Holzfäller sowie andere Abbauer behalten den festen Ertrag je Tätigkeit und werden bis zu 50 % schneller,
 - Träger und Händler behalten eine Traglast von genau 1 Einheit und werden bis zu 50 % schneller.
 
+## Technologie-Freischaltungen
+
+Der Technologiebaum ist nicht mehr nur eine Ansicht, sondern steuert die Verfügbarkeit der bereits implementierten Gebäude. Eine Technologie wird dauerhaft freigeschaltet, sobald **irgendeine Person erstmals 10 Erfahrungspunkte** im zugeordneten Beruf erreicht. Die Freischaltung bleibt bestehen, auch wenn diese Person später den Beruf wechselt oder die Siedlung verlässt.
+
+Aktuelle Freischaltungen:
+
+- Träger 10 XP → Lager,
+- Holzfäller 10 XP → Sägewerk,
+- Sägewerker 10 XP → Schreinerei,
+- Farmer 10 XP → Mühle,
+- Müller 10 XP → Bäckerei,
+- Lehmgräber 10 XP → Töpferei,
+- Steinbrecher 10 XP → Steinmetzhütte.
+
+Wohnhaus, Farm und Brunnen sind von Anfang an freigeschaltet. Bereits vorhandene Berufe ohne implementierte Folgetechnologie sammeln weiterhin Erfahrung, lösen aktuell aber keine zusätzliche Freischaltung aus.
+
+Nicht implementierte Zweige wie Militär, Jäger oder Fischer bleiben im Technologiebaum als geplante Struktur sichtbar, besitzen aber noch keine erfundene Spielregel. Die Freischaltlogik ist datengetrieben aufgebaut, sodass spätere Berufe und Technologien durch neue Zuordnungen ergänzt werden können.
+
+Der Technologiebaum zeigt den aktuellen Zustand live an: freigeschaltete Knoten sind klar hervorgehoben, gesperrte Knoten zeigen den XP-Fortschritt beziehungsweise ihre Voraussetzung, und noch nicht implementierte Knoten werden separat als geplant dargestellt. Gesperrte Inhalte werden nur leicht entsättigt und weichgezeichnet, damit Name und Freischaltbedingung lesbar bleiben.
+
+Das Baumenü verwendet dieselbe autoritative Freischaltlogik. Gesperrte Gebäude sind dort sichtbar, aber nicht auswählbar; ihre benötigte Berufserfahrung wird angezeigt. Auch die eigentliche Gebäudeplatzierung verweigert gesperrte Technologien, sodass die Sperre nicht über einen alternativen UI-Weg umgangen werden kann.
+
 ## Spielerkommunikation
 
-Die Personenansicht zeigt weiterhin die aktuelle Berufserfahrung. Das In-App-Handbuch erklärt, dass jede erfolgreich abgeschlossene Tätigkeit einen Punkt bringt und dass 100 Tätigkeiten 100 % Erfahrung ergeben.
+Die Personenansicht zeigt weiterhin die aktuelle Berufserfahrung. Das In-App-Handbuch erklärt, dass jede erfolgreich abgeschlossene Tätigkeit einen Punkt bringt und dass Berufserfahrung neue Technologien dauerhaft freischalten kann.
 
 ## Unveränderte Produktbereiche
 

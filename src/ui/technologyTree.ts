@@ -1,3 +1,12 @@
+import type { PlaceableBuildingKind, Profession, World } from "../simulation/model";
+import { PROFESSION_LABELS } from "../simulation/experience";
+import {
+  TECHNOLOGY_XP_THRESHOLD,
+  isBuildingUnlocked,
+  maxProfessionExperience,
+  technologyProgress,
+} from "../simulation/technology";
+
 type TechNodeKind = "base" | "profession" | "building" | "resource" | "special";
 
 type TechNode = {
@@ -10,17 +19,19 @@ type TechNode = {
 };
 
 type TechEdge = { from: string; to: string; dashed?: boolean };
+type NodeState = "unlocked" | "progress" | "locked" | "planned";
+type NodeStatus = { state: NodeState; text: string };
 
 const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 
 const NODES: TechNode[] = [
   { id: "civil", label: "👤 Ungelernter Wikinger", x: 70, y: 610, kind: "base" },
-  { id: "barracks", label: "Kaserne", subtitle: "von Anfang an verfügbar", x: 70, y: 530, kind: "building" },
+  { id: "barracks", label: "Kaserne", subtitle: "noch nicht im Prototyp", x: 70, y: 530, kind: "building" },
   { id: "house", label: "Wohnhaus", subtitle: "von Anfang an verfügbar", x: 70, y: 1040, kind: "building" },
   { id: "farmBuilding", label: "Farm", subtitle: "von Anfang an verfügbar", x: 70, y: 1130, kind: "building" },
   { id: "well", label: "Brunnen", subtitle: "von Anfang an verfügbar", x: 70, y: 1220, kind: "building" },
-  { id: "school", label: "🏫 Schule", subtitle: "von Anfang an verfügbar", x: 70, y: 1410, kind: "special" },
+  { id: "school", label: "🏫 Schule", subtitle: "noch nicht im Prototyp", x: 70, y: 1410, kind: "special" },
 
   { id: "extractor", label: "⛏ Abbauer", x: 350, y: 130, kind: "base" },
   { id: "farmer", label: "🌾 Bauer", x: 350, y: 390, kind: "base" },
@@ -38,8 +49,8 @@ const NODES: TechNode[] = [
   { id: "mushroom", label: "Pilz-Erfahrung", x: 640, y: 290, kind: "resource" },
   { id: "iron", label: "Eisenabbau", x: 640, y: 380, kind: "resource" },
   { id: "gold", label: "Goldabbau", x: 640, y: 470, kind: "resource" },
-  { id: "warehouse", label: "Lager", subtitle: "nach Träger", x: 640, y: 850, kind: "building" },
-  { id: "sawmill", label: "Sägewerk", subtitle: "nach Holzfäller", x: 640, y: 1320, kind: "building" },
+  { id: "warehouse", label: "Lager", subtitle: "Träger-Erfahrung", x: 640, y: 850, kind: "building" },
+  { id: "sawmill", label: "Sägewerk", subtitle: "Holzfäller-Erfahrung", x: 640, y: 1320, kind: "building" },
 
   { id: "carpenter", label: "🪚 Schreiner", x: 930, y: 20, kind: "profession" },
   { id: "potter", label: "🏺 Töpfer", x: 930, y: 110, kind: "profession" },
@@ -49,14 +60,14 @@ const NODES: TechNode[] = [
   { id: "druid", label: "🧪 Druide", x: 1210, y: 290, kind: "profession" },
   { id: "mintworker", label: "🪙 Münzpräger", x: 1210, y: 430, kind: "profession" },
 
-  { id: "carp1", label: "Schreinerei I", subtitle: "Holzwerkzeuge", x: 1210, y: 20, kind: "building" },
+  { id: "carp1", label: "Schreinerei", subtitle: "Holzwerkzeuge", x: 1210, y: 20, kind: "building" },
   { id: "carp2", label: "Schreinerei II", subtitle: "Möbel", x: 1490, y: 20, kind: "building" },
   { id: "carp3", label: "Schreinerei III", subtitle: "Transport", x: 1770, y: 20, kind: "building" },
   { id: "carp4", label: "Schreinerei IV", subtitle: "große Transportmittel / Schiffe", x: 2050, y: 20, kind: "building" },
-  { id: "pot1", label: "Töpferei I", subtitle: "Ziegel", x: 1210, y: 100, kind: "building" },
+  { id: "pot1", label: "Töpferei", subtitle: "Ziegel", x: 1210, y: 100, kind: "building" },
   { id: "pot2", label: "Töpferei II", subtitle: "Dachziegel", x: 1490, y: 100, kind: "building" },
   { id: "pot3", label: "Töpferei III", subtitle: "Geschirr", x: 1770, y: 100, kind: "building" },
-  { id: "mason1", label: "Steinmetzwerkstatt I", subtitle: "Steinblöcke", x: 1210, y: 180, kind: "building" },
+  { id: "mason1", label: "Steinmetzhütte", subtitle: "Steinblöcke", x: 1210, y: 180, kind: "building" },
   { id: "mason2", label: "Steinmetzwerkstatt II", subtitle: "Marmor", x: 1490, y: 180, kind: "building" },
   { id: "smith1", label: "Schmiede I", subtitle: "Werkzeuge / Ausrüstung", x: 1210, y: 510, kind: "building" },
   { id: "smith2", label: "Schmiede II", subtitle: "fortgeschrittene Ausrüstung", x: 1490, y: 510, kind: "building" },
@@ -69,7 +80,7 @@ const NODES: TechNode[] = [
   { id: "miller", label: "🌾 Müller", x: 640, y: 580, kind: "profession" },
   { id: "mill", label: "Mühle", x: 930, y: 580, kind: "building" },
   { id: "baker", label: "🥖 Bäcker", x: 1210, y: 620, kind: "profession" },
-  { id: "bakery1", label: "Bäckerei I", x: 1490, y: 620, kind: "building" },
+  { id: "bakery1", label: "Bäckerei", x: 1490, y: 620, kind: "building" },
   { id: "bakery2", label: "Bäckerei II", x: 1770, y: 620, kind: "building" },
   { id: "brewer", label: "🍯 Brauer", x: 1490, y: 700, kind: "profession" },
   { id: "brewery", label: "Brauerei", x: 1770, y: 700, kind: "building" },
@@ -108,6 +119,32 @@ const EDGES: TechEdge[] = [
   { from: "carrier", to: "merchant" },
 ];
 
+const BUILDING_NODES: Partial<Record<string, PlaceableBuildingKind>> = {
+  house: "house",
+  farmBuilding: "farm",
+  well: "well",
+  warehouse: "warehouse",
+  sawmill: "sawmill",
+  carp1: "carpenter",
+  mill: "mill",
+  bakery1: "bakery",
+  pot1: "pottery",
+  mason1: "stonemason",
+};
+
+const BUILDING_LABELS: Record<PlaceableBuildingKind, string> = {
+  warehouse: "Lager",
+  house: "Wohnhaus",
+  farm: "Farm",
+  sawmill: "Sägewerk",
+  carpenter: "Schreinerei",
+  mill: "Mühle",
+  bakery: "Bäckerei",
+  well: "Brunnen",
+  pottery: "Töpferei",
+  stonemason: "Steinmetzhütte",
+};
+
 const NODE_WIDTH = 210;
 const NODE_HEIGHT = 58;
 const CANVAS_WIDTH = 2320;
@@ -121,12 +158,14 @@ const edgeMarkup = (): string => EDGES.map((edge) => {
   const x2 = to.x;
   const y2 = to.y + NODE_HEIGHT / 2;
   const mid = x1 + Math.max(40, (x2 - x1) / 2);
-  return `<path d="M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}" ${edge.dashed ? 'class="tech-tree-edge dashed"' : 'class="tech-tree-edge"'} />`;
+  return `<path d="M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}" data-tech-to="${edge.to}" ${edge.dashed ? 'class="tech-tree-edge dashed"' : 'class="tech-tree-edge"'} />`;
 }).join("");
 
 const nodeMarkup = (): string => NODES.map((node) => `
   <div class="tech-tree-node ${node.kind}" style="left:${node.x}px;top:${node.y}px" data-node="${node.id}">
-    <strong>${node.label}</strong>${node.subtitle ? `<span>${node.subtitle}</span>` : ""}
+    <strong>${node.label}</strong>
+    ${node.subtitle ? `<span class="tech-tree-subtitle">${node.subtitle}</span>` : ""}
+    <span class="tech-tree-status"></span>
   </div>`).join("");
 
 const legendMarkup = (): string => `
@@ -137,13 +176,74 @@ const legendMarkup = (): string => `
       <span><i class="profession" aria-hidden="true"></i>Beruf</span>
       <span><i class="building" aria-hidden="true"></i>Gebäude</span>
       <span><i class="resource" aria-hidden="true"></i>Ressource / Erfahrung</span>
-      <span><i class="special" aria-hidden="true"></i>Besondere Einrichtung</span>
-      <span><i class="edge" aria-hidden="true"></i>direkte Abhängigkeit</span>
-      <span><i class="edge dashed" aria-hidden="true"></i>indirekte Abhängigkeit</span>
+      <span><i class="state-unlocked" aria-hidden="true"></i>freigeschaltet</span>
+      <span><i class="state-locked" aria-hidden="true"></i>gesperrt</span>
+      <span><i class="state-planned" aria-hidden="true"></i>noch nicht implementiert</span>
     </div>
   </aside>`;
 
-export function mountTechnologyTree(): void {
+const progressionStatus = (
+  world: World,
+  profession: Profession,
+  target: PlaceableBuildingKind,
+): NodeStatus => {
+  if (isBuildingUnlocked(world, target))
+    return { state: "unlocked", text: `✓ ${BUILDING_LABELS[target]} freigeschaltet` };
+  const xp = Math.min(TECHNOLOGY_XP_THRESHOLD, maxProfessionExperience(world, profession));
+  return {
+    state: "progress",
+    text: `${PROFESSION_LABELS[profession]} ${xp}/${TECHNOLOGY_XP_THRESHOLD} XP → ${BUILDING_LABELS[target]}`,
+  };
+};
+
+const professionAvailabilityStatus = (
+  world: World,
+  requiredBuilding: PlaceableBuildingKind,
+): NodeStatus => isBuildingUnlocked(world, requiredBuilding)
+  ? { state: "unlocked", text: "✓ Beruf verfügbar" }
+  : { state: "locked", text: `🔒 ${BUILDING_LABELS[requiredBuilding]} erforderlich` };
+
+const nodeStatus = (world: World, nodeId: string): NodeStatus => {
+  const building = BUILDING_NODES[nodeId];
+  if (building) {
+    const progress = technologyProgress(world, building);
+    if (progress.unlocked) return { state: "unlocked", text: "✓ Freigeschaltet" };
+    if (progress.profession) {
+      return {
+        state: "locked",
+        text: `🔒 ${PROFESSION_LABELS[progress.profession]} ${progress.current}/${progress.required} XP`,
+      };
+    }
+    return { state: "locked", text: "🔒 Gesperrt" };
+  }
+
+  if (nodeId === "civil" || nodeId === "extractor" || nodeId === "builder")
+    return { state: "unlocked", text: "✓ Verfügbar" };
+  if (nodeId === "carrier") return progressionStatus(world, "carrier", "warehouse");
+  if (nodeId === "woodcutter") return progressionStatus(world, "woodcutter", "sawmill");
+  if (nodeId === "farmer") return progressionStatus(world, "farmer", "mill");
+  if (nodeId === "clay") return progressionStatus(world, "clayDigger", "pottery");
+  if (nodeId === "stone") return progressionStatus(world, "stonecutter", "stonemason");
+  if (nodeId === "wood") {
+    if (!isBuildingUnlocked(world, "sawmill"))
+      return { state: "locked", text: "🔒 Sägewerk erforderlich" };
+    return progressionStatus(world, "sawmillWorker", "carpenter");
+  }
+  if (nodeId === "miller") {
+    if (!isBuildingUnlocked(world, "mill"))
+      return { state: "locked", text: "🔒 Mühle erforderlich" };
+    return progressionStatus(world, "miller", "bakery");
+  }
+  if (nodeId === "merchant") return professionAvailabilityStatus(world, "warehouse");
+  if (nodeId === "carpenter") return professionAvailabilityStatus(world, "carpenter");
+  if (nodeId === "potter") return professionAvailabilityStatus(world, "pottery");
+  if (nodeId === "mason") return professionAvailabilityStatus(world, "stonemason");
+  if (nodeId === "baker") return professionAvailabilityStatus(world, "bakery");
+
+  return { state: "planned", text: "◌ Noch nicht im Prototyp" };
+};
+
+export function mountTechnologyTree(world: World): void {
   const main = document.querySelector<HTMLElement>("main");
   const leftMenu = document.querySelector<HTMLElement>(".left-menu");
   if (!main || !leftMenu) return;
@@ -166,7 +266,7 @@ export function mountTechnologyTree(): void {
   overlay.setAttribute("aria-labelledby", "technology-tree-title");
   overlay.innerHTML = `
     <header class="technology-tree-header">
-      <div><small>ÜBERSICHT</small><strong id="technology-tree-title">Technologiebaum</strong></div>
+      <div><small>FORTSCHRITT</small><strong id="technology-tree-title">Technologiebaum</strong></div>
       <div class="technology-tree-actions">
         <button type="button" data-tech-zoom="out" aria-label="Verkleinern">−</button>
         <button type="button" data-tech-zoom="reset">100 %</button>
@@ -197,6 +297,24 @@ export function mountTechnologyTree(): void {
   const pointers = new Map<number, { x: number; y: number }>();
   let lastPanPoint: { x: number; y: number } | undefined;
   let lastPinchDistance: number | undefined;
+
+  const refreshStatuses = (): void => {
+    const states = new Map<string, NodeState>();
+    for (const node of NODES) {
+      const status = nodeStatus(world, node.id);
+      states.set(node.id, status.state);
+      const element = canvas.querySelector<HTMLElement>(`[data-node="${node.id}"]`);
+      if (!element) continue;
+      element.classList.remove("unlocked", "progress", "locked", "planned");
+      element.classList.add(status.state);
+      element.querySelector<HTMLElement>(".tech-tree-status")!.textContent = status.text;
+    }
+    canvas.querySelectorAll<SVGPathElement>("[data-tech-to]").forEach((edge) => {
+      const state = states.get(edge.dataset.techTo ?? "") ?? "planned";
+      edge.classList.toggle("locked", state === "locked" || state === "progress");
+      edge.classList.toggle("planned", state === "planned");
+    });
+  };
 
   const clampScale = (value: number) => Math.min(2.5, Math.max(0.35, value));
   const renderTransform = () => {
@@ -232,6 +350,7 @@ export function mountTechnologyTree(): void {
     toggle.classList.toggle("active", open);
     toggle.setAttribute("aria-expanded", String(open));
     if (!open) return;
+    refreshStatuses();
     document.querySelector<HTMLButtonElement>("#build-menu-close")?.click();
     document.querySelector<HTMLButtonElement>("#handbook-close")?.click();
     requestAnimationFrame(() => {
@@ -297,11 +416,16 @@ export function mountTechnologyTree(): void {
   viewport.addEventListener("pointerup", releasePointer);
   viewport.addEventListener("pointercancel", releasePointer);
 
+  window.setInterval(() => {
+    if (!overlay.hidden) refreshStatuses();
+  }, 250);
+
   window.addEventListener(BUILD_MODE_EVENT, () => setOpen(false));
   window.addEventListener(MERCHANT_TARGET_MODE_EVENT, () => setOpen(false));
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !overlay.hidden) setOpen(false);
   });
 
+  refreshStatuses();
   renderTransform();
 }

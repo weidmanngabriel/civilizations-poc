@@ -150,6 +150,8 @@ export interface World {
   nextFieldId: number;
   rngState: number;
   nextBushRegrowTick?: number;
+  /** Missing in neutral/sandbox worlds; explicit in the player-facing progression world. */
+  unlockedTechnologies?: string[];
   people: Person[];
   buildings: Building[];
   naturalResources: NaturalResource[];
