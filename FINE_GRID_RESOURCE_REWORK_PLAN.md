@@ -4,7 +4,7 @@
 
 **Active implementation document.** Read this before changes to map scale, terrain, buildings, people rendering/scale, natural resources, loose goods, pathfinding, roads, placement, or resource logistics.
 
-Current state: **Phase A complete. Phase B implemented; CI validation pending. Phase C is next after Phase B is green.**
+Current state: **Phases A, B and C complete. Phase D — clay and stone migration — is next.**
 
 ## Goal
 
@@ -17,7 +17,7 @@ Move the prototype from a coarse grid with resource nodes that hold abstract loc
 - extracted raw materials become physical loose goods placed on the ground,
 - one ground cell holds 1–3 units of one loose-good type,
 - extractors choose real drop positions,
-- carriers and production workers later collect from those positions.
+- carriers and production workers collect from those positions.
 
 The grid is authoritative for spatial simulation but should not become visually dominant.
 
@@ -47,9 +47,9 @@ Visible world size remains approximately comparable. Buildings and fields expand
 
 ### Natural resource sources
 
-A resource region is a collection of individual source objects. A forest is therefore a cluster of individual trees; clay and stone follow the same principle.
+A resource region is a collection of individual source objects. Forests already consist of individual tree resources. Clay and stone use individual source objects as well, but their extracted output remains on the compatibility path until Phase D.
 
-Each source object owns its position and depletion state. `NaturalResource.output` remains only as a temporary compatibility path until the corresponding end-to-end chain is migrated.
+Each source object owns its position and depletion state. `NaturalResource.output` is no longer player-facing storage for wood; it remains only as a compatibility field for resource types that have not yet been migrated.
 
 ### Loose goods on the ground
 
@@ -69,7 +69,7 @@ A new stack may not be created on blocked terrain, a building footprint, or an a
 
 ### Extractor behavior
 
-For one completed extraction action:
+For one completed physical extraction action:
 
 1. choose/retain a concrete resource source,
 2. reach the source,
@@ -81,11 +81,11 @@ For one completed extraction action:
 8. only then count the action as completed for profession XP,
 9. continue at the source or select a new source if depleted.
 
-The exact maximum drop-search radius remains a Phase-C gameplay decision. The Phase-B helper therefore receives the radius explicitly instead of inventing a balance value.
+For wood, the drop search radius is **5 micro-cells**, equal to one former coarse-grid step. This is the Phase-C prototype value and can be revisited during balancing.
 
 ### Logistics behavior
 
-Carriers and production workers will collect raw materials from ground stacks instead of `NaturalResource.output`. Reservations protect concrete units. Pickup reduces a stack from 3 → 2 → 1 → removed.
+For migrated raw materials, carriers and production workers collect from ground stacks instead of source-local output. Reservations protect concrete units. Pickup reduces a stack from 3 → 2 → 1 → removed.
 
 Building inventories remain normal inventories.
 
@@ -119,35 +119,38 @@ Implemented:
 - local radius search using indexed tile lookup instead of a complete map scan,
 - permanent non-blocking/non-collision rule for all loose goods,
 - presentation-only Phaser overlay for 1/2/3-unit ground stacks,
-- focused regression tests for capacity, good-type isolation, reservations, removal, deterministic drop choice and pathfinding non-interference,
-- compatibility with the old `NaturalResource.output` extraction economy retained until Phase C.
+- focused regression tests for capacity, good-type isolation, reservations, removal, deterministic drop choice and pathfinding non-interference.
 
-Individual natural-resource objects already existed before Phase B; Phase B formalizes them as the future source objects while removing the architectural assumption that produced goods must live on the source.
+Individual natural-resource objects already existed before Phase B; Phase B formalized them as the future source objects while removing the architectural assumption that produced goods must live on the source.
 
-**Done when:** CI is green and the existing playable economy remains unchanged.
-
-**Status: implemented; CI validation pending.**
+**Status: complete.**
 
 ### Phase C — Wood end-to-end reference chain
 
-Next implementation phase:
+Implemented:
 
-- forests become clusters of individual trees,
-- wood extractors target concrete trees,
-- each completed extraction produces one physical wood unit,
-- extractors place wood into nearby stacks of max. 3,
-- drop search prefers compatible non-full stacks before empty cells,
-- carriers and sawmill workers source wood from those stacks,
-- reservations operate on stack quantities,
-- depletion removes the individual tree and triggers target selection,
-- profession XP is awarded only after successful ground placement,
-- remove the old forest-local-output path.
+- woodcutters continue to target concrete individual tree resources,
+- every completed felling action produces one physical wood unit,
+- tree-local `output` is immediately migrated to physical ground storage and remains zero during normal play,
+- wood is dropped within 5 micro-cells of the source,
+- compatible partial stacks are preferred and every stack remains capped at 3,
+- additional nearby stacks are created instead of treating 3 units as a total forest capacity,
+- sawmill workers, sawmill carriers and HQ carriers can source wood from the physical stacks,
+- one physical unit cannot be reserved by two people,
+- carried-cargo cancellation restores the unit to physical ground storage,
+- depleted trees disappear while already dropped wood remains collectible,
+- focused end-to-end coverage verifies tree → ground stack → sawmill input,
+- legacy tests were migrated from forest-output assertions to physical-stack assertions.
+
+The existing transport core still identifies stack pickup through a short-lived internal depleted-resource adapter while a trip is planned or in flight. The authoritative stock remains `World.looseGoods`; the adapter is not rendered, cannot be selected for extraction, and does not reintroduce tree-local storage. This keeps the Phase-C change isolated from the larger generic-trip redesign that can happen during cleanup.
 
 **Done when:** tree → extraction → ground stack → pickup → sawmill works without an abstract forest output pool.
 
-**Status: not started.**
+**Status: complete; full tests and production build green on main before this documentation update.**
 
 ### Phase D — Clay and stone migration
+
+Next:
 
 - migrate clay sources/extractors,
 - migrate stone sources/extractors,
@@ -179,6 +182,7 @@ Review at minimum:
 - warehouse/HQ collection radius semantics,
 - merchant behavior,
 - construction material pickup,
+- generic trip/source representation after the physical-resource migration,
 - pathfinding cost/performance,
 - person selection and camera focus,
 - future save/load assumptions,
@@ -200,14 +204,16 @@ Review at minimum:
 - Loose ground stacks are **always walkable and never obstacles**.
 - Reservations protect concrete units without removing them before pickup.
 - Extractors choose real drop positions and prefer nearby compatible stacks with capacity.
-- Phases A and B stay separate from the end-to-end wood migration so regressions remain isolatable.
+- Wood uses a 5-micro-cell / one-old-step drop radius for the current prototype.
+- A full 3-unit wood stack does not stop extraction if another valid nearby stack position exists.
+- Lehm and Stein remain on the compatibility path until Phase D.
 
 ## Open decisions
 
 Resolve these in the relevant phase rather than inventing them early:
 
 - whether tree/source collision footprints are one micro-cell or larger while visuals extend beyond them,
-- exact Phase-C maximum drop-search radius,
+- whether the 5-micro-cell wood drop radius needs later balance tuning,
 - whether different loose goods may later coexist on one cell (current rule: no),
 - exact resource-cluster density,
 - regeneration rules for future renewable resources.
@@ -222,7 +228,7 @@ Before continuing this rework:
 4. for product behavior also read `concept.md` and `concept-detail.md`,
 5. confirm latest `main` CI is green.
 
-If Phase B is green, start with **Phase C — Wood end-to-end reference chain**. Do not migrate clay/stone at the same time.
+Next start with **Phase D — clay and stone migration**. Do not broaden that phase into visual-density work unless explicitly requested.
 
 ## Documentation rule
 
