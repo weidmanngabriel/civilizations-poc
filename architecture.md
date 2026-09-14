@@ -21,7 +21,7 @@ The deterministic simulation remains independent from Phaser. Presentation reads
 
 ## Simulation entry point
 
-`src/simulation/simulationCore.ts` contains the historical simulation tick. `src/simulation/simulation.ts` is the public simulation entry point and wraps/re-exports the core behavior, including profession-experience bookkeeping and technology progression. New callers should import from `simulation.ts`, not directly from `simulationCore.ts`.
+`src/simulation/simulationCore.ts` contains the historical simulation tick. `src/simulation/simulation.ts` is the public simulation entry point and wraps/re-exports the core behavior, including the physical-wood compatibility layer, profession-experience bookkeeping and technology progression. New callers should import from `simulation.ts`, not directly from `simulationCore.ts`.
 
 ## Profession experience and technologies
 
@@ -69,15 +69,11 @@ Buildings and fields preserve approximately their former visible/world-space siz
 
 `src/game/mapGeometry.ts` owns micro-cell → Phaser projection. Rendering divides geometric spacing by the same refinement factor, so the visible world remains comparable and the micro-grid is not visually emphasized.
 
-## Physical resource model — Phase B
-
-Phase B introduces a second, future-facing physical-resource layer without yet migrating the live wood/clay/stone economy end to end.
+## Physical resource model — Phase B complete
 
 ### Natural sources
 
-`NaturalResource` remains the source object for forest/tree, clay and stone extraction targets. Sources already have stable ids, positions and depletion state. The historical `NaturalResource.output` field is now explicitly a **compatibility field only**; new physical extraction paths are expected to deposit goods onto ground stacks instead.
-
-The old extraction flow remains active until Phase C migrates wood end to end.
+`NaturalResource` remains the source object for forest/tree, clay and stone extraction targets. Sources have stable ids, positions and depletion state. `NaturalResource.output` is now a compatibility field only for resource types that have not yet completed their physical-resource migration.
 
 ### Loose ground goods
 
@@ -91,7 +87,7 @@ amount    integer 1..3
 reserved  integer 0..amount
 ```
 
-`World.looseGoods` and `World.nextLooseGoodId` are optional/lazy during the compatibility period so older neutral test fixtures do not need immediate migration. `src/simulation/looseGoods.ts` initializes them deterministically when first used.
+`World.looseGoods` and `World.nextLooseGoodId` are initialized lazily and deterministically by `src/simulation/looseGoods.ts`.
 
 A cell may contain only one loose-good type. Compatible stacks can be filled up to exactly 3 units. A stack is removed when pickup reduces it to zero.
 
@@ -99,19 +95,13 @@ A cell may contain only one loose-good type. Compatible stacks can be filled up 
 
 Loose goods are **never obstacles**. They do not mutate tile terrain, do not participate in collision, do not change movement cost, and are never read by pathfinding. People can always walk over a loose stack.
 
-Placement validity is separate from walkability: a *new* stack is not created on river/mountain terrain, a building footprint, or the position of an active natural-resource source. This restriction only controls where goods may be deposited; once present, a stack never blocks movement.
+Placement validity is separate from walkability: a new stack is not created on river/mountain terrain, a building footprint, or the position of an active natural-resource source. This restriction only controls where goods may be deposited; once present, a stack never blocks movement.
 
-### Reservations and pickup
+### Reservations and deterministic drop search
 
-Reservations are concrete stack quantities. `availableLooseGoodAmount()` is `amount - reserved`. Reserving goods leaves them physically present until pickup. `pickupReservedLooseGood()` consumes both reservation and physical amount; zero amount removes the stack.
+Reservations are concrete stack quantities. `availableLooseGoodAmount()` is `amount - reserved`. Reserving goods leaves them physically present until pickup. Empty stacks disappear.
 
-This is deliberately independent from the legacy `Trip` source model until Phase C connects wood logistics to stack ids.
-
-### Deterministic drop search
-
-`findLooseGoodDropPosition()` receives origin, good and an explicit maximum radius. The radius is intentionally supplied by the caller because its gameplay value belongs to Phase C.
-
-Selection order:
+`findLooseGoodDropPosition()` receives origin, good and an explicit maximum radius. Selection order is:
 
 1. nearest compatible non-full stack of the same good within radius,
 2. otherwise nearest valid empty cell,
@@ -123,7 +113,53 @@ Empty-cell search expands locally by hex rings/BFS and uses the indexed tile map
 
 `src/game/looseGoodsIndicators.ts` is a presentation-only Phaser overlay installed from `src/main.ts`. It reads `World.looseGoods`, renders 1/2/3 physical units as distinct markers, updates only changed stack visuals, and never mutates simulation state.
 
-Visual/resource-density polish remains Phase E; Phase B only establishes readable functional stack rendering.
+## Physical wood chain — Phase C complete
+
+Wood is the first resource migrated end to end.
+
+### Extraction
+
+Real forest/tree `NaturalResource` objects remain the extraction targets. When a woodcutter completes one extraction cycle, the historical core temporarily increments the tree's compatibility `output`; the public `simulation.ts` wrapper immediately converts every whole wood unit into `World.looseGoods` and returns tree output to zero before the world is externally observed again.
+
+Wood drop search uses `GRID_REFINEMENT` = **5 micro-cells**, equivalent to one former coarse-grid step. Existing non-full wood stacks are preferred; otherwise the closest legal empty cell is used. A full 3-unit stack does not block further felling if another valid drop cell exists.
+
+Tree depletion still uses the existing natural-resource lifecycle: remaining yield reaches zero, the tree becomes depleted, its terrain returns to grass, and the woodcutter retargets. Already deposited wood remains independent and collectible.
+
+### Transport adapter
+
+The historical `Trip` model only understands building ids and natural-resource ids. Rewriting all transport, hunger interruption, cancellation, warehouse collection and production-input logic in Phase C would unnecessarily widen the migration.
+
+Therefore `simulation.ts` creates short-lived **depleted synthetic natural-resource proxies** for physical wood stacks while the historical transport planner/pickup code is running:
+
+- proxy id equals the physical stack id (`ground-*`),
+- proxy position equals the stack position,
+- proxy output mirrors the stack amount only inside the compatibility boundary,
+- proxy is depleted, so extractors never target it,
+- presentation ignores it,
+- `World.looseGoods` remains the authoritative stock,
+- after each core tick proxy changes are synchronized back to stacks,
+- unused proxies are removed,
+- an in-flight proxy may persist only so cancellation can restore carried cargo to the same physical ground source.
+
+Reservations on physical stacks are recomputed from active unpicked trips. This prevents two workers/carriers from planning the same unit. Pickup removes a unit from the stack; cancelling a carried trip restores it to physical ground storage on the next public simulation tick.
+
+This adapter is deliberately transitional. Phase F should review replacing `Trip.source` with a generic explicit source reference once clay/stone are also physical.
+
+### Consumers
+
+Sawmill workers, sawmill carriers and HQ carriers can collect wood from physical ground stacks through the shared transport rules. Warehouse inventory and sawmill input remain ordinary building inventory/input state.
+
+Clay and stone are intentionally unchanged until Phase D and still use resource-local compatibility output.
+
+## Build-mode highlighting
+
+The fine grid made per-frame global placement highlighting too expensive, but removing it made build mode unreadable. `src/game/buildPlacementHighlights.ts` therefore computes `validBuildingAnchors()` once when a building type enters build mode and renders a presentation-only bright overlay above the map dim layer. The live ghost remains above that layer and still uses `canPlaceBuilding()` for authoritative green/red validation.
+
+Layer order is dim overlay → valid-area highlight → live ghost. Desktop and touch use the same validity data.
+
+## Performance FPS sampling
+
+`src/debug/performanceProfiler.ts` calculates FPS from animation-frame timestamps. `src/main.ts` owns a continuous `requestAnimationFrame` sampler calling `performanceProfiler.recordAnimationFrame()`. This sampler is independent from `renderWorld()` coalescing, so the debug screen reports actual browser frame cadence even when world presentation does not need to rebuild on every frame.
 
 ## Cross-platform interaction model
 
@@ -138,12 +174,12 @@ Both use `buildingPlacement.ts` for legality.
 
 All other current architecture remains as documented in [`architecture-detail.md`](./architecture-detail.md), including hunger/sleep, bushes, HQ storage compatibility adapter, organic roads, production/inventories, construction, farms, merchants, person selection, mobile controls, handbook/PWA and performance diagnostics.
 
-Where `architecture-detail.md` still says 41 × 25, fixed 24/21 render spacing, old Dijkstra, or natural-resource output as the intended long-term physical model, the newer Phase-A/Phase-B sections above supersede it.
+Where `architecture-detail.md` still says 41 × 25, fixed 24/21 render spacing, old Dijkstra, forest-local output as the live wood model, or omits the Phase-C wood-stack transport adapter, the newer Phase-A/B/C sections above supersede it.
 
 ## Testing and deployment
 
 `npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build.
 
-Fine-grid tests cover the 5× refinement, 205 × 125 map, scaled distances, footprints and resource alignment. Physical-resource tests cover stack capacity, one-good-per-cell behavior, reservation safety, zero-stack removal, deterministic drop choice and the invariant that loose goods never alter pathfinding.
+Fine-grid tests cover the 5× refinement, 205 × 125 map, scaled distances, footprints and resource alignment. Physical-resource tests cover stack capacity, one-good-per-cell behavior, reservation safety, zero-stack removal, deterministic drop choice and the invariant that loose goods never alter pathfinding. `physical-wood-chain.test.ts` verifies extraction → physical stack → sawmill pickup and delivery, while former forest-output tests now assert ground-stack behavior.
 
 Per current project instruction, changes are made directly on `main` so they can be inspected live. The GitHub Pages workflow is the safety gate: it runs `npm test` before `npm run build`, and deployment runs only after that build job succeeds. No green tests/build means no deployment.
