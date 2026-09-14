@@ -8,6 +8,7 @@ import {
   GRID_REFINEMENT,
   MAP_COLUMNS,
   MAP_ROWS,
+  hexDistance,
   refinedCellCluster,
   scaleHex,
 } from "./spatial";
@@ -81,6 +82,53 @@ type ScenarioOptions = {
   suppliedStart: boolean;
 };
 
+type CoarseCell = {
+  col: number;
+  row: number;
+  position: Hex;
+  scaledPosition: Hex;
+};
+
+const coarseCells: CoarseCell[] = Array.from(
+  { length: BASE_MAP_COLUMNS * BASE_MAP_ROWS },
+  (_, index) => {
+    const row = Math.floor(index / BASE_MAP_COLUMNS);
+    const col = index % BASE_MAP_COLUMNS;
+    const position = coarseAt(col, row);
+    return { col, row, position, scaledPosition: scaleHex(position) };
+  },
+);
+
+/**
+ * A fine-grid offset rectangle does not line up with 5×5 coarse offset blocks,
+ * because odd/even row staggering changes at the micro-cell level. Resolve the
+ * parent terrain by nearest scaled coarse hex centre instead.
+ */
+const nearestCoarseCell = (position: Hex): CoarseCell => {
+  const estimatedQ = Math.round(position.q / GRID_REFINEMENT);
+  const estimatedR = Math.round(position.r / GRID_REFINEMENT);
+  let best: CoarseCell | undefined;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  for (let dq = -1; dq <= 1; dq += 1)
+    for (let dr = -1; dr <= 1; dr += 1) {
+      const coarsePosition = { q: estimatedQ + dq, r: estimatedR + dr };
+      const row = Math.max(0, Math.min(BASE_MAP_ROWS - 1, coarsePosition.r));
+      const col = Math.max(
+        0,
+        Math.min(BASE_MAP_COLUMNS - 1, coarsePosition.q + Math.floor(row / 2)),
+      );
+      const candidate = coarseCells[row * BASE_MAP_COLUMNS + col]!;
+      const distance = hexDistance(position, candidate.scaledPosition);
+      if (distance < bestDistance) {
+        best = candidate;
+        bestDistance = distance;
+      }
+    }
+
+  return best!;
+};
+
 function createScenario({ population, suppliedStart }: ScenarioOptions): World {
   const hqPosition = scaledAt(6, 20);
   const buildings: Building[] = [
@@ -145,8 +193,11 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     [33, 9], [34, 9], [35, 9], [34, 10], [35, 10], [36, 10], [35, 11], [36, 11], [37, 11],
   ];
 
-  const inList = (list: number[][], col: number, row: number) =>
-    list.some(([c, r]) => c === col && r === row);
+  const coordinateSet = (list: number[][]) =>
+    new Set(list.map(([col, row]) => `${col},${row}`));
+  const forestSet = coordinateSet(forestTiles);
+  const riverSet = coordinateSet(river);
+  const mountainSet = coordinateSet(mountains);
   const buildingCells = new Set(
     buildings.flatMap((building) => building.footprint ?? [building.position]).map((position) => `${position.q},${position.r}`),
   );
@@ -159,16 +210,16 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
   for (let row = 0; row < CONFIG.mapRows; row += 1)
     for (let col = 0; col < CONFIG.mapColumns; col += 1) {
       const position = at(col, row);
-      const coarseCol = Math.min(BASE_MAP_COLUMNS - 1, Math.floor(col / GRID_REFINEMENT));
-      const coarseRow = Math.min(BASE_MAP_ROWS - 1, Math.floor(row / GRID_REFINEMENT));
+      const parent = nearestCoarseCell(position);
+      const parentKey = `${parent.col},${parent.row}`;
       const positionKey = `${position.q},${position.r}`;
       const terrain: Tile["terrain"] = buildingCells.has(positionKey)
         ? "building"
-        : inList(river, coarseCol, coarseRow)
+        : riverSet.has(parentKey)
           ? "river"
-          : inList(mountains, coarseCol, coarseRow)
+          : mountainSet.has(parentKey)
             ? "mountain"
-            : inList(forestTiles, coarseCol, coarseRow)
+            : forestSet.has(parentKey)
               ? "forest"
               : "grass";
       const bush = suppliedStart && terrain === "grass" && bushPositions.has(positionKey);
@@ -188,8 +239,10 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
   }));
 
   if (suppliedStart) {
+    const terrainKeys = (terrain: Tile["terrain"]) =>
+      new Set(tiles.filter((tile) => tile.terrain === terrain).map((tile) => `${tile.q},${tile.r}`));
     const adjacentGrass = (terrain: Tile["terrain"]): Tile[] => {
-      const terrainKeys = new Set(tiles.filter((tile) => tile.terrain === terrain).map((tile) => `${tile.q},${tile.r}`));
+      const occupied = terrainKeys(terrain);
       return tiles.filter((tile) =>
         tile.terrain === "grass" &&
         [
@@ -199,7 +252,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
           { q: tile.q, r: tile.r - 1 },
           { q: tile.q + 1, r: tile.r - 1 },
           { q: tile.q - 1, r: tile.r + 1 },
-        ].some((neighbor) => terrainKeys.has(`${neighbor.q},${neighbor.r}`)),
+        ].some((neighbor) => occupied.has(`${neighbor.q},${neighbor.r}`)),
       );
     };
     const spread = (candidates: Tile[], count: number): Tile[] => {
@@ -256,7 +309,6 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     people,
   };
 
-  // Hunger has priority. Sleep runs directly after the hunger step on the same fixed tick.
   return attachNeeds(attachSleep(world));
 }
 
