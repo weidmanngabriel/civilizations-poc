@@ -24,6 +24,7 @@ const NODES: TechNode[] = [
   { id: "builder", label: "🔨 Bauarbeiter", x: 350, y: 1020, kind: "base" },
   { id: "fisher", label: "🐟 Fischer", x: 350, y: 1120, kind: "base" },
   { id: "scout", label: "🧭 Kundschafter", x: 350, y: 1220, kind: "base" },
+  { id: "woodcutter", label: "🪓 Holzfäller", x: 350, y: 1320, kind: "base" },
 
   { id: "wood", label: "Holz-Erfahrung", x: 640, y: 20, kind: "resource" },
   { id: "clay", label: "Lehm-Erfahrung", x: 640, y: 110, kind: "resource" },
@@ -32,6 +33,12 @@ const NODES: TechNode[] = [
   { id: "iron", label: "Eisenabbau", x: 640, y: 380, kind: "resource" },
   { id: "gold", label: "Goldabbau", x: 640, y: 470, kind: "resource" },
   { id: "soldier", label: "🛡 Soldat", subtitle: "Ausbildung in der Kaserne", x: 640, y: 530, kind: "profession" },
+  { id: "warehouse", label: "Lager", subtitle: "nach Träger", x: 640, y: 940, kind: "building" },
+  { id: "house", label: "Wohnhaus", subtitle: "von Anfang an verfügbar", x: 640, y: 1040, kind: "building" },
+  { id: "farmBuilding", label: "Farm", subtitle: "von Anfang an verfügbar", x: 640, y: 1130, kind: "building" },
+  { id: "well", label: "Brunnen", subtitle: "von Anfang an verfügbar", x: 640, y: 1220, kind: "building" },
+  { id: "sawmill", label: "Sägewerk", subtitle: "nach Holzfäller", x: 640, y: 1320, kind: "building" },
+  { id: "school", label: "🏫 Schule", subtitle: "von Anfang an verfügbar", x: 640, y: 1410, kind: "special" },
 
   { id: "carpenter", label: "🪚 Schreiner", x: 930, y: 20, kind: "profession" },
   { id: "potter", label: "🏺 Töpfer", x: 930, y: 110, kind: "profession" },
@@ -72,7 +79,6 @@ const NODES: TechNode[] = [
   { id: "tailor2", label: "Schneiderei II", subtitle: "Kleidung / Schutz", x: 1210, y: 760, kind: "building" },
   { id: "cattle", label: "Viehhof", x: 930, y: 680, kind: "building" },
   { id: "merchant", label: "🛒 Händler", x: 640, y: 850, kind: "profession" },
-  { id: "school", label: "🏫 Schule", subtitle: "gemeisterte Berufe lehrbar", x: 1210, y: 920, kind: "special" },
 ];
 
 const EDGES: TechEdge[] = [
@@ -80,6 +86,9 @@ const EDGES: TechEdge[] = [
   { from: "civil", to: "barracks" }, { from: "barracks", to: "soldier" },
   { from: "civil", to: "hunter" }, { from: "civil", to: "carrier" },
   { from: "civil", to: "builder" }, { from: "civil", to: "fisher" }, { from: "civil", to: "scout" },
+  { from: "civil", to: "woodcutter" },
+  { from: "civil", to: "house" }, { from: "civil", to: "farmBuilding" }, { from: "civil", to: "well" }, { from: "civil", to: "school" },
+  { from: "carrier", to: "warehouse" }, { from: "woodcutter", to: "sawmill" },
   { from: "extractor", to: "wood" }, { from: "extractor", to: "clay" },
   { from: "extractor", to: "stone" }, { from: "extractor", to: "mushroom" },
   { from: "extractor", to: "iron" }, { from: "extractor", to: "gold" },
@@ -96,13 +105,13 @@ const EDGES: TechEdge[] = [
   { from: "baker", to: "bakery1" }, { from: "bakery1", to: "bakery2" }, { from: "baker", to: "brewer" }, { from: "brewer", to: "brewery" },
   { from: "hunter", to: "tailor" }, { from: "hunter", to: "stockfarmer" },
   { from: "tailor", to: "tailor1" }, { from: "tailor1", to: "tailor2" }, { from: "stockfarmer", to: "cattle" },
-  { from: "carrier", to: "merchant" }, { from: "pot1", to: "school" },
+  { from: "carrier", to: "merchant" },
 ];
 
 const NODE_WIDTH = 210;
 const NODE_HEIGHT = 58;
 const CANVAS_WIDTH = 2320;
-const CANVAS_HEIGHT = 1360;
+const CANVAS_HEIGHT = 1540;
 
 const edgeMarkup = (): string => EDGES.map((edge) => {
   const from = NODES.find((node) => node.id === edge.from)!;
