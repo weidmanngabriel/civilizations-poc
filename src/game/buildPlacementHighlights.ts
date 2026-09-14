@@ -8,6 +8,10 @@ const HIGHLIGHT_COLOR = 0xd9f2b4;
 const HIGHLIGHT_ALPHA = 0.32;
 
 type BuildModeDetail = { active: boolean; kind?: BuildableBuildingKind };
+type MainSceneLayers = {
+  targetModeOverlay?: Phaser.GameObjects.Graphics;
+  targetModeHighlights?: Phaser.GameObjects.Container;
+};
 
 const hexPoints = (position: Hex): Phaser.Math.Vector2[] => {
   const { x, y } = pixel(position);
@@ -29,7 +33,10 @@ export function installBuildPlacementHighlights(scene: Phaser.Scene, world: Worl
   sceneWithCreate.create = () => {
     originalCreate?.();
 
-    const graphics = scene.add.graphics().setDepth(5);
+    const layers = scene as unknown as MainSceneLayers;
+    layers.targetModeOverlay?.setDepth(10);
+    const graphics = scene.add.graphics().setDepth(11);
+    layers.targetModeHighlights?.setDepth(12);
 
     const showFor = (kind?: BuildableBuildingKind) => {
       graphics.clear();
