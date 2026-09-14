@@ -29,14 +29,14 @@ const drawStack = (graphics: Phaser.GameObjects.Graphics, stack: LooseGoodStack)
   const offsets = stack.amount === 1
     ? [[0, 0]]
     : stack.amount === 2
-      ? [[-2.5, 1], [2.5, -1]]
-      : [[-3, 2], [3, 2], [0, -2]];
+      ? [[-1.8, 0.8], [1.8, -0.8]]
+      : [[-2.2, 1.4], [2.2, 1.4], [0, -1.5]];
 
   for (const [x, y] of offsets) {
     graphics.fillStyle(goodColors[stack.good], 0.98);
-    graphics.fillCircle(x!, y!, 2.3);
-    graphics.lineStyle(0.6, 0x263328, 0.9);
-    graphics.strokeCircle(x!, y!, 2.3);
+    graphics.fillCircle(x!, y!, 1.7);
+    graphics.lineStyle(0.5, 0x263328, 0.9);
+    graphics.strokeCircle(x!, y!, 1.7);
   }
 };
 
