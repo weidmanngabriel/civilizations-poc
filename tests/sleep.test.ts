@@ -22,6 +22,15 @@ const addHouse = (world: World, qOffset = 2): Building => {
   return house;
 };
 
+const removeNatureSleepTargets = (world: World): void => {
+  world.naturalResources = [];
+  for (const tile of world.tiles) {
+    if (tile.terrain === "forest") tile.terrain = "grass";
+    tile.bush = undefined;
+    tile.bushAvailable = undefined;
+  }
+};
+
 const sleepForFullDuration = (world: World): void => {
   for (let i = 0; i < SLEEP_RULES.durationTicks; i += 1) advanceSleepTick(world);
 };
@@ -203,11 +212,7 @@ test("a tree or bush restores 20 sleep points per five-second phase", () => {
 test("ground sleep restores 10 sleep points per five-second phase", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
-  for (const tile of world.tiles) {
-    if (tile.terrain === "forest") tile.terrain = "grass";
-    tile.bush = undefined;
-    tile.bushAvailable = undefined;
-  }
+  removeNatureSleepTargets(world);
   person.sleep = 20;
 
   advanceSleepTick(world);
@@ -226,11 +231,7 @@ test("ground sleep restores 10 sleep points per five-second phase", () => {
 test("sleep places outside eight reachable steps are ignored", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
-  for (const tile of world.tiles) {
-    if (tile.terrain === "forest") tile.terrain = "grass";
-    tile.bush = undefined;
-    tile.bushAvailable = undefined;
-  }
+  removeNatureSleepTargets(world);
   addHouse(world, SLEEP_RULES.radiusSteps + 3);
   person.sleep = 20;
 
