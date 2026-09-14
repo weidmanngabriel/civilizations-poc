@@ -10,6 +10,7 @@ import { key, neighbors, same } from "./hex";
 import { CONFIG } from "./scenario";
 import { buildAt, removeBuilding } from "./simulation";
 import { isBuildingUnlocked } from "./technology";
+import { GRID_REFINEMENT, refinedCellCluster } from "./spatial";
 
 export type BuildingPlacementShape = {
   cells: Hex[];
@@ -43,13 +44,20 @@ export const CONSTRUCTION_PLANS: Record<PlaceableBuildingKind, ConstructionPlan>
   stonemason: constructionPlan({ wood: 4 }),
 };
 
+const refineCoarseShape = (coarseCells: Hex[]): Hex[] => {
+  const cells = new Map<string, Hex>();
+  for (const coarseCell of coarseCells)
+    for (const refined of refinedCellCluster(coarseCell)) cells.set(key(refined), refined);
+  return [...cells.values()];
+};
+
 const COMPACT_SHAPE: BuildingPlacementShape = {
-  cells: [
+  cells: refineCoarseShape([
     { q: 0, r: 0 },
     { q: 1, r: 0 },
     { q: 0, r: 1 },
     { q: 1, r: 1 },
-  ],
+  ]),
   anchor: { q: 0, r: 0 },
 };
 
@@ -58,14 +66,14 @@ const SHAPES: Record<PlaceableBuildingKind, BuildingPlacementShape> = {
   house: COMPACT_SHAPE,
   farm: COMPACT_SHAPE,
   sawmill: {
-    cells: [
+    cells: refineCoarseShape([
       { q: 0, r: 0 },
       { q: 1, r: 0 },
       { q: 2, r: 0 },
       { q: 0, r: 1 },
       { q: 1, r: 1 },
       { q: 2, r: 1 },
-    ],
+    ]),
     anchor: { q: 0, r: 0 },
   },
   carpenter: COMPACT_SHAPE,
@@ -88,13 +96,28 @@ export const footprintAt = (kind: PlaceableBuildingKind, anchorPosition: Hex): H
 export const buildingFootprint = (building: Building): Hex[] =>
   building.footprint?.map((position) => ({ ...position })) ?? [{ ...building.position }];
 
+/**
+ * Preserve the former one-tile physical clearance by expanding the fine-grid
+ * ring to one complete coarse-tile distance.
+ */
 export const footprintRing = (footprint: Hex[]): Hex[] => {
   const occupied = new Set(footprint.map(key));
-  const ring = new Map<string, Hex>();
-  for (const position of footprint)
-    for (const neighbor of neighbors(position))
-      if (!occupied.has(key(neighbor))) ring.set(key(neighbor), neighbor);
-  return [...ring.values()];
+  const visited = new Map<string, Hex>();
+  let frontier = footprint.map((position) => ({ ...position }));
+
+  for (let distance = 0; distance < GRID_REFINEMENT; distance += 1) {
+    const next = new Map<string, Hex>();
+    for (const position of frontier)
+      for (const neighbor of neighbors(position)) {
+        const neighborKey = key(neighbor);
+        if (occupied.has(neighborKey) || visited.has(neighborKey)) continue;
+        visited.set(neighborKey, neighbor);
+        next.set(neighborKey, neighbor);
+      }
+    frontier = [...next.values()];
+  }
+
+  return [...visited.values()];
 };
 
 type PlacementLookup = {
