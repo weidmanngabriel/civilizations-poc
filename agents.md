@@ -17,3 +17,11 @@ Halte beide Dateien dauerhaft auf dem aktuellen Stand. Ergänze neue fachliche F
 Bei Änderungen an Player-Facing-Funktionen muss zusätzlich geprüft werden, ob das In-App-Handbuch unter `src/handbook/*.md` angepasst werden muss. Spielerrelevante Änderungen dort knapp, spielerzentriert und ohne interne Technikdetails oder unnötige Balancezahlen ergänzen. Das Handbuch soll erklären, wie sich die Spielwelt verhält und was der Spieler daraus ableiten kann, nicht die interne Simulation offenlegen.
 
 Die Dokumentation soll so gepflegt werden, dass ein fähiger Agent die bestehende App und ihre wichtigsten Produkt- und Architekturentscheidungen schnell verstehen und im Zweifel von Grund auf neu implementieren könnte. Es geht vor allem um eine belastbare Highlevel-Übersicht, nicht um jedes Detail.
+
+## Aktiver Umbauplan
+
+Für den geplanten Umbau auf ein feineres räumliches Raster und physische Ressourcen gilt zusätzlich [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md).
+
+Solange dieser Plan als aktiv markiert ist, muss er vor Änderungen an **Kartenmaßstab, Terrain, Gebäudegrößen oder -platzierung, Bewohnerdarstellung/-skalierung, natürlichen Ressourcen, losen Waren, Pathfinding, Wegen oder Ressourcenlogistik** gelesen und berücksichtigt werden. Auch Änderungen an angrenzenden Systemen sollen darauf geprüft werden, ob sie Annahmen schaffen, die dem geplanten Umbau entgegenstehen.
+
+Der Plan wird nach jeder umgesetzten Phase aktualisiert, damit der aktuelle Stand und die nächsten Schritte auch in einem neuen Chat eindeutig nachvollziehbar bleiben.
