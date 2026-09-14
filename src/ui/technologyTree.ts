@@ -18,6 +18,7 @@ const NODES: TechNode[] = [
   { id: "civil", label: "👤 Ungelernter Wikinger", x: 70, y: 610, kind: "base" },
   { id: "extractor", label: "⛏ Abbauer", x: 350, y: 130, kind: "base" },
   { id: "farmer", label: "🌾 Bauer", x: 350, y: 390, kind: "base" },
+  { id: "barracks", label: "Kaserne", subtitle: "von Anfang an verfügbar", x: 350, y: 530, kind: "building" },
   { id: "hunter", label: "🏹 Jäger", x: 350, y: 620, kind: "base" },
   { id: "carrier", label: "📦 Träger", x: 350, y: 850, kind: "base" },
   { id: "builder", label: "🔨 Bauarbeiter", x: 350, y: 1020, kind: "base" },
@@ -30,6 +31,7 @@ const NODES: TechNode[] = [
   { id: "mushroom", label: "Pilz-Erfahrung", x: 640, y: 290, kind: "resource" },
   { id: "iron", label: "Eisenabbau", x: 640, y: 380, kind: "resource" },
   { id: "gold", label: "Goldabbau", x: 640, y: 470, kind: "resource" },
+  { id: "soldier", label: "🛡 Soldat", subtitle: "Ausbildung in der Kaserne", x: 640, y: 530, kind: "profession" },
 
   { id: "carpenter", label: "🪚 Schreiner", x: 930, y: 20, kind: "profession" },
   { id: "potter", label: "🏺 Töpfer", x: 930, y: 110, kind: "profession" },
@@ -51,8 +53,6 @@ const NODES: TechNode[] = [
   { id: "smith1", label: "Schmiede I", subtitle: "Werkzeuge / Ausrüstung", x: 1210, y: 510, kind: "building" },
   { id: "smith2", label: "Schmiede II", subtitle: "fortgeschrittene Ausrüstung", x: 1490, y: 510, kind: "building" },
   { id: "weaponHut", label: "Waffenhütte", subtitle: "Militärausrüstung", x: 1770, y: 510, kind: "building" },
-  { id: "barracks", label: "Kaserne", subtitle: "Ausbildung", x: 2050, y: 510, kind: "special" },
-  { id: "soldier", label: "🛡 Soldat", x: 2330, y: 510, kind: "profession" },
   { id: "mint", label: "Münzprägestätte", x: 1490, y: 430, kind: "building" },
   { id: "alch1", label: "Alchemistenhütte I", subtitle: "Öl", x: 1490, y: 270, kind: "building" },
   { id: "alch2", label: "Alchemistenhütte II", subtitle: "Tränke", x: 1770, y: 270, kind: "building" },
@@ -77,6 +77,7 @@ const NODES: TechNode[] = [
 
 const EDGES: TechEdge[] = [
   { from: "civil", to: "extractor" }, { from: "civil", to: "farmer" },
+  { from: "civil", to: "barracks" }, { from: "barracks", to: "soldier" },
   { from: "civil", to: "hunter" }, { from: "civil", to: "carrier" },
   { from: "civil", to: "builder" }, { from: "civil", to: "fisher" }, { from: "civil", to: "scout" },
   { from: "extractor", to: "wood" }, { from: "extractor", to: "clay" },
@@ -88,8 +89,7 @@ const EDGES: TechEdge[] = [
   { from: "carpenter", to: "carp1" }, { from: "carp1", to: "carp2" }, { from: "carp2", to: "carp3" }, { from: "carp3", to: "carp4" },
   { from: "potter", to: "pot1" }, { from: "pot1", to: "pot2" }, { from: "pot2", to: "pot3" },
   { from: "mason", to: "mason1" }, { from: "mason1", to: "mason2" },
-  { from: "smith", to: "smith1" }, { from: "smith1", to: "smith2" },
-  { from: "smith2", to: "weaponHut" }, { from: "weaponHut", to: "barracks" }, { from: "barracks", to: "soldier" },
+  { from: "smith", to: "smith1" }, { from: "smith1", to: "smith2" }, { from: "smith2", to: "weaponHut" },
   { from: "mintworker", to: "mint" },
   { from: "druid", to: "alch1" }, { from: "alch1", to: "alch2" }, { from: "druid", to: "temple" },
   { from: "farmer", to: "miller" }, { from: "miller", to: "mill" }, { from: "miller", to: "baker" },
@@ -101,7 +101,7 @@ const EDGES: TechEdge[] = [
 
 const NODE_WIDTH = 210;
 const NODE_HEIGHT = 58;
-const CANVAS_WIDTH = 2600;
+const CANVAS_WIDTH = 2320;
 const CANVAS_HEIGHT = 1360;
 
 const edgeMarkup = (): string => EDGES.map((edge) => {
@@ -119,6 +119,20 @@ const nodeMarkup = (): string => NODES.map((node) => `
   <div class="tech-tree-node ${node.kind}" style="left:${node.x}px;top:${node.y}px" data-node="${node.id}">
     <strong>${node.label}</strong>${node.subtitle ? `<span>${node.subtitle}</span>` : ""}
   </div>`).join("");
+
+const legendMarkup = (): string => `
+  <aside class="technology-tree-legend" aria-label="Legende">
+    <strong>Legende</strong>
+    <div class="technology-tree-legend-items">
+      <span><i class="base" aria-hidden="true"></i>Grundberuf</span>
+      <span><i class="profession" aria-hidden="true"></i>Beruf</span>
+      <span><i class="building" aria-hidden="true"></i>Gebäude</span>
+      <span><i class="resource" aria-hidden="true"></i>Ressource / Erfahrung</span>
+      <span><i class="special" aria-hidden="true"></i>Besondere Einrichtung</span>
+      <span><i class="edge" aria-hidden="true"></i>direkte Abhängigkeit</span>
+      <span><i class="edge dashed" aria-hidden="true"></i>indirekte Abhängigkeit</span>
+    </div>
+  </aside>`;
 
 export function mountTechnologyTree(): void {
   const main = document.querySelector<HTMLElement>("main");
@@ -159,6 +173,7 @@ export function mountTechnologyTree(): void {
         </svg>
         ${nodeMarkup()}
       </div>
+      ${legendMarkup()}
     </div>`;
   main.append(overlay);
 
