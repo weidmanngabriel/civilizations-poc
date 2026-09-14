@@ -6,7 +6,8 @@ import { performanceNow, performanceProfiler } from "../debug/performanceProfile
 const SLEEP_MAX = 100;
 const WANTS_TO_SLEEP_THRESHOLD = 40;
 const CRITICAL_SLEEP_THRESHOLD = 20;
-const SLEEP_RADIUS_STEPS = 8;
+const SLEEP_RADIUS_WORLD_TILES = 8;
+const SLEEP_RADIUS_STEPS = SLEEP_RADIUS_WORLD_TILES * CONFIG.spatialScale;
 const SLEEP_PHASE_TICKS = 5 * 60;
 const SLEEP_DURATION_TICKS = SLEEP_PHASE_TICKS * 2;
 const ACCUMULATOR_EPSILON = 1e-9;
@@ -315,6 +316,7 @@ export const sleepStatus = (person: Person): "normal" | "tired" | "critical" => 
 };
 
 export const SLEEP_RULES = {
+  radiusWorldTiles: SLEEP_RADIUS_WORLD_TILES,
   radiusSteps: SLEEP_RADIUS_STEPS,
   phaseTicks: SLEEP_PHASE_TICKS,
   durationTicks: SLEEP_DURATION_TICKS,
