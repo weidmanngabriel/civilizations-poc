@@ -71,8 +71,11 @@
   stroke: rgba(214, 189, 104, 0.62);
   stroke-width: 3;
   marker-end: url(#tech-arrow);
+  transition: opacity 140ms ease, filter 140ms ease;
 }
 .tech-tree-edge.dashed { stroke-dasharray: 8 8; stroke: rgba(192, 178, 217, 0.58); }
+.tech-tree-edge.locked { opacity: 0.3; filter: grayscale(0.7); }
+.tech-tree-edge.planned { opacity: 0.16; filter: grayscale(1); }
 .technology-tree-lines marker path { fill: #d6bd68; }
 
 .tech-tree-node {
@@ -91,6 +94,7 @@
   box-shadow: 0 5px 16px rgba(0, 0, 0, 0.22);
   color: #fbf7e8;
   line-height: 1.15;
+  transition: opacity 140ms ease, filter 140ms ease, outline-color 140ms ease, box-shadow 140ms ease;
 }
 .tech-tree-node strong { font-size: 14px; }
 .tech-tree-node span { font-size: 11px; color: rgba(251, 247, 232, 0.72); }
@@ -100,12 +104,39 @@
 .tech-tree-node.resource { border-color: #638a59; background: #31472d; }
 .tech-tree-node.special { border-color: #826ca1; background: #403650; }
 
+.tech-tree-node.unlocked {
+  outline: 2px solid rgba(130, 191, 112, 0.72);
+  outline-offset: 2px;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.24), 0 0 14px rgba(130, 191, 112, 0.12);
+}
+.tech-tree-node.progress {
+  outline: 2px solid rgba(214, 189, 104, 0.55);
+  outline-offset: 2px;
+}
+.tech-tree-node.locked {
+  opacity: 0.7;
+  filter: saturate(0.22) brightness(0.72) blur(0.15px);
+}
+.tech-tree-node.planned {
+  opacity: 0.36;
+  filter: grayscale(1) brightness(0.72) blur(0.25px);
+}
+.tech-tree-node .tech-tree-status {
+  margin-top: 1px;
+  font-weight: 800;
+  color: #ddd0a0;
+}
+.tech-tree-node.unlocked .tech-tree-status { color: #a8d998; }
+.tech-tree-node.progress .tech-tree-status { color: #e0c66e; }
+.tech-tree-node.locked .tech-tree-status { color: #d8c99b; }
+.tech-tree-node.planned .tech-tree-status { color: rgba(251, 247, 232, 0.55); }
+
 .technology-tree-legend {
   position: absolute;
   left: max(12px, env(safe-area-inset-left));
   bottom: max(12px, env(safe-area-inset-bottom));
   z-index: 4;
-  max-width: min(760px, calc(100% - 24px));
+  max-width: min(860px, calc(100% - 24px));
   display: grid;
   gap: 7px;
   padding: 10px 12px;
@@ -137,18 +168,9 @@
 .technology-tree-legend-items i.building { border-color: #5f91b5; background: #2c4251; }
 .technology-tree-legend-items i.resource { border-color: #638a59; background: #31472d; }
 .technology-tree-legend-items i.special { border-color: #826ca1; background: #403650; }
-.technology-tree-legend-items i.edge {
-  width: 22px;
-  height: 0;
-  border: 0;
-  border-top: 3px solid rgba(214, 189, 104, 0.75);
-  border-radius: 0;
-  background: transparent;
-}
-.technology-tree-legend-items i.edge.dashed {
-  border-top-style: dashed;
-  border-top-color: rgba(192, 178, 217, 0.75);
-}
+.technology-tree-legend-items i.state-unlocked { border-color: #82bf70; background: #47663f; }
+.technology-tree-legend-items i.state-locked { border-color: #827b68; background: #48463f; opacity: 0.65; }
+.technology-tree-legend-items i.state-planned { border-color: #666; background: #3a3a3a; opacity: 0.4; }
 
 .technology-tree-menu-icon {
   display: grid;
