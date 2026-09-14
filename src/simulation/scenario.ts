@@ -2,14 +2,24 @@ import type { Building, Hex, NaturalResource, Person, Tile, World } from "./mode
 import { attachNeeds } from "./needs";
 import { attachSleep } from "./sleep";
 import { STARTING_TECHNOLOGIES } from "./technology";
+import {
+  BASE_MAP_COLUMNS,
+  BASE_MAP_ROWS,
+  GRID_REFINEMENT,
+  MAP_COLUMNS,
+  MAP_ROWS,
+  refinedCellCluster,
+  scaleHex,
+} from "./spatial";
 
 export const CONFIG = {
   population: 12,
   simulationHz: 60,
   decisionIntervalTicks: 60,
   duration: 240,
+  spatialScale: GRID_REFINEMENT,
   baseMovementTilesPerSecond: 2.5,
-  movementPerTick: 2.5 / 60,
+  movementPerTick: (2.5 * GRID_REFINEMENT) / 60,
   roadSpeedMultiplier: 1.3,
   trafficThreshold: 8,
   trafficWindowTicks: 32 * 60,
@@ -18,32 +28,53 @@ export const CONFIG = {
   outputCapacity: 10,
   forestOutputCapacity: 3,
   warehouseCapacityPerGood: 20,
-  warehouseCollectionRadius: 10,
+  warehouseCollectionRadiusWorldTiles: 10,
+  warehouseCollectionRadius: 10 * GRID_REFINEMENT,
   forestYield: 10,
   resourceYield: 10,
   resourceOutputCapacity: 3,
   farmMaxFields: 4,
-  farmFieldRadius: 3,
+  farmFieldRadiusWorldTiles: 3,
+  farmFieldRadius: 3 * GRID_REFINEMENT,
   farmActionDurationTicks: 10 * 60,
   fieldStageDurationTicks: 30 * 60,
   bushFoodValue: 40,
   bushRegrowMinTicks: 120 * 60,
   bushRegrowMaxTicks: 180 * 60,
-  mapColumns: 41,
-  mapRows: 25,
+  baseMapColumns: BASE_MAP_COLUMNS,
+  baseMapRows: BASE_MAP_ROWS,
+  mapColumns: MAP_COLUMNS,
+  mapRows: MAP_ROWS,
 } as const;
 
+/** Historical coarse-grid offset coordinate converted to axial coordinates. */
+const coarseAt = (col: number, row: number): Hex => ({
+  q: col - Math.floor(row / 2),
+  r: row,
+});
+
+/** Fine-grid offset coordinate converted to axial coordinates. */
 const at = (col: number, row: number): Hex => ({
   q: col - Math.floor(row / 2),
   r: row,
 });
 
-const compactFootprint = (center: Hex): Hex[] => [
-  { ...center },
-  { q: center.q + 1, r: center.r },
-  { q: center.q, r: center.r + 1 },
-  { q: center.q + 1, r: center.r + 1 },
-];
+const scaledAt = (col: number, row: number): Hex => scaleHex(coarseAt(col, row));
+
+const compactFootprint = (center: Hex): Hex[] => {
+  const coarseCells: Hex[] = [
+    { q: 0, r: 0 },
+    { q: 1, r: 0 },
+    { q: 0, r: 1 },
+    { q: 1, r: 1 },
+  ];
+  return coarseCells.flatMap((coarseCell) =>
+    refinedCellCluster(coarseCell).map((cell) => ({
+      q: center.q + cell.q,
+      r: center.r + cell.r,
+    })),
+  );
+};
 
 type ScenarioOptions = {
   population: number;
@@ -51,7 +82,7 @@ type ScenarioOptions = {
 };
 
 function createScenario({ population, suppliedStart }: ScenarioOptions): World {
-  const hqPosition = at(6, 20);
+  const hqPosition = scaledAt(6, 20);
   const buildings: Building[] = [
     {
       id: "hq",
@@ -114,26 +145,33 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     [33, 9], [34, 9], [35, 9], [34, 10], [35, 10], [36, 10], [35, 11], [36, 11], [37, 11],
   ];
 
+  const inList = (list: number[][], col: number, row: number) =>
+    list.some(([c, r]) => c === col && r === row);
+  const buildingCells = new Set(
+    buildings.flatMap((building) => building.footprint ?? [building.position]).map((position) => `${position.q},${position.r}`),
+  );
+  const bushPositions = new Set(bushTiles.map(([col, row]) => {
+    const position = scaledAt(col!, row!);
+    return `${position.q},${position.r}`;
+  }));
+
   const tiles: Tile[] = [];
   for (let row = 0; row < CONFIG.mapRows; row += 1)
     for (let col = 0; col < CONFIG.mapColumns; col += 1) {
       const position = at(col, row);
-      const inList = (list: number[][]) => list.some(([c, r]) => c === col && r === row);
-      const occupiedByBuilding = buildings.some((building) =>
-        (building.footprint ?? [building.position]).some(
-          (occupied) => occupied.q === position.q && occupied.r === position.r,
-        ),
-      );
-      const terrain: Tile["terrain"] = occupiedByBuilding
+      const coarseCol = Math.min(BASE_MAP_COLUMNS - 1, Math.floor(col / GRID_REFINEMENT));
+      const coarseRow = Math.min(BASE_MAP_ROWS - 1, Math.floor(row / GRID_REFINEMENT));
+      const positionKey = `${position.q},${position.r}`;
+      const terrain: Tile["terrain"] = buildingCells.has(positionKey)
         ? "building"
-        : inList(river)
+        : inList(river, coarseCol, coarseRow)
           ? "river"
-          : inList(mountains)
+          : inList(mountains, coarseCol, coarseRow)
             ? "mountain"
-            : inList(forestTiles)
+            : inList(forestTiles, coarseCol, coarseRow)
               ? "forest"
               : "grass";
-      const bush = suppliedStart && terrain === "grass" && inList(bushTiles);
+      const bush = suppliedStart && terrain === "grass" && bushPositions.has(positionKey);
       tiles.push({
         ...position,
         terrain,
@@ -144,14 +182,15 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
   const naturalResources: NaturalResource[] = forestTiles.map(([col, row], index) => ({
     id: `forest-${index + 1}`,
     kind: "forest",
-    position: at(col!, row!),
+    position: scaledAt(col!, row!),
     remaining: CONFIG.forestYield,
     output: 0,
   }));
 
   if (suppliedStart) {
-    const adjacentGrass = (terrain: Tile["terrain"]): Tile[] =>
-      tiles.filter((tile) =>
+    const adjacentGrass = (terrain: Tile["terrain"]): Tile[] => {
+      const terrainKeys = new Set(tiles.filter((tile) => tile.terrain === terrain).map((tile) => `${tile.q},${tile.r}`));
+      return tiles.filter((tile) =>
         tile.terrain === "grass" &&
         [
           { q: tile.q + 1, r: tile.r },
@@ -160,8 +199,9 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
           { q: tile.q, r: tile.r - 1 },
           { q: tile.q + 1, r: tile.r - 1 },
           { q: tile.q - 1, r: tile.r + 1 },
-        ].some((neighbor) => tiles.some((candidate) => candidate.q === neighbor.q && candidate.r === neighbor.r && candidate.terrain === terrain)),
+        ].some((neighbor) => terrainKeys.has(`${neighbor.q},${neighbor.r}`)),
       );
+    };
     const spread = (candidates: Tile[], count: number): Tile[] => {
       if (candidates.length <= count) return candidates;
       return Array.from({ length: count }, (_, index) =>
