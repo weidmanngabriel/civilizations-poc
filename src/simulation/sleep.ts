@@ -1,13 +1,14 @@
 import type { Building, Hex, Person, SleepLocationKind, SleepState, World } from "./model";
-import { findPath, findPathBySteps, pathTravelCost, same } from "./hex";
+import { findPath, findPathBySteps, key, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
+import { GRID_REFINEMENT } from "./spatial";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 
 const SLEEP_MAX = 100;
 const WANTS_TO_SLEEP_THRESHOLD = 40;
 const CRITICAL_SLEEP_THRESHOLD = 20;
 const SLEEP_RADIUS_WORLD_TILES = 8;
-const SLEEP_RADIUS_STEPS = SLEEP_RADIUS_WORLD_TILES * CONFIG.spatialScale;
+const SLEEP_RADIUS_STEPS = SLEEP_RADIUS_WORLD_TILES * GRID_REFINEMENT;
 const SLEEP_PHASE_TICKS = 5 * 60;
 const SLEEP_DURATION_TICKS = SLEEP_PHASE_TICKS * 2;
 const ACCUMULATOR_EPSILON = 1e-9;
@@ -63,11 +64,11 @@ const natureTargets = (world: World): Hex[] => {
   const targets = new Map<string, Hex>();
   for (const resource of world.naturalResources) {
     if (resource.kind !== "forest" || resource.depleted) continue;
-    targets.set(`${resource.position.q},${resource.position.r}`, { ...resource.position });
+    targets.set(key(resource.position), { ...resource.position });
   }
   for (const tile of world.tiles) {
     if (tile.terrain !== "grass" || !tile.bush) continue;
-    targets.set(`${tile.q},${tile.r}`, { q: tile.q, r: tile.r });
+    targets.set(key(tile), { q: tile.q, r: tile.r });
   }
   return [...targets.values()];
 };
@@ -119,14 +120,11 @@ const targetStillValid = (world: World, state: SleepState): boolean => {
     return world.buildings.some(
       (building) => isCompletedHouse(building) && same(building.position, state.target),
     );
-  return (
-    world.naturalResources.some(
-      (resource) => resource.kind === "forest" && !resource.depleted && same(resource.position, state.target),
-    ) ||
-    world.tiles.some(
-      (tile) => tile.terrain === "grass" && Boolean(tile.bush) && same(tile, state.target),
-    )
-  );
+  if (world.naturalResources.some(
+    (resource) => resource.kind === "forest" && !resource.depleted && same(resource.position, state.target),
+  )) return true;
+  const tile = tileIndex(world.tiles).get(key(state.target));
+  return Boolean(tile?.terrain === "grass" && tile.bush);
 };
 
 const atTaskBoundary = (person: Person): boolean =>
@@ -238,7 +236,6 @@ const applySleepPhase = (person: Person, state: SleepState): void => {
 const ensureSleepRouteOrProgress = (world: World, person: Person): void => {
   const state = person.sleepState!;
   if (person.hungerState) return;
-
   if (person.path.length > 0) {
     person.active = false;
     return;
