@@ -2,7 +2,9 @@
 
 Gebäude werden über das Baumenü ausgewählt und anschließend direkt auf der Karte platziert.
 
-Einige Gebäude werden erst durch Berufserfahrung freigeschaltet. Sobald ein Bewohner im passenden Beruf 10 Erfahrungspunkte erreicht, bleibt die zugehörige Technologie dauerhaft verfügbar. Im Baumenü siehst du gesperrte Gebäude und ihren aktuellen Fortschritt; im Technologiebaum erkennst du zusätzlich, welche Zweige bereits freigeschaltet oder noch nicht im Prototyp enthalten sind.
+Einige Gebäude werden erst durch Berufserfahrung freigeschaltet. Sobald ein Bewohner im passenden Beruf 10 Erfahrungspunkte erreicht, bleibt die zugehörige Technologie dauerhaft verfügbar. Im Baumenü erscheinen nur Gebäude, die bereits freigeschaltet sind. Im Technologiebaum siehst du zusätzlich gesperrte Gebäude, ihren aktuellen Fortschritt und Zweige, die noch nicht im Prototyp enthalten sind.
+
+Die Rohstoffberufe heißen einheitlich **Abbauer Holz**, **Abbauer Lehm** und **Abbauer Stein**. Ihre Erfahrung schaltet die jeweils passende Verarbeitung frei.
 
 Nicht jeder freie Fleck ist geeignet: Gebäude brauchen genügend Platz und etwas Abstand zu ihrer Umgebung. Wiese und Wege zählen dabei als freie Baufläche. Liegt ein Weg im eigentlichen Gebäude-Footprint, wird er beim Bauen entfernt und nach einem späteren Abriss nicht wiederhergestellt.
 
