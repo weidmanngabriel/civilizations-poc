@@ -128,6 +128,7 @@ export interface Person {
   resourceTarget?: NaturalResourceId;
   builder?: boolean;
   experience?: Partial<Record<Profession, number>>;
+  experienceActionProgress?: Partial<Record<Profession, number>>;
   pendingFarmBonus?: number;
   hunger?: number;
   hungerAccumulator?: number;
