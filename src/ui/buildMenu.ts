@@ -83,21 +83,21 @@ export function mountBuildMenu(world: World): void {
   const close = menu.querySelector<HTMLButtonElement>("#build-menu-close")!;
 
   const refreshAvailability = (): void => {
-    for (const button of menu.querySelectorAll<HTMLButtonElement>("button[data-build-kind]")) {
+    menu.querySelectorAll<HTMLButtonElement>("button[data-build-kind]").forEach((button) => {
       const kind = button.dataset.buildKind as PlaceableBuildingKind;
       const unlocked = isBuildingUnlocked(world, kind);
       const progress = technologyProgress(world, kind);
       button.disabled = !unlocked;
       button.classList.toggle("locked", !unlocked);
       const status = menu.querySelector<HTMLElement>(`[data-build-status="${kind}"]`);
-      if (!status) continue;
+      if (!status) return;
       if (unlocked) {
         status.textContent = "✓ Freigeschaltet";
-        continue;
+        return;
       }
       const profession = progress.profession ? PROFESSION_LABELS[progress.profession] : "Technologie";
       status.textContent = `🔒 ${profession}: ${progress.current}/${progress.required} XP`;
-    }
+    });
   };
 
   const setOpen = (open: boolean): void => {
