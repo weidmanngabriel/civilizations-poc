@@ -16,9 +16,7 @@ Das Mikroraster ist kein sichtbarer Brettspiel-Look. Gebäude und Äcker behalte
 
 Bewohner bewegen sich weiterhin flüssig. Laufgeschwindigkeit und räumliche Reichweiten wurden auf das feinere Raster umgerechnet; die Bewohnerdarstellung bleibt bewusst gut lesbar und ist nicht auf Mikrozellengröße geschrumpft.
 
-## Physische Rohstoffhaufen — Phase B
-
-Phase B führt die technische Grundlage für echte lose Waren auf der Karte ein, ohne die bestehende Holz-/Lehm-/Steinwirtschaft bereits vollständig umzuschalten.
+## Physische Rohstoffhaufen — Phase B abgeschlossen
 
 Ein loser Warenhaufen besitzt:
 
@@ -36,27 +34,31 @@ Für die Ablage gilt trotzdem eine eigene Platzregel: Ein neuer Haufen wird nich
 
 ### Reservierungen
 
-Wenn eine zukünftige Transportperson eine physische Einheit einplant, wird genau diese Menge am konkreten Haufen reserviert. Die Ware bleibt bis zur tatsächlichen Abholung sichtbar und physisch vorhanden. Dadurch können mehrere Personen nicht dieselbe Einheit gleichzeitig einplanen.
+Wenn eine Transportperson eine physische Einheit einplant, wird genau diese Menge am konkreten Haufen reserviert. Die Ware bleibt bis zur tatsächlichen Abholung sichtbar und physisch vorhanden. Dadurch können mehrere Personen nicht dieselbe Einheit gleichzeitig einplanen.
 
 ### Ablagewahl
 
-Die neue Ablagelogik ist deterministisch:
+Die Ablagelogik ist deterministisch:
 
 1. zuerst wird innerhalb der erlaubten Suchreichweite ein bereits vorhandener Haufen desselben Typs mit weniger als 3 Einheiten gesucht,
 2. sonst wird die nächstgelegene gültige freie Zelle gewählt,
 3. bei Gleichstand entscheidet eine feste Koordinaten-/ID-Reihenfolge.
 
-Die genaue maximale Suchreichweite wird erst mit der Holz-End-to-End-Umstellung in Phase C als Balancingwert festgelegt.
+## Holz als erste vollständige physische Rohstoffkette — Phase C abgeschlossen
 
-### Übergangsphase
+Holz verwendet jetzt die physischen Haufen tatsächlich im spielbaren Wirtschaftskreislauf:
 
-Wald, Lehm und Stein verwenden im aktuell spielbaren Wirtschaftskreislauf noch den bisherigen lokalen Ressourcen-Output. `NaturalResource.output` ist ab Phase B nur noch ein Übergangsmechanismus.
+**Baum → Abbauer Holz → Holzhaufen → Abholung → Sägewerk.**
 
-Phase C stellt zuerst Holz vollständig um:
+Ein Holzfäller arbeitet weiterhin an einem konkreten Baum. Nach einer fertigen Fällaktion entsteht genau **eine Einheit Holz auf dem Boden** in der Nähe des Baums. Die Suche erfolgt aktuell bis maximal **5 Mikrozellen**, also ungefähr innerhalb einer früheren großen Kachel.
 
-**Baum → Abbauer Holz → physischer Holzhaufen → Abholung → Sägewerk.**
+Vorhandene Holzhaufen mit freiem Platz werden zuerst aufgefüllt. Ein einzelner Haufen hält höchstens drei Holz. Ist er voll, darf der Holzfäller trotzdem weiterarbeiten und einen weiteren geeigneten Haufen in der Nähe beginnen. Die Zahl 3 ist damit eine **Haufenkapazität, keine Waldkapazität**.
 
-Erst danach werden Lehm und Stein migriert.
+Das Holz liegt nicht mehr unsichtbar im Baum. Sägewerker, Sägewerk-Träger und HQ-Träger planen ihre Abholung gegen die konkreten Holzhaufen. Reservierungen verhindern Doppelabholung. Wird die letzte Einheit abgeholt, verschwindet der Haufen.
+
+Wenn ein Baum nach seiner letzten Einheit verschwindet, bleiben bereits abgelegte Holzhaufen erhalten und können weiterhin eingesammelt werden. Der Holzfäller sucht sich anschließend den nächsten freien Baum.
+
+Lehm und Stein sind noch nicht vollständig auf dieses Verhalten umgestellt. Sie folgen in **Phase D** und verwenden bis dahin weiterhin den bisherigen lokalen Ressourcen-Output als Übergangsmechanismus.
 
 ## Berufserfahrung
 
@@ -65,12 +67,11 @@ Erfahrung wird pro Person und Beruf von 0 bis 100 gespeichert und bleibt bei Ber
 Aktuelle Beispiele:
 
 - Produktionsberuf: ein fertiger Produktionszyklus,
-- Abbauer: eine vollständig gewonnene Rohstoffeinheit,
+- Abbauer Holz: eine gewonnene und physisch abgelegte Holzeinheit,
+- Abbauer Lehm/Stein: derzeit noch eine vollständig gewonnene Rohstoffeinheit im Übergangsmodell,
 - Träger/Händler: eine erfolgreich zugestellte Ware,
 - Farmer: fertige Aussaat, Düngung oder Ernte,
 - Bauarbeiter: ein fertiger Bau-Arbeitszyklus.
-
-Mit Phase C wird bei Abbauarbeit der erfolgreiche Abschluss künftig erst nach der physischen Ablage der gewonnenen Einheit zählen.
 
 ## Technologie-Freischaltungen
 
@@ -87,6 +88,8 @@ Eine Technologie wird dauerhaft freigeschaltet, sobald irgendeine Person erstmal
 Wohnhaus, Farm und Brunnen sind von Anfang an freigeschaltet. Baumenü und Gebäudeplatzierung verwenden dieselbe autoritative Freischaltlogik.
 
 ## Gebäudeplatzierung auf Desktop und Touch
+
+Beim Start des Baumodus wird die Karte abgedunkelt, gültige Baupositionen werden aber gleichzeitig als helle Bereiche hervorgehoben. Der aktuelle Ghost zeigt zusätzlich grün oder rot, ob die konkrete Position gültig ist.
 
 - **Desktop:** Bau-Ghost folgt der Maus; kurzer Linksklick bestätigt eine gültige Position; Escape bricht ab.
 - **Touch:** kurzes Tippen setzt den Ghost; Ziehen verschiebt die Karte; der Bauen-Button bestätigt.
@@ -111,4 +114,4 @@ Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`conc
 - Touch- und Desktop-Bedienung,
 - Technologiebaum und Handbuch.
 
-Die dort beschriebene alte 41 × 25-Kartengröße und die langfristige Annahme, dass gewonnene Rohstoffe am Ressourcenobjekt selbst als lokaler Output liegen, werden durch Phase A bzw. Phase B/folgende Phasen überschrieben.
+Die dort beschriebene alte 41 × 25-Kartengröße wird durch Phase A überschrieben. Aussagen über Wald-Output als lokalen Speicher sind seit Phase C überholt; für Holz sind Bodenhaufen autoritativ. Lehm und Stein bleiben bis Phase D noch auf dem alten Übergangsmodell.
