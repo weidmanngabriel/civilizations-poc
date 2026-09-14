@@ -21,13 +21,14 @@ export function installDesktopBuildPlacement(
   const placementScene = scene as unknown as BuildPlacementScene;
   let active = false;
   let pointerDown: PointerPosition | undefined;
+  let clickEligible = false;
   let lastPointer: PointerPosition | undefined;
 
-  const screenPosition = (event: PointerEvent): PointerPosition => {
+  const screenPosition = (clientX: number, clientY: number): PointerPosition => {
     const rect = canvas.getBoundingClientRect();
     return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
+      x: clientX - rect.left,
+      y: clientY - rect.top,
     };
   };
 
@@ -51,21 +52,27 @@ export function installDesktopBuildPlacement(
 
   canvas.addEventListener("pointermove", (event) => {
     if (!isDesktopPointer(event)) return;
-    updateGhost(screenPosition(event));
+    updateGhost(screenPosition(event.clientX, event.clientY));
   });
 
   canvas.addEventListener("pointerdown", (event) => {
     if (!active || !isDesktopPointer(event) || event.button !== 0) return;
-    pointerDown = screenPosition(event);
+    pointerDown = screenPosition(event.clientX, event.clientY);
+    clickEligible = false;
   });
 
   canvas.addEventListener("pointerup", (event) => {
     if (!active || !isDesktopPointer(event) || event.button !== 0 || !pointerDown) return;
-    const position = screenPosition(event);
-    const distance = Math.hypot(position.x - pointerDown.x, position.y - pointerDown.y);
+    const position = screenPosition(event.clientX, event.clientY);
+    clickEligible = Math.hypot(position.x - pointerDown.x, position.y - pointerDown.y) <= TAP_MAX_DISTANCE;
     pointerDown = undefined;
     updateGhost(position);
-    if (distance > TAP_MAX_DISTANCE) return;
+  });
+
+  canvas.addEventListener("click", (event) => {
+    if (!active || !clickEligible) return;
+    clickEligible = false;
+    updateGhost(screenPosition(event.clientX, event.clientY));
     document.querySelector<HTMLButtonElement>("#build-placement-confirm")?.click();
   });
 
@@ -73,6 +80,7 @@ export function installDesktopBuildPlacement(
     const detail = (event as CustomEvent<BuildModeDetail>).detail;
     active = detail.active;
     pointerDown = undefined;
+    clickEligible = false;
     const desktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
     setDesktopInstructions(active && desktop);
     if (!active || !desktop) return;
