@@ -4,6 +4,8 @@ import type {
   BuildingId,
   FarmTask,
   Hex,
+  LooseGoodStack,
+  NaturalResource,
   NaturalResourceId,
   Person,
   Role,
@@ -11,12 +13,23 @@ import type {
   World,
 } from "./model";
 import { CONFIG } from "./scenario";
+import { findPath } from "./hex";
+import { GRID_REFINEMENT, hexDistance } from "./spatial";
+import {
+  availableLooseGoodAmount,
+  findLooseGoodDropPosition,
+  looseGoodStacks,
+  placeLooseGood,
+} from "./looseGoods";
 import {
   awardProfessionExperience,
   workerProfession,
 } from "./experience";
 import { updateTechnologyUnlocks } from "./technology";
 import { tick as coreTick } from "./simulationCore";
+
+const GROUND_PROXY_PREFIX = "ground-";
+const WOOD_DROP_RADIUS = GRID_REFINEMENT;
 
 type PersonBeforeTick = {
   person: Person;
@@ -51,6 +64,173 @@ type ResourceBeforeTick = {
 };
 
 const sameHex = (a: Hex, b: Hex): boolean => a.q === b.q && a.r === b.r;
+const isGroundProxy = (resource: NaturalResource): boolean =>
+  resource.depleted === true && resource.id.startsWith(GROUND_PROXY_PREFIX);
+const isRealForest = (resource: NaturalResource): boolean =>
+  resource.kind === "forest" && !isGroundProxy(resource);
+
+const activeGroundTripIds = (world: World): Set<string> =>
+  new Set(
+    world.people
+      .map((person) => person.trip?.source)
+      .filter((source): source is string => Boolean(source?.startsWith(GROUND_PROXY_PREFIX))),
+  );
+
+const groundProxy = (stack: LooseGoodStack): NaturalResource => ({
+  id: stack.id,
+  kind: "forest",
+  position: { ...stack.position },
+  remaining: 0,
+  output: stack.amount,
+  depleted: true,
+});
+
+function syncStacksFromGroundProxies(world: World): void {
+  for (const proxy of world.naturalResources.filter(isGroundProxy)) {
+    const existing = looseGoodStacks(world).find((stack) => stack.id === proxy.id);
+    const nextAmount = Math.max(0, Math.round(proxy.output));
+    if (existing) {
+      if (nextAmount <= 0) {
+        world.looseGoods = looseGoodStacks(world).filter((stack) => stack.id !== proxy.id);
+      } else {
+        existing.amount = nextAmount;
+      }
+      continue;
+    }
+    if (nextAmount <= 0) continue;
+    const direct = placeLooseGood(world, proxy.position, "wood", Math.min(3, nextAmount));
+    if (direct) {
+      direct.id = proxy.id;
+      continue;
+    }
+    const fallback = findLooseGoodDropPosition(world, proxy.position, "wood", WOOD_DROP_RADIUS);
+    if (!fallback) continue;
+    const restored = placeLooseGood(world, fallback, "wood", Math.min(3, nextAmount));
+    if (restored) restored.id = proxy.id;
+  }
+}
+
+function syncGroundReservations(world: World): void {
+  for (const stack of looseGoodStacks(world)) stack.reserved = 0;
+  for (const person of world.people) {
+    const trip = person.trip;
+    if (!trip || trip.picked || !trip.source.startsWith(GROUND_PROXY_PREFIX)) continue;
+    const stack = looseGoodStacks(world).find((candidate) => candidate.id === trip.source);
+    if (stack && stack.reserved < stack.amount) stack.reserved += 1;
+  }
+}
+
+function ensureGroundProxies(world: World): void {
+  const activeTrips = activeGroundTripIds(world);
+  const proxies = new Map(
+    world.naturalResources.filter(isGroundProxy).map((resource) => [resource.id, resource]),
+  );
+
+  for (const stack of looseGoodStacks(world)) {
+    const proxy = proxies.get(stack.id);
+    if (proxy) {
+      proxy.position = { ...stack.position };
+      proxy.output = stack.amount;
+      proxy.remaining = 0;
+      proxy.depleted = true;
+    } else {
+      world.naturalResources.push(groundProxy(stack));
+    }
+  }
+
+  const liveStackIds = new Set(looseGoodStacks(world).map((stack) => stack.id));
+  world.naturalResources = world.naturalResources.filter(
+    (resource) =>
+      !isGroundProxy(resource) || liveStackIds.has(resource.id) || activeTrips.has(resource.id),
+  );
+}
+
+function cleanupIdleGroundProxies(world: World): void {
+  const activeTrips = activeGroundTripIds(world);
+  world.naturalResources = world.naturalResources.filter(
+    (resource) => !isGroundProxy(resource) || activeTrips.has(resource.id),
+  );
+}
+
+function nearestAvailableWoodStack(world: World, origin: Hex): LooseGoodStack | undefined {
+  return looseGoodStacks(world)
+    .filter(
+      (stack) =>
+        stack.good === "wood" &&
+        availableLooseGoodAmount(stack) > 0 &&
+        hexDistance(origin, stack.position) <= WOOD_DROP_RADIUS,
+    )
+    .sort(
+      (a, b) =>
+        hexDistance(origin, a.position) - hexDistance(origin, b.position) ||
+        a.position.q - b.position.q ||
+        a.position.r - b.position.r ||
+        a.id.localeCompare(b.id),
+    )[0];
+}
+
+function retargetLegacyForestTrips(world: World): void {
+  syncGroundReservations(world);
+  for (const person of world.people) {
+    const trip = person.trip;
+    if (!trip || trip.picked || trip.sourceKind !== "resource" || trip.good !== "wood") continue;
+    if (trip.source.startsWith(GROUND_PROXY_PREFIX)) continue;
+    const forest = world.naturalResources.find(
+      (resource) => resource.id === trip.source && isRealForest(resource),
+    );
+    if (!forest) continue;
+    const stack = nearestAvailableWoodStack(world, forest.position);
+    if (!stack) {
+      person.trip = undefined;
+      person.path = [];
+      person.movement = 0;
+      person.active = Boolean(person.assignment);
+      continue;
+    }
+    trip.source = stack.id;
+    trip.sourceKind = "resource";
+    stack.reserved = Math.min(stack.amount, stack.reserved + 1);
+    person.path = findPath(
+      world.tiles,
+      person.position,
+      stack.position,
+      CONFIG.roadSpeedMultiplier,
+    ) ?? [];
+    person.movement = 0;
+  }
+  syncGroundReservations(world);
+}
+
+function migrateForestOutputToGround(world: World): void {
+  for (const forest of world.naturalResources.filter(isRealForest)) {
+    let wholeUnits = Math.floor(forest.output + 1e-9);
+    while (wholeUnits > 0) {
+      const drop = findLooseGoodDropPosition(world, forest.position, "wood", WOOD_DROP_RADIUS);
+      if (!drop) break;
+      const stack = placeLooseGood(world, drop, "wood", 1);
+      if (!stack) break;
+      forest.output = Math.max(0, forest.output - 1);
+      wholeUnits--;
+    }
+  }
+  retargetLegacyForestTrips(world);
+}
+
+function preparePhysicalWoodTick(world: World): void {
+  syncStacksFromGroundProxies(world);
+  cleanupIdleGroundProxies(world);
+  migrateForestOutputToGround(world);
+  syncGroundReservations(world);
+  ensureGroundProxies(world);
+}
+
+function finishPhysicalWoodTick(world: World): void {
+  syncStacksFromGroundProxies(world);
+  migrateForestOutputToGround(world);
+  syncGroundReservations(world);
+  ensureGroundProxies(world);
+  cleanupIdleGroundProxies(world);
+}
 
 function advanceBuilderActionProgress(person: Person): void {
   const progress = (person.experienceActionProgress ??= {});
@@ -181,6 +361,8 @@ function awardCompletedActions(
 
 /** One deterministic 1/60-second simulation step with action-based profession XP. */
 export function tick(world: World): void {
+  preparePhysicalWoodTick(world);
+
   const peopleBefore: PersonBeforeTick[] = world.people.map((person) => ({
     person,
     assignmentBuilding: person.assignment?.building,
@@ -213,14 +395,17 @@ export function tick(world: World): void {
     ]),
   );
   const resourcesBefore = new Map<NaturalResourceId, ResourceBeforeTick>(
-    world.naturalResources.map((resource) => [
-      resource.id,
-      { kind: resource.kind, remaining: resource.remaining },
-    ]),
+    world.naturalResources
+      .filter((resource) => !isGroundProxy(resource))
+      .map((resource) => [
+        resource.id,
+        { kind: resource.kind, remaining: resource.remaining },
+      ]),
   );
   const buildingIdsBefore = new Set(world.buildings.map((building) => building.id));
 
   coreTick(world);
+  finishPhysicalWoodTick(world);
 
   awardCompletedActions(
     world,
