@@ -33,7 +33,9 @@ const NODES: TechNode[] = [
   { id: "well", label: "Brunnen", subtitle: "von Anfang an verfügbar", x: 70, y: 1220, kind: "building" },
   { id: "school", label: "🏫 Schule", subtitle: "noch nicht im Prototyp", x: 70, y: 1410, kind: "special" },
 
-  { id: "extractor", label: "⛏ Abbauer", x: 350, y: 130, kind: "base" },
+  { id: "wood", label: "⛏ Abbauer Holz", x: 350, y: 40, kind: "base" },
+  { id: "clay", label: "⛏ Abbauer Lehm", x: 350, y: 130, kind: "base" },
+  { id: "stone", label: "⛏ Abbauer Stein", x: 350, y: 220, kind: "base" },
   { id: "farmer", label: "🌾 Bauer", x: 350, y: 390, kind: "base" },
   { id: "soldier", label: "🛡 Soldat", subtitle: "Ausbildung in der Kaserne", x: 350, y: 530, kind: "profession" },
   { id: "hunter", label: "🏹 Jäger", x: 350, y: 620, kind: "base" },
@@ -41,82 +43,86 @@ const NODES: TechNode[] = [
   { id: "builder", label: "🔨 Bauarbeiter", x: 350, y: 1020, kind: "base" },
   { id: "fisher", label: "🐟 Fischer", x: 350, y: 1120, kind: "base" },
   { id: "scout", label: "🧭 Kundschafter", x: 350, y: 1220, kind: "base" },
-  { id: "woodcutter", label: "🪓 Holzfäller", x: 350, y: 1320, kind: "base" },
 
-  { id: "wood", label: "Holz-Erfahrung", x: 640, y: 20, kind: "resource" },
-  { id: "clay", label: "Lehm-Erfahrung", x: 640, y: 110, kind: "resource" },
-  { id: "stone", label: "Stein-Erfahrung", x: 640, y: 200, kind: "resource" },
-  { id: "mushroom", label: "Pilz-Erfahrung", x: 640, y: 290, kind: "resource" },
-  { id: "iron", label: "Eisenabbau", x: 640, y: 380, kind: "resource" },
-  { id: "gold", label: "Goldabbau", x: 640, y: 470, kind: "resource" },
-  { id: "warehouse", label: "Lager", subtitle: "Träger-Erfahrung", x: 640, y: 850, kind: "building" },
-  { id: "sawmill", label: "Sägewerk", subtitle: "Holzfäller-Erfahrung", x: 640, y: 1320, kind: "building" },
-
-  { id: "carpenter", label: "🪚 Schreiner", x: 930, y: 20, kind: "profession" },
-  { id: "potter", label: "🏺 Töpfer", x: 930, y: 110, kind: "profession" },
-  { id: "mason", label: "🧱 Steinmetz", x: 930, y: 200, kind: "profession" },
-  { id: "herb", label: "🌿 Kräutersammler", x: 930, y: 290, kind: "profession" },
-  { id: "smith", label: "⚒ Schmied", x: 930, y: 380, kind: "profession" },
-  { id: "druid", label: "🧪 Druide", x: 1210, y: 290, kind: "profession" },
-  { id: "mintworker", label: "🪙 Münzpräger", x: 1210, y: 430, kind: "profession" },
-
-  { id: "carp1", label: "Schreinerei", subtitle: "Holzwerkzeuge", x: 1210, y: 20, kind: "building" },
-  { id: "carp2", label: "Schreinerei II", subtitle: "Möbel", x: 1490, y: 20, kind: "building" },
-  { id: "carp3", label: "Schreinerei III", subtitle: "Transport", x: 1770, y: 20, kind: "building" },
-  { id: "carp4", label: "Schreinerei IV", subtitle: "große Transportmittel / Schiffe", x: 2050, y: 20, kind: "building" },
-  { id: "pot1", label: "Töpferei", subtitle: "Ziegel", x: 1210, y: 100, kind: "building" },
-  { id: "pot2", label: "Töpferei II", subtitle: "Dachziegel", x: 1490, y: 100, kind: "building" },
-  { id: "pot3", label: "Töpferei III", subtitle: "Geschirr", x: 1770, y: 100, kind: "building" },
-  { id: "mason1", label: "Steinmetzhütte", subtitle: "Steinblöcke", x: 1210, y: 180, kind: "building" },
-  { id: "mason2", label: "Steinmetzwerkstatt II", subtitle: "Marmor", x: 1490, y: 180, kind: "building" },
-  { id: "smith1", label: "Schmiede I", subtitle: "Werkzeuge / Ausrüstung", x: 1210, y: 510, kind: "building" },
-  { id: "smith2", label: "Schmiede II", subtitle: "fortgeschrittene Ausrüstung", x: 1490, y: 510, kind: "building" },
-  { id: "weaponHut", label: "Waffenhütte", subtitle: "Militärausrüstung", x: 1770, y: 510, kind: "building" },
-  { id: "mint", label: "Münzprägestätte", x: 1490, y: 430, kind: "building" },
-  { id: "alch1", label: "Alchemistenhütte I", subtitle: "Öl", x: 1490, y: 270, kind: "building" },
-  { id: "alch2", label: "Alchemistenhütte II", subtitle: "Tränke", x: 1770, y: 270, kind: "building" },
-  { id: "temple", label: "⛩ Tempel", x: 1490, y: 350, kind: "special" },
-
+  { id: "sawmill", label: "Sägewerk", subtitle: "nach Abbauer Holz", x: 640, y: 40, kind: "building" },
+  { id: "pot1", label: "Töpferei", subtitle: "Ziegel", x: 640, y: 130, kind: "building" },
+  { id: "mason1", label: "Steinmetzhütte", subtitle: "Steinblöcke", x: 640, y: 220, kind: "building" },
+  { id: "mushroom", label: "Pilz-Erfahrung", x: 640, y: 310, kind: "resource" },
+  { id: "iron", label: "Eisenabbau", x: 640, y: 400, kind: "resource" },
+  { id: "gold", label: "Goldabbau", x: 640, y: 490, kind: "resource" },
   { id: "miller", label: "🌾 Müller", x: 640, y: 580, kind: "profession" },
-  { id: "mill", label: "Mühle", x: 930, y: 580, kind: "building" },
-  { id: "baker", label: "🥖 Bäcker", x: 1210, y: 620, kind: "profession" },
-  { id: "bakery1", label: "Bäckerei", x: 1490, y: 620, kind: "building" },
-  { id: "bakery2", label: "Bäckerei II", x: 1770, y: 620, kind: "building" },
-  { id: "brewer", label: "🍯 Brauer", x: 1490, y: 700, kind: "profession" },
-  { id: "brewery", label: "Brauerei", x: 1770, y: 700, kind: "building" },
-
-  { id: "tailor", label: "🧵 Schneider", x: 640, y: 760, kind: "profession" },
   { id: "stockfarmer", label: "🐄 Viehzüchter", x: 640, y: 680, kind: "profession" },
-  { id: "tailor1", label: "Schneiderei I", subtitle: "Schuhe", x: 930, y: 760, kind: "building" },
-  { id: "tailor2", label: "Schneiderei II", subtitle: "Kleidung / Schutz", x: 1210, y: 760, kind: "building" },
+  { id: "tailor", label: "🧵 Schneider", x: 640, y: 760, kind: "profession" },
+  { id: "warehouse", label: "Lager", subtitle: "Träger-Erfahrung", x: 640, y: 850, kind: "building" },
+  { id: "merchant", label: "🛒 Händler", x: 640, y: 940, kind: "profession" },
+
+  { id: "sawmillWorker", label: "🪚 Sägewerker", x: 930, y: 40, kind: "profession" },
+  { id: "potter", label: "🏺 Töpfer", x: 930, y: 130, kind: "profession" },
+  { id: "mason", label: "🧱 Steinmetz", x: 930, y: 220, kind: "profession" },
+  { id: "herb", label: "🌿 Kräutersammler", x: 930, y: 310, kind: "profession" },
+  { id: "smith", label: "⚒ Schmied", x: 930, y: 400, kind: "profession" },
+  { id: "mill", label: "Mühle", x: 930, y: 580, kind: "building" },
   { id: "cattle", label: "Viehhof", x: 930, y: 680, kind: "building" },
-  { id: "merchant", label: "🛒 Händler", x: 640, y: 850, kind: "profession" },
+  { id: "tailor1", label: "Schneiderei I", subtitle: "Schuhe", x: 930, y: 760, kind: "building" },
+
+  { id: "carp1", label: "Schreinerei", subtitle: "Holzwerkzeuge", x: 1210, y: 40, kind: "building" },
+  { id: "pot2", label: "Töpferei II", subtitle: "Dachziegel", x: 1210, y: 130, kind: "building" },
+  { id: "mason2", label: "Steinmetzwerkstatt II", subtitle: "Marmor", x: 1210, y: 220, kind: "building" },
+  { id: "druid", label: "🧪 Druide", x: 1210, y: 310, kind: "profession" },
+  { id: "mintworker", label: "🪙 Münzpräger", x: 1210, y: 430, kind: "profession" },
+  { id: "baker", label: "🥖 Bäcker", x: 1210, y: 620, kind: "profession" },
+  { id: "tailor2", label: "Schneiderei II", subtitle: "Kleidung / Schutz", x: 1210, y: 760, kind: "building" },
+
+  { id: "carp2", label: "Schreinerei II", subtitle: "Möbel", x: 1490, y: 40, kind: "building" },
+  { id: "pot3", label: "Töpferei III", subtitle: "Geschirr", x: 1490, y: 130, kind: "building" },
+  { id: "alch1", label: "Alchemistenhütte I", subtitle: "Öl", x: 1490, y: 310, kind: "building" },
+  { id: "temple", label: "⛩ Tempel", x: 1490, y: 390, kind: "special" },
+  { id: "mint", label: "Münzprägestätte", x: 1490, y: 470, kind: "building" },
+  { id: "smith1", label: "Schmiede I", subtitle: "Werkzeuge / Ausrüstung", x: 1490, y: 550, kind: "building" },
+  { id: "bakery1", label: "Bäckerei", x: 1490, y: 630, kind: "building" },
+  { id: "brewer", label: "🍯 Brauer", x: 1490, y: 710, kind: "profession" },
+
+  { id: "carp3", label: "Schreinerei III", subtitle: "Transport", x: 1770, y: 40, kind: "building" },
+  { id: "alch2", label: "Alchemistenhütte II", subtitle: "Tränke", x: 1770, y: 310, kind: "building" },
+  { id: "smith2", label: "Schmiede II", subtitle: "fortgeschrittene Ausrüstung", x: 1770, y: 550, kind: "building" },
+  { id: "bakery2", label: "Bäckerei II", x: 1770, y: 630, kind: "building" },
+  { id: "brewery", label: "Brauerei", x: 1770, y: 710, kind: "building" },
+
+  { id: "carp4", label: "Schreinerei IV", subtitle: "große Transportmittel / Schiffe", x: 2050, y: 40, kind: "building" },
+  { id: "weaponHut", label: "Waffenhütte", subtitle: "Militärausrüstung", x: 2050, y: 550, kind: "building" },
 ];
 
 const EDGES: TechEdge[] = [
-  { from: "civil", to: "extractor" }, { from: "civil", to: "farmer" },
-  { from: "barracks", to: "soldier" },
+  { from: "civil", to: "wood" }, { from: "civil", to: "clay" }, { from: "civil", to: "stone" },
+  { from: "civil", to: "farmer" }, { from: "barracks", to: "soldier" },
   { from: "civil", to: "hunter" }, { from: "civil", to: "carrier" },
   { from: "civil", to: "builder" }, { from: "civil", to: "fisher" }, { from: "civil", to: "scout" },
-  { from: "civil", to: "woodcutter" },
-  { from: "carrier", to: "warehouse" }, { from: "woodcutter", to: "sawmill" },
-  { from: "extractor", to: "wood" }, { from: "extractor", to: "clay" },
-  { from: "extractor", to: "stone" }, { from: "extractor", to: "mushroom" },
-  { from: "extractor", to: "iron" }, { from: "extractor", to: "gold" },
-  { from: "wood", to: "carpenter" }, { from: "clay", to: "potter" }, { from: "stone", to: "mason" },
-  { from: "mushroom", to: "herb" }, { from: "herb", to: "druid" }, { from: "iron", to: "smith" },
-  { from: "smith", to: "mintworker" }, { from: "gold", to: "mintworker", dashed: true },
-  { from: "carpenter", to: "carp1" }, { from: "carp1", to: "carp2" }, { from: "carp2", to: "carp3" }, { from: "carp3", to: "carp4" },
-  { from: "potter", to: "pot1" }, { from: "pot1", to: "pot2" }, { from: "pot2", to: "pot3" },
-  { from: "mason", to: "mason1" }, { from: "mason1", to: "mason2" },
-  { from: "smith", to: "smith1" }, { from: "smith1", to: "smith2" }, { from: "smith2", to: "weaponHut" },
-  { from: "mintworker", to: "mint" },
+  { from: "civil", to: "mushroom" }, { from: "civil", to: "iron" }, { from: "civil", to: "gold" },
+
+  { from: "wood", to: "sawmill" }, { from: "sawmill", to: "sawmillWorker" },
+  { from: "sawmillWorker", to: "carp1" }, { from: "carp1", to: "carp2" },
+  { from: "carp2", to: "carp3" }, { from: "carp3", to: "carp4" },
+
+  { from: "clay", to: "pot1" }, { from: "pot1", to: "potter" },
+  { from: "potter", to: "pot2" }, { from: "pot2", to: "pot3" },
+
+  { from: "stone", to: "mason1" }, { from: "mason1", to: "mason" },
+  { from: "mason", to: "mason2" },
+
+  { from: "mushroom", to: "herb" }, { from: "herb", to: "druid" },
+  { from: "iron", to: "smith" }, { from: "smith", to: "mintworker" },
+  { from: "gold", to: "mintworker", dashed: true },
+  { from: "smith", to: "smith1" }, { from: "smith1", to: "smith2" },
+  { from: "smith2", to: "weaponHut" }, { from: "mintworker", to: "mint" },
   { from: "druid", to: "alch1" }, { from: "alch1", to: "alch2" }, { from: "druid", to: "temple" },
-  { from: "farmer", to: "miller" }, { from: "miller", to: "mill" }, { from: "miller", to: "baker" },
-  { from: "baker", to: "bakery1" }, { from: "bakery1", to: "bakery2" }, { from: "baker", to: "brewer" }, { from: "brewer", to: "brewery" },
+
+  { from: "farmer", to: "mill" }, { from: "mill", to: "miller" },
+  { from: "miller", to: "bakery1" }, { from: "bakery1", to: "baker" },
+  { from: "baker", to: "bakery2" }, { from: "baker", to: "brewer" }, { from: "brewer", to: "brewery" },
+
   { from: "hunter", to: "tailor" }, { from: "hunter", to: "stockfarmer" },
   { from: "tailor", to: "tailor1" }, { from: "tailor1", to: "tailor2" }, { from: "stockfarmer", to: "cattle" },
-  { from: "carrier", to: "merchant" },
+  { from: "carrier", to: "warehouse" }, { from: "warehouse", to: "merchant" },
 ];
 
 const BUILDING_NODES: Partial<Record<string, PlaceableBuildingKind>> = {
@@ -217,14 +223,14 @@ const nodeStatus = (world: World, nodeId: string): NodeStatus => {
     return { state: "locked", text: "🔒 Gesperrt" };
   }
 
-  if (nodeId === "civil" || nodeId === "extractor" || nodeId === "builder")
+  if (nodeId === "civil" || nodeId === "builder")
     return { state: "unlocked", text: "✓ Verfügbar" };
   if (nodeId === "carrier") return progressionStatus(world, "carrier", "warehouse");
-  if (nodeId === "woodcutter") return progressionStatus(world, "woodcutter", "sawmill");
-  if (nodeId === "farmer") return progressionStatus(world, "farmer", "mill");
+  if (nodeId === "wood") return progressionStatus(world, "woodcutter", "sawmill");
   if (nodeId === "clay") return progressionStatus(world, "clayDigger", "pottery");
   if (nodeId === "stone") return progressionStatus(world, "stonecutter", "stonemason");
-  if (nodeId === "wood") {
+  if (nodeId === "farmer") return progressionStatus(world, "farmer", "mill");
+  if (nodeId === "sawmillWorker") {
     if (!isBuildingUnlocked(world, "sawmill"))
       return { state: "locked", text: "🔒 Sägewerk erforderlich" };
     return progressionStatus(world, "sawmillWorker", "carpenter");
@@ -235,7 +241,6 @@ const nodeStatus = (world: World, nodeId: string): NodeStatus => {
     return progressionStatus(world, "miller", "bakery");
   }
   if (nodeId === "merchant") return professionAvailabilityStatus(world, "warehouse");
-  if (nodeId === "carpenter") return professionAvailabilityStatus(world, "carpenter");
   if (nodeId === "potter") return professionAvailabilityStatus(world, "pottery");
   if (nodeId === "mason") return professionAvailabilityStatus(world, "stonemason");
   if (nodeId === "baker") return professionAvailabilityStatus(world, "bakery");
