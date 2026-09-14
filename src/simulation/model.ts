@@ -4,6 +4,7 @@ export type BuildingKind = "hq" | "field" | "farm" | "sawmill" | "carpenter" | "
 export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "field" | "house">;
 export type NaturalResourceId = string;
 export type NaturalResourceKind = "forest" | "clay" | "stone";
+export type LooseGoodStackId = string;
 export type PlaceableBuildingKind = BuildableBuildingKind | "house";
 export type Role = "worker" | "carrier" | "merchant" | "builder";
 export type Profession =
@@ -76,8 +77,18 @@ export interface NaturalResource {
   kind: NaturalResourceKind;
   position: Hex;
   remaining: number;
+  /** Phase-B compatibility only. New physical extraction writes to loose-good stacks instead. */
   output: number;
   depleted?: boolean;
+}
+export interface LooseGoodStack {
+  id: LooseGoodStackId;
+  position: Hex;
+  good: Good;
+  /** Physical whole units on this ground cell. Valid range is 1..3. */
+  amount: number;
+  /** Units already promised to future pickups. Reserved units remain physically present. */
+  reserved: number;
 }
 export interface Trip {
   source: BuildingId | NaturalResourceId;
@@ -148,6 +159,8 @@ export interface World {
   nextId: number;
   nextBuildingId: number;
   nextFieldId: number;
+  /** Phase-B loose-good ids are initialized lazily for compatibility with older fixtures. */
+  nextLooseGoodId?: number;
   rngState: number;
   nextBushRegrowTick?: number;
   /** Missing in neutral/sandbox worlds; explicit in the player-facing progression world. */
@@ -155,5 +168,7 @@ export interface World {
   people: Person[];
   buildings: Building[];
   naturalResources: NaturalResource[];
+  /** Physical goods lying on map cells. Stacks are always walkable and never affect routing. */
+  looseGoods?: LooseGoodStack[];
   tiles: Tile[];
 }
