@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createWorld, CONFIG } from "../src/simulation/scenario";
+import { findLooseGoodDropPosition, placeLooseGood } from "../src/simulation/looseGoods";
 import {
   assigned,
   buildAt,
-  building,
   changeAssignment,
   changeWoodcutters,
   naturalResource,
@@ -24,13 +24,14 @@ function activeSawmillWorker() {
   changeWoodcutters(world, 1);
   const woodcutter = woodcutters(world)[0]!;
   const forest = naturalResource(world, woodcutter.resourceTarget!);
-  return { world, sawmill, worker, forest };
+  const drop = findLooseGoodDropPosition(world, forest.position, "wood", CONFIG.spatialScale)!;
+  const stack = placeLooseGood(world, drop, "wood", 1)!;
+  return { world, sawmill, worker, stack };
 }
 
 test("production worker keeps producing while input and output space allow it", () => {
-  const { world, sawmill, worker, forest } = activeSawmillWorker();
+  const { world, sawmill, worker, stack } = activeSawmillWorker();
   sawmill.input = 10;
-  forest.output = 1;
 
   for (let i = 0; i < CONFIG.duration * 5; i++) tick(world);
 
@@ -38,7 +39,7 @@ test("production worker keeps producing while input and output space allow it", 
   assert.equal(sawmill.input, 0);
   assert.equal(worker.progress, 0);
   assert.deepEqual(worker.trip, {
-    source: forest.id,
+    source: stack.id,
     sourceKind: "resource",
     target: sawmill.id,
     good: "wood",
@@ -47,17 +48,16 @@ test("production worker keeps producing while input and output space allow it", 
 });
 
 test("production worker keeps filling free input slots while output is full", () => {
-  const { world, sawmill, worker, forest } = activeSawmillWorker();
+  const { world, sawmill, worker, stack } = activeSawmillWorker();
 
   sawmill.input = 2;
   sawmill.output = CONFIG.outputCapacity;
-  forest.output = 1;
 
   tick(world);
 
   assert.equal(worker.progress, 0);
   assert.deepEqual(worker.trip, {
-    source: forest.id,
+    source: stack.id,
     sourceKind: "resource",
     target: sawmill.id,
     good: "wood",
