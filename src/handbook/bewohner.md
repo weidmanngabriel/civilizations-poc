@@ -10,6 +10,6 @@ Dabei haben Bewohner eigene Bedürfnisse. Hungrige oder müde Bewohner unterbrec
 
 Beim Essen wird immer die volle Wirkung der gewählten Nahrung gutgeschrieben. Hunger kann dadurch vorübergehend über 100 steigen; dieser Überschuss geht nicht verloren.
 
-Mit der Zeit sammeln Bewohner Erfahrung in ihren Berufen und werden besser darin.
+Bewohner sammeln Erfahrung durch erfolgreich abgeschlossene Tätigkeiten in ihrem Beruf. Jede abgeschlossene Tätigkeit erhöht die Berufserfahrung um einen Punkt; nach 100 Tätigkeiten sind 100 % erreicht. Abgebrochene Tätigkeiten zählen nicht.
 
 Freie Bewohner kannst du neuen Aufgaben zuweisen. Holzfäller und Bauarbeiter werden zentral am Hauptquartier verwaltet, andere Berufe direkt am jeweiligen Gebäude.
