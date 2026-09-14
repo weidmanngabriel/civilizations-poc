@@ -50,6 +50,9 @@ const NODES: TechNode[] = [
   { id: "mason2", label: "Steinmetzwerkstatt II", subtitle: "Marmor", x: 1490, y: 180, kind: "building" },
   { id: "smith1", label: "Schmiede I", subtitle: "Werkzeuge / Ausrüstung", x: 1210, y: 510, kind: "building" },
   { id: "smith2", label: "Schmiede II", subtitle: "fortgeschrittene Ausrüstung", x: 1490, y: 510, kind: "building" },
+  { id: "weaponHut", label: "Waffenhütte", subtitle: "Militärausrüstung", x: 1770, y: 510, kind: "building" },
+  { id: "barracks", label: "Kaserne", subtitle: "Ausbildung", x: 2050, y: 510, kind: "special" },
+  { id: "soldier", label: "🛡 Soldat", x: 2330, y: 510, kind: "profession" },
   { id: "mint", label: "Münzprägestätte", x: 1490, y: 430, kind: "building" },
   { id: "alch1", label: "Alchemistenhütte I", subtitle: "Öl", x: 1490, y: 270, kind: "building" },
   { id: "alch2", label: "Alchemistenhütte II", subtitle: "Tränke", x: 1770, y: 270, kind: "building" },
@@ -85,24 +88,20 @@ const EDGES: TechEdge[] = [
   { from: "carpenter", to: "carp1" }, { from: "carp1", to: "carp2" }, { from: "carp2", to: "carp3" }, { from: "carp3", to: "carp4" },
   { from: "potter", to: "pot1" }, { from: "pot1", to: "pot2" }, { from: "pot2", to: "pot3" },
   { from: "mason", to: "mason1" }, { from: "mason1", to: "mason2" },
-  { from: "smith", to: "smith1" }, { from: "smith1", to: "smith2" }, { from: "mintworker", to: "mint" },
+  { from: "smith", to: "smith1" }, { from: "smith1", to: "smith2" },
+  { from: "smith2", to: "weaponHut" }, { from: "weaponHut", to: "barracks" }, { from: "barracks", to: "soldier" },
+  { from: "mintworker", to: "mint" },
   { from: "druid", to: "alch1" }, { from: "alch1", to: "alch2" }, { from: "druid", to: "temple" },
   { from: "farmer", to: "miller" }, { from: "miller", to: "mill" }, { from: "miller", to: "baker" },
   { from: "baker", to: "bakery1" }, { from: "bakery1", to: "bakery2" }, { from: "baker", to: "brewer" }, { from: "brewer", to: "brewery" },
   { from: "hunter", to: "tailor" }, { from: "hunter", to: "stockfarmer" },
   { from: "tailor", to: "tailor1" }, { from: "tailor1", to: "tailor2" }, { from: "stockfarmer", to: "cattle" },
   { from: "carrier", to: "merchant" }, { from: "pot1", to: "school" },
-  { from: "school", to: "carpenter", dashed: true }, { from: "school", to: "mason", dashed: true },
-  { from: "school", to: "potter", dashed: true }, { from: "school", to: "smith", dashed: true },
-  { from: "school", to: "druid", dashed: true }, { from: "school", to: "miller", dashed: true },
-  { from: "school", to: "baker", dashed: true }, { from: "school", to: "brewer", dashed: true },
-  { from: "school", to: "tailor", dashed: true }, { from: "school", to: "stockfarmer", dashed: true },
-  { from: "school", to: "merchant", dashed: true },
 ];
 
 const NODE_WIDTH = 210;
 const NODE_HEIGHT = 58;
-const CANVAS_WIDTH = 2320;
+const CANVAS_WIDTH = 2600;
 const CANVAS_HEIGHT = 1360;
 
 const edgeMarkup = (): string => EDGES.map((edge) => {

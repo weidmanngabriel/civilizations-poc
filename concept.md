@@ -263,7 +263,7 @@ Bedienung:
 - Zusätzlich gibt es Plus, Minus, eine Fit-/Reset-Funktion und einen Schließen-Button.
 - Die Ansicht belegt den kompletten Bildschirm und bleibt unabhängig von der Phaser-Kamera der Karte.
 
-Der dargestellte Baum unterscheidet Grundberufe, Ressourcen-/Erfahrungsstufen, weiterführende Berufe, Gebäude und besondere Einrichtungen. Gestrichelte Kanten markieren indirekte beziehungsweise lehrbare Beziehungen, etwa über die Schule.
+Der dargestellte Baum unterscheidet Grundberufe, Ressourcen-/Erfahrungsstufen, weiterführende Berufe, Gebäude und besondere Einrichtungen. Die Schule bleibt als Einrichtung sichtbar, ihre Lehrbeziehungen werden aus Gründen der Lesbarkeit bewusst nicht als einzelne Kanten gezeichnet. Zusätzlich zeigt die Übersicht einen kompakten Militärzweig vom Schmied über Waffenhütte und Kaserne bis zum Soldaten. Diese Darstellung ist weiterhin nur eine Übersicht und definiert noch keine echte Freischaltlogik.
 
 ## In-App-Handbuch
 
