@@ -309,11 +309,11 @@ export function mountTechnologyTree(world: World): void {
       element.classList.add(status.state);
       element.querySelector<HTMLElement>(".tech-tree-status")!.textContent = status.text;
     }
-    for (const edge of canvas.querySelectorAll<SVGPathElement>("[data-tech-to]")) {
+    canvas.querySelectorAll<SVGPathElement>("[data-tech-to]").forEach((edge) => {
       const state = states.get(edge.dataset.techTo ?? "") ?? "planned";
       edge.classList.toggle("locked", state === "locked" || state === "progress");
       edge.classList.toggle("planned", state === "planned");
-    }
+    });
   };
 
   const clampScale = (value: number) => Math.min(2.5, Math.max(0.35, value));
