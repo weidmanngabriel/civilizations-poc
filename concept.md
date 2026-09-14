@@ -8,6 +8,18 @@ Ziel bleibt eine personenbasierte Produktions- und Logistiksimulation auf einem 
 
 Die bestehende Welt, Gebäude, Produktionsketten, Bedürfnisse, Lagerlogik, Händler, Felder, natürliche Ressourcen, organischen Wege und die mobile Bedienung bleiben unverändert wie in [`concept-detail.md`](./concept-detail.md) beschrieben, soweit sie nicht unten ausdrücklich überschrieben werden.
 
+## Feineres Raumraster — Phase A
+
+Der aktive Umbau ist in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md) beschrieben. Die Welt verwendet jetzt ein **5× feineres Raster pro Raumachse**: aus der bisherigen 41 × 25-Struktur wird intern eine 205 × 125-Mikrozellenwelt. Die sichtbare Ausdehnung der Karte bleibt ungefähr gleich.
+
+Das feinere Raster ist kein neuer Brettspiel-Look. Die Mikrozellen dienen vor allem Platzierung, Wegfindung, Ressourcen und späteren physischen Warenablagen; im normalen Spiel soll die Landschaft weiterhin zusammenhängend wirken.
+
+Gebäude behalten ungefähr ihre bisherige Bildschirmgröße und belegen dafür deutlich mehr Mikrozellen. Auch Äcker behalten ungefähr ihre bisherige räumliche Größe. Der vorgeschriebene freie Abstand um Gebäude bleibt in Weltmaßstab erhalten und wird entsprechend in mehr Zellen ausgedrückt.
+
+Bewohner bewegen sich weiterhin flüssig und nicht sichtbar zellenweise. Ihre Laufgeschwindigkeit und räumliche Reichweiten werden auf das feinere Raster umgerechnet, damit sich Entfernungen im Spiel nicht plötzlich verfünffachen. Die Bewohnerdarstellung ist leicht größer als zuvor, damit Figuren trotz des feineren Rasters gut lesbar bleiben.
+
+Die Rohstoffwirtschaft bleibt während Phase A absichtlich noch im bisherigen Übergangsmodell: Wald-, Lehm- und Steinvorkommen besitzen weiterhin ihren bisherigen lokalen Output. Einzelne Bäume und physische Rohstoffhaufen mit maximal drei Einheiten werden erst in den folgenden Phasen eingeführt.
+
 ## Berufserfahrung
 
 Erfahrung wird pro Person und Beruf von 0 bis 100 gespeichert und bleibt bei Berufswechsel erhalten.
@@ -65,7 +77,7 @@ Die Bauplatzierung verwendet dieselben Regeln, ist aber an das jeweilige Eingabe
 - **Desktop:** Der Bau-Ghost folgt sofort der Maus. Ein kurzer Linksklick auf eine gültige Position platziert das Gebäude. Escape bricht den Baumodus ab.
 - **Touch:** Ein kurzes Tippen setzt den Ghost auf die gewünschte Position. Ziehen verschiebt weiterhin die Karte. Der Bauen-Button bestätigt die Platzierung.
 
-In beiden Fällen entscheidet dieselbe Platzierungslogik, ob eine Position gültig ist. Eingabemethoden verändern keine Bauvoraussetzungen.
+In beiden Fällen entscheidet dieselbe Platzierungslogik, ob eine Position gültig ist. Eingabemethoden verändern keine Bauvoraussetzungen. Auf dem Mikroraster wird nicht jede einzelne gültige Ankerzelle über die gesamte Karte hervorgehoben; der Ghost selbst zeigt an seiner aktuellen Position, ob dort gebaut werden kann.
 
 ## Spielerkommunikation
 
@@ -76,13 +88,13 @@ Die Personenansicht zeigt weiterhin die aktuelle Berufserfahrung. Das In-App-Han
 Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`concept-detail.md`](./concept-detail.md), insbesondere:
 
 - Startzustand mit 12 Personen und HQ,
-- 41 × 25 Karte mit Bergen, Wasser, Wäldern und Beerenbüschen,
+- Berge, Wasser, Wälder und Beerenbüsche in derselben ungefähr sichtbaren Weltgröße,
 - Hunger und Schlaf mit Unterbrechung und Wiederaufnahme von Arbeit,
 - Gebäude-Footprints mit freiem Ring,
 - Bau- und Abrisslogik,
 - feste Simulationsgeschwindigkeit bei 60 Ticks pro Sekunde auf 1×,
 - organisch entstehende Wege,
-- natürliche Holz-, Lehm- und Steinvorkommen,
+- vorübergehend weiterhin die bisherige Holz-, Lehm- und Steinvorkommen-Logik,
 - Produktionsketten und lokale Outputs,
 - HQ- und Lagerinventare,
 - Händler als einziger automatischer Lager-zu-Lager-Transport,

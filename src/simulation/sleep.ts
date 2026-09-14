@@ -1,12 +1,14 @@
 import type { Building, Hex, Person, SleepLocationKind, SleepState, World } from "./model";
-import { findPath, findPathBySteps, pathTravelCost, same } from "./hex";
+import { findPath, findPathBySteps, key, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
+import { GRID_REFINEMENT } from "./spatial";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 
 const SLEEP_MAX = 100;
 const WANTS_TO_SLEEP_THRESHOLD = 40;
 const CRITICAL_SLEEP_THRESHOLD = 20;
-const SLEEP_RADIUS_STEPS = 8;
+const SLEEP_RADIUS_WORLD_TILES = 8;
+const SLEEP_RADIUS_STEPS = SLEEP_RADIUS_WORLD_TILES * GRID_REFINEMENT;
 const SLEEP_PHASE_TICKS = 5 * 60;
 const SLEEP_DURATION_TICKS = SLEEP_PHASE_TICKS * 2;
 const ACCUMULATOR_EPSILON = 1e-9;
@@ -58,6 +60,19 @@ type SleepCandidate = {
   cost: number;
 };
 
+const natureTargets = (world: World): Hex[] => {
+  const targets = new Map<string, Hex>();
+  for (const resource of world.naturalResources) {
+    if (resource.kind !== "forest" || resource.depleted) continue;
+    targets.set(key(resource.position), { ...resource.position });
+  }
+  for (const tile of world.tiles) {
+    if (tile.terrain !== "grass" || !tile.bush) continue;
+    targets.set(key(tile), { q: tile.q, r: tile.r });
+  }
+  return [...targets.values()];
+};
+
 const bestCandidate = (
   world: World,
   person: Person,
@@ -65,9 +80,7 @@ const bestCandidate = (
 ): SleepCandidate | undefined => {
   const targets: Hex[] = kind === "house"
     ? world.buildings.filter(isCompletedHouse).map((building) => building.position)
-    : world.tiles
-        .filter((tile) => tile.terrain === "forest" || (tile.terrain === "grass" && tile.bush))
-        .map((tile) => ({ q: tile.q, r: tile.r }));
+    : natureTargets(world);
 
   const candidates = targets
     .filter((target) => withinSleepRadius(world, person.position, target))
@@ -107,10 +120,11 @@ const targetStillValid = (world: World, state: SleepState): boolean => {
     return world.buildings.some(
       (building) => isCompletedHouse(building) && same(building.position, state.target),
     );
-  const tile = world.tiles.find((candidate) => same(candidate, state.target));
-  return Boolean(
-    tile && (tile.terrain === "forest" || (tile.terrain === "grass" && tile.bush)),
-  );
+  if (world.naturalResources.some(
+    (resource) => resource.kind === "forest" && !resource.depleted && same(resource.position, state.target),
+  )) return true;
+  const tile = tileIndex(world.tiles).get(key(state.target));
+  return Boolean(tile?.terrain === "grass" && tile.bush);
 };
 
 const atTaskBoundary = (person: Person): boolean =>
@@ -194,7 +208,6 @@ const startSleeping = (world: World, person: Person): void => {
     resumeExtractor: person.extractor,
     resumeResourceTarget: person.resourceTarget,
   };
-  // Workplace assignment is persistent identity. Sleep pauses activity, not the assignment itself.
   person.builder = undefined;
   person.woodcutter = undefined;
   person.extractor = undefined;
@@ -223,9 +236,6 @@ const applySleepPhase = (person: Person, state: SleepState): void => {
 const ensureSleepRouteOrProgress = (world: World, person: Person): void => {
   const state = person.sleepState!;
   if (person.hungerState) return;
-
-  // A selected route is trusted while travelling. Revalidation happens only after arrival
-  // (or if the route disappeared before reaching the stored target).
   if (person.path.length > 0) {
     person.active = false;
     return;
@@ -315,6 +325,7 @@ export const sleepStatus = (person: Person): "normal" | "tired" | "critical" => 
 };
 
 export const SLEEP_RULES = {
+  radiusWorldTiles: SLEEP_RADIUS_WORLD_TILES,
   radiusSteps: SLEEP_RADIUS_STEPS,
   phaseTicks: SLEEP_PHASE_TICKS,
   durationTicks: SLEEP_DURATION_TICKS,

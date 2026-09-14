@@ -76,6 +76,34 @@ stonecutter    10 XP -> stonemason
 
 The historical statement in `architecture-detail.md` that the technology tree is presentation-only is superseded by this section.
 
+## Fine-grid spatial model — Phase A
+
+The active rework is tracked in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md). Phase A refines the simulation grid by a linear factor of **5** while deliberately preserving the previous world scale in screen space and gameplay distances.
+
+`src/simulation/spatial.ts` is the authoritative conversion layer:
+
+```text
+old logical world       41 × 25 coarse cells
+refinement              5× per linear axis
+current simulation      205 × 125 micro-cells
+```
+
+A micro-cell is therefore one fifth of the previous pathfinding step in world-scale terms. `CONFIG.movementPerTick`, warehouse collection radius, farm field radius and sleep search radius are expressed in micro-cell steps but scaled so the former physical distances remain approximately unchanged. Gameplay durations and the 60 Hz simulation cadence do not change.
+
+Scenario terrain is not mapped back through naive 5 × 5 offset blocks. Hex rows are staggered, so each micro-cell is assigned the terrain of the nearest scaled coarse hex centre. This keeps rivers, mountains, forests and legacy resource positions spatially aligned.
+
+Buildings keep approximately their former visible size by expanding each old footprint cell into a micro-cell region. The former one-cell clearance is likewise expanded to one former coarse-cell distance. Farm fields also occupy a micro-cell region rather than shrinking to a single tiny cell. Resource economy is intentionally still the legacy `NaturalResource.remaining/output` model during Phase A; individual resource objects and loose ground stacks belong to later phases.
+
+`src/simulation/hex.ts` maintains a cached coordinate index for the stable `World.tiles` array and uses heap-backed A* for weighted routing. This replaces repeated full-array tile lookup and the former linear-open-list Dijkstra implementation, which would scale poorly at ~25,000 cells. `findPathBySteps()` retains BFS semantics for true step-radius checks.
+
+`src/game/mapGeometry.ts` centralizes simulation-cell → Phaser world-coordinate projection. Cell spacing and hex radius are divided by the same refinement factor, keeping the visible map footprint close to the former size. Pointer hit-testing inverts the projection and checks only nearby coordinates instead of scanning all tiles. The micro-grid is not normally outlined, so terrain still reads as a continuous surface.
+
+Building placement remains simulation-authoritative. On the fine grid, build mode validates the current ghost location directly rather than rendering every valid micro-cell anchor across the whole map; this avoids both visual grid noise and a large per-hover render cost. Desktop and touch continue to use their existing input-specific confirmation flows.
+
+People remain continuous world-space markers independent from micro-cell size. Their marker, label and selection ring are slightly larger than before so residents remain readable against buildings and the denser spatial model.
+
+This section supersedes the old 41 × 25 map, single-cell farm-field size, fixed 24/21 render spacing and old pathfinder descriptions in `architecture-detail.md`.
+
 ## Cross-platform interaction model
 
 Desktop and touch are treated as two first-class input modes. Any player-facing interaction change must be checked in both directions: mobile work must not regress desktop behavior, and desktop work must not regress touch behavior. The interaction details may differ when that better matches the input device, but simulation rules and validation stay shared.
@@ -92,15 +120,12 @@ The older touch-only placement wording in `architecture-detail.md` is superseded
 
 All other current architecture remains as documented in [`architecture-detail.md`](./architecture-detail.md), including:
 
-- the 41 × 25 deterministic world and scenario configuration,
 - hunger and sleep state machines,
 - event-driven food/sleep target selection,
-- natural-resource lifecycle,
+- the temporary legacy natural-resource lifecycle until the physical-resource phases replace it,
 - HQ storage adapter,
-- weighted pathfinding and organic roads,
-- multi-tile building placement and construction,
+- organic roads,
 - inventories, production and logistics,
-- farms and fields,
 - person selection and inspection,
 - mobile controls,
 - handbook and technology-tree presentation,
@@ -111,6 +136,8 @@ All other current architecture remains as documented in [`architecture-detail.md
 ## Testing and deployment
 
 `npm test` remains the deterministic Node test suite and `npm run build` performs TypeScript checking plus the Vite production build. Experience regression coverage must verify that XP is granted only at action completion and never merely for elapsed movement or work ticks. Technology regression coverage must verify the exact threshold, permanence of unlocks, correct initial player-facing state and placement rejection for locked buildings.
+
+Fine-grid regression coverage verifies the exact refinement factor, 205 × 125 tile count, preserved world-scale movement/radius semantics, expanded building footprints and spatial alignment of legacy natural-resource nodes.
 
 Player-facing interaction changes must also be reviewed against both desktop mouse/keyboard and touch behavior, even when only one input mode motivated the change.
 

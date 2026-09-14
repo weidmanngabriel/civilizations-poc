@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createWorld, CONFIG } from "../src/simulation/scenario";
-import { neighbors, same } from "../src/simulation/hex";
+import { same } from "../src/simulation/hex";
 import {
   buildWithFootprint,
   canPlaceBuilding,
@@ -30,10 +30,8 @@ test("builder pool automatically assigns builders and completes construction", (
   assert.equal(assigned(world, site!.id, "builder").length, 1);
   assert.equal(builders(world).length, 1);
 
-  const sourcePosition = neighbors(site!.position).find((position) =>
-    world.tiles.some(
-      (tile) => same(tile, position) && (tile.terrain === "grass" || tile.terrain === "road"),
-    ),
+  const sourcePosition = world.tiles.find(
+    (tile) => tile.terrain === "grass" && !same(tile, site!.position),
   );
   assert.ok(sourcePosition);
   world.buildings.push({

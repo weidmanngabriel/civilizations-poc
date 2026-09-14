@@ -15,14 +15,12 @@ import { CONFIG } from "../simulation/scenario";
 import { GOOD_ICONS } from "../icons";
 import {
   buildingFootprint,
+  canPlaceBuilding,
   footprintAt,
   footprintRing,
-  validBuildingAnchors,
 } from "../simulation/buildingPlacement";
+import { HEX_RADIUS, nearestTileAtWorldPoint, pixel } from "./mapGeometry";
 
-const HEX_X = 24;
-const HEX_Y = 21;
-const HEX_RADIUS = 14;
 const TEXT_RESOLUTION = 3;
 const MIN_FOREST_ALPHA = 0.35;
 const MIN_CAMERA_ZOOM = 0.7;
@@ -37,11 +35,6 @@ const SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const BUILD_POSITION_SELECTED_EVENT = "poc-build-position-selected";
-
-const pixel = (h: Hex) => ({
-  x: 34 + HEX_X * (h.q + h.r / 2),
-  y: 34 + h.r * HEX_Y,
-});
 
 const colors = {
   grass: 0x526b42,
@@ -70,6 +63,7 @@ type PointerPosition = { x: number; y: number };
 type CameraSnapshot = { scrollX: number; scrollY: number; zoom: number };
 type MerchantTargetModeDetail = { active: boolean; sourceId?: BuildingId };
 type BuildModeDetail = { active: boolean; kind?: BuildableBuildingKind };
+type WorldBounds = { minX: number; maxX: number; minY: number; maxY: number };
 
 const underConstruction = (b: Building): boolean =>
   Boolean(b.construction && !b.construction.complete);
@@ -89,6 +83,7 @@ export class MainScene extends Phaser.Scene {
   private buildKind?: BuildableBuildingKind;
   private buildHover?: Hex;
   private buildPositionChosen = false;
+  private cachedWorldBounds?: WorldBounds;
 
   constructor(private world: World) {
     super("main");
@@ -181,20 +176,31 @@ export class MainScene extends Phaser.Scene {
     ));
   }
 
+  private worldBounds(): WorldBounds {
+    if (this.cachedWorldBounds) return this.cachedWorldBounds;
+    let minX = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    for (const tile of this.world.tiles) {
+      const point = pixel(tile);
+      minX = Math.min(minX, point.x);
+      maxX = Math.max(maxX, point.x);
+      minY = Math.min(minY, point.y);
+      maxY = Math.max(maxY, point.y);
+    }
+    this.cachedWorldBounds = {
+      minX: minX - HEX_RADIUS * 2,
+      maxX: maxX + HEX_RADIUS * 2,
+      minY: minY - HEX_RADIUS * 2,
+      maxY: maxY + HEX_RADIUS * 2,
+    };
+    return this.cachedWorldBounds;
+  }
+
   private nearestTileAtScreenPoint(screenX: number, screenY: number): Tile | undefined {
     const worldPoint = this.cameras.main.getWorldPoint(screenX, screenY);
-    return this.world.tiles
-      .map((tile) => ({
-        tile,
-        distance: Phaser.Math.Distance.Between(
-          worldPoint.x,
-          worldPoint.y,
-          pixel(tile).x,
-          pixel(tile).y,
-        ),
-      }))
-      .filter(({ distance }) => distance <= HEX_RADIUS + 3)
-      .sort((a, b) => a.distance - b.distance)[0]?.tile;
+    return nearestTileAtWorldPoint(this.world.tiles, worldPoint.x, worldPoint.y);
   }
 
   private emitBuildPosition(): void {
@@ -235,7 +241,7 @@ export class MainScene extends Phaser.Scene {
           ),
         )),
       }))
-      .filter(({ distance }) => distance <= HEX_RADIUS + 4)
+      .filter(({ distance }) => distance <= Math.max(7, HEX_RADIUS + 4))
       .sort((a, b) => a.distance - b.distance)[0];
 
     if (this.merchantTargetSourceId) {
@@ -373,7 +379,8 @@ export class MainScene extends Phaser.Scene {
     const field = this.world.buildings.find(
       (b) => b.kind === "field" && !b.retired && same(b.position, tile),
     );
-    const stage = field?.fieldStage ?? 1;
+    if (!field) return;
+    const stage = field.fieldStage ?? 1;
     const stalks = stage;
     g.lineStyle(1, 0xe4cf77, 0.9);
     for (let i = 0; i < stalks; i += 1) {
@@ -420,43 +427,29 @@ export class MainScene extends Phaser.Scene {
     const g = this.mapGraphics;
     g.clear();
     this.mapLabels.removeAll(true);
+
+    const resourceByPosition = new Map(
+      this.world.naturalResources
+        .filter((resource) => !resource.depleted)
+        .map((resource) => [key(resource.position), resource]),
+    );
+
     for (const tile of this.world.tiles) {
       const { x, y } = pixel(tile);
       const points = this.hexPoints(tile);
       g.fillStyle(colors[tile.terrain]);
       g.fillPoints(points, true);
-      g.lineStyle(1, 0x20392c, 0.38);
-      g.strokePoints(points, true);
+
       if (this.selectedTile && same(tile, this.selectedTile)) {
-        g.lineStyle(2, 0xf4e5a4, 0.95);
+        g.lineStyle(1.5, 0xf4e5a4, 0.95);
         g.strokePoints(points, true);
       }
-      if (tile.terrain === "mountain") {
-        g.fillStyle(0xb4bab0);
-        g.fillTriangle(x - 6, y + 5, x, y - 6, x + 6, y + 5);
-      }
-      if (tile.terrain === "river") {
-        g.lineStyle(1, 0xafd3d3, 0.6);
-        g.lineBetween(x - 6, y + 1, x + 6, y - 1);
-      }
-      if (tile.terrain === "grass") {
-        g.lineStyle(1, 0x93a76e, 0.3);
-        g.lineBetween(x - 2, y + 2, x - 3, y - 2);
-      }
-      if (tile.terrain === "forest") {
-        const forest = this.world.naturalResources.find(
-          (resource) => resource.kind === "forest" && !resource.depleted && same(resource.position, tile),
-        );
-        const alpha = forest
-          ? Math.max(MIN_FOREST_ALPHA, forest.remaining / CONFIG.forestYield)
-          : 1;
-        this.drawTree(g, x - 3, y + 1, alpha);
-        this.drawTree(g, x + 3, y - 1, alpha);
-      }
-      const resource = this.world.naturalResources.find(
-        (candidate) => !candidate.depleted && candidate.kind !== "forest" && same(candidate.position, tile),
-      );
-      if (resource?.kind === "clay") {
+
+      const resource = resourceByPosition.get(key(tile));
+      if (resource?.kind === "forest") {
+        const alpha = Math.max(MIN_FOREST_ALPHA, resource.remaining / CONFIG.forestYield);
+        this.drawTree(g, x, y, alpha);
+      } else if (resource?.kind === "clay") {
         g.fillStyle(0x9b6a4d, 0.95);
         g.fillCircle(x - 3, y + 1, 4);
         g.fillCircle(x + 3, y + 2, 3);
@@ -490,7 +483,7 @@ export class MainScene extends Phaser.Scene {
       }
       if (b.id === this.selectedBuildingId) {
         for (const occupied of buildingFootprint(b)) {
-          g.lineStyle(2, 0xf4e5a4, 0.95);
+          g.lineStyle(1, 0xf4e5a4, 0.95);
           g.strokePoints(this.hexPoints(occupied), true);
         }
       }
@@ -526,47 +519,28 @@ export class MainScene extends Phaser.Scene {
     this.targetModeHighlights.removeAll(true);
     if (!this.merchantTargetSourceId && !this.buildKind) return;
 
-    const xs = this.world.tiles.map((tile) => pixel(tile).x);
-    const ys = this.world.tiles.map((tile) => pixel(tile).y);
-    const minX = Math.min(...xs) - HEX_RADIUS * 2;
-    const maxX = Math.max(...xs) + HEX_RADIUS * 2;
-    const minY = Math.min(...ys) - HEX_RADIUS * 2;
-    const maxY = Math.max(...ys) + HEX_RADIUS * 2;
+    const bounds = this.worldBounds();
     this.targetModeOverlay.fillStyle(0x102018, TARGET_MODE_DIM_ALPHA);
-    this.targetModeOverlay.fillRect(minX, minY, maxX - minX, maxY - minY);
+    this.targetModeOverlay.fillRect(
+      bounds.minX,
+      bounds.minY,
+      bounds.maxX - bounds.minX,
+      bounds.maxY - bounds.minY,
+    );
 
     const highlights = this.add.graphics();
     this.targetModeHighlights.add(highlights);
 
     if (this.buildKind) {
-      const validAnchors = validBuildingAnchors(this.world, this.buildKind);
-      const validAnchorKeys = new Set(validAnchors.map(key));
-      for (const anchorPosition of validAnchors) {
-        const tile = this.world.tiles.find((candidate) => same(candidate, anchorPosition));
-        if (!tile) continue;
-        const points = this.hexPoints(anchorPosition);
-        highlights.fillStyle(colors[tile.terrain], 1);
-        highlights.fillPoints(points, true);
-        highlights.lineStyle(1, 0x20392c, 0.38);
-        highlights.strokePoints(points, true);
-        if (tile.terrain === "grass") {
-          const { x, y } = pixel(tile);
-          highlights.lineStyle(1, 0x93a76e, 0.3);
-          highlights.lineBetween(x - 2, y + 2, x - 3, y - 2);
-        }
-      }
-
       if (!this.buildHover) return;
-      const valid = validAnchorKeys.has(key(this.buildHover));
+      const valid = canPlaceBuilding(this.world, this.buildHover, this.buildKind);
       const footprint = footprintAt(this.buildKind, this.buildHover);
       for (const position of footprint) {
         highlights.fillStyle(valid ? 0xb8e69f : 0xe18b7d, 0.48);
         highlights.fillPoints(this.hexPoints(position), true);
-        highlights.lineStyle(2, valid ? 0xdfffcf : 0xffb0a5, 1);
-        highlights.strokePoints(this.hexPoints(position), true);
       }
       for (const position of footprintRing(footprint)) {
-        highlights.lineStyle(1, valid ? 0xf8e8aa : 0xe18b7d, 0.65);
+        highlights.lineStyle(0.75, valid ? 0xf8e8aa : 0xe18b7d, 0.5);
         highlights.strokePoints(this.hexPoints(position), true);
       }
       const anchor = pixel(this.buildHover);
@@ -593,8 +567,6 @@ export class MainScene extends Phaser.Scene {
       for (const occupied of buildingFootprint(warehouse)) {
         highlights.fillStyle(0xf5e8b8, 0.18);
         highlights.fillPoints(this.hexPoints(occupied), true);
-        highlights.lineStyle(2, 0xfff1a8, 1);
-        highlights.strokePoints(this.hexPoints(occupied), true);
       }
       const { x, y } = pixel(warehouse.position);
       this.targetModeHighlights.add(this.add.text(x, y - 7, "LAGER", {
@@ -670,27 +642,27 @@ export class MainScene extends Phaser.Scene {
         : p.assignment?.role === "worker" || p.woodcutter
           ? 0x234636
           : 0x8b512e;
-      const dot = this.add.circle(x, y, 4, color).setStrokeStyle(1, 0xffffff);
+      const dot = this.add.circle(x, y, 5, color).setStrokeStyle(1, 0xffffff);
       const label = this.add.text(x, y - 1, this.personMarker(p), {
         fontFamily: "system-ui",
-        fontSize: "7px",
+        fontSize: "8px",
         color: "#ffffff",
       }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
-      const idLabel = this.add.text(x + 4, y + 3, String(p.id), {
+      const idLabel = this.add.text(x + 5, y + 4, String(p.id), {
         fontFamily: "system-ui",
-        fontSize: "4px",
+        fontSize: "5px",
         color: "#ffffff",
         backgroundColor: "#263c2d",
       }).setResolution(TEXT_RESOLUTION).setOrigin(0, 0.5);
       this.markers.add([dot, label, idLabel]);
       if (p.trip?.picked)
         this.markers.add(this.add.text(
-          x + 3,
-          y - 6,
+          x + 4,
+          y - 7,
           GOOD_ICONS[p.trip.good],
           {
             fontFamily: "system-ui",
-            fontSize: "6px",
+            fontSize: "7px",
             color: "#fff2a3",
             backgroundColor: "#263c2d",
           },

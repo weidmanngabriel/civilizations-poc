@@ -6,10 +6,11 @@ import type {
   PlaceableBuildingKind,
   World,
 } from "./model";
-import { key, neighbors, same } from "./hex";
+import { key, neighbors, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 import { buildAt, removeBuilding } from "./simulation";
 import { isBuildingUnlocked } from "./technology";
+import { GRID_REFINEMENT, refinedCellCluster } from "./spatial";
 
 export type BuildingPlacementShape = {
   cells: Hex[];
@@ -43,13 +44,20 @@ export const CONSTRUCTION_PLANS: Record<PlaceableBuildingKind, ConstructionPlan>
   stonemason: constructionPlan({ wood: 4 }),
 };
 
+const refineCoarseShape = (coarseCells: Hex[]): Hex[] => {
+  const cells = new Map<string, Hex>();
+  for (const coarseCell of coarseCells)
+    for (const refined of refinedCellCluster(coarseCell)) cells.set(key(refined), refined);
+  return [...cells.values()];
+};
+
 const COMPACT_SHAPE: BuildingPlacementShape = {
-  cells: [
+  cells: refineCoarseShape([
     { q: 0, r: 0 },
     { q: 1, r: 0 },
     { q: 0, r: 1 },
     { q: 1, r: 1 },
-  ],
+  ]),
   anchor: { q: 0, r: 0 },
 };
 
@@ -58,14 +66,14 @@ const SHAPES: Record<PlaceableBuildingKind, BuildingPlacementShape> = {
   house: COMPACT_SHAPE,
   farm: COMPACT_SHAPE,
   sawmill: {
-    cells: [
+    cells: refineCoarseShape([
       { q: 0, r: 0 },
       { q: 1, r: 0 },
       { q: 2, r: 0 },
       { q: 0, r: 1 },
       { q: 1, r: 1 },
       { q: 2, r: 1 },
-    ],
+    ]),
     anchor: { q: 0, r: 0 },
   },
   carpenter: COMPACT_SHAPE,
@@ -88,35 +96,60 @@ export const footprintAt = (kind: PlaceableBuildingKind, anchorPosition: Hex): H
 export const buildingFootprint = (building: Building): Hex[] =>
   building.footprint?.map((position) => ({ ...position })) ?? [{ ...building.position }];
 
-export const footprintRing = (footprint: Hex[]): Hex[] => {
+const ringAround = (footprint: Hex[]): Hex[] => {
   const occupied = new Set(footprint.map(key));
-  const ring = new Map<string, Hex>();
-  for (const position of footprint)
-    for (const neighbor of neighbors(position))
-      if (!occupied.has(key(neighbor))) ring.set(key(neighbor), neighbor);
-  return [...ring.values()];
+  const visited = new Map<string, Hex>();
+  let frontier = footprint.map((position) => ({ ...position }));
+
+  for (let distance = 0; distance < GRID_REFINEMENT; distance += 1) {
+    const next = new Map<string, Hex>();
+    for (const position of frontier)
+      for (const neighbor of neighbors(position)) {
+        const neighborKey = key(neighbor);
+        if (occupied.has(neighborKey) || visited.has(neighborKey)) continue;
+        visited.set(neighborKey, neighbor);
+        next.set(neighborKey, neighbor);
+      }
+    frontier = [...next.values()];
+  }
+  return [...visited.values()];
 };
 
+/** Preserve the former one-tile physical clearance at fine-grid scale. */
+export const footprintRing = (footprint: Hex[]): Hex[] => ringAround(footprint);
+
+const SHAPE_RINGS: Record<PlaceableBuildingKind, Hex[]> = Object.fromEntries(
+  (Object.keys(SHAPES) as PlaceableBuildingKind[]).map((kind) => [kind, ringAround(SHAPES[kind].cells)]),
+) as Record<PlaceableBuildingKind, Hex[]>;
+
+const clearanceAt = (kind: PlaceableBuildingKind, anchorPosition: Hex): Hex[] =>
+  SHAPE_RINGS[kind].map((cell) => ({
+    q: anchorPosition.q + cell.q - SHAPES[kind].anchor.q,
+    r: anchorPosition.r + cell.r - SHAPES[kind].anchor.r,
+  }));
+
 type PlacementLookup = {
-  freeTiles: Set<string>;
+  tiles: ReturnType<typeof tileIndex>;
+  occupiedResources: Set<string>;
   people: Set<string>;
 };
 
-const createPlacementLookup = (world: World): PlacementLookup => {
-  const occupiedResources = new Set(
+const createPlacementLookup = (world: World): PlacementLookup => ({
+  tiles: tileIndex(world.tiles),
+  occupiedResources: new Set(
     world.naturalResources.filter((resource) => !resource.depleted).map((resource) => key(resource.position)),
+  ),
+  people: new Set(world.people.map((person) => key(person.position))),
+});
+
+const freePlacementTile = (lookup: PlacementLookup, position: Hex): boolean => {
+  const positionKey = key(position);
+  const tile = lookup.tiles.get(positionKey);
+  return Boolean(
+    tile &&
+    (tile.terrain === "grass" || tile.terrain === "road") &&
+    !lookup.occupiedResources.has(positionKey),
   );
-  return {
-    freeTiles: new Set(
-      world.tiles
-        .filter((tile) =>
-          (tile.terrain === "grass" || tile.terrain === "road") &&
-          !occupiedResources.has(key(tile)),
-        )
-        .map(key),
-    ),
-    people: new Set(world.people.map((person) => key(person.position))),
-  };
 };
 
 const canPlaceWithLookup = (
@@ -125,9 +158,8 @@ const canPlaceWithLookup = (
   kind: PlaceableBuildingKind,
 ): boolean => {
   const footprint = footprintAt(kind, anchorPosition);
-  const ring = footprintRing(footprint);
-  if (!footprint.every((position) => lookup.freeTiles.has(key(position)))) return false;
-  if (!ring.every((position) => lookup.freeTiles.has(key(position)))) return false;
+  if (!footprint.every((position) => freePlacementTile(lookup, position))) return false;
+  if (!clearanceAt(kind, anchorPosition).every((position) => freePlacementTile(lookup, position))) return false;
   return !footprint.some((position) => lookup.people.has(key(position)));
 };
 
@@ -188,8 +220,9 @@ export function buildWithFootprint(
   };
   created.footprint = footprint.map((position) => ({ ...position }));
   created.baseTerrains = baseTerrains;
+  const tiles = tileIndex(world.tiles);
   for (const position of footprint) {
-    const tile = world.tiles.find((candidate) => same(candidate, position))!;
+    const tile = tiles.get(key(position))!;
     tile.bush = undefined;
     tile.bushAvailable = undefined;
     tile.bushRegrowTick = undefined;
@@ -206,8 +239,9 @@ export function removeBuildingWithFootprint(world: World, id: string): boolean {
   const baseTerrains = existing.baseTerrains;
   if (!removeBuilding(world, id)) return false;
 
+  const tiles = tileIndex(world.tiles);
   for (const position of footprint) {
-    const tile = world.tiles.find((candidate) => same(candidate, position));
+    const tile = tiles.get(key(position));
     if (!tile) continue;
     tile.terrain = baseTerrains?.[key(position)] ?? "grass";
     tile.trafficTicks = undefined;

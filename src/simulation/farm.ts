@@ -1,16 +1,11 @@
 import type { Building, Hex, Person, Tile, World } from "./model";
-import { findPath, key, same } from "./hex";
+import { findPath, key, neighbors, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
+import { refinedCellCluster } from "./spatial";
 import {
   gainProfessionExperience,
   productionMultiplier,
 } from "./experience";
-
-const hexDistance = (a: Hex, b: Hex): number => {
-  const dq = a.q - b.q;
-  const dr = a.r - b.r;
-  return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
-};
 
 const randomIndex = (w: World, length: number): number => {
   w.rngState = (Math.imul(w.rngState, 1664525) + 1013904223) >>> 0;
@@ -24,28 +19,67 @@ const farmFields = (w: World, farmId: string): Building[] =>
 
 const farmFootprint = (farm: Building): Hex[] => farm.footprint ?? [farm.position];
 
+const fieldFootprintAt = (target: Hex): Hex[] =>
+  refinedCellCluster({ q: 0, r: 0 }).map((offset) => ({
+    q: target.q + offset.q,
+    r: target.r + offset.r,
+  }));
+
 const routeTo = (w: World, p: Person, target: Hex): Hex[] | null =>
   findPath(w.tiles, p.position, target, CONFIG.roadSpeedMultiplier);
 
 const tileAt = (w: World, position: Hex): Tile | undefined =>
-  w.tiles.find((tile) => same(tile, position));
+  tileIndex(w.tiles).get(key(position));
+
+/** Exact set of cells within the configured step radius of any farm footprint cell. */
+const farmAreaPositions = (farm: Building): Hex[] => {
+  const visited = new Map<string, Hex>();
+  let frontier = farmFootprint(farm).map((position) => ({ ...position }));
+  for (const position of frontier) visited.set(key(position), position);
+
+  for (let distance = 0; distance < CONFIG.farmFieldRadius; distance += 1) {
+    const next = new Map<string, Hex>();
+    for (const position of frontier)
+      for (const neighbor of neighbors(position)) {
+        const neighborKey = key(neighbor);
+        if (visited.has(neighborKey)) continue;
+        visited.set(neighborKey, neighbor);
+        next.set(neighborKey, neighbor);
+      }
+    frontier = [...next.values()];
+  }
+  return [...visited.values()];
+};
+
+const fieldAreaIsFree = (
+  w: World,
+  target: Hex,
+  reserved: Set<string>,
+  occupiedByPeople: Set<string>,
+): boolean => {
+  const tiles = tileIndex(w.tiles);
+  return fieldFootprintAt(target).every((position) => {
+    const positionKey = key(position);
+    return (
+      tiles.get(positionKey)?.terrain === "grass" &&
+      !reserved.has(positionKey) &&
+      !occupiedByPeople.has(positionKey)
+    );
+  });
+};
 
 const sowCandidates = (w: World, farm: Building, p: Person): { tile: Tile; path: Hex[] }[] => {
-  const reserved = new Set(
-    w.people
-      .filter((person) => person.id !== p.id && person.farmTask?.kind === "sow")
-      .map((person) => key(person.farmTask!.target)),
-  );
+  const reserved = new Set<string>();
+  for (const person of w.people) {
+    if (person.id === p.id || person.farmTask?.kind !== "sow") continue;
+    for (const position of fieldFootprintAt(person.farmTask.target)) reserved.add(key(position));
+  }
   const occupiedByPeople = new Set(w.people.map((person) => key(person.position)));
-  return w.tiles
-    .filter(
-      (tile) =>
-        tile.terrain === "grass" &&
-        !reserved.has(key(tile)) &&
-        !occupiedByPeople.has(key(tile)) &&
-        Math.min(...farmFootprint(farm).map((position) => hexDistance(tile, position))) <=
-          CONFIG.farmFieldRadius,
-    )
+  const tiles = tileIndex(w.tiles);
+  return farmAreaPositions(farm)
+    .map((position) => tiles.get(key(position)))
+    .filter((tile): tile is Tile => Boolean(tile?.terrain === "grass"))
+    .filter((tile) => fieldAreaIsFree(w, tile, reserved, occupiedByPeople))
     .map((tile) => {
       const path = routeTo(w, p, tile);
       return path ? { tile, path } : undefined;
@@ -144,14 +178,16 @@ export function planFarmWorker(w: World, p: Person, farm: Building): boolean {
 }
 
 const createField = (w: World, farm: Building, target: Hex): boolean => {
-  const tile = tileAt(w, target);
-  if (!tile || tile.terrain !== "grass") return false;
+  const footprint = fieldFootprintAt(target);
+  const tiles = tileIndex(w.tiles);
+  if (!footprint.every((position) => tiles.get(key(position))?.terrain === "grass")) return false;
   const number = w.nextFieldId++;
   w.buildings.push({
     id: `field-${number}`,
     kind: "field",
     name: `Acker ${number}`,
     position: { ...target },
+    footprint: footprint.map((position) => ({ ...position })),
     workers: 0,
     carriers: 0,
     input: 0,
@@ -161,18 +197,27 @@ const createField = (w: World, farm: Building, target: Hex): boolean => {
     fieldGrowthProgress: 0,
     recipe: { amount: 0, output: "wheat", duration: CONFIG.fieldStageDurationTicks },
   });
-  tile.terrain = "field";
-  tile.trafficTicks = undefined;
+  for (const position of footprint) {
+    const tile = tiles.get(key(position))!;
+    tile.terrain = "field";
+    tile.trafficTicks = undefined;
+    tile.bush = undefined;
+    tile.bushAvailable = undefined;
+    tile.bushRegrowTick = undefined;
+  }
   return true;
 };
 
 const harvestField = (w: World, field: Building): void => {
   field.retired = true;
   field.fieldGrowthProgress = 0;
-  const tile = tileAt(w, field.position);
-  if (tile) {
-    tile.terrain = "grass";
-    tile.trafficTicks = undefined;
+  const tiles = tileIndex(w.tiles);
+  for (const position of field.footprint ?? [field.position]) {
+    const tile = tiles.get(key(position));
+    if (tile?.terrain === "field") {
+      tile.terrain = "grass";
+      tile.trafficTicks = undefined;
+    }
   }
 };
 
@@ -233,7 +278,7 @@ export function advanceFarmSystem(w: World): number[] {
       continue;
     }
 
-    if (task.kind === "sow" && tileAt(w, task.target)?.terrain !== "grass") {
+    if (task.kind === "sow" && !fieldFootprintAt(task.target).every((position) => tileAt(w, position)?.terrain === "grass")) {
       p.farmTask = undefined;
       p.progress = 0;
       immediate.add(p.id);
@@ -299,14 +344,17 @@ export function clearFarmTask(p: Person): void {
 
 export function removeActiveFarmFields(w: World, farmId: string): void {
   const removedIds = new Set<string>();
+  const tiles = tileIndex(w.tiles);
   for (const field of w.buildings.filter(
     (b) => b.kind === "field" && b.farmId === farmId && !b.retired,
   )) {
     removedIds.add(field.id);
-    const tile = tileAt(w, field.position);
-    if (tile?.terrain === "field") {
-      tile.terrain = "grass";
-      tile.trafficTicks = undefined;
+    for (const position of field.footprint ?? [field.position]) {
+      const tile = tiles.get(key(position));
+      if (tile?.terrain === "field") {
+        tile.terrain = "grass";
+        tile.trafficTicks = undefined;
+      }
     }
   }
   if (!removedIds.size) return;
