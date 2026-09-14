@@ -15,6 +15,7 @@ import {
   awardProfessionExperience,
   workerProfession,
 } from "./experience";
+import { updateTechnologyUnlocks } from "./technology";
 import { tick as coreTick } from "./simulationCore";
 
 type PersonBeforeTick = {
@@ -228,4 +229,5 @@ export function tick(world: World): void {
     resourcesBefore,
     buildingIdsBefore,
   );
+  updateTechnologyUnlocks(world);
 }
