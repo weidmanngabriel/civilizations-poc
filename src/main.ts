@@ -17,6 +17,7 @@ import { mountHandbook } from "./ui/handbook";
 import { installHqStoragePanel } from "./ui/hqStoragePanel";
 import { mountPersonPanel } from "./ui/personPanel";
 import { installPerformanceDebugPanel } from "./ui/performanceDebug";
+import { mountTechnologyTree } from "./ui/technologyTree";
 import "./style.css";
 import "./map-interaction.css";
 import "./build-placement.css";
@@ -24,6 +25,7 @@ import "./build-menu.css";
 import "./handbook.css";
 import "./person-panel.css";
 import "./performance-debug.css";
+import "./technology-tree.css";
 
 const preventPageZoom = (): void => {
   document.addEventListener(
@@ -93,6 +95,7 @@ installHqStoragePanel(world);
 mountBuildMenu(world);
 mountHandbook();
 mountPersonPanel(world);
+mountTechnologyTree();
 showBuildVersion();
 
 const game = new Phaser.Game({

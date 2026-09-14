@@ -225,11 +225,13 @@ Because hunger and sleep target validation is event-driven, their pathfinding co
 
 ## UI and mobile
 
-The DOM UI owns simulation speed controls, building dialogs, build mode, merchant target mode, handbook, person browser/inspector and debug output. The map remains fullscreen.
+The DOM UI owns simulation speed controls, building dialogs, build mode, merchant target mode, handbook, person browser/inspector, technology tree and debug output. The map remains fullscreen.
 
 The in-app handbook is presentation-only. `src/handbook/*.md` contains the player-facing source text. `src/ui/handbook.ts` imports these files as raw Markdown, renders the intentionally small supported subset (headings, paragraphs, lists and bold text) and owns page navigation/open/close behavior. `src/handbook.css` provides the responsive desktop/mobile layout. The handbook does not mutate authoritative simulation state.
 
-The left menu contains handbook, people and build entry points. On desktop the handbook is a centered modal with page navigation; on mobile it fills the viewport and uses horizontally scrollable page tabs.
+The technology tree is also presentation-only. `src/ui/technologyTree.ts` owns its static node/edge dataset and the overlay interaction; `src/technology-tree.css` owns its responsive presentation. The tree does not yet drive unlocks or read simulation progression. It uses a transformed DOM/SVG canvas so desktop wheel zoom, pointer drag, one-finger touch pan and two-finger pinch zoom stay independent from Phaser's map camera.
+
+The left menu contains handbook, people, build and technology entry points. On desktop the handbook is a centered modal with page navigation; on mobile it fills the viewport and uses horizontally scrollable page tabs. The technology tree fills the viewport on both desktop and mobile and provides close, zoom-in, zoom-out and fit/reset controls.
 
 Reference mobile behavior:
 
@@ -240,7 +242,8 @@ Reference mobile behavior:
 - build ghost selected by short tap and confirmed only by the DOM build button,
 - a short tap near a person selects the nearest person marker; movement beyond the existing tap threshold remains map panning,
 - person-list profession filters scroll horizontally without vertical bounce,
-- the person inspector is a bottom sheet on small screens.
+- the person inspector is a bottom sheet on small screens,
+- technology tree: one finger pans, two fingers pinch-zoom, and browser page zoom remains suppressed.
 
 ## Offline PWA and updates
 
