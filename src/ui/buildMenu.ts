@@ -1,6 +1,8 @@
 import type { Good, PlaceableBuildingKind, World } from "../simulation/model";
 import { CONSTRUCTION_PLANS } from "../simulation/buildingPlacement";
 import { GOODS } from "../simulation/simulation";
+import { PROFESSION_LABELS } from "../simulation/experience";
+import { isBuildingUnlocked, technologyProgress } from "../simulation/technology";
 import { GOOD_ICONS, buildingIcon } from "../icons";
 
 const TILE_SELECTED_EVENT = "poc-tile-selected";
@@ -65,6 +67,7 @@ export function mountBuildMenu(world: World): void {
                 <span class="build-menu-building-icon" aria-hidden="true">${buildingIcon(kind)}</span>
                 <span class="build-menu-building-copy">
                   <strong>${BUILDING_NAMES[kind]}</strong>
+                  <span class="build-menu-tech-status" data-build-status="${kind}"></span>
                   <span class="build-menu-cost">${constructionCost(kind)}</span>
                 </span>
               </button>`,
@@ -79,7 +82,26 @@ export function mountBuildMenu(world: World): void {
   const panel = menu.querySelector<HTMLElement>("#build-menu-panel")!;
   const close = menu.querySelector<HTMLButtonElement>("#build-menu-close")!;
 
+  const refreshAvailability = (): void => {
+    for (const button of menu.querySelectorAll<HTMLButtonElement>("button[data-build-kind]")) {
+      const kind = button.dataset.buildKind as PlaceableBuildingKind;
+      const unlocked = isBuildingUnlocked(world, kind);
+      const progress = technologyProgress(world, kind);
+      button.disabled = !unlocked;
+      button.classList.toggle("locked", !unlocked);
+      const status = menu.querySelector<HTMLElement>(`[data-build-status="${kind}"]`);
+      if (!status) continue;
+      if (unlocked) {
+        status.textContent = "✓ Freigeschaltet";
+        continue;
+      }
+      const profession = progress.profession ? PROFESSION_LABELS[progress.profession] : "Technologie";
+      status.textContent = `🔒 ${profession}: ${progress.current}/${progress.required} XP`;
+    }
+  };
+
   const setOpen = (open: boolean): void => {
+    if (open) refreshAvailability();
     panel.hidden = !open;
     toggle.setAttribute("aria-expanded", String(open));
     toggle.classList.toggle("active", open);
@@ -90,8 +112,9 @@ export function mountBuildMenu(world: World): void {
 
   menu.addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-build-kind]");
-    if (!button) return;
+    if (!button || button.disabled) return;
     const kind = button.dataset.buildKind as PlaceableBuildingKind;
+    if (!isBuildingUnlocked(world, kind)) return;
     const launcherTile = world.tiles.find((tile) => tile.terrain === "grass" || tile.terrain === "road");
     if (!launcherTile) return;
 
@@ -123,7 +146,12 @@ export function mountBuildMenu(world: World): void {
     setOpen(false);
   });
 
+  window.setInterval(() => {
+    if (!panel.hidden) refreshAvailability();
+  }, 250);
+
   window.addEventListener(BUILD_MODE_EVENT, () => setOpen(false));
   window.addEventListener(BUILDING_SELECTED_EVENT, () => setOpen(false));
   window.addEventListener(MERCHANT_TARGET_MODE_EVENT, () => setOpen(false));
+  refreshAvailability();
 }
