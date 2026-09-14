@@ -2,6 +2,9 @@ name: Phase A branch check
 on:
   push:
     branches: [agent/phase-a-spatial-rework]
+concurrency:
+  group: phase-a-spatial-rework
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
