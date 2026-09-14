@@ -112,10 +112,13 @@
   transition: filter 120ms ease, opacity 120ms ease, border-color 120ms ease;
 }
 
+.build-menu-item[hidden] {
+  display: none;
+}
+
 .build-menu-item.locked,
 .build-menu-item:disabled {
   opacity: 0.58;
-  filter: saturate(0.25) brightness(0.8) blur(0.15px);
   cursor: not-allowed;
 }
 
