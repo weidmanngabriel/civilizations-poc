@@ -1,9 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createWorld, CONFIG } from "../src/simulation/scenario";
+import { findPathBySteps } from "../src/simulation/hex";
+import { canPlaceBuilding } from "../src/simulation/buildingPlacement";
 import { assigned, buildAt, changeAssignment, tick, warehouseStock } from "../src/simulation/simulation";
 import { activeFarmFieldCount } from "../src/simulation/farm";
-import type { Building, World } from "../src/simulation/model";
+import type { Building, BuildableBuildingKind, Hex, World } from "../src/simulation/model";
 
 const rounds = (w: World, count: number) => {
   for (let i = 0; i < count; i++) tick(w);
@@ -15,8 +17,33 @@ const distance = (a: { q: number; r: number }, b: { q: number; r: number }) => {
   return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
 };
 
+const validBuildPosition = (
+  w: World,
+  kind: BuildableBuildingKind,
+  origin?: Hex,
+  predicate: (pathLength: number) => boolean = () => true,
+): Hex => {
+  for (const tile of w.tiles) {
+    if (!canPlaceBuilding(w, tile, kind)) continue;
+    if (!origin) return { q: tile.q, r: tile.r };
+    const path = findPathBySteps(w.tiles, origin, tile);
+    if (path && predicate(path.length)) return { q: tile.q, r: tile.r };
+  }
+  assert.fail(`expected valid ${kind} position`);
+};
+
+const nearbyGrass = (w: World, origin: Hex): Hex => {
+  const tile = w.tiles.find(
+    (candidate) =>
+      candidate.terrain === "grass" &&
+      distance(candidate, origin) <= CONFIG.farmFieldRadius,
+  );
+  assert.ok(tile);
+  return { q: tile.q, r: tile.r };
+};
+
 const finishedFarm = (w: World) => {
-  const farm = buildAt(w, { q: 10, r: 10 }, "farm")!;
+  const farm = buildAt(w, validBuildPosition(w, "farm"), "farm")!;
   assert.ok(farm);
   changeAssignment(w, farm.id, "worker", 1);
   const farmer = assigned(w, farm.id, "worker")[0]!;
@@ -81,7 +108,7 @@ test("fertilizing reduces the remaining time to the next stage to one third", ()
   const field = addField(
     w,
     farm,
-    { q: farm.position.q + 1, r: farm.position.r },
+    nearbyGrass(w, farm.position),
     1,
     CONFIG.fieldStageDurationTicks / 2,
   );
@@ -104,7 +131,7 @@ test("fertilizing reduces the remaining time to the next stage to one third", ()
 test("harvest takes ten seconds and farmer carries one physical wheat back to the farm", () => {
   const w = createWorld();
   const { farm, farmer } = finishedFarm(w);
-  const field = addField(w, farm, { q: farm.position.q + 1, r: farm.position.r }, 4);
+  const field = addField(w, farm, nearbyGrass(w, farm.position), 4);
   farmer.position = { ...field.position };
   farmer.path = [];
   farmer.farmTask = {
@@ -135,8 +162,17 @@ test("harvest takes ten seconds and farmer carries one physical wheat back to th
 
 test("warehouse carriers collect one whole wheat from fractional farm output", () => {
   const w = createWorld();
-  const farm = buildAt(w, { q: 10, r: 10 }, "farm")!;
-  const warehouse = buildAt(w, { q: 9, r: 10 }, "warehouse")!;
+  const farm = buildAt(w, validBuildPosition(w, "farm"), "farm")!;
+  const warehouse = buildAt(
+    w,
+    validBuildPosition(
+      w,
+      "warehouse",
+      farm.position,
+      (length) => length <= CONFIG.warehouseCollectionRadius,
+    ),
+    "warehouse",
+  )!;
   assert.ok(farm && warehouse);
   farm.output = 1.7;
   changeAssignment(w, warehouse.id, "carrier", 1);
@@ -153,7 +189,7 @@ test("warehouse carriers collect one whole wheat from fractional farm output", (
 test("farmer waits to harvest while farm output is full", () => {
   const w = createWorld();
   const { farm, farmer } = finishedFarm(w);
-  addField(w, farm, { q: farm.position.q + 1, r: farm.position.r }, 4);
+  addField(w, farm, nearbyGrass(w, farm.position), 4);
   farm.output = CONFIG.outputCapacity;
   tick(w);
   assert.equal(farmer.farmTask, undefined);
