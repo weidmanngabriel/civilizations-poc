@@ -27,7 +27,7 @@ This split keeps the existing economy, logistics, pathfinding, needs integration
 
 ## Profession experience
 
-Experience remains persistent per person and profession from 0 to 100. The progression rule is now discrete:
+Experience remains persistent per person and profession from 0 to 100. The progression rule is discrete:
 
 ```text
 1 successfully completed professional action = +1 XP
@@ -47,6 +47,32 @@ Completion detection is profession-specific:
 Builders therefore keep transient per-profession action progress in `Person.experienceActionProgress`. That state is part of the simulation model so interruptions do not accidentally erase partial progress and save/load can preserve it later.
 
 Profession effects are unchanged: normal production and builders scale up to 2× contribution/output, while woodcutters, extractors, carriers and merchants scale movement/work speed up to 1.5× without increasing carry capacity or raw-resource yield per action.
+
+## Technology progression
+
+`src/simulation/technology.ts` is the single source of truth for current technology unlock rules. Each implemented rule is data describing a target building technology, its source profession and the XP threshold. The current threshold is 10 XP for all implemented rules, but the rule shape intentionally carries the threshold per entry so future professions or technologies can differ without new unlock code.
+
+The player-facing `World` stores permanent unlocks in `unlockedTechnologies`. `createDefaultGameWorld()` starts with only house, farm and well unlocked. Neutral `createWorld()` scenarios intentionally omit this field; absence means unrestricted sandbox/test behavior so low-level simulation tests do not need to reproduce player progression.
+
+After profession XP is awarded, the public `tick()` calls `updateTechnologyUnlocks()`. The function scans the configured rules, uses the highest XP held by any current person in the relevant profession, and appends newly satisfied technologies to the permanent world list. Once written, an unlock is never removed even if the person who triggered it later changes profession or leaves the world.
+
+Current rules are:
+
+```text
+carrier        10 XP -> warehouse
+woodcutter     10 XP -> sawmill
+sawmillWorker  10 XP -> carpenter
+farmer         10 XP -> mill
+miller         10 XP -> bakery
+clayDigger     10 XP -> pottery
+stonecutter    10 XP -> stonemason
+```
+
+`src/simulation/buildingPlacement.ts` enforces the same state in `canPlaceBuilding()`, `validBuildingAnchors()` and therefore `buildWithFootprint()`. Locked technologies expose no valid anchors and cannot be built even if another UI path attempts placement.
+
+`src/ui/buildMenu.ts` and `src/ui/technologyTree.ts` only present this simulation-owned state. The build menu disables locked building entries and shows their XP requirement. The technology tree reads live world state and distinguishes unlocked, progressing/locked, and not-yet-implemented nodes. UI refresh while those overlays are open is observational only and does not own progression.
+
+The historical statement in `architecture-detail.md` that the technology tree is presentation-only is superseded by this section.
 
 ## Existing architecture
 
@@ -70,6 +96,6 @@ All other current architecture remains as documented in [`architecture-detail.md
 
 ## Testing and deployment
 
-`npm test` remains the deterministic Node test suite and `npm run build` performs TypeScript checking plus the Vite production build. Experience regression coverage must verify that XP is granted only at action completion and never merely for elapsed movement or work ticks.
+`npm test` remains the deterministic Node test suite and `npm run build` performs TypeScript checking plus the Vite production build. Experience regression coverage must verify that XP is granted only at action completion and never merely for elapsed movement or work ticks. Technology regression coverage must verify the exact threshold, permanence of unlocks, correct initial player-facing state and placement rejection for locked buildings.
 
 The deploy workflow runs test, build and GitHub Pages deployment only from `main` (or manual workflow dispatch). Changes should therefore be developed on a temporary branch and squash-merged to `main` once validated, leaving one meaningful commit per adjustment.
