@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { performanceNow, performanceProfiler } from "./debug/performanceProfiler";
 import { IncrementalMainScene } from "./game/IncrementalMainScene";
+import { installBuildPlacementHighlights } from "./game/buildPlacementHighlights";
 import { installBushIndicators } from "./game/bushIndicators";
 import { installDesktopBuildPlacement } from "./game/desktopBuildPlacement";
 import { installHungerIndicators } from "./game/hungerIndicators";
@@ -89,6 +90,7 @@ scene.renderWorld = () => {
 };
 installBushIndicators(scene, world);
 installLooseGoodsIndicators(scene, world);
+installBuildPlacementHighlights(scene, world);
 installHungerIndicators(scene, world);
 installSleepIndicators(scene, world);
 installPersonSelection(scene, world);
