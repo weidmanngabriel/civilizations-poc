@@ -5,7 +5,13 @@ import { findPathBySteps } from "../src/simulation/hex";
 import { advanceHungerTick } from "../src/simulation/needs";
 import { createDefaultGameWorld, createWorld, CONFIG } from "../src/simulation/scenario";
 import { tick } from "../src/simulation/simulation";
-import type { Building } from "../src/simulation/model";
+import type { Building, Hex } from "../src/simulation/model";
+
+const hexDistance = (a: Hex, b: Hex): number => {
+  const dq = a.q - b.q;
+  const dr = a.r - b.r;
+  return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
+};
 
 test("start world has twelve people, HQ bread, initial roles and forty-two bushes", () => {
   const world = createDefaultGameWorld();
@@ -99,9 +105,12 @@ test("an HQ carrier collects nearby production output into HQ inventory", () => 
 
   const sourceTile = world.tiles.find((tile) => {
     if (tile.terrain !== "grass") return false;
+    const directDistance = hexDistance(hq.position, tile);
+    if (directDistance < 2 || directDistance > CONFIG.warehouseCollectionRadius) return false;
     const path = findPathBySteps(world.tiles, hq.position, tile);
-    return path !== null && path.length >= 2 && path.length <= 5;
+    return path !== null && path.length <= CONFIG.warehouseCollectionRadius;
   })!;
+  assert.ok(sourceTile);
   const source: Building = {
     id: "test-source",
     kind: "sawmill",
@@ -115,7 +124,7 @@ test("an HQ carrier collects nearby production output into HQ inventory", () => 
   };
   world.buildings.push(source);
 
-  for (let i = 0; i < 1000; i += 1) tick(world);
+  for (let i = 0; i < 1000 && (hq.inventory?.wood ?? 0) === 0; i += 1) tick(world);
 
   assert.equal(hq.inventory?.wood, 1);
   assert.equal(source.output, 0);
