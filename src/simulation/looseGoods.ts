@@ -4,18 +4,13 @@ import type { Good, Hex, LooseGoodStack, LooseGoodStackId, World } from "./model
 
 export const LOOSE_GOOD_STACK_CAPACITY = 3;
 
-type LooseGoodsState = {
-  stacks: LooseGoodStack[];
-  nextId: number;
-};
-
-const ensureState = (world: World): LooseGoodsState => {
+const ensureState = (world: World): LooseGoodStack[] => {
   world.looseGoods ??= [];
   world.nextLooseGoodId ??= 1;
-  return { stacks: world.looseGoods, nextId: world.nextLooseGoodId };
+  return world.looseGoods;
 };
 
-export const looseGoodStacks = (world: World): LooseGoodStack[] => ensureState(world).stacks;
+export const looseGoodStacks = (world: World): LooseGoodStack[] => ensureState(world);
 
 export const looseGoodStack = (
   world: World,
@@ -59,8 +54,10 @@ export const placeLooseGood = (
   if (amount > LOOSE_GOOD_STACK_CAPACITY || !canPlaceLooseGoodAt(world, position, good)) return undefined;
 
   ensureState(world);
+  const id = world.nextLooseGoodId!;
+  world.nextLooseGoodId = id + 1;
   const stack: LooseGoodStack = {
-    id: `ground-${world.nextLooseGoodId!++}`,
+    id: `ground-${id}`,
     position: { ...position },
     good,
     amount,
@@ -104,9 +101,8 @@ export const pickupReservedLooseGood = (
   if (!stack || stack.reserved < amount || stack.amount < amount) return false;
   stack.reserved -= amount;
   stack.amount -= amount;
-  if (stack.amount === 0) {
+  if (stack.amount === 0)
     world.looseGoods = looseGoodStacks(world).filter((candidate) => candidate.id !== id);
-  }
   return true;
 };
 
