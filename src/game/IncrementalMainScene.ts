@@ -5,15 +5,9 @@ import { key } from "../simulation/hex";
 import { personWorldPosition } from "../simulation/movement";
 import { CONFIG } from "../simulation/scenario";
 import { GOOD_ICONS } from "../icons";
+import { pixel } from "./mapGeometry";
 
 const TEXT_RESOLUTION = 3;
-const HEX_X = 24;
-const HEX_Y = 21;
-
-const pixel = (h: { q: number; r: number }) => ({
-  x: 34 + HEX_X * (h.q + h.r / 2),
-  y: 34 + h.r * HEX_Y,
-});
 
 const terrainCodes: Record<Tile["terrain"], number> = {
   grass: 1,
@@ -217,21 +211,21 @@ export class IncrementalMainScene extends MainScene {
   }
 
   private createPersonMarker(person: Person): PersonMarkerObjects {
-    const dot = this.add.circle(0, 0, 4, 0xdde5db).setStrokeStyle(1, 0xffffff);
+    const dot = this.add.circle(0, 0, 5, 0xdde5db).setStrokeStyle(1, 0xffffff);
     const label = this.add.text(0, 0, this.internals().personMarker(person), {
       fontFamily: "system-ui",
-      fontSize: "7px",
+      fontSize: "8px",
       color: "#ffffff",
     }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
     const idLabel = this.add.text(0, 0, String(person.id), {
       fontFamily: "system-ui",
-      fontSize: "4px",
+      fontSize: "5px",
       color: "#ffffff",
       backgroundColor: "#263c2d",
     }).setResolution(TEXT_RESOLUTION).setOrigin(0, 0.5);
     const cargo = this.add.text(0, 0, "", {
       fontFamily: "system-ui",
-      fontSize: "6px",
+      fontSize: "7px",
       color: "#fff2a3",
       backgroundColor: "#263c2d",
     }).setResolution(TEXT_RESOLUTION).setVisible(false);
@@ -275,10 +269,10 @@ export class IncrementalMainScene extends MainScene {
       marker.label.setPosition(x, y - 1);
       const personLabel = this.internals().personMarker(person);
       if (marker.label.text !== personLabel) marker.label.setText(personLabel);
-      marker.idLabel.setPosition(x + 4, y + 3);
+      marker.idLabel.setPosition(x + 5, y + 4);
 
       if (person.trip?.picked) {
-        marker.cargo.setPosition(x + 3, y - 6);
+        marker.cargo.setPosition(x + 4, y - 7);
         const cargoLabel = GOOD_ICONS[person.trip.good];
         if (marker.cargo.text !== cargoLabel) marker.cargo.setText(cargoLabel);
         marker.cargo.setVisible(true);
