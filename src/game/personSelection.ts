@@ -1,10 +1,9 @@
 import Phaser from "phaser";
-import type { Hex, Person, World } from "../simulation/model";
+import type { Person, World } from "../simulation/model";
 import { key } from "../simulation/hex";
 import { personWorldPosition } from "../simulation/movement";
+import { pixel } from "./mapGeometry";
 
-const HEX_X = 24;
-const HEX_Y = 21;
 const PERSON_HIT_RADIUS_PX = 30;
 const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
@@ -25,11 +24,6 @@ type SelectableScene = Phaser.Scene & {
 type ModeDetail = { active: boolean };
 type PersonSelectionDetail = { id: number; focus?: boolean };
 type MarkerPosition = { person: Person; x: number; y: number };
-
-const pixel = (h: Hex) => ({
-  x: 34 + HEX_X * (h.q + h.r / 2),
-  y: 34 + h.r * HEX_Y,
-});
 
 function markerPositions(world: World): MarkerPosition[] {
   const groups = new Map<string, number>();
@@ -136,7 +130,7 @@ export function installPersonSelection(scene: Phaser.Scene, world: World): void 
       }
       const zoom = scene.cameras.main.zoom;
       selectionRing.lineStyle(2 / zoom, 0xf3d36a, 1);
-      selectionRing.strokeCircle(marker.x, marker.y, 10 / zoom);
+      selectionRing.strokeCircle(marker.x, marker.y, 11 / zoom);
     };
 
     const onSelectionRequested = (event: Event): void => {
