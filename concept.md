@@ -261,9 +261,10 @@ Bedienung:
 - Desktop: Mausrad zoomt, Drag verschiebt den Baum.
 - Touch: ein Finger verschiebt, zwei Finger zoomen per Pinch.
 - Zusätzlich gibt es Plus, Minus, eine Fit-/Reset-Funktion und einen Schließen-Button.
+- Eine feste Legende erklärt Farben/Kategorien sowie direkte und indirekte Verbindungen und bleibt beim Zoomen lesbar.
 - Die Ansicht belegt den kompletten Bildschirm und bleibt unabhängig von der Phaser-Kamera der Karte.
 
-Der dargestellte Baum unterscheidet Grundberufe, Ressourcen-/Erfahrungsstufen, weiterführende Berufe, Gebäude und besondere Einrichtungen. Die Schule bleibt als Einrichtung sichtbar, ihre Lehrbeziehungen werden aus Gründen der Lesbarkeit bewusst nicht als einzelne Kanten gezeichnet. Zusätzlich zeigt die Übersicht einen kompakten Militärzweig vom Schmied über Waffenhütte und Kaserne bis zum Soldaten. Diese Darstellung ist weiterhin nur eine Übersicht und definiert noch keine echte Freischaltlogik.
+Der dargestellte Baum unterscheidet Grundberufe, Ressourcen-/Erfahrungsstufen, weiterführende Berufe, Gebäude und besondere Einrichtungen. Die Schule bleibt als Einrichtung sichtbar, ihre Lehrbeziehungen werden aus Gründen der Lesbarkeit bewusst nicht als einzelne Kanten gezeichnet. Der grundlegende Militärpfad ist von Beginn an sichtbar und lautet **Ungelernter Wikinger → Kaserne → Soldat**. Die Waffenhütte bleibt als separater fortgeschrittener Produktionszweig des Schmieds und ist keine Voraussetzung für die grundsätzliche Soldatenausbildung. Diese Darstellung ist weiterhin nur eine Übersicht und definiert noch keine echte Freischaltlogik.
 
 ## In-App-Handbuch
 
