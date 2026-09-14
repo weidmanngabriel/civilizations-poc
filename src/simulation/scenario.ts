@@ -1,6 +1,7 @@
 import type { Building, Hex, NaturalResource, Person, Tile, World } from "./model";
 import { attachNeeds } from "./needs";
 import { attachSleep } from "./sleep";
+import { STARTING_TECHNOLOGIES } from "./technology";
 
 export const CONFIG = {
   population: 12,
@@ -208,6 +209,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     nextBuildingId: 1,
     nextFieldId: 1,
     rngState: 0x1a2b3c4d,
+    ...(suppliedStart ? { unlockedTechnologies: [...STARTING_TECHNOLOGIES] } : {}),
     buildings,
     naturalResources,
     tiles,
