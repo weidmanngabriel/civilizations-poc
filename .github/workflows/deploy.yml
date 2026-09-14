@@ -1,7 +1,7 @@
 name: Test, build and deploy PoC
 on:
   push:
-    branches: [main, agent/technology-xp-unlocks-20260914]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
