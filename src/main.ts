@@ -69,8 +69,14 @@ const showBuildVersion = (): void => {
   versionLabel.textContent = `POC 01 · ${version}`;
 };
 
+const sampleAnimationFrames = (timestamp: number): void => {
+  performanceProfiler.recordAnimationFrame(timestamp);
+  window.requestAnimationFrame(sampleAnimationFrames);
+};
+
 preventPageZoom();
 installPwaSupport();
+window.requestAnimationFrame(sampleAnimationFrames);
 
 const world = createDefaultGameWorld();
 const scene = new IncrementalMainScene(world);
