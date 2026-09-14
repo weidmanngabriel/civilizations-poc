@@ -18,6 +18,12 @@ Bei Änderungen an Player-Facing-Funktionen muss zusätzlich geprüft werden, ob
 
 Die Dokumentation soll so gepflegt werden, dass ein fähiger Agent die bestehende App und ihre wichtigsten Produkt- und Architekturentscheidungen schnell verstehen und im Zweifel von Grund auf neu implementieren könnte. Es geht vor allem um eine belastbare Highlevel-Übersicht, nicht um jedes Detail.
 
+## Entwicklungsworkflow
+
+Änderungen werden **direkt auf `main`** committed, damit sie sofort über die bestehende GitHub-Action gebaut und auf GitHub Pages veröffentlicht werden und der aktuelle Stand live getestet werden kann. Keine temporären Entwicklungsbranches oder PR-Zwischenschritte verwenden, sofern der Nutzer nicht ausdrücklich etwas anderes verlangt.
+
+Nach Änderungen den Build-/Deploy-Status prüfen und konkrete Fehler direkt auf `main` nachbessern.
+
 ## Aktiver Umbauplan
 
 Für den geplanten Umbau auf ein feineres räumliches Raster und physische Ressourcen gilt zusätzlich [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md).
