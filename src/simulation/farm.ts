@@ -1,17 +1,11 @@
 import type { Building, Hex, Person, Tile, World } from "./model";
-import { findPath, key, same, tileIndex } from "./hex";
+import { findPath, key, neighbors, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 import { refinedCellCluster } from "./spatial";
 import {
   gainProfessionExperience,
   productionMultiplier,
 } from "./experience";
-
-const hexDistance = (a: Hex, b: Hex): number => {
-  const dq = a.q - b.q;
-  const dr = a.r - b.r;
-  return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
-};
 
 const randomIndex = (w: World, length: number): number => {
   w.rngState = (Math.imul(w.rngState, 1664525) + 1013904223) >>> 0;
@@ -37,6 +31,26 @@ const routeTo = (w: World, p: Person, target: Hex): Hex[] | null =>
 const tileAt = (w: World, position: Hex): Tile | undefined =>
   tileIndex(w.tiles).get(key(position));
 
+/** Exact set of cells within the configured step radius of any farm footprint cell. */
+const farmAreaPositions = (farm: Building): Hex[] => {
+  const visited = new Map<string, Hex>();
+  let frontier = farmFootprint(farm).map((position) => ({ ...position }));
+  for (const position of frontier) visited.set(key(position), position);
+
+  for (let distance = 0; distance < CONFIG.farmFieldRadius; distance += 1) {
+    const next = new Map<string, Hex>();
+    for (const position of frontier)
+      for (const neighbor of neighbors(position)) {
+        const neighborKey = key(neighbor);
+        if (visited.has(neighborKey)) continue;
+        visited.set(neighborKey, neighbor);
+        next.set(neighborKey, neighbor);
+      }
+    frontier = [...next.values()];
+  }
+  return [...visited.values()];
+};
+
 const fieldAreaIsFree = (
   w: World,
   target: Hex,
@@ -61,14 +75,11 @@ const sowCandidates = (w: World, farm: Building, p: Person): { tile: Tile; path:
     for (const position of fieldFootprintAt(person.farmTask.target)) reserved.add(key(position));
   }
   const occupiedByPeople = new Set(w.people.map((person) => key(person.position)));
-  return w.tiles
-    .filter(
-      (tile) =>
-        tile.terrain === "grass" &&
-        Math.min(...farmFootprint(farm).map((position) => hexDistance(tile, position))) <=
-          CONFIG.farmFieldRadius &&
-        fieldAreaIsFree(w, tile, reserved, occupiedByPeople),
-    )
+  const tiles = tileIndex(w.tiles);
+  return farmAreaPositions(farm)
+    .map((position) => tiles.get(key(position)))
+    .filter((tile): tile is Tile => Boolean(tile?.terrain === "grass"))
+    .filter((tile) => fieldAreaIsFree(w, tile, reserved, occupiedByPeople))
     .map((tile) => {
       const path = routeTo(w, p, tile);
       return path ? { tile, path } : undefined;
