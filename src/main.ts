@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { performanceNow, performanceProfiler } from "./debug/performanceProfiler";
 import { IncrementalMainScene } from "./game/IncrementalMainScene";
 import { installBushIndicators } from "./game/bushIndicators";
+import { installDesktopBuildPlacement } from "./game/desktopBuildPlacement";
 import { installHungerIndicators } from "./game/hungerIndicators";
 import { installPersonSelection } from "./game/personSelection";
 import { installSleepIndicators } from "./game/sleepIndicators";
@@ -18,6 +19,7 @@ import { installHqStoragePanel } from "./ui/hqStoragePanel";
 import { mountPersonPanel } from "./ui/personPanel";
 import { installPerformanceDebugPanel } from "./ui/performanceDebug";
 import { mountTechnologyTree } from "./ui/technologyTree";
+import { applyTechnologyTreeLayout } from "./ui/technologyTreeLayout";
 import "./style.css";
 import "./map-interaction.css";
 import "./build-placement.css";
@@ -96,6 +98,7 @@ mountBuildMenu(world);
 mountHandbook();
 mountPersonPanel(world);
 mountTechnologyTree(world);
+applyTechnologyTreeLayout();
 showBuildVersion();
 
 const game = new Phaser.Game({
@@ -113,8 +116,9 @@ const game = new Phaser.Game({
   render: { antialias: true },
 });
 
-// Install touch controls first so diagnostics can never block mobile map input.
+// Keep touch and desktop input adapters separate so neither interaction model regresses the other.
 installMobileMapTouchControls(game, scene);
+installDesktopBuildPlacement(game, scene);
 
 const profileAnimationFrame = (timestamp: number): void => {
   performanceProfiler.recordAnimationFrame(timestamp);
