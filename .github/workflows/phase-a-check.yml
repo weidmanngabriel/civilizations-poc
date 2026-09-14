@@ -17,6 +17,14 @@ jobs:
           node-version: "24"
           cache: npm
       - run: npm ci
-      - run: npm test
       - run: npm run build
+      - name: Run tests individually
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in tests/*.test.ts; do
+            echo "::group::$file"
+            timeout 45s npx tsx --test "$file"
+            echo "::endgroup::"
+          done
 # Temporary branch-only validation; remove before squash merge.
