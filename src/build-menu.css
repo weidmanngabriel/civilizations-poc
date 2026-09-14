@@ -109,6 +109,18 @@
   gap: 9px;
   text-align: left;
   border-radius: 10px;
+  transition: filter 120ms ease, opacity 120ms ease, border-color 120ms ease;
+}
+
+.build-menu-item.locked,
+.build-menu-item:disabled {
+  opacity: 0.58;
+  filter: saturate(0.25) brightness(0.8) blur(0.15px);
+  cursor: not-allowed;
+}
+
+.build-menu-item.locked .build-menu-tech-status {
+  color: #d9c88f;
 }
 
 .build-menu-building-icon {
@@ -130,6 +142,12 @@
 
 .build-menu-building-copy > strong {
   font-size: 13px;
+}
+
+.build-menu-tech-status {
+  font-size: 10px;
+  font-weight: 750;
+  color: #9fcf91;
 }
 
 .build-menu-cost {
