@@ -1,7 +1,7 @@
 name: Test, build and deploy PoC
 on:
   push:
-    branches: [main, agent/tech-tree-extractor-labels-20260914]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -27,7 +27,6 @@ jobs:
         with:
           path: dist
   deploy:
-    if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     environment:
