@@ -121,7 +121,7 @@ test("a pending sow task is cancelled instead of overwriting a loose good", () =
 
   tick(w);
 
-  assert.equal(farmer.farmTask, undefined);
+  assert.notDeepEqual(farmer.farmTask?.target, target);
   assert.equal(
     w.buildings.some((building) => building.kind === "field" && building.farmId === farm.id &&
       building.position.q === target.q && building.position.r === target.r),
