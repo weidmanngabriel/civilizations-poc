@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createWorld, CONFIG } from "../src/simulation/scenario";
-import { tick } from "../src/simulation/simulation";
+import { changeAssignment, tick } from "../src/simulation/simulation";
 import { hexDistance } from "../src/simulation/spatial";
 import type { Building } from "../src/simulation/model";
 
@@ -50,8 +50,10 @@ test("wood extraction creates a ground stack and sawmill workers collect from it
   };
   world.buildings.push(sawmill);
 
-  const worker = world.people[1]!;
-  worker.assignment = { building: sawmill.id, role: "worker" };
+  assert.equal(changeAssignment(world, sawmill.id, "worker", 1), true);
+  const worker = world.people.find(
+    (person) => person.assignment?.building === sawmill.id && person.assignment.role === "worker",
+  )!;
   worker.position = { ...sawmill.position };
   worker.active = true;
   worker.path = [];

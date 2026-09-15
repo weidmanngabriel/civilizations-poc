@@ -2,6 +2,8 @@
 
 Bewohner arbeiten weitgehend selbstständig, sobald du ihnen eine Aufgabe gegeben hast. Sie suchen ihren Arbeitsplatz, holen benötigte Waren und setzen ihre Arbeit danach selbst fort.
 
+Hat ein Bewohner ein Ziel für Arbeit, Essen oder Schlaf gewählt, behält er dieses Ziel unterwegs bei. Erst am Ziel, nach Abschluss einer Tätigkeit oder wenn das Ziel dort nicht mehr nutzbar ist, entscheidet er neu. Ist gerade kein passendes Ziel verfügbar, versucht er es später erneut.
+
 Jeder Bewohner hat einen eigenen Namen. Tippe oder klicke eine Person auf der Karte an, um sie zu inspizieren. Die Personenansicht zeigt unter anderem Beruf, aktuelle Tätigkeit, Arbeitsplatz, Erfahrung, Hunger, Schlaf und eine gerade getragene Ware. Auf dem Handy erscheint diese Ansicht am unteren Bildschirmrand.
 
 Über **Personen** im linken Menü öffnest du die Bewohnerliste. Dort kannst du nach Namen suchen und nach Berufen oder freien Bewohnern filtern. Die Berufsfilter lassen sich seitlich durchscrollen. Ein Klick auf einen Eintrag springt zur Person auf der Karte. Mit den Pfeilen in der Personenansicht kannst du anschließend durch die aktuelle Auswahl wechseln.

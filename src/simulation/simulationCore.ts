@@ -104,6 +104,19 @@ const sleepDueBeforeNewTask = (p: Person): boolean =>
 const needDueBeforeNewTask = (p: Person): boolean =>
   foodDueBeforeNewTask(p) || sleepDueBeforeNewTask(p);
 
+const workRetryAfterTick = new WeakMap<Person, number>();
+const clearWorkRetry = (p: Person): void => {
+  workRetryAfterTick.delete(p);
+};
+const scheduleWorkRetry = (w: World, p: Person): void => {
+  workRetryAfterTick.set(p, w.round + CONFIG.decisionIntervalTicks);
+};
+const scheduleImmediateWorkDecision = (w: World, p: Person): void => {
+  workRetryAfterTick.set(p, w.round);
+};
+const workRetryDue = (w: World, p: Person): boolean =>
+  (workRetryAfterTick.get(p) ?? Number.POSITIVE_INFINITY) <= w.round;
+
 const routeReason = (p: Person): PathReason => {
   if (p.hungerState) return "hunger";
   if (p.farmTask) return "farm";
@@ -250,6 +263,7 @@ function cancel(w: World, p: Person): void {
   p.trip = undefined;
   p.pendingFarmBonus = undefined;
   clearFarmTask(p);
+  clearWorkRetry(p);
   p.progress = 0;
   p.movement = 0;
   p.path = [];
@@ -313,6 +327,7 @@ export function changeAssignment(
     if (role === "merchant") p.merchantRoute = { good: "wood" };
     p.active = same(p.position, b.position);
     p.movement = 0;
+    scheduleImmediateWorkDecision(w, p);
     route(w, p, b);
     return true;
   }
@@ -350,6 +365,7 @@ export function setMerchantRoute(
   p.merchantRoute = { good: good ?? p.merchantRoute?.good ?? "wood", target };
   p.active = same(p.position, source.position);
   p.movement = 0;
+  scheduleImmediateWorkDecision(w, p);
   if (!p.active) route(w, p, source);
   return true;
 }
@@ -420,18 +436,23 @@ function naturalResourceCandidates(
 }
 
 function assignNaturalWorker(w: World, p: Person, kind: NaturalResourceKind): boolean {
-  if (needDueBeforeNewTask(p)) return false;
+  if (needDueBeforeNewTask(p)) {
+    scheduleWorkRetry(w, p);
+    return false;
+  }
   const candidates = naturalResourceCandidates(w, p.position, kind);
   if (!candidates.length) {
     p.resourceTarget = undefined;
     p.assignment = undefined;
     p.active = false;
     p.movement = 0;
+    scheduleWorkRetry(w, p);
     const hq = building(w, "hq");
     if (!same(p.position, hq.position)) route(w, p, hq, kind === "forest" ? "woodcutter" : "other");
     return false;
   }
   const choice = candidates[randomIndex(w, candidates.length)]!;
+  clearWorkRetry(p);
   p.assignment = undefined;
   p.resourceTarget = choice.resource.id;
   p.active = same(p.position, choice.resource.position);
@@ -518,18 +539,23 @@ function builderCandidates(w: World, origin: Hex): BuilderCandidate[] {
 }
 
 function assignBuilder(w: World, p: Person): boolean {
-  if (needDueBeforeNewTask(p)) return false;
+  if (needDueBeforeNewTask(p)) {
+    scheduleWorkRetry(w, p);
+    return false;
+  }
   const candidates = builderCandidates(w, p.position);
   if (!candidates.length) {
     p.assignment = undefined;
     p.active = false;
     p.progress = 0;
     p.movement = 0;
+    scheduleWorkRetry(w, p);
     const hq = building(w, "hq");
     if (!same(p.position, hq.position)) route(w, p, hq, "builder");
     return false;
   }
   const choice = candidates[randomIndex(w, candidates.length)]!;
+  clearWorkRetry(p);
   p.assignment = { building: choice.site.id, role: "builder" };
   p.active = false;
   p.progress = 0;
@@ -545,7 +571,7 @@ function assignBuilder(w: World, p: Person): boolean {
 
 function assignWaitingBuilders(w: World): void {
   for (const person of builders(w)) {
-    if (!person.assignment) assignBuilder(w, person);
+    if (!person.assignment && workRetryDue(w, person)) assignBuilder(w, person);
   }
 }
 
@@ -572,7 +598,7 @@ type SourceCandidate =
   | { sourceKind: "building"; source: Building; good: Good; path: Hex[] }
   | { sourceKind: "resource"; source: NaturalResource; good: Good; path: Hex[] };
 
-function requestInput(w: World, p: Person, b: Building): void {
+function requestInput(w: World, p: Person, b: Building): boolean {
   const construction = isUnderConstruction(b) ? b.construction! : undefined;
   const pathReason: PathReason = construction ? "builder" : "logistics";
   const isWarehouseCollection = b.kind === "warehouse" && !construction;
@@ -593,7 +619,7 @@ function requestInput(w: World, p: Person, b: Building): void {
       : missingForNextBatch.length
         ? missingForNextBatch
         : recipeGoods;
-  if (!goods.length) return;
+  if (!goods.length) return false;
 
   const collectSources = (candidateGoods: Good[]): SourceCandidate[] => {
     const sources: SourceCandidate[] = [];
@@ -652,7 +678,7 @@ function requestInput(w: World, p: Person, b: Building): void {
   if (!sources.length && !construction && !isWarehouseCollection && missingForNextBatch.length)
     sources = collectSources(recipeGoods);
   const source = sources[0];
-  if (!source) return;
+  if (!source) return false;
   p.trip = {
     source: source.source.id,
     ...(source.sourceKind === "resource" ? { sourceKind: "resource" as const } : {}),
@@ -662,16 +688,17 @@ function requestInput(w: World, p: Person, b: Building): void {
   };
   p.path = source.path;
   p.movement = 0;
+  return true;
 }
 
-function requestMerchantTransfer(w: World, p: Person, source: Building): void {
+function requestMerchantTransfer(w: World, p: Person, source: Building): boolean {
   const routeConfig = p.merchantRoute;
   if (
     !routeConfig?.target ||
     source.kind !== "warehouse" ||
     isUnderConstruction(source)
   )
-    return;
+    return false;
   const target = w.buildings.find(
     (b) =>
       b.id === routeConfig.target &&
@@ -681,11 +708,11 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): void {
   );
   if (!target) {
     routeConfig.target = undefined;
-    return;
+    return false;
   }
   if (!same(p.position, source.position)) {
     route(w, p, source, "merchant");
-    return;
+    return true;
   }
   if (
     available(w, source, routeConfig.good) + 1e-9 < CONFIG.carryCapacity ||
@@ -694,13 +721,14 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): void {
       findPath(w.tiles, source.position, target.position, CONFIG.roadSpeedMultiplier),
     )
   )
-    return;
+    return false;
   p.trip = {
     source: source.id,
     target: target.id,
     good: routeConfig.good,
     picked: false,
   };
+  return true;
 }
 
 function retireDepletedResources(w: World): void {
@@ -726,13 +754,14 @@ function retireDepletedResources(w: World): void {
 
 function assignWaitingWoodcutters(w: World): void {
   for (const person of woodcutters(w)) {
-    if (!person.resourceTarget) assignNaturalWorker(w, person, "forest");
+    if (!person.resourceTarget && workRetryDue(w, person)) assignNaturalWorker(w, person, "forest");
   }
 }
 
 function assignWaitingExtractors(w: World): void {
   for (const person of w.people) {
-    if (person.extractor && !person.resourceTarget) assignNaturalWorker(w, person, person.extractor);
+    if (person.extractor && !person.resourceTarget && workRetryDue(w, person))
+      assignNaturalWorker(w, person, person.extractor);
   }
 }
 
@@ -879,6 +908,7 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
       p.assignment = undefined;
       p.merchantRoute = undefined;
       clearFarmTask(p);
+      clearWorkRetry(p);
       p.active = false;
       p.progress = 0;
       p.movement = 0;
@@ -1087,6 +1117,7 @@ export function tick(w: World): void {
           p.trip = undefined;
           p.pendingFarmBonus = undefined;
           p.movement = 0;
+          clearWorkRetry(p);
           immediateDecisionPeople.add(p.id);
         }
       } else if (same(p.position, home.position)) {
@@ -1124,15 +1155,17 @@ export function tick(w: World): void {
           !needDueBeforeNewTask(p) &&
           hasRecipeInputs(b) &&
           outputHasSpace
-        )
+        ) {
+          clearWorkRetry(p);
           p.progress = workSpeed;
-        else if (p.progress > 0) p.progress += workSpeed;
+        } else if (p.progress > 0) p.progress += workSpeed;
         if (p.progress > 0 && profession) gainProfessionExperience(p, profession);
         if (p.progress >= recipe.duration) {
           consumeRecipeInputs(b);
           const multiplier = profession ? productionMultiplier(p, profession) : 1;
           b.output += recipeOutputAmount(b) * multiplier;
           p.progress = 0;
+          clearWorkRetry(p);
           immediateDecisionPeople.add(p.id);
         }
       }
@@ -1154,30 +1187,42 @@ export function tick(w: World): void {
   let decisionTransportMs = 0;
   let decisionFarmMs = 0;
   for (const p of w.people) {
-    if (!regularDecisionTick && !immediateDecisionPeople.has(p.id)) continue;
-    if (needDueBeforeNewTask(p)) continue;
+    const immediateDecision = immediateDecisionPeople.has(p.id);
+    const retryDecision = regularDecisionTick && workRetryDue(w, p);
+    if (!immediateDecision && !retryDecision) continue;
+    if (immediateDecision) clearWorkRetry(p);
+    if (needDueBeforeNewTask(p)) {
+      scheduleWorkRetry(w, p);
+      continue;
+    }
     if (!p.assignment || !p.active || p.path.length || p.trip || p.progress > 0 || p.farmTask)
       continue;
     const b = building(w, p.assignment.building);
     if (p.assignment.role === "builder" && isUnderConstruction(b)) {
       if (!constructionMaterialsComplete(b)) {
         const started = performanceNow();
-        requestInput(w, p, b);
+        const planned = requestInput(w, p, b);
         decisionTransportMs += performanceNow() - started;
+        if (planned) clearWorkRetry(p);
+        else scheduleWorkRetry(w, p);
       }
       continue;
     }
     if (isUnderConstruction(b)) continue;
     if (p.assignment.role === "merchant") {
       const started = performanceNow();
-      requestMerchantTransfer(w, p, b);
+      const planned = requestMerchantTransfer(w, p, b);
       decisionTransportMs += performanceNow() - started;
+      if (planned) clearWorkRetry(p);
+      else scheduleWorkRetry(w, p);
       continue;
     }
     if (b.kind === "farm" && p.assignment.role === "worker") {
       const started = performanceNow();
       performanceProfiler.withPathReason("farm", () => planFarmWorker(w, p, b));
       decisionFarmMs += performanceNow() - started;
+      if (p.farmTask || p.trip || p.path.length || p.progress > 0) clearWorkRetry(p);
+      else scheduleWorkRetry(w, p);
       continue;
     }
     const recipe = b.recipe;
@@ -1194,8 +1239,10 @@ export function tick(w: World): void {
       (workerMissingInput || outputOccupied(w, b) >= outputCapacityFor(b));
     if (p.assignment.role === "carrier" || workerNeedsResupply) {
       const started = performanceNow();
-      requestInput(w, p, b);
+      const planned = requestInput(w, p, b);
       decisionTransportMs += performanceNow() - started;
+      if (planned) clearWorkRetry(p);
+      else scheduleWorkRetry(w, p);
     }
   }
   const decisionTotalMs = performanceNow() - decisionStarted;

@@ -102,6 +102,18 @@ Eine Technologie wird dauerhaft freigeschaltet, sobald irgendeine Person erstmal
 
 Wohnhaus, Farm und Brunnen sind von Anfang an freigeschaltet. Baumenü und Gebäudeplatzierung verwenden dieselbe autoritative Freischaltlogik.
 
+## Ereignisbasierte Entscheidungen
+
+Autonome Bewohner treffen teure Zielentscheidungen nicht laufend neu. Für Hunger, Schlaf und Arbeit gilt: Ziel einmal wählen, dorthin laufen und erst am Ziel, nach Abschluss einer Tätigkeit oder bei einem dort festgestellten Fehlschlag neu entscheiden. Während des Weges bleibt die Entscheidung bestehen.
+
+Ist aktuell kein gültiges Ziel oder keine passende Arbeitsaufgabe verfügbar, sucht nur die betroffene Person höchstens einmal pro Sekunde erneut. Andere Bewohner werden dadurch nicht global neu geplant.
+
+Bewegung, Bedürfnisabbau und laufende Arbeit bleiben Teil der 60-Hz-Simulation; nur die Zielsuche ist ereignisgesteuert.
+
+## Darstellung und Zoom
+
+Bewohner-Marker sind gegenüber dem bisherigen Fine-Grid-Stand deutlich kleiner, bleiben aber größer als einzelne Mikrozellen. Die Karte lässt sich mit Mausrad und Pinch bis auf 10× vergrößern.
+
 ## Gebäudeplatzierung auf Desktop und Touch
 
 Beim Start des Baumodus wird die Karte abgedunkelt, gültige Baupositionen werden gleichzeitig als helle Bereiche hervorgehoben. Der aktuelle Ghost zeigt zusätzlich grün oder rot, ob die konkrete Position gültig ist.

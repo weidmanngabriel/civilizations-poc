@@ -24,7 +24,7 @@ import { HEX_RADIUS, nearestTileAtWorldPoint, pixel } from "./mapGeometry";
 const TEXT_RESOLUTION = 3;
 const MIN_FOREST_ALPHA = 0.35;
 const MIN_CAMERA_ZOOM = 0.7;
-const MAX_CAMERA_ZOOM = 6;
+const MAX_CAMERA_ZOOM = 10;
 const WHEEL_ZOOM_SENSITIVITY = 0.0015;
 const TAP_MAX_DISTANCE = 8;
 const TARGET_MODE_DIM_ALPHA = 0.22;
@@ -635,34 +635,34 @@ export class MainScene extends Phaser.Scene {
       const i = groups.get(k) ?? 0;
       groups.set(k, i + 1);
       const pos = pixel(personWorldPosition(this.world, p));
-      const x = pos.x + (moving ? ((p.id % 3) - 1) * 2 : ((i % 4) - 1.5) * 8);
-      const y = pos.y + (moving ? 1 : 1 + Math.floor(i / 4) * 8);
+      const x = pos.x + (moving ? ((p.id % 3) - 1) * 1.5 : ((i % 4) - 1.5) * 5);
+      const y = pos.y + (moving ? 1 : 1 + Math.floor(i / 4) * 5);
       const color = !p.assignment && !p.woodcutter && !p.extractor && !p.builder
         ? 0xdde5db
         : p.assignment?.role === "worker" || p.woodcutter
           ? 0x234636
           : 0x8b512e;
-      const dot = this.add.circle(x, y, 5, color).setStrokeStyle(1, 0xffffff);
-      const label = this.add.text(x, y - 1, this.personMarker(p), {
+      const dot = this.add.circle(x, y, 3, color).setStrokeStyle(0.75, 0xffffff);
+      const label = this.add.text(x, y - 0.5, this.personMarker(p), {
         fontFamily: "system-ui",
-        fontSize: "8px",
+        fontSize: "6px",
         color: "#ffffff",
       }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
-      const idLabel = this.add.text(x + 5, y + 4, String(p.id), {
+      const idLabel = this.add.text(x + 3, y + 3, String(p.id), {
         fontFamily: "system-ui",
-        fontSize: "5px",
+        fontSize: "4px",
         color: "#ffffff",
         backgroundColor: "#263c2d",
       }).setResolution(TEXT_RESOLUTION).setOrigin(0, 0.5);
       this.markers.add([dot, label, idLabel]);
       if (p.trip?.picked)
         this.markers.add(this.add.text(
-          x + 4,
-          y - 7,
+          x + 3,
+          y - 5,
           GOOD_ICONS[p.trip.good],
           {
             fontFamily: "system-ui",
-            fontSize: "7px",
+            fontSize: "5px",
             color: "#fff2a3",
             backgroundColor: "#263c2d",
           },

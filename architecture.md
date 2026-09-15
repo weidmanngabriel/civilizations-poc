@@ -127,6 +127,14 @@ stonecutter    -> stonemason
 
 `src/simulation/technology.ts` is authoritative. `buildingPlacement.ts` enforces unlocks, while UI only presents them.
 
+## Event-driven person planning
+
+Expensive autonomous target selection is event-driven. A person keeps the selected hunger, sleep or work destination while travelling and does not continuously re-evaluate alternatives. Arrival, delivery, completed production/extraction, invalidated targets and similar task boundaries trigger the next decision immediately.
+
+If a work planner cannot find a valid task or source, only that waiting person receives a retry deadline. The one-second decision cadence is therefore a fallback for waiting persons rather than a global re-plan of all idle workers. Running movement, need decay and active production still advance on the fixed 60 Hz simulation tick.
+
+Hunger already uses the same rule: a selected food source is trusted while travelling; if no source exists it retries after one second. Sleep likewise retains its selected destination while travelling and validates it at the destination/task boundary rather than continuously searching for a better one.
+
 ## Building placement
 
 Building legality is authoritative in `buildingPlacement.ts`. Fine-grid footprints and clearance rings must fit valid terrain. Every cell of an active natural-resource footprint is unavailable for building or clearance even when the resource itself is non-blocking for movement.
@@ -136,6 +144,8 @@ The build-mode highlight layer computes valid anchors once on mode entry and sha
 ## Rendering and interaction
 
 Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map state and persistent person markers. Natural resources are drawn independently from terrain; clay and stone use a supplemental resource overlay for their complete multi-cell visual footprint. Loose-goods indicators remain presentation-only and update incrementally from world state.
+
+Person markers are intentionally smaller than before so the fine grid stays readable. Camera zoom is clamped to 0.7×–10× for both mouse-wheel and pinch input.
 
 Desktop and touch remain separate first-class adapters with shared simulation legality:
 
@@ -155,5 +165,7 @@ Where `architecture-detail.md` still describes forest as terrain, 10 wood per tr
 `npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build.
 
 Fine-grid/resource regression coverage verifies 205 × 125 geometry, terrain/resource separation, tree yield of 3, dense multi-tree forest clusters with walkable gaps, four-cell clay/stone footprints, tree/stone blocking versus clay non-blocking, collision removal after depletion, physical wood/clay/rubble stacks, stack capacity/reservations and the invariant that loose goods never affect routing.
+
+Decision-cadence coverage verifies that waiting autonomous work retries at one-second intervals while arrival and delivery trigger immediate follow-up planning.
 
 Per current project instruction, changes are made directly on `main`. The GitHub Pages workflow runs tests before the production build and deploys only after both succeed.

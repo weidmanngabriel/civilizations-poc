@@ -4,7 +4,7 @@
 
 **Active implementation document.** Read this before changes to map scale, terrain, buildings, people rendering/scale, natural resources, loose goods, pathfinding, roads, placement, or resource logistics.
 
-Current state: **Phases A, B, C, D and E complete. Phase F — cross-system cleanup and performance — is next.**
+Current state: **Phases A, B, C, D and E complete. Phase F — cross-system cleanup and performance — is in progress.**
 
 ## Goal
 
@@ -200,7 +200,17 @@ Phase E intentionally does **not** vary the authoritative four-cell clay/stone f
 
 ### Phase F — Cross-system cleanup and performance
 
-Review at minimum:
+Implemented in the current cleanup slice:
+
+- autonomous work planning is event-driven instead of globally re-planning every idle worker once per second,
+- arrival, delivery and completed work trigger immediate follow-up decisions,
+- a worker that cannot find a valid task/source gets an individual one-second retry deadline,
+- existing hunger behavior was verified to retain its selected food target while travelling and retry only once per second when no target exists,
+- existing sleep behavior was verified to retain its selected destination while travelling and only validate/replan at the destination/task boundary,
+- person markers are substantially smaller while remaining readable,
+- desktop wheel and touch pinch zoom now share a maximum camera zoom of 10×.
+
+Still review at minimum:
 
 - explicit adjacent interaction positions for blocking resources,
 - hunger/sleep nature targeting,
@@ -218,7 +228,7 @@ Review at minimum:
 - concept and architecture documentation,
 - automated regression coverage.
 
-**Status: not started.**
+**Status: in progress.**
 
 ## Decisions already made
 
@@ -243,6 +253,8 @@ Review at minimum:
 - Active resource footprints reserve space against construction and new loose-good stacks even when the resource is non-blocking.
 - Current forest density uses three trees per historical forest seed with deterministic pattern variation.
 - Clay/stone visual irregularity does not change their authoritative four-cell footprint shape.
+- Autonomous target selection is retained while travelling; missing work targets retry per person at most once per second.
+- Camera zoom supports up to 10× on desktop and touch.
 
 ## Open decisions
 
@@ -263,7 +275,7 @@ Before continuing this rework:
 4. for product behavior also read `concept.md` and `concept-detail.md`,
 5. confirm latest `main` CI is green.
 
-Next start with **Phase F — cross-system cleanup and performance** unless the user requests another functional change first. Do not redesign unrelated economy/product systems as part of cleanup.
+Continue with **Phase F — cross-system cleanup and performance** unless the user requests another functional change first. Do not redesign unrelated economy/product systems as part of cleanup.
 
 ## Documentation rule
 
