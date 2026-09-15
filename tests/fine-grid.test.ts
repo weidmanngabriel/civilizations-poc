@@ -28,13 +28,18 @@ test("buildings occupy many micro-cells while keeping the old coarse footprint p
   assert.ok(sawmillFootprint.length > warehouseFootprint.length);
 });
 
-test("legacy natural resource nodes remain on valid fine-grid terrain during phase A", () => {
+test("natural resources are overlays and do not define their underlying terrain", () => {
   const world = createDefaultGameWorld();
 
+  assert.equal(world.tiles.some((tile) => tile.terrain === "forest"), false);
   for (const resource of world.naturalResources) {
     const tile = world.tiles.find((candidate) => same(candidate, resource.position));
     assert.ok(tile, `missing tile for ${resource.id}`);
-    if (resource.kind === "forest") assert.equal(tile!.terrain, "forest");
-    else assert.equal(tile!.terrain, "grass");
+    assert.equal(tile!.terrain, "grass");
+    if (resource.kind === "forest" || resource.kind === "stone")
+      assert.equal(tile!.resourceBlocking, true);
+    else
+      assert.equal(tile!.resourceBlocking, undefined);
   }
+  assert.equal(CONFIG.forestYield, 3);
 });
