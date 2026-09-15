@@ -11,6 +11,7 @@ import { CONFIG } from "./scenario";
 import { buildAt, removeBuilding } from "./simulation";
 import { isBuildingUnlocked } from "./technology";
 import { GRID_REFINEMENT, refinedCellCluster } from "./spatial";
+import { naturalResourceFootprint } from "./naturalResources";
 
 export type BuildingPlacementShape = {
   cells: Hex[];
@@ -137,7 +138,9 @@ type PlacementLookup = {
 const createPlacementLookup = (world: World): PlacementLookup => ({
   tiles: tileIndex(world.tiles),
   occupiedResources: new Set(
-    world.naturalResources.filter((resource) => !resource.depleted).map((resource) => key(resource.position)),
+    world.naturalResources
+      .filter((resource) => !resource.depleted)
+      .flatMap((resource) => naturalResourceFootprint(resource).map(key)),
   ),
   people: new Set(world.people.map((person) => key(person.position))),
 });

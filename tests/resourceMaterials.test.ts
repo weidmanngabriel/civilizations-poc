@@ -1,20 +1,28 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { CONSTRUCTION_PLANS } from "../src/simulation/buildingPlacement";
-import { neighbors, same } from "../src/simulation/hex";
+import { key, neighbors, same } from "../src/simulation/hex";
+import { naturalResourceFootprint } from "../src/simulation/naturalResources";
 import { CONFIG, createDefaultGameWorld } from "../src/simulation/scenario";
 import { changeExtractors, clayDiggers, stonecutters, tick } from "../src/simulation/simulation";
 
-test("default map places finite clay by rivers and stone by mountains", () => {
+test("default map places four-cell clay by rivers and four-cell stone by mountains", () => {
   const world = createDefaultGameWorld();
   for (const [kind, terrain] of [["clay", "river"], ["stone", "mountain"]] as const) {
     const nodes = world.naturalResources.filter((resource) => resource.kind === kind);
     assert.ok(nodes.length > 0);
     for (const node of nodes) {
       assert.equal(node.remaining, 10);
+      assert.equal(naturalResourceFootprint(node).length, 4);
       assert.ok(neighbors(node.position).some((position) =>
         world.tiles.some((tile) => same(tile, position) && tile.terrain === terrain),
       ));
+      for (const position of naturalResourceFootprint(node)) {
+        const tile = world.tiles.find((candidate) => same(candidate, position));
+        assert.ok(tile, `missing footprint tile ${key(position)}`);
+        assert.equal(tile!.terrain, "grass");
+        assert.equal(tile!.resourceBlocking, kind === "stone" ? true : undefined);
+      }
     }
   }
 });
@@ -31,7 +39,7 @@ test("clay and stone processors expose the intended recipes and construction mat
   assert.deepEqual(CONSTRUCTION_PLANS.well.required, { wood: 2, stoneBlock: 2 });
 });
 
-test("a natural deposit retires after exactly ten extracted units", () => {
+test("clay extraction creates exactly ten physical ground units and retires the source", () => {
   const world = createDefaultGameWorld();
   assert.equal(changeExtractors(world, "clay", 1), true);
   const assignedPerson = clayDiggers(world)[0]!;
@@ -40,20 +48,49 @@ test("a natural deposit retires after exactly ten extracted units", () => {
   assignedPerson.position = { ...deposit.position };
   assignedPerson.path = [];
   assignedPerson.active = true;
-  let extracted = 0;
   for (let i = 0; i < CONFIG.duration * 15 && !deposit.depleted; i += 1) {
-    const before = deposit.output;
     tick(world);
-    if (deposit.output > before) {
-      extracted += deposit.output - before;
-      deposit.output = 0;
-    }
     assignedPerson.hunger = 100;
     assignedPerson.sleep = 100;
   }
-  assert.equal(extracted, 10);
   assert.equal(deposit.remaining, 0);
   assert.equal(deposit.depleted, true);
+  assert.equal(deposit.output, 0);
+  assert.equal(
+    (world.looseGoods ?? [])
+      .filter((stack) => stack.good === "clay")
+      .reduce((sum, stack) => sum + stack.amount, 0),
+    10,
+  );
+  assert.ok((world.looseGoods ?? []).filter((stack) => stack.good === "clay").every((stack) => stack.amount <= 3));
+});
+
+test("stone extraction creates physical rubble and removes footprint blocking on depletion", () => {
+  const world = createDefaultGameWorld();
+  assert.equal(changeExtractors(world, "stone", 1), true);
+  const worker = stonecutters(world)[0]!;
+  const deposit = world.naturalResources.find((resource) => resource.id === worker.resourceTarget)!;
+  const footprint = naturalResourceFootprint(deposit);
+  worker.position = { ...deposit.position };
+  worker.path = [];
+  worker.active = true;
+  for (let i = 0; i < CONFIG.duration * 15 && !deposit.depleted; i += 1) {
+    tick(world);
+    worker.hunger = 100;
+    worker.sleep = 100;
+  }
+  assert.equal(deposit.depleted, true);
+  assert.equal(deposit.output, 0);
+  assert.equal(
+    (world.looseGoods ?? [])
+      .filter((stack) => stack.good === "rubble")
+      .reduce((sum, stack) => sum + stack.amount, 0),
+    10,
+  );
+  for (const position of footprint) {
+    const tile = world.tiles.find((candidate) => same(candidate, position));
+    assert.equal(tile?.resourceBlocking, undefined);
+  }
 });
 
 test("extractor pools claim different deposits and relocate after depletion", () => {
@@ -85,7 +122,6 @@ test("extractor pools claim different deposits and relocate after depletion", ()
   if (worker.resourceTarget)
     assert.equal(world.naturalResources.find((resource) => resource.id === worker.resourceTarget)?.kind, "clay");
 });
-
 
 test("natural resources are not buildings and have no direct building assignment", () => {
   const world = createDefaultGameWorld();

@@ -10,9 +10,11 @@ Sägewerker und Träger holen das Holz direkt von diesen Haufen ab. Bereits abge
 
 ## Lehm und Stein
 
-Lehmvorkommen findest du in Flussnähe, Steinvorkommen in Bergnähe. Beide sind endlich. Wald, Lehm und Stein sind natürliche Ressourcen, keine Gebäude. Holzfäller, Lehmgräber und Steinbrecher werden ausschließlich am HQ zugewiesen, suchen selbständig freie Rohstoffstellen und wechseln nach deren Erschöpfung automatisch weiter. Direkt an einer Rohstoffstelle gibt es keine Arbeiterzuweisung. Pro Rohstoffstelle arbeitet höchstens eine Person.
+Lehmvorkommen findest du in Flussnähe, Steinvorkommen in Bergnähe. Beide sind endlich und liegen als eigene Ressourcen auf dem normalen Untergrund. Lehmflächen bleiben begehbar; Steinflächen blockieren den direkten Durchgang.
 
-Lehm und Stein verwenden während des aktuellen Umbaus noch die bisherige lokale Rohstoffablage. Ihre Umstellung auf dieselben sichtbaren Bodenhaufen wie Holz folgt als nächster Schritt.
+Holzfäller, Lehmgräber und Steinbrecher werden ausschließlich am HQ zugewiesen, suchen selbständig freie Rohstoffstellen und wechseln nach deren Erschöpfung automatisch weiter. Direkt an einer Rohstoffstelle gibt es keine Arbeiterzuweisung. Pro Rohstoffstelle arbeitet höchstens eine Person.
+
+Auch abgebauter **Lehm und Bruchstein liegen sichtbar als Warenhaufen auf dem Boden**. Wie bei Holz enthält ein Haufen höchstens drei Einheiten und blockiert keine Wege. Bereits abgelegte Ware bleibt nach der Erschöpfung des Vorkommens liegen und kann später abgeholt werden.
 
 In der Töpferei entstehen aus Lehm und Holz Backsteine. Die Steinmetzhütte verarbeitet Bruchstein zu Steinquadern. Beide Produkte werden als Baumaterial verwendet.
 

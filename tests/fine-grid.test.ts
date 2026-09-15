@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { CONFIG, createDefaultGameWorld } from "../src/simulation/scenario";
 import { same } from "../src/simulation/hex";
 import { buildingFootprint, footprintAt } from "../src/simulation/buildingPlacement";
+import { naturalResourceFootprint } from "../src/simulation/naturalResources";
 import { GRID_REFINEMENT } from "../src/simulation/spatial";
 
 test("phase A uses a five-times finer grid without changing the visible world scale semantics", () => {
@@ -28,18 +29,22 @@ test("buildings occupy many micro-cells while keeping the old coarse footprint p
   assert.ok(sawmillFootprint.length > warehouseFootprint.length);
 });
 
-test("natural resources are overlays and do not define their underlying terrain", () => {
+test("natural resources are overlays and their complete footprints stay separate from terrain", () => {
   const world = createDefaultGameWorld();
 
   assert.equal(world.tiles.some((tile) => tile.terrain === "forest"), false);
-  for (const resource of world.naturalResources) {
-    const tile = world.tiles.find((candidate) => same(candidate, resource.position));
-    assert.ok(tile, `missing tile for ${resource.id}`);
-    assert.equal(tile!.terrain, "grass");
-    if (resource.kind === "forest" || resource.kind === "stone")
-      assert.equal(tile!.resourceBlocking, true);
-    else
-      assert.equal(tile!.resourceBlocking, undefined);
+  for (const resource of world.naturalResources.filter((candidate) => !candidate.depleted)) {
+    const footprint = naturalResourceFootprint(resource);
+    assert.equal(footprint.length, resource.kind === "forest" ? 1 : 4);
+    for (const position of footprint) {
+      const tile = world.tiles.find((candidate) => same(candidate, position));
+      assert.ok(tile, `missing tile for ${resource.id}`);
+      assert.equal(tile!.terrain, "grass");
+      if (resource.kind === "forest" || resource.kind === "stone")
+        assert.equal(tile!.resourceBlocking, true);
+      else
+        assert.equal(tile!.resourceBlocking, undefined);
+    }
   }
   assert.equal(CONFIG.forestYield, 3);
 });

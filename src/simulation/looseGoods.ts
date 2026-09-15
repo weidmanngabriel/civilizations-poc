@@ -1,5 +1,6 @@
 import { key, neighbors, tileIndex } from "./hex";
 import { hexDistance } from "./spatial";
+import { naturalResourceFootprint } from "./naturalResources";
 import type { Good, Hex, LooseGoodStack, LooseGoodStackId, World } from "./model";
 
 export const LOOSE_GOOD_STACK_CAPACITY = 3;
@@ -23,6 +24,13 @@ export const looseGoodStackAt = (world: World, position: Hex): LooseGoodStack | 
 export const availableLooseGoodAmount = (stack: LooseGoodStack): number =>
   Math.max(0, stack.amount - stack.reserved);
 
+const activeResourceCells = (world: World): Set<string> =>
+  new Set(
+    world.naturalResources
+      .filter((resource) => !resource.depleted)
+      .flatMap((resource) => naturalResourceFootprint(resource).map(key)),
+  );
+
 /**
  * Loose goods never block movement. This predicate only decides whether a new
  * stack may be physically placed on a cell.
@@ -32,8 +40,7 @@ export const canPlaceLooseGoodAt = (world: World, position: Hex, good: Good): bo
   if (!tile) return false;
   if (tile.terrain === "river" || tile.terrain === "mountain" || tile.terrain === "building")
     return false;
-  if (world.naturalResources.some((resource) => !resource.depleted && key(resource.position) === key(position)))
-    return false;
+  if (activeResourceCells(world).has(key(position))) return false;
   const existing = looseGoodStackAt(world, position);
   return !existing || (existing.good === good && existing.amount < LOOSE_GOOD_STACK_CAPACITY);
 };
@@ -135,11 +142,7 @@ export const findLooseGoodDropPosition = (
   if (compatible) return { ...compatible.position };
 
   const tiles = tileIndex(world.tiles);
-  const resourcePositions = new Set(
-    world.naturalResources
-      .filter((resource) => !resource.depleted)
-      .map((resource) => key(resource.position)),
-  );
+  const resourcePositions = activeResourceCells(world);
   const stackByPosition = new Map(looseGoodStacks(world).map((stack) => [key(stack.position), stack]));
   const visited = new Set<string>([key(origin)]);
   let frontier: Hex[] = [{ ...origin }];

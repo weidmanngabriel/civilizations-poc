@@ -3,6 +3,7 @@ export * from "./simulationCore";
 import type {
   BuildingId,
   FarmTask,
+  Good,
   Hex,
   LooseGoodStack,
   NaturalResource,
@@ -15,6 +16,11 @@ import type {
 import { CONFIG } from "./scenario";
 import { findPath, key, tileIndex } from "./hex";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
+import {
+  naturalResourceBlocksMovement,
+  naturalResourceFootprint,
+  naturalResourceGood,
+} from "./naturalResources";
 import {
   availableLooseGoodAmount,
   findLooseGoodDropPosition,
@@ -29,7 +35,8 @@ import { updateTechnologyUnlocks } from "./technology";
 import { tick as coreTick } from "./simulationCore";
 
 const GROUND_PROXY_PREFIX = "ground-";
-const WOOD_DROP_RADIUS = GRID_REFINEMENT;
+const RESOURCE_DROP_RADIUS = GRID_REFINEMENT;
+const RAW_RESOURCE_GOODS = new Set<Good>(["wood", "clay", "rubble"]);
 
 type PersonBeforeTick = {
   person: Person;
@@ -61,22 +68,24 @@ type BuildingBeforeTick = {
 type ResourceBeforeTick = {
   kind: World["naturalResources"][number]["kind"];
   remaining: number;
+  output: number;
 };
 
 const sameHex = (a: Hex, b: Hex): boolean => a.q === b.q && a.r === b.r;
 const isGroundProxy = (resource: NaturalResource): boolean =>
   resource.depleted === true && resource.id.startsWith(GROUND_PROXY_PREFIX);
-const isRealForest = (resource: NaturalResource): boolean =>
-  resource.kind === "forest" && !isGroundProxy(resource);
+const isRealNaturalResource = (resource: NaturalResource): boolean => !isGroundProxy(resource);
+const isRawResourceGood = (good: Good): boolean => RAW_RESOURCE_GOODS.has(good);
 
 function syncResourceBlocking(world: World): void {
   for (const tile of world.tiles) tile.resourceBlocking = undefined;
   const tiles = tileIndex(world.tiles);
   for (const resource of world.naturalResources) {
-    if (resource.depleted || isGroundProxy(resource)) continue;
-    if (resource.kind !== "forest" && resource.kind !== "stone") continue;
-    const tile = tiles.get(key(resource.position));
-    if (tile) tile.resourceBlocking = true;
+    if (resource.depleted || isGroundProxy(resource) || !naturalResourceBlocksMovement(resource)) continue;
+    for (const position of naturalResourceFootprint(resource)) {
+      const tile = tiles.get(key(position));
+      if (tile) tile.resourceBlocking = true;
+    }
   }
 }
 
@@ -87,9 +96,12 @@ const activeGroundTripIds = (world: World): Set<string> =>
       .filter((source): source is string => Boolean(source?.startsWith(GROUND_PROXY_PREFIX))),
   );
 
+const proxyKindForGood = (good: Good): NaturalResource["kind"] =>
+  good === "clay" ? "clay" : good === "rubble" ? "stone" : "forest";
+
 const groundProxy = (stack: LooseGoodStack): NaturalResource => ({
   id: stack.id,
-  kind: "forest",
+  kind: proxyKindForGood(stack.good),
   position: { ...stack.position },
   remaining: 0,
   output: stack.amount,
@@ -98,6 +110,7 @@ const groundProxy = (stack: LooseGoodStack): NaturalResource => ({
 
 function syncStacksFromGroundProxies(world: World): void {
   for (const proxy of world.naturalResources.filter(isGroundProxy)) {
+    const good = naturalResourceGood(proxy);
     const existing = looseGoodStacks(world).find((stack) => stack.id === proxy.id);
     const nextAmount = Math.max(0, Math.round(proxy.output));
     if (existing) {
@@ -109,14 +122,14 @@ function syncStacksFromGroundProxies(world: World): void {
       continue;
     }
     if (nextAmount <= 0) continue;
-    const direct = placeLooseGood(world, proxy.position, "wood", Math.min(3, nextAmount));
+    const direct = placeLooseGood(world, proxy.position, good, Math.min(3, nextAmount));
     if (direct) {
       direct.id = proxy.id;
       continue;
     }
-    const fallback = findLooseGoodDropPosition(world, proxy.position, "wood", WOOD_DROP_RADIUS);
+    const fallback = findLooseGoodDropPosition(world, proxy.position, good, RESOURCE_DROP_RADIUS);
     if (!fallback) continue;
-    const restored = placeLooseGood(world, fallback, "wood", Math.min(3, nextAmount));
+    const restored = placeLooseGood(world, fallback, good, Math.min(3, nextAmount));
     if (restored) restored.id = proxy.id;
   }
 }
@@ -138,8 +151,10 @@ function ensureGroundProxies(world: World): void {
   );
 
   for (const stack of looseGoodStacks(world)) {
+    if (!isRawResourceGood(stack.good)) continue;
     const proxy = proxies.get(stack.id);
     if (proxy) {
+      proxy.kind = proxyKindForGood(stack.good);
       proxy.position = { ...stack.position };
       proxy.output = stack.amount;
       proxy.remaining = 0;
@@ -149,7 +164,11 @@ function ensureGroundProxies(world: World): void {
     }
   }
 
-  const liveStackIds = new Set(looseGoodStacks(world).map((stack) => stack.id));
+  const liveStackIds = new Set(
+    looseGoodStacks(world)
+      .filter((stack) => isRawResourceGood(stack.good))
+      .map((stack) => stack.id),
+  );
   world.naturalResources = world.naturalResources.filter(
     (resource) =>
       !isGroundProxy(resource) || liveStackIds.has(resource.id) || activeTrips.has(resource.id),
@@ -163,13 +182,17 @@ function cleanupIdleGroundProxies(world: World): void {
   );
 }
 
-function nearestAvailableWoodStack(world: World, origin: Hex): LooseGoodStack | undefined {
+function nearestAvailableGroundStack(
+  world: World,
+  origin: Hex,
+  good: Good,
+): LooseGoodStack | undefined {
   return looseGoodStacks(world)
     .filter(
       (stack) =>
-        stack.good === "wood" &&
+        stack.good === good &&
         availableLooseGoodAmount(stack) > 0 &&
-        hexDistance(origin, stack.position) <= WOOD_DROP_RADIUS,
+        hexDistance(origin, stack.position) <= RESOURCE_DROP_RADIUS,
     )
     .sort(
       (a, b) =>
@@ -180,17 +203,17 @@ function nearestAvailableWoodStack(world: World, origin: Hex): LooseGoodStack | 
     )[0];
 }
 
-function retargetLegacyForestTrips(world: World): void {
+function retargetLegacyResourceTrips(world: World): void {
   syncGroundReservations(world);
   for (const person of world.people) {
     const trip = person.trip;
-    if (!trip || trip.picked || trip.sourceKind !== "resource" || trip.good !== "wood") continue;
+    if (!trip || trip.picked || trip.sourceKind !== "resource" || !isRawResourceGood(trip.good)) continue;
     if (trip.source.startsWith(GROUND_PROXY_PREFIX)) continue;
-    const forest = world.naturalResources.find(
-      (resource) => resource.id === trip.source && isRealForest(resource),
+    const resource = world.naturalResources.find(
+      (candidate) => candidate.id === trip.source && isRealNaturalResource(candidate),
     );
-    if (!forest) continue;
-    const stack = nearestAvailableWoodStack(world, forest.position);
+    if (!resource || naturalResourceGood(resource) !== trip.good) continue;
+    const stack = nearestAvailableGroundStack(world, resource.position, trip.good);
     if (!stack) {
       person.trip = undefined;
       person.path = [];
@@ -212,33 +235,34 @@ function retargetLegacyForestTrips(world: World): void {
   syncGroundReservations(world);
 }
 
-function migrateForestOutputToGround(world: World): void {
-  for (const forest of world.naturalResources.filter(isRealForest)) {
-    let wholeUnits = Math.floor(forest.output + 1e-9);
+function migrateNaturalResourceOutputToGround(world: World): void {
+  for (const resource of world.naturalResources.filter(isRealNaturalResource)) {
+    const good = naturalResourceGood(resource);
+    let wholeUnits = Math.floor(resource.output + 1e-9);
     while (wholeUnits > 0) {
-      const drop = findLooseGoodDropPosition(world, forest.position, "wood", WOOD_DROP_RADIUS);
+      const drop = findLooseGoodDropPosition(world, resource.position, good, RESOURCE_DROP_RADIUS);
       if (!drop) break;
-      const stack = placeLooseGood(world, drop, "wood", 1);
+      const stack = placeLooseGood(world, drop, good, 1);
       if (!stack) break;
-      forest.output = Math.max(0, forest.output - 1);
+      resource.output = Math.max(0, resource.output - 1);
       wholeUnits--;
     }
   }
-  retargetLegacyForestTrips(world);
+  retargetLegacyResourceTrips(world);
 }
 
-function preparePhysicalWoodTick(world: World): void {
+function preparePhysicalResourceTick(world: World): void {
   syncResourceBlocking(world);
   syncStacksFromGroundProxies(world);
   cleanupIdleGroundProxies(world);
-  migrateForestOutputToGround(world);
+  migrateNaturalResourceOutputToGround(world);
   syncGroundReservations(world);
   ensureGroundProxies(world);
 }
 
-function finishPhysicalWoodTick(world: World): void {
+function finishPhysicalResourceTick(world: World): void {
   syncStacksFromGroundProxies(world);
-  migrateForestOutputToGround(world);
+  migrateNaturalResourceOutputToGround(world);
   syncGroundReservations(world);
   ensureGroundProxies(world);
   cleanupIdleGroundProxies(world);
@@ -279,10 +303,12 @@ function awardCompletedActions(
         (resource) => resource.id === before.resourceTarget,
       );
       if (oldResource && currentResource) {
-        const completedActions = Math.max(
+        const extractedActions = Math.max(
           0,
           oldResource.remaining - currentResource.remaining,
         );
+        const undroppedOutput = Math.max(0, currentResource.output - oldResource.output);
+        const completedActions = Math.max(0, extractedActions - undroppedOutput);
         if (completedActions > 0) {
           const profession =
             oldResource.kind === "forest"
@@ -374,7 +400,7 @@ function awardCompletedActions(
 
 /** One deterministic 1/60-second simulation step with action-based profession XP. */
 export function tick(world: World): void {
-  preparePhysicalWoodTick(world);
+  preparePhysicalResourceTick(world);
 
   const peopleBefore: PersonBeforeTick[] = world.people.map((person) => ({
     person,
@@ -412,13 +438,13 @@ export function tick(world: World): void {
       .filter((resource) => !isGroundProxy(resource))
       .map((resource) => [
         resource.id,
-        { kind: resource.kind, remaining: resource.remaining },
+        { kind: resource.kind, remaining: resource.remaining, output: resource.output },
       ]),
   );
   const buildingIdsBefore = new Set(world.buildings.map((building) => building.id));
 
   coreTick(world);
-  finishPhysicalWoodTick(world);
+  finishPhysicalResourceTick(world);
 
   awardCompletedActions(
     world,

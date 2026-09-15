@@ -13,6 +13,10 @@ import {
   scaleHex,
 } from "./spatial";
 import { key, tileIndex } from "./hex";
+import {
+  naturalResourceBlocksMovement,
+  naturalResourceFootprint,
+} from "./naturalResources";
 
 export const CONFIG = {
   population: 12,
@@ -253,33 +257,58 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
         ].some((neighbor) => occupied.has(`${neighbor.q},${neighbor.r}`)),
       );
     };
-    const spread = (candidates: Tile[], count: number): Tile[] => {
-      if (candidates.length <= count) return candidates;
-      return Array.from({ length: count }, (_, index) =>
-        candidates[Math.floor((index * (candidates.length - 1)) / Math.max(1, count - 1))]!,
-      );
-    };
-    const addResource = (tile: Tile, kind: "clay" | "stone", index: number) => {
-      naturalResources.push({
+
+    const indexedTiles = tileIndex(tiles);
+    const occupiedResourceCells = new Set(
+      naturalResources.flatMap((resource) => naturalResourceFootprint(resource).map(key)),
+    );
+
+    const addResource = (tile: Tile, kind: "clay" | "stone", index: number): boolean => {
+      const resource: NaturalResource = {
         id: `${kind}-${index + 1}`,
         kind,
         position: { q: tile.q, r: tile.r },
         remaining: CONFIG.resourceYield,
         output: 0,
-      });
-      tile.bush = undefined;
-      tile.bushAvailable = undefined;
-      tile.bushRegrowTick = undefined;
+      };
+      const footprint = naturalResourceFootprint(resource);
+      if (!footprint.every((position) => {
+        const footprintTile = indexedTiles.get(key(position));
+        return footprintTile?.terrain === "grass" && !occupiedResourceCells.has(key(position));
+      })) return false;
+
+      naturalResources.push(resource);
+      for (const position of footprint) {
+        occupiedResourceCells.add(key(position));
+        const footprintTile = indexedTiles.get(key(position));
+        if (!footprintTile) continue;
+        footprintTile.bush = undefined;
+        footprintTile.bushAvailable = undefined;
+        footprintTile.bushRegrowTick = undefined;
+      }
+      return true;
     };
-    spread(adjacentGrass("river"), 4).forEach((tile, index) => addResource(tile, "clay", index));
-    spread(adjacentGrass("mountain"), 4).forEach((tile, index) => addResource(tile, "stone", index));
+
+    const addResourcesNear = (terrain: Tile["terrain"], kind: "clay" | "stone", count: number) => {
+      let added = 0;
+      for (const tile of adjacentGrass(terrain)) {
+        if (!addResource(tile, kind, added)) continue;
+        added += 1;
+        if (added >= count) break;
+      }
+    };
+
+    addResourcesNear("river", "clay", 4);
+    addResourcesNear("mountain", "stone", 4);
   }
 
   const indexedTiles = tileIndex(tiles);
   for (const resource of naturalResources) {
-    if (resource.kind !== "forest" && resource.kind !== "stone") continue;
-    const tile = indexedTiles.get(key(resource.position));
-    if (tile) tile.resourceBlocking = true;
+    if (!naturalResourceBlocksMovement(resource)) continue;
+    for (const position of naturalResourceFootprint(resource)) {
+      const tile = indexedTiles.get(key(position));
+      if (tile) tile.resourceBlocking = true;
+    }
   }
 
   const people: Person[] = Array.from({ length: population }, (_, i) => ({
