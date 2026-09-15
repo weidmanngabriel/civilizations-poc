@@ -7,6 +7,7 @@ import type {
   Person,
   World,
 } from "./model";
+import { CONFIG } from "./scenario";
 import { hexDistance } from "./spatial";
 import {
   assigned,
@@ -17,6 +18,7 @@ import {
   changeWoodcutters as changeWoodcuttersNow,
   isUnderConstruction,
   resourceWorkers,
+  status as statusNow,
   tick as tickNow,
   woodcutters,
 } from "./simulationCoreEngine";
@@ -180,6 +182,16 @@ export function changeBuilders(world: World, delta: 1 | -1): boolean {
   person.path = [];
   queuePlan(world, { kind: "builder", person });
   return true;
+}
+
+export function status(world: World, target: Building): string {
+  if (target.kind === "warehouse" && !isUnderConstruction(target)) {
+    const carriers = assigned(world, target.id, "carrier").length;
+    const merchants = assigned(world, target.id, "merchant").length;
+    if (!merchants && carriers)
+      return `Träger sammeln Waren im Umkreis von ${CONFIG.warehouseCollectionRadiusWorldTiles} Weltkacheln`;
+  }
+  return statusNow(world, target);
 }
 
 /** Flushes UI-triggered autonomous profession planning inside the simulation step. */
