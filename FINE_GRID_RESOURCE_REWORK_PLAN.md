@@ -4,7 +4,7 @@
 
 **Active implementation document.** Read this before changes to map scale, terrain, buildings, people rendering/scale, natural resources, loose goods, pathfinding, roads, placement, or resource logistics.
 
-Current state: **Phases A, B and C complete. Terrain/resource separation and tree/bush normalization are complete. Phase D — clay and stone migration — is next.**
+Current state: **Phases A, B, C and D complete. Terrain/resource separation and tree/bush normalization are complete. Phase E — visual/resource-density pass — is next.**
 
 ## Goal
 
@@ -48,28 +48,28 @@ Visible world size remains approximately comparable. Buildings and fields expand
 
 Terrain is only the underlying ground. Natural resources must not create special terrain types just because they occupy a location. A tree can therefore sit on grass today and potentially on another suitable ground type later.
 
-Resource footprint and movement blocking are independent properties. The agreed target rules are:
+Resource footprint and movement blocking are independent properties. Current authoritative rules are data-driven in `src/simulation/naturalResources.ts`:
 
 | Resource | Logical footprint | Movement |
 |---|---:|---|
 | Tree | 1 micro-cell | blocking |
 | Bush | 1 micro-cell | non-blocking |
 | Mushroom | 1 micro-cell | non-blocking |
-| Clay | about 4 micro-cells | non-blocking |
-| Stone | about 4 micro-cells | blocking |
-| Ore | about 4 micro-cells | blocking |
+| Clay | compact 4 micro-cells | non-blocking |
+| Stone | compact 4 micro-cells | blocking |
+| Ore | target: about 4 micro-cells | blocking |
 
-The start scenario no longer uses forest as player-facing terrain. Trees are individual resource objects on ordinary ground. `Tile.resourceBlocking` is a derived collision overlay synchronized from active blocking resources; depletion removes only the resource/collision, not the terrain underneath.
+The start scenario no longer uses forest as player-facing terrain. Trees are individual resource objects on ordinary ground. `Tile.resourceBlocking` is a derived collision overlay synchronized from active blocking resource footprints; depletion removes only the resource/collision, not the terrain underneath.
 
-Current extraction compatibility still permits a blocking resource to be an explicit route endpoint. Normal transit cannot pass through it. A later cleanup may move extraction to explicit adjacent interaction cells.
+Current extraction compatibility still permits a blocking resource anchor to be an explicit route endpoint. Normal transit cannot pass through its blocking footprint. A later cleanup may move extraction to explicit adjacent interaction cells.
 
 ## Target resource model
 
 ### Natural resource sources
 
-A resource region is a collection of individual source objects. Forests consist of individual tree resources. Clay and stone use individual source objects as well, but their extracted output remains on the compatibility path until Phase D.
+A resource region is a collection of individual source objects. Forests consist of individual tree resources. Clay and stone use individual source objects with multi-cell logical footprints.
 
-Each source object owns its position and depletion state. `NaturalResource.output` is no longer player-facing storage for wood; it remains only as a compatibility field for resource types that have not yet been migrated.
+Each source object owns its position and depletion state. For all currently migrated raw resources, `NaturalResource.output` is no longer player-facing storage; it is only a transient compatibility field inside the legacy tick/transport adapter.
 
 ### Loose goods on the ground
 
@@ -79,7 +79,7 @@ Different good types do not share one cell. Empty stacks are removed.
 
 **Permanent rule:** loose goods are never obstacles. They do not change terrain, collision, movement cost, or pathfinding and can always be walked over.
 
-A new stack may not be created on blocked terrain, a building footprint, or an active natural-resource source. Existing compatible non-full stacks can be filled up to 3.
+A new stack may not be created on blocked terrain, a building footprint, or any cell of an active natural-resource footprint. Existing compatible non-full stacks can be filled up to 3.
 
 ### Extractor behavior
 
@@ -95,13 +95,15 @@ For one completed physical extraction action:
 8. only then count the action as completed for profession XP,
 9. continue at the source or select a new source if depleted.
 
-For wood, the drop search radius is **5 micro-cells**, equal to one former coarse-grid step.
+Wood, clay and rubble currently use a **5 micro-cell** drop radius, equal to one former coarse-grid step.
 
 ### Logistics behavior
 
-For migrated raw materials, carriers and production workers collect from ground stacks instead of source-local output. Reservations protect concrete units. Pickup reduces a stack from 3 → 2 → 1 → removed.
+Wood, clay and rubble are collected from ground stacks instead of source-local output. Reservations protect concrete units. Pickup reduces a stack from 3 → 2 → 1 → removed.
 
 Building inventories remain normal inventories.
+
+The historical `Trip` type still expects building/resource ids. Short-lived depleted `ground-*` resource proxies therefore remain as a compatibility adapter for physical raw stacks while a pickup is planned or active. `World.looseGoods` remains authoritative.
 
 ## Phases
 
@@ -147,35 +149,39 @@ Implemented:
 - sawmill workers, sawmill carriers and HQ carriers source wood from physical stacks,
 - reservations prevent duplicate pickup,
 - depleted trees disappear while dropped wood remains collectible,
-- focused end-to-end coverage verifies tree → ground stack → sawmill input.
-
-Post-Phase-C normalization now also establishes:
-
-- **one tree = one micro-cell resource object**,
-- **one tree = exactly 3 wood**,
+- focused end-to-end coverage verifies tree → ground stack → sawmill input,
+- one tree = one micro-cell resource object,
+- one tree = exactly 3 wood,
 - tree collision is separate from terrain,
 - the start scenario no longer paints forest terrain under tree clusters,
 - tree depletion restores walkability without rewriting the ground type,
 - bush logical size is one micro-cell and bush rendering uses the shared fine-grid projection.
 
-The existing transport core still identifies stack pickup through a short-lived depleted-resource adapter. `World.looseGoods` remains authoritative.
-
 **Status: complete.**
 
 ### Phase D — Clay and stone migration
 
-Next:
+Implemented:
 
-- migrate clay sources/extractors to physical ground stacks,
-- migrate stone sources/extractors to physical ground stacks,
-- implement the agreed multi-cell footprints: clay about 4 non-blocking cells, stone about 4 blocking cells,
-- make footprint/collision definitions data-driven for later ore and mushrooms,
-- use the same ground-stack and reservation rules as wood,
-- remove obsolete generic resource-output compatibility paths where possible.
+- clay extraction now produces physical `clay` ground stacks,
+- stone extraction now produces physical `rubble` ground stacks,
+- clay and stone use the same capacity/reservation/return-cargo compatibility flow as wood,
+- real clay/stone source output is drained to the ground before public state is observed,
+- clay uses a compact four-cell non-blocking footprint,
+- stone uses a compact four-cell blocking footprint,
+- footprint, blocking and raw-good mapping are centralized in `naturalResources.ts`,
+- building placement and loose-good placement reserve the complete active resource footprint,
+- depletion removes stone collision across the complete footprint while already dropped goods remain,
+- focused tests cover physical extraction and four-cell collision semantics,
+- the in-app logistics handbook documents physical clay/rubble piles.
 
-**Status: not started.**
+The generic trip/source model itself is intentionally not redesigned yet; short-lived `ground-*` proxies remain until the Phase-F cleanup.
+
+**Status: complete.**
 
 ### Phase E — Visual/resource-density pass
+
+Next:
 
 - irregular forest clusters made from many individual one-cell trees with intentional gaps,
 - irregular clay/stone fields with visibly separate source pieces,
@@ -218,22 +224,23 @@ Review at minimum:
 - Tree = 1 cell, blocking, 3 wood.
 - Bush = 1 cell, non-blocking, visual may exceed the cell.
 - Mushroom = 1 cell, non-blocking.
-- Clay = about 4 cells, non-blocking.
-- Stone/ore = about 4 cells, blocking.
+- Clay = compact 4 cells, non-blocking.
+- Stone = compact 4 cells, blocking.
+- Ore target remains about 4 cells, blocking.
 - Buildings become many cells large instead of becoming visually tiny.
 - People remain readable in screen space and are not shrunk to micro-cell size.
 - Extracted raw resources become physical loose goods.
 - Loose ground stacks hold at most 3 units of one good type.
 - Loose ground stacks are always walkable and never obstacles.
 - Reservations protect concrete units without removing them before pickup.
-- Wood uses a 5-micro-cell / one-old-step drop radius for the current prototype.
-- Lehm and Stein remain on the compatibility output path until Phase D.
+- Wood, clay and rubble currently use a 5-micro-cell / one-old-step drop radius.
+- Active resource footprints reserve space against construction and new loose-good stacks even when the resource is non-blocking.
 
 ## Open decisions
 
 Resolve these in the relevant phase rather than inventing them early:
 
-- exact four-cell shape/orientation rules for clay, stone and ore,
+- whether Phase E should vary four-cell clay/stone shape/orientation while preserving roughly the same occupied area,
 - whether explicit adjacent interaction cells should replace the temporary targeted-blocker endpoint behavior,
 - exact tree/resource cluster density and procedural distribution,
 - whether different loose goods may later coexist on one cell (current rule: no),
@@ -249,7 +256,7 @@ Before continuing this rework:
 4. for product behavior also read `concept.md` and `concept-detail.md`,
 5. confirm latest `main` CI is green.
 
-Next start with **Phase D — clay and stone migration**. Do not broaden that phase into the full visual-density pass unless explicitly requested.
+Next start with **Phase E — visual/resource-density pass** unless the user requests another functional change first. Do not broaden it into the Phase-F generic transport/pathfinding cleanup without an explicit reason.
 
 ## Documentation rule
 

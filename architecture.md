@@ -21,7 +21,7 @@ The deterministic simulation remains independent from Phaser. Presentation reads
 
 ## Simulation entry point
 
-`src/simulation/simulationCore.ts` contains the historical simulation tick. `src/simulation/simulation.ts` is the public simulation entry point and wraps/re-exports the core behavior, including the physical-wood compatibility layer, resource-collision synchronization, profession-experience bookkeeping and technology progression. New callers should import from `simulation.ts`, not directly from `simulationCore.ts`.
+`src/simulation/simulationCore.ts` contains the historical simulation tick. `src/simulation/simulation.ts` is the public simulation entry point and wraps/re-exports the core behavior, including the physical raw-resource compatibility layer, resource-collision synchronization, profession-experience bookkeeping and technology progression. New callers should import from `simulation.ts`, not directly from `simulationCore.ts`.
 
 ## Fine-grid spatial model — Phase A complete
 
@@ -43,35 +43,57 @@ Terrain describes only the underlying ground. A tree, clay deposit, stone deposi
 
 The old player-facing forest terrain is therefore no longer used by the start scenario. Current tree cells have ordinary grass underneath. This allows the same resource type to be placed on other suitable terrain later without creating a separate terrain category.
 
-Collision is also independent from terrain. `Tile.resourceBlocking` is a derived spatial overlay synchronized from active natural resources by `simulation.ts`:
+Resource footprint and collision are data-driven in `src/simulation/naturalResources.ts`. The current authoritative definitions are:
 
-- trees block movement on their one micro-cell,
-- stone currently blocks movement on its resource cell,
-- clay remains non-blocking,
-- depleted resources no longer contribute collision,
-- physical loose goods remain non-blocking.
+- tree: 1 micro-cell, blocking, output good `wood`,
+- clay: compact 4-micro-cell footprint, non-blocking, output good `clay`,
+- stone: compact 4-micro-cell footprint, blocking, output good `rubble`.
 
-`hex.ts` excludes blocking resource cells from normal transit. An explicitly targeted blocking resource may still be used as a route endpoint by the current extraction compatibility flow; generic routes do not pass through it. A later cleanup may introduce explicit adjacent interaction positions instead of sharing the resource cell at the final interaction step.
+`Tile.resourceBlocking` is a derived overlay synchronized from every active blocking footprint. Depleted resources no longer contribute collision. Physical loose goods remain non-blocking.
 
-The intended resource-footprint rules for the next migration are data-oriented rather than terrain-oriented: tree 1 cell/blocking, clay about 4 cells/non-blocking, stone and ore about 4 cells/blocking, mushrooms 1 cell/non-blocking. Phase D will finalize multi-cell clay/stone footprints while migrating their output to physical ground stacks.
+`hex.ts` excludes blocking resource cells from normal transit. An explicitly targeted blocking resource may still be used as a route endpoint by the current extraction compatibility flow; generic routes do not pass through it. A later cleanup may introduce explicit adjacent interaction positions instead of sharing the resource anchor cell at the final interaction step.
 
-## Physical resource model — Phase B complete
+Building placement and loose-good placement reserve the complete active resource footprint, independent of movement blocking. A non-blocking clay footprint can therefore be walked over but cannot be silently built over or used as a new loose-good drop cell.
+
+## Physical resource model — Phases B–D complete
 
 `src/simulation/model.ts` defines `LooseGoodStack` with a stable id, concrete micro-cell, one good type, amount 1..3 and a reservation count. `World.looseGoods` is authoritative for migrated loose goods.
 
-Loose goods never mutate terrain or collision and are always walkable. New stack placement still rejects blocked terrain, building footprints and active natural-resource source cells. `findLooseGoodDropPosition()` searches locally and deterministically, preferring a compatible partial stack before a free cell.
+Loose goods never mutate terrain or collision and are always walkable. New stack placement rejects blocked terrain, building footprints and every cell of an active natural-resource footprint. `findLooseGoodDropPosition()` searches locally and deterministically, preferring a compatible partial stack before a free cell.
 
 `src/game/looseGoodsIndicators.ts` is presentation-only and never mutates simulation state.
 
+Wood, clay and rubble now use the same physical flow:
+
+```text
+natural source -> extractor -> loose ground stack -> pickup -> consumer/storage
+```
+
+Each completed extraction action first appears in the historical resource output field inside the core tick, then `simulation.ts` moves whole units to `World.looseGoods` before public state is observed. This transitional field is therefore no longer player-facing storage for any currently migrated raw resource.
+
+The current drop search radius is `GRID_REFINEMENT` = 5 micro-cells for wood, clay and rubble. Existing non-full stacks are preferred and stacks remain capped at 3 units.
+
+The historical `Trip` model still expects building/resource ids. `simulation.ts` therefore exposes short-lived depleted `ground-*` natural-resource proxies for wood, clay and rubble stacks while a legacy pickup is planned or active. The real stock remains exclusively in `World.looseGoods`; proxies are not rendered, selectable, or blocking. Pickup/cancellation synchronizes proxy output back to the corresponding physical stack.
+
+Extractor XP is credited only when the extracted unit is no longer stuck in transitional source output, i.e. after it has successfully reached the physical-ground flow.
+
 ## Physical wood chain — Phase C complete
 
-Wood is the first resource migrated end to end. Each tree is an individual `NaturalResource`. A tree now contains exactly **3 wood**. A completed felling action produces one physical wood unit, which is moved from the transitional resource output into `World.looseGoods` before the public world state is observed.
+Each tree is an individual `NaturalResource` with exactly **3 wood**. A completed felling action produces one physical wood unit near the tree. When a tree reaches zero remaining yield it is depleted; its underlying terrain stays unchanged and its collision overlay disappears while deposited wood remains collectible.
 
-Wood drop search uses `GRID_REFINEMENT` = 5 micro-cells, equivalent to one former coarse-grid step. Existing non-full stacks are preferred and stacks remain capped at 3 units.
+## Clay and stone chain — Phase D complete
 
-Sawmill workers, sawmill carriers and HQ carriers source wood from physical ground stacks through the existing transport compatibility adapter. The short-lived depleted `ground-*` natural-resource proxies exist only because the historical `Trip` model still expects building/resource ids. They are not rendered or selectable and do not contribute resource collision.
+Clay and stone deposits now use the same physical-stack economy as trees:
 
-When a tree reaches zero remaining yield it is depleted. Its underlying terrain stays unchanged and its collision overlay disappears; already deposited wood remains collectible.
+- each deposit contains the existing finite 10-unit yield,
+- clay occupies four logical cells but stays walkable,
+- stone occupies four logical cells and blocks all four,
+- extraction produces one nearby physical `clay` or `rubble` unit per action,
+- source-local output is drained into ground stacks before public state is observed,
+- depleted deposits release their complete footprint/collision while already dropped goods remain,
+- consumers and carriers reach the raw goods through the same ground-stack compatibility adapter used by wood.
+
+Visual representation is still intentionally simple; irregular field shapes and denser resource art remain Phase E work.
 
 ## Bush rendering and lifecycle
 
@@ -99,13 +121,13 @@ stonecutter    -> stonemason
 
 ## Building placement
 
-Building legality is authoritative in `buildingPlacement.ts`. Fine-grid footprints and clearance rings must fit valid terrain. Active natural-resource cells are not valid building or clearance cells even when the ground underneath is grass. This is separate from movement blocking: a non-blocking clay resource can still reserve physical space against construction.
+Building legality is authoritative in `buildingPlacement.ts`. Fine-grid footprints and clearance rings must fit valid terrain. Every cell of an active natural-resource footprint is unavailable for building or clearance even when the resource itself is non-blocking for movement.
 
 The build-mode highlight layer computes valid anchors once on mode entry and shares the same legality with desktop and touch ghost validation.
 
 ## Rendering and interaction
 
-Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map state and persistent person markers. Natural resources are drawn as overlays at their resource positions; terrain is drawn independently beneath them.
+Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map state and persistent person markers. Natural resources are drawn as overlays at their resource anchors; terrain is drawn independently beneath them. Phase E will improve the visual representation of multi-cell resource fields without changing their authoritative footprint rules.
 
 Desktop and touch remain separate first-class adapters with shared simulation legality:
 
@@ -118,12 +140,12 @@ The iPhone 13 Mini remains the mobile baseline.
 
 All other current architecture remains as documented in [`architecture-detail.md`](./architecture-detail.md), including hunger/sleep, HQ storage compatibility, organic roads, production/inventories, construction, farms, merchants, person selection, handbook/PWA and performance diagnostics.
 
-Where `architecture-detail.md` still describes forest as terrain, 10 wood per tree, old 41 × 25 geometry, fixed 24/21 render spacing, old Dijkstra, or forest-local output as the live wood model, this file supersedes it.
+Where `architecture-detail.md` still describes forest as terrain, 10 wood per tree, clay/stone source-local output as player-facing storage, one-cell clay/stone deposits, old 41 × 25 geometry, fixed 24/21 render spacing, old Dijkstra, or forest-local output as the live wood model, this file supersedes it.
 
 ## Testing and deployment
 
 `npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build.
 
-Fine-grid/resource regression coverage must verify at least: 205 × 125 geometry, terrain/resource separation, tree yield of 3, tree/stone blocking versus clay non-blocking, collision removal after depletion, physical wood stacks, stack capacity/reservations and the invariant that loose goods never affect routing.
+Fine-grid/resource regression coverage verifies 205 × 125 geometry, terrain/resource separation, tree yield of 3, four-cell clay/stone footprints, tree/stone blocking versus clay non-blocking, collision removal after depletion, physical wood/clay/rubble stacks, stack capacity/reservations and the invariant that loose goods never affect routing.
 
 Per current project instruction, changes are made directly on `main`. The GitHub Pages workflow runs tests before the production build and deploys only after both succeed.

@@ -20,40 +20,48 @@ Terrain beschreibt nur den Untergrund der Welt. Bäume, Lehm, Stein und spätere
 
 Ein Baum erzeugt deshalb kein eigenes „Wald-Terrain“. Unter einem Baum kann beispielsweise Wiese liegen; später kann derselbe Ressourcentyp grundsätzlich auch auf anderem geeigneten Untergrund vorkommen. Wald entsteht spielerisch durch viele Bäume in räumlicher Nähe, nicht durch eine besondere Bodenkategorie.
 
-Footprint und Wegblockierung sind getrennte Eigenschaften einer Ressource. Verbindliche Zielrichtung:
+Footprint und Wegblockierung sind getrennte Eigenschaften einer Ressource. Aktueller verbindlicher Stand:
 
-- **Baum:** 1 Mikrozelle, blockiert Bewegung, aktuell 3 Holz pro Baum.
+- **Baum:** 1 Mikrozelle, blockiert Bewegung, 3 Holz pro Baum.
 - **Busch:** 1 Mikrozelle, blockiert nicht; die Grafik darf größer als die Zelle sein.
 - **Pilze:** 1 Mikrozelle, blockieren nicht.
-- **Lehm:** ungefähr 4 Mikrozellen, blockiert nicht.
-- **Stein:** ungefähr 4 Mikrozellen, blockiert.
-- **Erz:** ungefähr 4 Mikrozellen, blockiert.
+- **Lehm:** 4 kompakte Mikrozellen, blockiert nicht.
+- **Stein:** 4 kompakte Mikrozellen, blockiert.
+- **Erz:** Zielrichtung ebenfalls ungefähr 4 Mikrozellen und blockierend.
 
-Die Mehrzellen-Footprints für Lehm und Stein werden mit Phase D endgültig umgesetzt. Aktuell ist bereits die Trennung von Terrain und Ressourcen-Kollision hergestellt: Bäume und Stein blockieren ihre aktuelle Ressourcenposition, Lehm nicht.
+Ein dichter Wald soll bewusst Lücken zwischen einzelnen Bäumen besitzen. Personen dürfen durch diese Lücken laufen, aber normale Wege dürfen nicht durch einen Baumstamm führen. Lehm darf dagegen betreten werden, während Stein seine komplette belegte Fläche für normale Wege sperrt.
 
-Ein dichter Wald soll bewusst Lücken zwischen einzelnen Bäumen besitzen. Personen dürfen durch diese Lücken laufen, aber normale Wege dürfen nicht durch einen Baumstamm führen.
+Auch nicht-blockierende Ressourcen reservieren ihren Footprint gegen Gebäude und neue Warenhaufen. Ein Gebäude kann also nicht einfach auf einem Lehmvorkommen gebaut werden.
 
-## Physische Rohstoffhaufen — Phase B abgeschlossen
+## Physische Rohstoffhaufen — Phasen B bis D abgeschlossen
 
 Ein loser Warenhaufen besitzt eine konkrete Mikrozelle, genau einen Warentyp und 1 bis maximal 3 physische Einheiten. Mehrere Einheiten desselben Typs dürfen auf derselben Zelle bis zur Kapazität 3 gestapelt werden. Verschiedene lose Warentypen teilen sich aktuell keine Zelle.
 
 **Lose Warenhaufen sind niemals Hindernisse.** Bewohner können immer darüberlaufen. Ein Haufen verändert weder Untergrund noch Wegfindung, Bewegungskosten oder Kollision.
 
-Neue Haufen werden trotzdem nicht direkt auf Wasser, Berg, einem Gebäude-Footprint oder einer aktiven natürlichen Ressourcenquelle angelegt. Reservierungen schützen konkrete Einheiten vor Doppelabholung.
+Neue Haufen werden trotzdem nicht direkt auf Wasser, Berg, einem Gebäude-Footprint oder einer aktiven natürlichen Ressourcenfläche angelegt. Reservierungen schützen konkrete Einheiten vor Doppelabholung.
 
-## Holz als erste vollständige physische Rohstoffkette — Phase C abgeschlossen
+Holz, Lehm und Bruchstein verwenden jetzt dasselbe physische Grundmodell:
 
-Holz verwendet die physischen Haufen im spielbaren Wirtschaftskreislauf:
+**Ressource → Abbauer → Bodenhaufen → Abholung → Verarbeitung/Lagerung.**
 
-**Baum → Holzfäller → Holzhaufen → Abholung → Sägewerk.**
+Nach einer fertigen Abbauaktion entsteht genau eine physische Einheit in der Nähe der Ressource. Vorhandene passende Haufen mit freiem Platz werden zuerst aufgefüllt. Ein Haufen hält höchstens drei Einheiten. Wenn die Quelle verschwindet, bleiben bereits abgelegte Haufen erhalten.
 
-Jeder Baum enthält jetzt genau **3 Holz**. Nach einer fertigen Fällaktion entsteht genau eine Einheit Holz auf dem Boden in der Nähe des Baums. Die Ablagesuche erfolgt aktuell bis maximal 5 Mikrozellen, also ungefähr innerhalb einer früheren großen Kachel.
+## Holz — Phase C abgeschlossen
 
-Vorhandene Holzhaufen mit freiem Platz werden zuerst aufgefüllt. Ein Haufen hält höchstens drei Holz. Wenn ein Baum nach seiner dritten Einheit verschwindet, bleiben bereits abgelegte Holzhaufen erhalten und können weiter eingesammelt werden.
+Jeder Baum enthält genau **3 Holz**. Nach einer fertigen Fällaktion entsteht eine Einheit Holz auf dem Boden in der Nähe des Baums. Die Ablagesuche erfolgt aktuell bis maximal 5 Mikrozellen, also ungefähr innerhalb einer früheren großen Kachel.
 
 Bäume sind eigenständige blockierende Ressourcenobjekte auf normalem Untergrund. Nach der Erschöpfung verschwindet nur das Ressourcenobjekt; der Untergrund darunter bleibt unverändert und die Zelle wird wieder frei begehbar.
 
-Lehm und Stein sind noch nicht vollständig auf physische Bodenhaufen migriert. Sie folgen in **Phase D** und verwenden bis dahin weiterhin den bisherigen lokalen Ressourcen-Output als Übergangsmechanismus.
+## Lehm und Stein — Phase D abgeschlossen
+
+Lehm- und Steinvorkommen bleiben endlich mit aktuell 10 Einheiten pro Quelle. Beide liegen als eigenständige Ressourcenobjekte auf normalem Untergrund und belegen jeweils vier kompakte Mikrozellen.
+
+Lehm bleibt auf allen vier Zellen begehbar. Stein blockiert seine vier Zellen. Nach jeder fertigen Abbauaktion liegt eine Einheit Lehm bzw. Bruchstein als physischer Bodenhaufen in der Nähe des Vorkommens. Lehmgräber und Steinbrecher wechseln nach Erschöpfung automatisch zum nächsten passenden Vorkommen; bereits abgelegte Ware bleibt liegen.
+
+Töpferei und Steinmetzhütte beziehen diese Rohstoffe aus dem normalen physischen Warenfluss statt aus einem sichtbaren lokalen Lager der Rohstoffquelle.
+
+Die optische Darstellung der vierzelligen Vorkommen ist noch bewusst einfach. Unregelmäßige Cluster und besser sichtbare einzelne Ressourcenstücke folgen im visuellen Density-Pass.
 
 ## Büsche
 
@@ -69,7 +77,7 @@ Aktuelle Beispiele:
 
 - Produktionsberuf: ein fertiger Produktionszyklus,
 - Holzfäller: eine gewonnene und physisch abgelegte Holzeinheit,
-- Abbauer Lehm/Stein: derzeit noch eine vollständig gewonnene Rohstoffeinheit im Übergangsmodell,
+- Lehmgräber/Steinbrecher: eine gewonnene und physisch abgelegte Rohstoffeinheit,
 - Träger/Händler: eine erfolgreich zugestellte Ware,
 - Farmer: fertige Aussaat, Düngung oder Ernte,
 - Bauarbeiter: ein fertiger Bau-Arbeitszyklus.
@@ -92,7 +100,7 @@ Wohnhaus, Farm und Brunnen sind von Anfang an freigeschaltet. Baumenü und Gebä
 
 Beim Start des Baumodus wird die Karte abgedunkelt, gültige Baupositionen werden gleichzeitig als helle Bereiche hervorgehoben. Der aktuelle Ghost zeigt zusätzlich grün oder rot, ob die konkrete Position gültig ist.
 
-Aktive natürliche Ressourcen reservieren ihren belegten Raum gegen Gebäudeplatzierung unabhängig davon, ob sie für Bewegung blockieren. Lehm kann also begehbar sein und trotzdem nicht einfach von einem Gebäude überbaut werden.
+Der vollständige Footprint aktiver natürlicher Ressourcen reserviert Raum gegen Gebäudeplatzierung unabhängig davon, ob die Ressource für Bewegung blockiert. Lehm kann also begehbar sein und trotzdem nicht einfach von einem Gebäude überbaut werden.
 
 - **Desktop:** Bau-Ghost folgt der Maus; kurzer Linksklick bestätigt eine gültige Position; Escape bricht ab.
 - **Touch:** kurzes Tippen setzt den Ghost; Ziehen verschiebt die Karte; der Bauen-Button bestätigt.
@@ -117,4 +125,4 @@ Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`conc
 - Touch- und Desktop-Bedienung,
 - Technologiebaum und Handbuch.
 
-Alte Aussagen in `concept-detail.md` über 41 × 25 als aktuelles Raster, Wald als Terrain oder 10 Holz pro Baum sind durch diese Datei überholt.
+Alte Aussagen in `concept-detail.md` über 41 × 25 als aktuelles Raster, Wald als Terrain, 10 Holz pro Baum oder lokale Lehm-/Stein-Ausgabelager sind durch diese Datei überholt.
