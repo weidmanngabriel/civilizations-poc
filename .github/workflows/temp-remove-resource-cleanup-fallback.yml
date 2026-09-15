@@ -1,0 +1,40 @@
+name: Temporary remove resource cleanup fallback
+on:
+  push:
+    branches: [perf/remove-resource-cleanup-fallback]
+permissions:
+  contents: write
+jobs:
+  patch-test-build:
+    if: github.event.head_commit.message != 'Apply resource cleanup fallback removal'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/remove-resource-cleanup-fallback
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: python scripts/temp_remove_resource_cleanup_fallback.py
+      - name: Verify depletion mutations stay localized
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          hits=[]
+          for path in Path('src/simulation').rglob('*.ts'):
+              text=path.read_text()
+              if '.remaining--' in text:
+                  hits.append((str(path), text.count('.remaining--')))
+          assert hits == [('src/simulation/simulationCoreEngine.ts', 1)], hits
+          PY
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Commit validated patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/simulation/simulationCoreEngine.ts architecture.md FINE_GRID_RESOURCE_REWORK_PLAN.md
+          git commit -m "Apply resource cleanup fallback removal"
+          git push origin HEAD:perf/remove-resource-cleanup-fallback
