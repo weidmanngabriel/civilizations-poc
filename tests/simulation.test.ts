@@ -231,14 +231,14 @@ test("production takes one configured cycle and awards XP after completion", () 
   assert.equal(sawmill.input, 0);
 });
 
-test("one woodcutter occupies one forest while physical wood is split into stacks of at most three", () => {
+test("one woodcutter occupies one tree while physical wood is capped at three units", () => {
   const w = createWorld();
   const { forest } = woodcutterAtForest(w);
   assert.equal(w.people.filter((person) => person.resourceTarget === forest.id).length, 1);
-  rounds(w, CONFIG.duration * 5);
+  rounds(w, CONFIG.duration * CONFIG.forestYield);
   assert.equal(forest.output, 0);
-  assert.equal(forest.remaining, CONFIG.forestYield - 5);
-  assert.equal((w.looseGoods ?? []).filter((stack) => stack.good === "wood").reduce((sum, stack) => sum + stack.amount, 0), 5);
+  assert.equal(forest.remaining, 0);
+  assert.equal((w.looseGoods ?? []).filter((stack) => stack.good === "wood").reduce((sum, stack) => sum + stack.amount, 0), CONFIG.forestYield);
   assert.ok((w.looseGoods ?? []).filter((stack) => stack.good === "wood").every((stack) => stack.amount <= 3));
   assertInvariants(w);
 });
