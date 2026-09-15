@@ -200,7 +200,7 @@ Normale Produktionsstätten können **10 Einheiten lokalen Output** halten. Der 
 
 Normale Lager und das HQ halten Waren physisch im Inventar. Die Kapazität beträgt aktuell 20 Einheiten je Warentyp.
 
-Lager-Träger sammeln Nicht-Lager-Quellen innerhalb von 10 erreichbaren Kachelschritten. Sie verschieben keine Ware automatisch zwischen Lagern.
+Lager-Träger sammeln Nicht-Lager-Quellen innerhalb von **5 erreichbaren Weltkachelschritten**. Sie verschieben keine Ware automatisch zwischen Lagern.
 
 Produktionsarbeiter dürfen benötigte Zutaten direkt aus normalen Lagern **und aus dem HQ-Inventar** holen. Für diese Beschaffung gibt es keinen separaten HQ-Sonderradius; es gilt dieselbe erreichbare Quellenwahl wie bei einem normalen Lager als Produktionsquelle.
 
