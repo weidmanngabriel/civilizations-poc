@@ -8,7 +8,7 @@ Der aktive Umbau wird in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOU
 
 Ziel bleibt eine personenbasierte Produktions- und Logistiksimulation auf einem Hex-Grid. Waren liegen physisch an Orten, Personen bewegen sie sichtbar über die Karte und räumliche Planung wirkt direkt auf Produktion, Versorgung und Transport. Hunger und Schlaf konkurrieren mit Arbeit um die Zeit einzelner Personen.
 
-## Feineres Raumraster — Phase A abgeschlossen
+## Feineres Raumraster
 
 Die Welt verwendet intern ein **5× feineres Raster pro Raumachse**: aus 41 × 25 werden 205 × 125 Mikrozellen. Die sichtbare Kartengröße bleibt ungefähr gleich.
 
@@ -18,7 +18,7 @@ Das Mikroraster ist kein sichtbarer Brettspiel-Look. Gebäude und Äcker behalte
 
 Terrain beschreibt nur den Untergrund der Welt. Bäume, Lehm, Stein und spätere natürliche Ressourcen sind eigenständige Ressourcenobjekte, die auf diesem Untergrund liegen.
 
-Ein Baum erzeugt deshalb kein eigenes „Wald-Terrain“. Unter einem Baum kann beispielsweise Wiese liegen; später kann derselbe Ressourcentyp grundsätzlich auch auf anderem geeigneten Untergrund vorkommen. Wald entsteht spielerisch durch viele Bäume in räumlicher Nähe, nicht durch eine besondere Bodenkategorie.
+Ein Baum erzeugt kein eigenes „Wald-Terrain“. Wald entsteht spielerisch durch viele Bäume in räumlicher Nähe, nicht durch eine besondere Bodenkategorie.
 
 Footprint und Wegblockierung sind getrennte Eigenschaften einer Ressource. Aktueller verbindlicher Stand:
 
@@ -31,9 +31,11 @@ Footprint und Wegblockierung sind getrennte Eigenschaften einer Ressource. Aktue
 
 Ein dichter Wald besitzt bewusst Lücken zwischen einzelnen Bäumen. Personen dürfen durch diese Lücken laufen, aber normale Wege dürfen nicht durch einen Baumstamm führen. Lehm darf dagegen betreten werden, während Stein seine komplette belegte Fläche für normale Wege sperrt.
 
+**Blockierende Ressourcen werden von einer begehbaren Nachbarzelle aus benutzt.** Ein Holzfäller läuft also bis neben den Baum statt auf dessen Stamm. Dasselbe Prinzip gilt für andere ausdrücklich angewählte blockierende Ziele: Die Person erreicht das Objekt spielerisch, bleibt physisch aber auf einem begehbaren Feld.
+
 Auch nicht-blockierende Ressourcen reservieren ihren Footprint gegen Gebäude und neue Warenhaufen. Ein Gebäude kann also nicht einfach auf einem Lehmvorkommen gebaut werden.
 
-## Physische Rohstoffhaufen — Phasen B bis D abgeschlossen
+## Physische Rohstoffhaufen
 
 Ein loser Warenhaufen besitzt eine konkrete Mikrozelle, genau einen Warentyp und 1 bis maximal 3 physische Einheiten. Mehrere Einheiten desselben Typs dürfen auf derselben Zelle bis zur Kapazität 3 gestapelt werden. Verschiedene lose Warentypen teilen sich aktuell keine Zelle.
 
@@ -41,39 +43,35 @@ Ein loser Warenhaufen besitzt eine konkrete Mikrozelle, genau einen Warentyp und
 
 Neue Haufen werden trotzdem nicht direkt auf Wasser, Berg, einem Gebäude-Footprint oder einer aktiven natürlichen Ressourcenfläche angelegt. Reservierungen schützen konkrete Einheiten vor Doppelabholung.
 
-Holz, Lehm und Bruchstein verwenden jetzt dasselbe physische Grundmodell:
+Holz, Lehm und Bruchstein verwenden dasselbe physische Grundmodell:
 
 **Ressource → Abbauer → Bodenhaufen → Abholung → Verarbeitung/Lagerung.**
 
 Nach einer fertigen Abbauaktion entsteht genau eine physische Einheit in der Nähe der Ressource. Vorhandene passende Haufen mit freiem Platz werden zuerst aufgefüllt. Ein Haufen hält höchstens drei Einheiten. Wenn die Quelle verschwindet, bleiben bereits abgelegte Haufen erhalten.
 
-## Holz — Phase C abgeschlossen
+## Holz
 
 Jeder Baum enthält genau **3 Holz**. Nach einer fertigen Fällaktion entsteht eine Einheit Holz auf dem Boden in der Nähe des Baums. Die Ablagesuche erfolgt aktuell bis maximal 5 Mikrozellen, also ungefähr innerhalb einer früheren großen Kachel.
 
 Bäume sind eigenständige blockierende Ressourcenobjekte auf normalem Untergrund. Nach der Erschöpfung verschwindet nur das Ressourcenobjekt; der Untergrund darunter bleibt unverändert und die Zelle wird wieder frei begehbar.
 
-## Lehm und Stein — Phase D abgeschlossen
+## Lehm und Stein
 
-Lehm- und Steinvorkommen bleiben endlich mit aktuell 10 Einheiten pro Quelle. Beide liegen als eigenständige Ressourcenobjekte auf normalem Untergrund und belegen jeweils vier kompakte Mikrozellen.
+Lehm- und Steinvorkommen sind endlich mit aktuell 10 Einheiten pro Quelle. Beide liegen als eigenständige Ressourcenobjekte auf normalem Untergrund und belegen jeweils vier kompakte Mikrozellen.
 
 Lehm bleibt auf allen vier Zellen begehbar. Stein blockiert seine vier Zellen. Nach jeder fertigen Abbauaktion liegt eine Einheit Lehm bzw. Bruchstein als physischer Bodenhaufen in der Nähe des Vorkommens. Lehmgräber und Steinbrecher wechseln nach Erschöpfung automatisch zum nächsten passenden Vorkommen; bereits abgelegte Ware bleibt liegen.
 
 Töpferei und Steinmetzhütte beziehen diese Rohstoffe aus dem normalen physischen Warenfluss statt aus einem sichtbaren lokalen Lager der Rohstoffquelle.
 
-## Ressourcenverteilung und Darstellung — Phase E abgeschlossen
+## Ressourcenverteilung und Darstellung
 
-Die bisherigen Waldregionen bestehen jetzt aus deutlich mehr einzelnen Bäumen. Aus jedem historischen Waldpunkt entstehen mehrere versetzte Baumpositionen. Dadurch wirken Wälder dichter, behalten aber Lücken, durch die Bewohner laufen können.
-
-Lehm- und Steinvorkommen behalten ihre vierzelligen logischen Footprints und ihre bisherigen Mengen. Ihre Positionen entlang von Flüssen und Bergen werden deterministisch unregelmäßiger verteilt, statt einfach der Karten-Scanreihenfolge zu folgen.
+Die bisherigen Waldregionen bestehen aus mehreren einzelnen Bäumen mit bewussten Lücken. Lehm- und Steinvorkommen behalten ihre vierzelligen logischen Footprints und werden deterministisch unregelmäßig verteilt.
 
 Lehm und Stein werden über mehrere sichtbare Teilstücke ihres Footprints dargestellt. Bodenhaufen zeigen eine, zwei oder drei Einheiten als unterschiedlich angeordnete Stücke; Holz, Lehm und Bruchstein sind optisch voneinander unterscheidbar. Diese Darstellung ändert keine Kollisions- oder Wirtschaftsregeln.
 
 ## Büsche
 
-Beerenbüsche bleiben regenerative Naturquellen und keine transportierbare Ware. Logisch belegt ein Busch eine Mikrozelle und blockiert Bewegung nicht. Die Darstellung darf bewusst größer als diese Zelle sein, damit Büsche auch auf dem feinen Raster gut sichtbar bleiben.
-
-Die Buschdarstellung verwendet dieselbe Kartenprojektion wie das restliche Fine Grid. Dadurch bleiben Position und Größe auch bei Zoom und auf mobilen Geräten korrekt.
+Beerenbüsche bleiben regenerative Naturquellen und keine transportierbare Ware. Logisch belegt ein Busch eine Mikrozelle und blockiert Bewegung nicht. Die Darstellung darf größer als diese Zelle sein.
 
 ## Berufserfahrung
 
@@ -106,19 +104,17 @@ Wohnhaus, Farm und Brunnen sind von Anfang an freigeschaltet. Baumenü und Gebä
 
 Autonome Bewohner treffen teure Zielentscheidungen nicht laufend neu. Für Hunger, Schlaf und Arbeit gilt: Ziel einmal wählen, dorthin laufen und erst am Ziel, nach Abschluss einer Tätigkeit oder bei einem dort festgestellten Fehlschlag neu entscheiden. Während des Weges bleibt die Entscheidung bestehen.
 
-Ist aktuell kein gültiges Ziel oder keine passende Arbeitsaufgabe verfügbar, sucht nur die betroffene Person höchstens einmal pro Sekunde erneut. Andere Bewohner werden dadurch nicht global neu geplant.
-
-Bewegung, Bedürfnisabbau und laufende Arbeit bleiben Teil der 60-Hz-Simulation; nur die Zielsuche ist ereignisgesteuert.
+Ist aktuell kein gültiges Ziel oder keine passende Arbeitsaufgabe verfügbar, sucht nur die betroffene Person höchstens einmal pro Sekunde erneut. Bewegung, Bedürfnisabbau und laufende Arbeit bleiben Teil der 60-Hz-Simulation; nur die Zielsuche ist ereignisgesteuert.
 
 ## Darstellung und Zoom
 
-Bewohner-Marker sind gegenüber dem bisherigen Fine-Grid-Stand deutlich kleiner, bleiben aber größer als einzelne Mikrozellen. Die Karte lässt sich mit Mausrad und Pinch bis auf 10× vergrößern.
+Bewohner-Marker bleiben größer als einzelne Mikrozellen, sind gegenüber dem frühen Fine-Grid-Stand aber deutlich kompakter. Die Karte lässt sich mit Mausrad und Pinch bis auf 10× vergrößern.
 
 ## Gebäudeplatzierung auf Desktop und Touch
 
 Beim Start des Baumodus wird die Karte abgedunkelt, gültige Baupositionen werden gleichzeitig als helle Bereiche hervorgehoben. Der aktuelle Ghost zeigt zusätzlich grün oder rot, ob die konkrete Position gültig ist.
 
-Der vollständige Footprint aktiver natürlicher Ressourcen reserviert Raum gegen Gebäudeplatzierung unabhängig davon, ob die Ressource für Bewegung blockiert. Lehm kann also begehbar sein und trotzdem nicht einfach von einem Gebäude überbaut werden.
+Der vollständige Footprint aktiver natürlicher Ressourcen reserviert Raum gegen Gebäudeplatzierung unabhängig davon, ob die Ressource für Bewegung blockiert.
 
 - **Desktop:** Bau-Ghost folgt der Maus; kurzer Linksklick bestätigt eine gültige Position; Escape bricht ab.
 - **Touch:** kurzes Tippen setzt den Ghost; Ziehen verschiebt die Karte; der Bauen-Button bestätigt.
@@ -143,4 +139,4 @@ Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`conc
 - Touch- und Desktop-Bedienung,
 - Technologiebaum und Handbuch.
 
-Alte Aussagen in `concept-detail.md` über 41 × 25 als aktuelles Raster, Wald als Terrain, 10 Holz pro Baum oder lokale Lehm-/Stein-Ausgabelager sind durch diese Datei überholt.
+Alte Aussagen in `concept-detail.md` über 41 × 25 als aktuelles Raster, Wald als Terrain, 10 Holz pro Baum, lokale Lehm-/Stein-Ausgabelager oder das Betreten blockierender Ressourcen durch explizite Zielwahl sind durch diese Datei überholt.
