@@ -67,6 +67,24 @@ const at = (col: number, row: number): Hex => ({
 
 const scaledAt = (col: number, row: number): Hex => scaleHex(coarseAt(col, row));
 
+const TREE_CLUSTER_PATTERNS: readonly (readonly Hex[])[] = [
+  [
+    { q: 0, r: 0 },
+    { q: 2, r: 0 },
+    { q: 0, r: 2 },
+  ],
+  [
+    { q: 0, r: 0 },
+    { q: -2, r: 1 },
+    { q: 1, r: 2 },
+  ],
+  [
+    { q: 0, r: 0 },
+    { q: 2, r: -1 },
+    { q: -1, r: 2 },
+  ],
+] as const;
+
 const compactFootprint = (center: Hex): Hex[] => {
   const coarseCells: Hex[] = [
     { q: 0, r: 0 },
@@ -232,13 +250,29 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
       });
     }
 
-  const naturalResources: NaturalResource[] = forestTiles.map(([col, row], index) => ({
-    id: `forest-${index + 1}`,
-    kind: "forest",
-    position: scaledAt(col!, row!),
-    remaining: CONFIG.forestYield,
-    output: 0,
-  }));
+  const indexedTiles = tileIndex(tiles);
+  const naturalResources: NaturalResource[] = [];
+  const occupiedResourceCells = new Set<string>();
+  let nextForestId = 1;
+
+  forestTiles.forEach(([col, row], clusterIndex) => {
+    const center = scaledAt(col!, row!);
+    const pattern = TREE_CLUSTER_PATTERNS[clusterIndex % TREE_CLUSTER_PATTERNS.length]!;
+    for (const offset of pattern) {
+      const position = { q: center.q + offset.q, r: center.r + offset.r };
+      const tile = indexedTiles.get(key(position));
+      const positionKey = key(position);
+      if (!tile || tile.terrain !== "grass" || tile.bush || occupiedResourceCells.has(positionKey)) continue;
+      naturalResources.push({
+        id: `forest-${nextForestId++}`,
+        kind: "forest",
+        position,
+        remaining: CONFIG.forestYield,
+        output: 0,
+      });
+      occupiedResourceCells.add(positionKey);
+    }
+  });
 
   if (suppliedStart) {
     const terrainKeys = (terrain: Tile["terrain"]) =>
@@ -257,11 +291,6 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
         ].some((neighbor) => occupied.has(`${neighbor.q},${neighbor.r}`)),
       );
     };
-
-    const indexedTiles = tileIndex(tiles);
-    const occupiedResourceCells = new Set(
-      naturalResources.flatMap((resource) => naturalResourceFootprint(resource).map(key)),
-    );
 
     const addResource = (tile: Tile, kind: "clay" | "stone", index: number): boolean => {
       const resource: NaturalResource = {
@@ -289,9 +318,21 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
       return true;
     };
 
+    const candidateScore = (tile: Tile, kind: "clay" | "stone"): number => {
+      const salt = kind === "clay" ? 0x45d9f3b : 0x27d4eb2d;
+      return (
+        Math.imul(tile.q + 257, 73856093) ^
+        Math.imul(tile.r + 263, 19349663) ^
+        salt
+      ) >>> 0;
+    };
+
     const addResourcesNear = (terrain: Tile["terrain"], kind: "clay" | "stone", count: number) => {
       let added = 0;
-      for (const tile of adjacentGrass(terrain)) {
+      const candidates = [...adjacentGrass(terrain)].sort(
+        (a, b) => candidateScore(a, kind) - candidateScore(b, kind) || a.q - b.q || a.r - b.r,
+      );
+      for (const tile of candidates) {
         if (!addResource(tile, kind, added)) continue;
         added += 1;
         if (added >= count) break;
@@ -302,7 +343,6 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     addResourcesNear("mountain", "stone", 4);
   }
 
-  const indexedTiles = tileIndex(tiles);
   for (const resource of naturalResources) {
     if (!naturalResourceBlocksMovement(resource)) continue;
     for (const position of naturalResourceFootprint(resource)) {

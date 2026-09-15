@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CONFIG, createDefaultGameWorld } from "../src/simulation/scenario";
-import { same } from "../src/simulation/hex";
+import { key, neighbors, same } from "../src/simulation/hex";
 import { buildingFootprint, footprintAt } from "../src/simulation/buildingPlacement";
 import { naturalResourceFootprint } from "../src/simulation/naturalResources";
 import { GRID_REFINEMENT } from "../src/simulation/spatial";
@@ -47,4 +47,16 @@ test("natural resources are overlays and their complete footprints stay separate
     }
   }
   assert.equal(CONFIG.forestYield, 3);
+});
+
+test("phase E forests contain many individual trees while preserving walkable gaps", () => {
+  const world = createDefaultGameWorld();
+  const trees = world.naturalResources.filter((resource) => resource.kind === "forest" && !resource.depleted);
+  const occupied = new Set(trees.map((tree) => key(tree.position)));
+
+  assert.ok(trees.length >= 100);
+  assert.equal(occupied.size, trees.length);
+  assert.ok(
+    trees.some((tree) => neighbors(tree.position).some((position) => !occupied.has(key(position)))),
+  );
 });

@@ -6,6 +6,7 @@ import { installBushIndicators } from "./game/bushIndicators";
 import { installDesktopBuildPlacement } from "./game/desktopBuildPlacement";
 import { installHungerIndicators } from "./game/hungerIndicators";
 import { installLooseGoodsIndicators } from "./game/looseGoodsIndicators";
+import { installNaturalResourceIndicators } from "./game/naturalResourceIndicators";
 import { installPersonSelection } from "./game/personSelection";
 import { installSleepIndicators } from "./game/sleepIndicators";
 import {
@@ -95,6 +96,7 @@ scene.renderWorld = () => {
   });
 };
 installBushIndicators(scene, world);
+installNaturalResourceIndicators(scene, world);
 installLooseGoodsIndicators(scene, world);
 installBuildPlacementHighlights(scene, world);
 installHungerIndicators(scene, world);

@@ -4,7 +4,7 @@
 
 **Active implementation document.** Read this before changes to map scale, terrain, buildings, people rendering/scale, natural resources, loose goods, pathfinding, roads, placement, or resource logistics.
 
-Current state: **Phases A, B, C and D complete. Terrain/resource separation and tree/bush normalization are complete. Phase E — visual/resource-density pass — is next.**
+Current state: **Phases A, B, C, D and E complete. Phase F — cross-system cleanup and performance — is next.**
 
 ## Goal
 
@@ -181,16 +181,22 @@ The generic trip/source model itself is intentionally not redesigned yet; short-
 
 ### Phase E — Visual/resource-density pass
 
-Next:
+Implemented:
 
-- irregular forest clusters made from many individual one-cell trees with intentional gaps,
-- irregular clay/stone fields with visibly separate source pieces,
-- tune 1/2/3-unit stack visuals,
-- avoid exposing the micro-grid visually,
-- tune resource/person visual scale against buildings and roads,
-- confirm usability on iPhone 13 Mini and desktop.
+- every historical forest seed expands into three deterministic one-cell trees,
+- the tree patterns leave intentional micro-cell gaps so forests are denser without becoming solid pathfinding walls,
+- clay and stone keep their Phase-D four-cell logical footprints,
+- clay/stone source anchors are selected with deterministic spatial scoring instead of simple map scan order,
+- clay and stone render as multiple visible pieces across their logical footprint,
+- loose wood, clay and rubble use distinct silhouettes,
+- 1/2/3-unit ground stacks use visibly different arrangements,
+- reserved ground stacks receive a presentation-only highlight,
+- the micro-grid remains hidden as a simulation mechanism rather than becoming a visual board,
+- focused regression coverage verifies dense forests still contain walkable gaps.
 
-**Status: not started.**
+Phase E intentionally does **not** vary the authoritative four-cell clay/stone footprint shape. Visual irregularity is decoupled from pathfinding/placement so this pass does not reopen Phase-D spatial rules.
+
+**Status: complete.**
 
 ### Phase F — Cross-system cleanup and performance
 
@@ -235,14 +241,15 @@ Review at minimum:
 - Reservations protect concrete units without removing them before pickup.
 - Wood, clay and rubble currently use a 5-micro-cell / one-old-step drop radius.
 - Active resource footprints reserve space against construction and new loose-good stacks even when the resource is non-blocking.
+- Current forest density uses three trees per historical forest seed with deterministic pattern variation.
+- Clay/stone visual irregularity does not change their authoritative four-cell footprint shape.
 
 ## Open decisions
 
 Resolve these in the relevant phase rather than inventing them early:
 
-- whether Phase E should vary four-cell clay/stone shape/orientation while preserving roughly the same occupied area,
 - whether explicit adjacent interaction cells should replace the temporary targeted-blocker endpoint behavior,
-- exact tree/resource cluster density and procedural distribution,
+- whether future maps should procedurally generate resource cluster density rather than use the current deterministic scenario seeds,
 - whether different loose goods may later coexist on one cell (current rule: no),
 - regeneration rules for future renewable resources.
 
@@ -256,7 +263,7 @@ Before continuing this rework:
 4. for product behavior also read `concept.md` and `concept-detail.md`,
 5. confirm latest `main` CI is green.
 
-Next start with **Phase E — visual/resource-density pass** unless the user requests another functional change first. Do not broaden it into the Phase-F generic transport/pathfinding cleanup without an explicit reason.
+Next start with **Phase F — cross-system cleanup and performance** unless the user requests another functional change first. Do not redesign unrelated economy/product systems as part of cleanup.
 
 ## Documentation rule
 

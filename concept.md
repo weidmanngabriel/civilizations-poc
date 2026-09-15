@@ -29,7 +29,7 @@ Footprint und Wegblockierung sind getrennte Eigenschaften einer Ressource. Aktue
 - **Stein:** 4 kompakte Mikrozellen, blockiert.
 - **Erz:** Zielrichtung ebenfalls ungefähr 4 Mikrozellen und blockierend.
 
-Ein dichter Wald soll bewusst Lücken zwischen einzelnen Bäumen besitzen. Personen dürfen durch diese Lücken laufen, aber normale Wege dürfen nicht durch einen Baumstamm führen. Lehm darf dagegen betreten werden, während Stein seine komplette belegte Fläche für normale Wege sperrt.
+Ein dichter Wald besitzt bewusst Lücken zwischen einzelnen Bäumen. Personen dürfen durch diese Lücken laufen, aber normale Wege dürfen nicht durch einen Baumstamm führen. Lehm darf dagegen betreten werden, während Stein seine komplette belegte Fläche für normale Wege sperrt.
 
 Auch nicht-blockierende Ressourcen reservieren ihren Footprint gegen Gebäude und neue Warenhaufen. Ein Gebäude kann also nicht einfach auf einem Lehmvorkommen gebaut werden.
 
@@ -61,7 +61,13 @@ Lehm bleibt auf allen vier Zellen begehbar. Stein blockiert seine vier Zellen. N
 
 Töpferei und Steinmetzhütte beziehen diese Rohstoffe aus dem normalen physischen Warenfluss statt aus einem sichtbaren lokalen Lager der Rohstoffquelle.
 
-Die optische Darstellung der vierzelligen Vorkommen ist noch bewusst einfach. Unregelmäßige Cluster und besser sichtbare einzelne Ressourcenstücke folgen im visuellen Density-Pass.
+## Ressourcenverteilung und Darstellung — Phase E abgeschlossen
+
+Die bisherigen Waldregionen bestehen jetzt aus deutlich mehr einzelnen Bäumen. Aus jedem historischen Waldpunkt entstehen mehrere versetzte Baumpositionen. Dadurch wirken Wälder dichter, behalten aber Lücken, durch die Bewohner laufen können.
+
+Lehm- und Steinvorkommen behalten ihre vierzelligen logischen Footprints und ihre bisherigen Mengen. Ihre Positionen entlang von Flüssen und Bergen werden deterministisch unregelmäßiger verteilt, statt einfach der Karten-Scanreihenfolge zu folgen.
+
+Lehm und Stein werden über mehrere sichtbare Teilstücke ihres Footprints dargestellt. Bodenhaufen zeigen eine, zwei oder drei Einheiten als unterschiedlich angeordnete Stücke; Holz, Lehm und Bruchstein sind optisch voneinander unterscheidbar. Diese Darstellung ändert keine Kollisions- oder Wirtschaftsregeln.
 
 ## Büsche
 

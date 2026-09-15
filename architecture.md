@@ -93,7 +93,15 @@ Clay and stone deposits now use the same physical-stack economy as trees:
 - depleted deposits release their complete footprint/collision while already dropped goods remain,
 - consumers and carriers reach the raw goods through the same ground-stack compatibility adapter used by wood.
 
-Visual representation is still intentionally simple; irregular field shapes and denser resource art remain Phase E work.
+## Resource density and presentation — Phase E complete
+
+The start scenario expands each historical forest seed into three deterministic one-cell tree positions with deliberate gaps. Forests therefore read as clusters of many independent blocking trees without turning every micro-cell into a trunk.
+
+Clay and stone keep their authoritative compact four-cell footprints from Phase D. Their start positions are selected by a deterministic spatial hash rather than by map scan order, producing less regular distribution around rivers and mountains without changing resource yield or collision rules.
+
+`src/game/naturalResourceIndicators.ts` is a presentation-only overlay that renders the non-anchor cells of clay and stone footprints as separate visible pieces with small deterministic offsets. It never mutates world state. The original anchor drawing remains in `MainScene`, so the combined result represents the full four-cell source.
+
+`src/game/looseGoodsIndicators.ts` now gives wood, clay and rubble distinct piece silhouettes. One-, two- and three-unit stacks have visibly different arrangements, while reservations are indicated presentation-only and do not affect collision.
 
 ## Bush rendering and lifecycle
 
@@ -127,7 +135,7 @@ The build-mode highlight layer computes valid anchors once on mode entry and sha
 
 ## Rendering and interaction
 
-Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map state and persistent person markers. Natural resources are drawn as overlays at their resource anchors; terrain is drawn independently beneath them. Phase E will improve the visual representation of multi-cell resource fields without changing their authoritative footprint rules.
+Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map state and persistent person markers. Natural resources are drawn independently from terrain; clay and stone use a supplemental resource overlay for their complete multi-cell visual footprint. Loose-goods indicators remain presentation-only and update incrementally from world state.
 
 Desktop and touch remain separate first-class adapters with shared simulation legality:
 
@@ -146,6 +154,6 @@ Where `architecture-detail.md` still describes forest as terrain, 10 wood per tr
 
 `npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build.
 
-Fine-grid/resource regression coverage verifies 205 × 125 geometry, terrain/resource separation, tree yield of 3, four-cell clay/stone footprints, tree/stone blocking versus clay non-blocking, collision removal after depletion, physical wood/clay/rubble stacks, stack capacity/reservations and the invariant that loose goods never affect routing.
+Fine-grid/resource regression coverage verifies 205 × 125 geometry, terrain/resource separation, tree yield of 3, dense multi-tree forest clusters with walkable gaps, four-cell clay/stone footprints, tree/stone blocking versus clay non-blocking, collision removal after depletion, physical wood/clay/rubble stacks, stack capacity/reservations and the invariant that loose goods never affect routing.
 
 Per current project instruction, changes are made directly on `main`. The GitHub Pages workflow runs tests before the production build and deploys only after both succeed.
