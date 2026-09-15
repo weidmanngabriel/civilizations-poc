@@ -2,9 +2,9 @@
 
 ## Status
 
-**Active implementation document.** Read this before changes to map scale, terrain, buildings, people rendering/scale, natural resources, loose goods, pathfinding, roads, placement, or resource logistics.
+**Implementation complete.** Phases A–F are finished. This file remains the historical/reference document for the fine-grid and physical-resource migration, but there is no active migration phase after Phase F.
 
-Current state: **Phases A, B, C, D and E complete. Phase F — cross-system cleanup and performance — is in progress.**
+Future work that builds on these systems should still preserve the established spatial/resource rules documented here and in `architecture.md` / `concept.md`.
 
 ## Goal
 
@@ -15,7 +15,6 @@ Move the prototype from a coarse grid with abstract resource output to a finer s
 - Keep deterministic simulation independent from Phaser.
 - Rendering stays decoupled from simulation ticks.
 - Desktop and touch are first-class input modes.
-- Each slice leaves `main` playable.
 - Avoid repeated full-map scans on the fine grid.
 - Preserve unrelated behavior unless explicitly changed.
 - Work on a temporary branch and squash one final commit to `main`.
@@ -26,86 +25,93 @@ The world uses a 205 × 125 micro-grid, a 5× refinement of the former 41 × 25 
 
 Trees are one-cell blocking resources with three wood. Clay and stone use compact four-cell footprints; clay is walkable and stone blocking. Blocking targets are interacted with from reachable neighboring walkable cells rather than being entered.
 
-Physical wood, clay and rubble lie in walkable `LooseGoodStack`s of 1–3 units. Reservations protect concrete units. The historical `Trip` representation still uses short-lived `ground-*` compatibility proxies while those stacks are collected.
+Physical wood, clay and rubble lie in walkable `LooseGoodStack`s of 1–3 units. Reservations protect concrete units. `Trip` can now point directly at a building, natural resource or loose-good stack; physical stacks are no longer mirrored as temporary fake natural resources.
 
-## Phase F: local work areas
+The HQ and warehouses share the same real storage semantics in the transport core. The old hidden HQ storage proxy and its separate carrier planner are removed. Automatic storage-to-storage collection remains forbidden; explicit warehouse merchant routes remain separate.
 
-The current Phase-F slice adds **per-person work flags** for local resource work without redesigning the entire economy.
-
-Current scope:
-
-- woodcutters,
-- clay diggers,
-- stonecutters,
-- warehouse carriers,
-- HQ carriers.
-
-The shared work-area radius is **2.5 coarse world tiles / 12.5 micro-cells**.
-
-Natural-resource workers get their initial flag at the first reachable resource selected by the existing planner. After that they only choose matching unclaimed sources inside their flag. When the area is exhausted they wait and retry locally instead of roaming globally. Extractor flags are rendered red and never move through autonomous worker logic; only explicit player input changes an established flag center.
-
-Warehouse/HQ carriers get their initial flag at their storage workplace and only auto-collect non-storage sources inside their personal flag. Storage-to-storage automatic movement remains forbidden. A moved flag cancels an unpicked source outside the new area while already carried goods still finish delivery.
-
-Production-building carriers deliberately remain outside this first slice and retain their current demand-driven sourcing behavior. Merchants and builders also retain their existing separate sourcing semantics.
-
-`src/simulation/workAreas.ts` remains the authoritative local target filter around the historical planner/`Trip` model. During Phase F, `simulationCore.ts` suppresses the historical whole-map extractor replanning that would otherwise run during resource depletion or idle retry and then be discarded by the work-area filter. Local retries are handled by `syncWorkAreas()` instead.
-
-Work flags and future wayposts are separate: flags restrict **eligible local targets**; wayposts will later restrict **long-distance navigation**.
-
-## Phase F: needs/planning performance
-
-Hunger decay, hunger threshold checks and food-target planning now run **once per simulated second** rather than on every 60-Hz simulation tick. Movement and the rest of the fixed-step simulation remain at 60 Hz.
-
-Food-source selection no longer calculates an A* route to every available bread source and bush up front. Candidates are ordered by a cheap spatial lower bound, then exact paths are calculated only while a candidate can still beat the best reachable route already found.
-
-## Previous completed phases
-
-### Phase A — Spatial rework
+## Phase A — Spatial rework
 
 Complete: fine grid, preserved world scale, scaled building/field footprints, movement/camera/input adaptation and optimized path lookup.
 
-### Phase B — Physical resource data model
+## Phase B — Physical resource data model
 
 Complete: physical loose-good stacks, deterministic placement/reservation/pickup, capacity three and non-blocking semantics.
 
-### Phase C — Wood chain
+## Phase C — Wood chain
 
 Complete: individual blocking trees, three wood per tree, physical wood piles, consumer pickup and depletion collision cleanup.
 
-### Phase D — Clay and stone
+## Phase D — Clay and stone
 
 Complete: physical clay/rubble piles, four-cell footprints and shared raw-good flow.
 
-### Phase E — Visual/resource-density pass
+## Phase E — Visual/resource-density pass
 
 Complete: denser walkable tree clusters, multi-piece resource presentation and distinct 1/2/3-unit loose-good visuals.
 
-## Other Phase-F cleanup already completed
+## Phase F — Cross-system cleanup and performance
 
-- autonomous work planning is event-driven with per-person one-second retry fallback,
-- hunger planning and decay run at 1 Hz while movement remains 60 Hz,
-- food-target A* is pruned by spatial lower bounds,
-- hunger/sleep retain selected destinations while travelling,
-- extractor depletion/idle retries do not launch discarded whole-map resource planning,
-- person markers are compact and camera zoom reaches 10×,
-- blocking targets use explicit adjacent interaction positions,
-- storage-to-storage, merchant and builder sourcing semantics are covered by regressions,
-- natural-resource depletion retirement is event-driven rather than a periodic full resource-list scan,
-- performance diagnostics split planning costs.
+Complete.
 
-## Still review
+### Local work areas
 
-- HQ legacy carrier planner cleanup,
-- farms and fields,
-- building clearance/demolition,
-- roads and traffic thresholds,
-- generic trip/source representation after physical-resource migration,
-- remaining pathfinding cost/performance,
-- future waypost/high-level navigation,
-- save/load assumptions,
-- remaining detail-document cleanup and regression coverage.
+Per-person work flags apply to woodcutters, clay diggers, stonecutters, warehouse carriers and HQ carriers. The shared radius is **2.5 coarse world tiles / 12.5 micro-cells**.
 
-## Decisions
+Natural-resource workers receive their initial flag at the first reachable resource and subsequently choose only matching unclaimed sources inside it. Empty areas cause local waiting/retry rather than global roaming. Extractor flags are red and never move autonomously.
+
+Warehouse/HQ carriers receive their initial flag at their storage workplace and auto-collect only non-storage sources inside their own area. Moving a flag cancels an unpicked outside source while already carried goods still finish delivery.
+
+Production-building carriers, merchants and builders keep their separate sourcing semantics. Work flags and future wayposts remain separate systems.
+
+### Physical transport-source cleanup
+
+- `Trip` directly represents loose-good stack sources with a stable pickup position.
+- Loose-good reservations are owned by the physical stack through planning, cancellation and pickup.
+- Hunger/sleep interruptions resume an existing physical pickup instead of depending on a proxy entity.
+- HQ storage is first-class; `hq-storage-proxy` and the needs-layer HQ carrier planner are gone.
+- Physical raw-resource output is migrated directly from short-lived extractor output staging into `LooseGoodStack`s.
+
+### Farms and fields
+
+Farm rules and balance remain unchanged. Field placement now obeys the physical world model: the full refined field footprint must be grass and cannot overwrite natural-resource footprints, loose goods, other reserved sow footprints or occupied cells. Demolishing a farm still removes its active fields.
+
+### Building clearance and demolition
+
+Building placement keeps the existing refined footprint plus one coarse-world-tile clearance ring. Active natural-resource footprints reserve both placement and clearance space. Loose goods block only the actual building footprint because they are walkable and may remain in the clearance ring.
+
+Demolition restores every occupied footprint cell and clears stale traffic state across the full former footprint. Roads under a constructed building do not return after demolition; the cleared footprint becomes grass as before.
+
+### Roads and traffic
+
+The existing balance is unchanged: eight qualifying traversals within 32 simulated seconds create a permanent road and roads provide the existing 30% movement-speed bonus.
+
+Road placement and organic road creation now respect the **entire active natural-resource footprint**, not only a resource anchor cell. Traffic state is cleared when a cell changes role through construction, field use or demolition.
+
+### Performance cleanup
+
+- autonomous work planning remains event-driven with a one-second fallback retry,
+- hunger planning/decay remains at 1 Hz while movement remains 60 Hz,
+- food-source A* remains pruned by spatial lower bounds,
+- extractor depletion retirement remains event-driven,
+- local work areas use geometric eligibility before route planning,
+- road movement builds the active-resource footprint set once per movement tick rather than per crossing,
+- farm action validation builds the physical-obstacle set once per farm-system tick rather than once per footprint cell,
+- placement anchor enumeration reuses indexed terrain/resource/loose-good lookups.
+
+No additional cache hierarchy was introduced; the current diagnostics should guide later optimization if measured load requires it.
+
+## Regression coverage added/retained
+
+- direct physical loose-good pickup and reservation,
+- no fake natural-resource mirror for loose goods,
+- HQ carrier direct collection into real HQ inventory with no proxy building,
+- shared warehouse/HQ work-area radius,
+- storage-to-storage automatic movement remains forbidden,
+- merchant and builder long-distance sourcing semantics remain separate,
+- physical goods block building footprints,
+- multi-tile demolition and road replacement behavior.
+
+## Decisions retained
 
 - Fine grid is a simulation mechanism, not a visual board.
 - Work areas are per person, not per building.
@@ -114,20 +120,22 @@ Complete: denser walkable tree clusters, multi-piece resource presentation and d
 - Extractors never move their own flags; established flag centers change only via player input.
 - Warehouse/HQ carrier flags begin at the storage workplace.
 - Moving a flag invalidates unpicked outside targets but not carried cargo.
-- Production carriers, merchants and builders are not governed by this first work-area slice.
+- Production carriers, merchants and builders are not governed by the local storage/extractor work-area slice.
 - Hunger/food planning cadence is one simulated second, not every simulation tick.
 - Work flags and future wayposts are separate systems.
 
-## Open decisions
+## Future follow-ups — not part of the completed migration
 
-- whether later work-area radii differ by profession/upgrades,
-- whether production-building carriers receive flags in a later slice,
-- whether flags can be shared by multiple workers,
-- exact waypost connection ranges and local-navigation radius,
-- future resource regeneration and procedural cluster rules.
+- decide whether work-area radii later differ by profession or upgrades,
+- decide whether production-building carriers receive flags,
+- decide whether flags can be shared by multiple workers,
+- design waypost connection ranges and high-level navigation only when long-distance routing is tackled,
+- define future resource regeneration/procedural cluster rules,
+- add save/load only once its product scope is chosen; no migration-specific save format is introduced here,
+- use performance diagnostics before further pathfinding optimization instead of adding speculative complexity.
 
 ## Handoff
 
-Before continuing: read `agents.md`, this file, `architecture.md` / `architecture-detail.md`, and for product behavior `concept.md` / `concept-detail.md`; confirm latest `main` CI is green.
+Before changes to these systems, read `agents.md`, `architecture.md` / `architecture-detail.md`, `concept.md` / `concept-detail.md` and this reference document. Confirm latest `main` CI is green.
 
-After relevant changes update this plan, current architecture/concept entry points and player-facing handbook text.
+After relevant changes update current architecture/concept entry points and player-facing handbook text. Reopen this plan only if a new fine-grid/resource migration phase is intentionally started.
