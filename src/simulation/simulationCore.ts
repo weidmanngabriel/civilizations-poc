@@ -2,9 +2,11 @@ export * from "./simulationCoreEngine";
 
 import type {
   Building,
+  BuildingId,
   NaturalResource,
   NaturalResourceKind,
   Person,
+  Role,
   World,
 } from "./model";
 import { CONFIG } from "./scenario";
@@ -13,6 +15,7 @@ import {
   assigned,
   building,
   builders,
+  changeAssignment as changeAssignmentNow,
   changeBuilders as changeBuildersNow,
   changeExtractors as changeExtractorsNow,
   changeWoodcutters as changeWoodcuttersNow,
@@ -22,6 +25,16 @@ import {
   tick as tickNow,
   woodcutters,
 } from "./simulationCoreEngine";
+import {
+  clearWorkArea,
+  ensureWorkArea,
+  setWorkAreaCenter,
+  supportsWorkArea,
+  syncWorkAreas,
+  WORK_AREA_RADIUS,
+  WORK_AREA_RADIUS_WORLD_TILES,
+  workAreaContains,
+} from "./workAreas";
 
 type ExtractorKind = "clay" | "stone";
 type PendingPlan =
@@ -101,6 +114,13 @@ function nearestOpenConstructionSite(world: World, person: Person): Building | u
     )[0];
 }
 
+function initializeNaturalWorkArea(world: World, person: Person): void {
+  const target = person.resourceTarget
+    ? world.naturalResources.find((resource) => resource.id === person.resourceTarget)
+    : undefined;
+  ensureWorkArea(world, person, target?.position ?? person.position);
+}
+
 function flushPendingPlans(world: World): void {
   const queue = pendingPlans.get(world);
   if (!queue?.length) return;
@@ -115,6 +135,7 @@ function flushPendingPlans(world: World): void {
       person.woodcutter = undefined;
       person.resourceTarget = undefined;
       movePersonFirst(world, person, () => changeWoodcuttersNow(world, 1));
+      initializeNaturalWorkArea(world, person);
       continue;
     }
 
@@ -125,6 +146,7 @@ function flushPendingPlans(world: World): void {
       movePersonFirst(world, person, () =>
         changeExtractorsNow(world, plan.resourceKind, 1),
       );
+      initializeNaturalWorkArea(world, person);
       continue;
     }
 
@@ -135,8 +157,38 @@ function flushPendingPlans(world: World): void {
   }
 }
 
+export function changeAssignment(
+  world: World,
+  id: BuildingId,
+  role: Role,
+  delta: 1 | -1,
+): boolean {
+  const before = assigned(world, id, role).slice();
+  const changed = changeAssignmentNow(world, id, role, delta);
+  if (!changed || role !== "carrier") return changed;
+  const target = building(world, id);
+  const localStorageCarrier = target.kind === "warehouse" || target.kind === "hq";
+  const after = assigned(world, id, role);
+  if (delta === 1) {
+    const person = after.find((candidate) => !before.includes(candidate));
+    if (person && localStorageCarrier) ensureWorkArea(world, person, target.position);
+  } else {
+    const person = before.find((candidate) => !after.includes(candidate));
+    if (person) clearWorkArea(person);
+  }
+  return true;
+}
+
 export function changeWoodcutters(world: World, delta: 1 | -1): boolean {
-  if (delta === -1) return changeWoodcuttersNow(world, -1);
+  if (delta === -1) {
+    const before = woodcutters(world).slice();
+    const changed = changeWoodcuttersNow(world, -1);
+    if (changed) {
+      const removed = before.find((person) => !person.woodcutter);
+      if (removed) clearWorkArea(removed);
+    }
+    return changed;
+  }
   const person = freePerson(world);
   if (!person) return false;
 
@@ -155,7 +207,15 @@ export function changeExtractors(
   kind: ExtractorKind,
   delta: 1 | -1,
 ): boolean {
-  if (delta === -1) return changeExtractorsNow(world, kind, -1);
+  if (delta === -1) {
+    const before = world.people.filter((person) => person.extractor === kind);
+    const changed = changeExtractorsNow(world, kind, -1);
+    if (changed) {
+      const removed = before.find((person) => person.extractor !== kind);
+      if (removed) clearWorkArea(removed);
+    }
+    return changed;
+  }
   const person = freePerson(world);
   if (!person) return false;
 
@@ -185,11 +245,11 @@ export function changeBuilders(world: World, delta: 1 | -1): boolean {
 }
 
 export function status(world: World, target: Building): string {
-  if (target.kind === "warehouse" && !isUnderConstruction(target)) {
+  if ((target.kind === "warehouse" || target.kind === "hq") && !isUnderConstruction(target)) {
     const carriers = assigned(world, target.id, "carrier").length;
     const merchants = assigned(world, target.id, "merchant").length;
     if (!merchants && carriers)
-      return `Träger sammeln Waren im Umkreis von ${CONFIG.warehouseCollectionRadiusWorldTiles} Weltkacheln`;
+      return `Träger sammeln Waren nur innerhalb ihrer Arbeitsflagge (${WORK_AREA_RADIUS_WORLD_TILES} Weltkacheln Radius)`;
   }
   return statusNow(world, target);
 }
@@ -197,7 +257,22 @@ export function status(world: World, target: Building): string {
 /** Flushes UI-triggered autonomous profession planning inside the simulation step. */
 export function tick(world: World): void {
   flushPendingPlans(world);
+  syncWorkAreas(world);
   tickNow(world);
+  // Legacy planners may select a target at a task boundary. Re-apply local constraints
+  // before the next simulation step can move toward an invalid source.
+  syncWorkAreas(world);
 }
 
-export { building, builders, woodcutters };
+export {
+  building,
+  builders,
+  clearWorkArea,
+  ensureWorkArea,
+  setWorkAreaCenter,
+  supportsWorkArea,
+  WORK_AREA_RADIUS,
+  WORK_AREA_RADIUS_WORLD_TILES,
+  woodcutters,
+  workAreaContains,
+};

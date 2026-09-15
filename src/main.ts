@@ -9,6 +9,7 @@ import { installLooseGoodsIndicators } from "./game/looseGoodsIndicators";
 import { installNaturalResourceIndicators } from "./game/naturalResourceIndicators";
 import { installPersonSelection } from "./game/personSelection";
 import { installSleepIndicators } from "./game/sleepIndicators";
+import { installWorkAreaInteraction } from "./game/workAreaInteraction";
 import {
   installMobileMapTouchControls,
   preventMobilePageZoom,
@@ -23,6 +24,7 @@ import { mountPersonPanel } from "./ui/personPanel";
 import { installPerformanceDebugPanel } from "./ui/performanceDebug";
 import { mountTechnologyTree } from "./ui/technologyTree";
 import { applyTechnologyTreeLayout } from "./ui/technologyTreeLayout";
+import { installWorkAreaControls } from "./ui/workAreaControls";
 import "./style.css";
 import "./map-interaction.css";
 import "./build-placement.css";
@@ -102,6 +104,7 @@ installBuildPlacementHighlights(scene, world);
 installHungerIndicators(scene, world);
 installSleepIndicators(scene, world);
 installPersonSelection(scene, world);
+installWorkAreaInteraction(scene, world);
 installTileSelectionGuard();
 mountControls(world, () => scene.renderWorld());
 installPerformanceDebugPanel(world);
@@ -109,6 +112,7 @@ installHqStoragePanel(world);
 mountBuildMenu(world);
 mountHandbook();
 mountPersonPanel(world);
+installWorkAreaControls(world);
 mountTechnologyTree(world);
 applyTechnologyTreeLayout();
 showBuildVersion();

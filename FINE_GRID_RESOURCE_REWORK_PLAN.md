@@ -8,286 +8,116 @@ Current state: **Phases A, B, C, D and E complete. Phase F — cross-system clea
 
 ## Goal
 
-Move the prototype from a coarse grid with resource nodes that hold abstract local output to a finer spatial model inspired by the original game:
-
-- small simulation cells while keeping the visible world approximately the same size,
-- buildings occupy many cells while keeping roughly their current screen-space size,
-- people remain continuously animated and readable,
-- terrain describes only ground, while natural resources are independent world objects on top,
-- trees and other natural resources are individual source objects,
-- extracted raw materials become physical loose goods placed on the ground,
-- one ground cell holds 1–3 units of one loose-good type,
-- extractors choose real drop positions,
-- carriers and production workers collect from those positions.
-
-The grid is authoritative for spatial simulation but should not become visually dominant.
+Move the prototype from a coarse grid with abstract resource output to a finer spatial model with physical resources, visible logistics and locally meaningful worker movement. The grid is authoritative for simulation but should not become visually dominant.
 
 ## Guiding constraints
 
-- Keep the deterministic simulation independent from Phaser.
-- Rendering stays decoupled from simulation ticks and movement remains visually continuous.
-- Desktop and touch are both first-class interaction modes.
-- Each phase must leave `main` playable and testable.
-- Do not combine multiple large migrations just to avoid temporary compatibility code.
+- Keep deterministic simulation independent from Phaser.
+- Rendering stays decoupled from simulation ticks.
+- Desktop and touch are first-class input modes.
+- Each slice leaves `main` playable.
 - Avoid repeated full-map scans on the fine grid.
-- Existing behavior outside the active phase remains unchanged unless explicitly documented.
-- Changes are developed on a temporary branch and squash-merged to `main`; deployment is gated by the full test suite and build.
+- Preserve unrelated behavior unless explicitly changed.
+- Work on a temporary branch and squash one final commit to `main`.
 
-## Spatial model
+## Established spatial/resource model
 
-Phase A settled on a **5× linear refinement**:
+The world uses a 205 × 125 micro-grid, a 5× refinement of the former 41 × 25 logical world. Terrain and natural resources are separate. Resource footprint and movement blocking are separate properties.
 
-```text
-old logical world    41 × 25
-current micro-grid   205 × 125
-```
+Trees are one-cell blocking resources with three wood. Clay and stone use compact four-cell footprints; clay is walkable and stone blocking. Blocking targets are interacted with from reachable neighboring walkable cells rather than being entered.
 
-Visible world size remains approximately comparable. Buildings and fields expand to many micro-cells, movement/ranges are scaled to preserve world-space distances, and people remain larger than individual micro-cells.
+Physical wood, clay and rubble lie in walkable `LooseGoodStack`s of 1–3 units. Reservations protect concrete units. The historical `Trip` representation still uses short-lived `ground-*` compatibility proxies while those stacks are collected.
 
-## Terrain/resource separation
+## Phase F: local work areas
 
-Terrain is only the underlying ground. Natural resources do not create special terrain types merely because they occupy a location.
+The current Phase-F slice adds **per-person work flags** for local resource work without redesigning the entire economy.
 
-Resource footprint and movement blocking are independent properties. Current authoritative rules are data-driven in `src/simulation/naturalResources.ts`:
+Current scope:
 
-| Resource | Logical footprint | Movement |
-|---|---:|---|
-| Tree | 1 micro-cell | blocking |
-| Bush | 1 micro-cell | non-blocking |
-| Mushroom | 1 micro-cell | non-blocking |
-| Clay | compact 4 micro-cells | non-blocking |
-| Stone | compact 4 micro-cells | blocking |
-| Ore | target: about 4 micro-cells | blocking |
+- woodcutters,
+- clay diggers,
+- stonecutters,
+- warehouse carriers,
+- HQ carriers.
 
-The start scenario no longer uses forest as player-facing terrain. Trees are individual resource objects on ordinary ground. `Tile.resourceBlocking` is a derived collision overlay synchronized from active blocking resource footprints; depletion removes only the resource/collision, not the terrain underneath.
+The work-area radius is **5 coarse world tiles / 25 micro-cells**.
 
-### Blocking-resource interaction positions
+Natural-resource workers get their initial flag at the first reachable resource selected by the existing planner. After that they only choose matching unclaimed sources inside their flag. When the area is exhausted they wait and retry locally instead of roaming globally; the flag never migrates automatically.
 
-Blocking cells are never entered merely because they are an explicit route target. When pathfinding is asked to reach a blocking target cell, it deterministically chooses the quickest reachable **walkable neighboring micro-cell** as the physical interaction position. The arrival point retains a logical reference to the blocked target, so existing work, pickup and need logic can still recognize that the person has reached the intended object without moving onto it.
+Warehouse/HQ carriers get their initial flag at their storage workplace and only auto-collect non-storage sources inside their personal flag. Storage-to-storage automatic movement remains forbidden. A moved flag cancels an unpicked source outside the new area while already carried goods still finish delivery.
 
-This rule applies equally to weighted routing and step-count routing. Normal transit therefore never crosses or terminates on a blocking resource cell.
+Production-building carriers deliberately remain outside this first slice and retain their current demand-driven sourcing behavior. Merchants and builders also retain their existing separate sourcing semantics.
 
-## Target resource model
+`src/simulation/workAreas.ts` is a compatibility layer around the historical planners and `Trip` model. `setWorkAreaCenter()` is authoritative simulation input. `workAreaInteraction.ts` and `workAreaControls.ts` provide rendering and desktop/touch interaction without owning simulation state.
 
-### Natural resource sources
+Work flags and future wayposts are separate: flags restrict **eligible local targets**; wayposts will later restrict **long-distance navigation**.
 
-A resource region is a collection of individual source objects. Forests consist of individual tree resources. Clay and stone use individual source objects with multi-cell logical footprints.
-
-Each source object owns its position and depletion state. For all currently migrated raw resources, `NaturalResource.output` is no longer player-facing storage; it is only a transient compatibility field inside the legacy tick/transport adapter.
-
-### Loose goods on the ground
-
-A ground stack has a stable id, a concrete map cell, exactly one good type, an integer amount from 1 to 3 and an integer reservation count between 0 and the current amount.
-
-Different good types do not share one cell. Empty stacks are removed.
-
-**Permanent rule:** loose goods are never obstacles. They do not change terrain, collision, movement cost, or pathfinding and can always be walked over.
-
-A new stack may not be created on blocked terrain, a building footprint, or any cell of an active natural-resource footprint. Existing compatible non-full stacks can be filled up to 3.
-
-### Extractor behavior
-
-For one completed physical extraction action:
-
-1. choose/retain a concrete resource source,
-2. reach its valid interaction position,
-3. extract one unit,
-4. find a drop cell near the source,
-5. prefer an existing non-full stack of the same good,
-6. otherwise choose the nearest suitable free cell,
-7. place the unit there,
-8. only then count the action as completed for profession XP,
-9. continue at the source or select a new source if depleted.
-
-Wood, clay and rubble currently use a **5 micro-cell** drop radius, equal to one former coarse-grid step.
-
-### Logistics behavior
-
-Wood, clay and rubble are collected from ground stacks instead of source-local output. Reservations protect concrete units. Pickup reduces a stack from 3 → 2 → 1 → removed.
-
-Building inventories remain normal inventories.
-
-Warehouse carriers and HQ carriers automatically collect only non-storage sources within **5 coarse world tiles**, equal to 25 micro-steps at the current refinement. Normal carriers never move goods automatically from one warehouse/storage inventory to another.
-
-Production workers and builders may fetch needed inputs/materials from any reachable valid source; the local warehouse/HQ collection radius does not limit those demand-driven trips. Configured merchants are the explicit warehouse-to-warehouse transport mechanism and are likewise not limited by the local collection radius.
-
-The historical `Trip` type still expects building/resource ids. Short-lived depleted `ground-*` resource proxies therefore remain as a compatibility adapter for physical raw stacks while a pickup is planned or active. `World.looseGoods` remains authoritative.
-
-## Phases
+## Previous completed phases
 
 ### Phase A — Spatial rework
 
-Implemented:
-
-- map refined to 205 × 125 micro-cells,
-- visible world scale preserved,
-- building footprints, clearance rings and farm fields scaled,
-- person presentation and movement adapted,
-- camera/map geometry and build placement adapted,
-- pathfinding and tile lookup optimized for the larger grid,
-- gameplay radii converted to micro-cell units,
-- fine-grid regression tests added,
-- legacy resource economy intentionally preserved.
-
-**Status: complete.**
+Complete: fine grid, preserved world scale, scaled building/field footprints, movement/camera/input adaptation and optimized path lookup.
 
 ### Phase B — Physical resource data model
 
-Implemented:
+Complete: physical loose-good stacks, deterministic placement/reservation/pickup, capacity three and non-blocking semantics.
 
-- `LooseGoodStack` world model with stable ids,
-- capacity exactly 3 units of one good type per cell,
-- deterministic lookup, placement, reservation, release and pickup,
-- empty-stack removal,
-- deterministic local drop-position search,
-- permanent non-blocking rule for loose goods,
-- presentation-only Phaser overlay,
-- focused regression coverage.
+### Phase C — Wood chain
 
-**Status: complete.**
+Complete: individual blocking trees, three wood per tree, physical wood piles, consumer pickup and depletion collision cleanup.
 
-### Phase C — Wood end-to-end reference chain
+### Phase D — Clay and stone
 
-Implemented:
-
-- woodcutters target concrete individual tree resources,
-- every completed felling action produces one physical wood unit,
-- wood is dropped within 5 micro-cells of the source,
-- compatible partial stacks are preferred and remain capped at 3,
-- sawmill workers, sawmill carriers and HQ carriers source wood from physical stacks,
-- reservations prevent duplicate pickup,
-- depleted trees disappear while dropped wood remains collectible,
-- one tree = one micro-cell resource object,
-- one tree = exactly 3 wood,
-- tree collision is separate from terrain,
-- dense forest clusters retain walkable gaps.
-
-**Status: complete.**
-
-### Phase D — Clay and stone migration
-
-Implemented:
-
-- clay extraction produces physical `clay` ground stacks,
-- stone extraction produces physical `rubble` ground stacks,
-- clay and stone share the wood capacity/reservation/return-cargo compatibility flow,
-- clay uses a compact four-cell non-blocking footprint,
-- stone uses a compact four-cell blocking footprint,
-- footprint, blocking and raw-good mapping are centralized in `naturalResources.ts`,
-- placement reserves complete active resource footprints,
-- depletion removes complete stone collision while dropped goods remain.
-
-The generic trip/source model itself remains intentionally compatible through short-lived `ground-*` proxies until later Phase-F cleanup.
-
-**Status: complete.**
+Complete: physical clay/rubble piles, four-cell footprints and shared raw-good flow.
 
 ### Phase E — Visual/resource-density pass
 
-Implemented:
+Complete: denser walkable tree clusters, multi-piece resource presentation and distinct 1/2/3-unit loose-good visuals.
 
-- every historical forest seed expands into three deterministic one-cell trees,
-- tree patterns leave intentional walkable micro-cell gaps,
-- clay and stone keep their four-cell logical footprints,
-- clay/stone source anchors use deterministic spatial scoring,
-- clay and stone render as multiple visible pieces,
-- loose wood, clay and rubble have distinct silhouettes,
-- 1/2/3-unit ground stacks use visibly different arrangements,
-- reserved ground stacks receive a presentation-only highlight,
-- the micro-grid remains hidden as a simulation mechanism.
+## Other Phase-F cleanup already completed
 
-**Status: complete.**
+- autonomous work planning is event-driven with per-person one-second retry fallback,
+- hunger/sleep retain selected destinations while travelling,
+- person markers are compact and camera zoom reaches 10×,
+- blocking targets use explicit adjacent interaction positions,
+- storage-to-storage, merchant and builder sourcing semantics are covered by regressions,
+- natural-resource depletion retirement is event-driven rather than a periodic full scan,
+- performance diagnostics split planning costs.
 
-### Phase F — Cross-system cleanup and performance
+## Still review
 
-Implemented in the current cleanup slices:
-
-- autonomous work planning is event-driven instead of globally re-planning every idle worker once per second,
-- arrival, delivery and completed work trigger immediate follow-up decisions,
-- a worker that cannot find a valid task/source gets an individual one-second retry deadline,
-- hunger and sleep retain their selected targets while travelling and re-evaluate at task boundaries,
-- person markers are substantially smaller while remaining readable,
-- desktop wheel and touch pinch zoom share a maximum camera zoom of 10×,
-- explicit blocked-target interaction positions: pathfinding now stops on the quickest reachable walkable neighboring cell instead of entering a blocking resource cell,
-- weighted and step-count routing share the same blocked-target interaction rule,
-- regression coverage verifies that a woodcutter reaches and works a blocking tree while physically remaining on walkable ground,
-- warehouse and HQ carrier collection is explicitly limited to five coarse world tiles / 25 micro-steps,
-- normal carrier collection continues to exclude storage-to-storage transfer,
-- configured merchant routes are explicitly independent from the local storage collection radius,
-- construction-material pickup is explicitly independent from the local storage collection radius,
-- regression coverage locks these logistics semantics across warehouse, HQ, merchant and builder flows,
-- natural-resource depletion retirement is event-driven on actual extraction instead of scanning every resource on every 60-Hz simulation tick,
-- the periodic depleted-resource consistency scan has been removed; depletion lifecycle handling is fully event-driven,
-- performance diagnostics split work planning into resource cleanup, waiting profession pools and per-person decisions instead of one residual `planning` bucket.
-
-Still review at minimum:
-
-- hunger/sleep nature targeting as a product/behavior pass beyond the new generic blocked-target routing,
+- HQ legacy carrier planner cleanup,
 - farms and fields,
-- building clearance and demolition,
+- building clearance/demolition,
 - roads and traffic thresholds,
 - generic trip/source representation after physical-resource migration,
 - pathfinding cost/performance,
-- person selection and camera focus,
-- future save/load assumptions,
-- handbook text beyond the completed resource/logistics updates,
-- concept and architecture documentation beyond the completed resource/logistics updates,
-- automated regression coverage for the remaining cleanup areas.
+- future waypost/high-level navigation,
+- save/load assumptions,
+- remaining detail-document cleanup and regression coverage.
 
-**Status: in progress.**
+## Decisions
 
-## Decisions already made
-
-- The fine grid is a simulation/spatial mechanism, not a visual tile aesthetic.
-- The final Phase-A refinement factor is 5× per axis.
-- Terrain and natural resources are separate systems.
-- Forest is a cluster of tree resource objects, not a required terrain type.
-- Resource footprint and movement blocking are separate properties.
-- Tree = 1 cell, blocking, 3 wood.
-- Bush = 1 cell, non-blocking; the visual may exceed the cell.
-- Mushroom = 1 cell, non-blocking.
-- Clay = compact 4 cells, non-blocking.
-- Stone = compact 4 cells, blocking.
-- Ore target remains about 4 cells, blocking.
-- Buildings become many cells large instead of visually tiny.
-- People remain readable and are not shrunk to micro-cell size.
-- Extracted raw resources become physical loose goods.
-- Loose ground stacks hold at most 3 units of one good type and never block movement.
-- Reservations protect concrete units without removing them before pickup.
-- Wood, clay and rubble use a 5-micro-cell / one-old-step drop radius.
-- Active resource footprints reserve construction/drop space even when non-blocking.
-- Current forest density uses three trees per historical forest seed with deterministic variation.
-- Clay/stone visual irregularity does not change their authoritative footprint.
-- Autonomous target selection is retained while travelling; missing work targets retry per person at most once per second.
-- Blocking route targets are interacted with from a walkable adjacent cell; the blocking target cell itself is not entered.
-- Warehouse/HQ automatic carrier collection radius is 5 coarse world tiles / 25 micro-steps; production sourcing, construction sourcing and configured merchants are not constrained by this local radius.
-- Camera zoom supports up to 10× on desktop and touch.
+- Fine grid is a simulation mechanism, not a visual board.
+- Work areas are per person, not per building.
+- Initial flag radius is five coarse world tiles.
+- Extractor flags begin at the first reachable source.
+- Warehouse/HQ carrier flags begin at the storage workplace.
+- Flags never auto-migrate.
+- Moving a flag invalidates unpicked outside targets but not carried cargo.
+- Production carriers, merchants and builders are not governed by this first work-area slice.
+- Work flags and future wayposts are separate systems.
 
 ## Open decisions
 
-Resolve these in the relevant phase rather than inventing them early:
+- whether later work-area radii differ by profession/upgrades,
+- whether production-building carriers receive flags in a later slice,
+- whether flags can be shared by multiple workers,
+- exact waypost connection ranges and local-navigation radius,
+- future resource regeneration and procedural cluster rules.
 
-- whether future maps should procedurally generate resource cluster density rather than use the current deterministic scenario seeds,
-- whether different loose goods may later coexist on one cell (current rule: no),
-- regeneration rules for future renewable resources.
+## Handoff
 
-## Handoff / next chat
+Before continuing: read `agents.md`, this file, `architecture.md` / `architecture-detail.md`, and for product behavior `concept.md` / `concept-detail.md`; confirm latest `main` CI is green.
 
-Before continuing this rework:
-
-1. read `agents.md`,
-2. read this file,
-3. read `architecture.md` and `architecture-detail.md`,
-4. for product behavior also read `concept.md` and `concept-detail.md`,
-5. confirm latest `main` CI is green.
-
-Continue with **Phase F — cross-system cleanup and performance** unless the user requests another functional change first. Do not redesign unrelated economy/product systems as part of cleanup.
-
-## Documentation rule
-
-After every implementation phase or relevant spatial decision:
-
-1. update this document's phase status and decisions,
-2. update `architecture.md` / `architecture-detail.md` for architectural changes,
-3. update `concept.md` / `concept-detail.md` for player-facing behavior changes,
-4. check `src/handbook/*.md` for player-facing documentation changes,
-5. keep `agents.md` pointing to this plan while the rework remains active.
+After relevant changes update this plan, current architecture/concept entry points and player-facing handbook text.

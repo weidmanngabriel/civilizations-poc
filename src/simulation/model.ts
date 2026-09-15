@@ -25,6 +25,12 @@ export interface Hex {
   q: number;
   r: number;
 }
+export interface WorkArea {
+  center: Hex;
+  radius: number;
+  /** Event-driven fallback when no valid local work target currently exists. */
+  retryAfterTick?: number;
+}
 export interface Tile extends Hex {
   terrain: "grass" | "road" | "forest" | "field" | "mountain" | "river" | "building";
   /** Derived collision overlay. Natural resources never change the underlying terrain type. */
@@ -139,6 +145,8 @@ export interface Person {
   woodcutter?: boolean;
   extractor?: "clay" | "stone";
   resourceTarget?: NaturalResourceId;
+  /** Local resource-collection area for extractors and carriers. */
+  workArea?: WorkArea;
   builder?: boolean;
   experience?: Partial<Record<Profession, number>>;
   experienceActionProgress?: Partial<Record<Profession, number>>;
