@@ -31,21 +31,24 @@ const groundWood = (world: ReturnType<typeof createWorld>) =>
 const groundWoodAmount = (world: ReturnType<typeof createWorld>) =>
   groundWood(world).reduce((sum, stack) => sum + stack.amount, 0);
 
-test("forests are natural resources and forest tiles are walkable", () => {
+test("trees are blocking resource objects on ordinary ground", () => {
   const world = createWorld();
   assert.equal(world.buildings.some((b) => b.kind === ("forest" as never)), false);
-  assert.ok(world.naturalResources.some((resource) => resource.kind === "forest"));
-  const forestTiles = world.tiles.filter((tile) => tile.terrain === "forest");
-  assert.ok(forestTiles.length >= 15);
-  assert.ok(forestTiles.every(walkable));
-  assert.ok(
-    forestTiles.some((tile) =>
-      findPath(world.tiles, building(world, "hq").position, tile),
-    ),
-  );
+  const trees = world.naturalResources.filter((resource) => resource.kind === "forest");
+  assert.ok(trees.length >= 15);
+  assert.equal(world.tiles.some((tile) => tile.terrain === "forest"), false);
+
+  for (const tree of trees) {
+    const tile = world.tiles.find((candidate) => same(candidate, tree.position))!;
+    assert.equal(tile.terrain, "grass");
+    assert.equal(tile.resourceBlocking, true);
+    assert.equal(walkable(tile), false);
+  }
+
+  assert.ok(findPath(world.tiles, building(world, "hq").position, trees[0]!.position));
 });
 
-test("each appointed woodcutter claims a different forest", () => {
+test("each appointed woodcutter claims a different tree", () => {
   const world = createWorld();
   assert.equal(changeWoodcutters(world, 1), true);
   assert.equal(changeWoodcutters(world, 1), true);
@@ -62,19 +65,19 @@ test("each appointed woodcutter claims a different forest", () => {
   }
 });
 
-test("wood stacks cap at three units while the woodcutter continues onto another nearby stack", () => {
+test("one tree yields exactly three physical wood units", () => {
   const { world, forest } = activeWoodcutter();
-  for (let i = 0; i < CONFIG.duration * 4; i++) tick(world);
+  for (let produced = 0; produced < CONFIG.forestYield; produced++)
+    for (let round = 0; round < CONFIG.duration; round++) tick(world);
 
+  assert.equal(CONFIG.forestYield, 3);
   assert.equal(forest.output, 0);
-  assert.equal(forest.remaining, CONFIG.forestYield - 4);
-  assert.equal(groundWoodAmount(world), 4);
+  assert.equal(forest.remaining, 0);
+  assert.equal(groundWoodAmount(world), 3);
   assert.ok(groundWood(world).every((stack) => stack.amount <= 3));
-  assert.ok(groundWood(world).length >= 2);
-  assert.equal(forest.depleted, undefined);
 });
 
-test("a forest allows ten harvest cycles, disappears immediately, and its woodcutter relocates", () => {
+test("a depleted tree disappears, unblocks its cell, and its woodcutter relocates", () => {
   const { world, forest, worker } = activeWoodcutter();
   for (let produced = 0; produced < CONFIG.forestYield; produced++)
     for (let round = 0; round < CONFIG.duration; round++) tick(world);
@@ -82,7 +85,6 @@ test("a forest allows ten harvest cycles, disappears immediately, and its woodcu
   assert.equal(forest.remaining, 0);
   assert.equal(forest.output, 0);
   assert.equal(groundWoodAmount(world), CONFIG.forestYield);
-  assert.ok(groundWood(world).every((stack) => stack.amount <= 3));
   assert.equal(forest.depleted, true);
   assert.equal(world.people.filter((person) => person.resourceTarget === forest.id).length, 0);
   assert.notEqual(worker.resourceTarget, forest.id);
@@ -90,6 +92,8 @@ test("a forest allows ten harvest cycles, disappears immediately, and its woodcu
   assert.equal(nextForest.remaining, CONFIG.forestYield);
   const oldTile = world.tiles.find((tile) => same(tile, forest.position))!;
   assert.equal(oldTile.terrain, "grass");
+  assert.equal(oldTile.resourceBlocking, undefined);
+  assert.equal(walkable(oldTile), true);
 });
 
 test("woodcutter experience speeds up felling by up to 50 percent without increasing yield", () => {
@@ -107,7 +111,7 @@ test("woodcutter experience speeds up felling by up to 50 percent without increa
   assert.equal(forest.remaining, CONFIG.forestYield - 1);
 });
 
-test("leftover wood remains collectible after the forest has disappeared", () => {
+test("leftover wood remains collectible after the tree has disappeared", () => {
   const { world, forest } = activeWoodcutter();
   forest.remaining = 1;
   forest.output = 0;
