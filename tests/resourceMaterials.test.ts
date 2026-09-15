@@ -5,6 +5,7 @@ import { key, neighbors, same } from "../src/simulation/hex";
 import { naturalResourceFootprint } from "../src/simulation/naturalResources";
 import { CONFIG, createDefaultGameWorld } from "../src/simulation/scenario";
 import { changeExtractors, clayDiggers, stonecutters, tick } from "../src/simulation/simulation";
+import { createTestWorld } from "./testWorld";
 
 test("default map places four-cell clay by rivers and four-cell stone by mountains", () => {
   const world = createDefaultGameWorld();
@@ -40,7 +41,11 @@ test("clay and stone processors expose the intended recipes and construction mat
 });
 
 test("clay extraction creates exactly ten physical ground units and retires the source", () => {
-  const world = createDefaultGameWorld();
+  const world = createTestWorld({
+    width: 28,
+    height: 24,
+    resources: [{ kind: "clay", offset: { q: 11, r: -6 } }],
+  });
   assert.equal(changeExtractors(world, "clay", 1), true);
   const assignedPerson = clayDiggers(world)[0]!;
   const deposit = world.naturalResources.find((resource) => resource.id === assignedPerson.resourceTarget)!;
@@ -66,7 +71,11 @@ test("clay extraction creates exactly ten physical ground units and retires the 
 });
 
 test("stone extraction creates physical rubble and removes footprint blocking on depletion", () => {
-  const world = createDefaultGameWorld();
+  const world = createTestWorld({
+    width: 28,
+    height: 24,
+    resources: [{ kind: "stone", offset: { q: 11, r: -6 } }],
+  });
   assert.equal(changeExtractors(world, "stone", 1), true);
   const worker = stonecutters(world)[0]!;
   const deposit = world.naturalResources.find((resource) => resource.id === worker.resourceTarget)!;

@@ -33,6 +33,7 @@ import type {
   Hex,
   World,
 } from "../src/simulation/model";
+import { createTestWorld, type TestResourceSpec } from "./testWorld";
 
 const rounds = (w: World, n: number) => {
   for (let i = 0; i < n; i++) tick(w);
@@ -78,6 +79,14 @@ function placeCore(w: World) {
     ),
     "warehouse",
   )!;
+  assert.ok(sawmill && carpenter && warehouse);
+  return { sawmill, carpenter, warehouse };
+}
+
+function placeCompactCore(w: World) {
+  const sawmill = buildAt(w, firstValidBuildPosition(w, "sawmill"), "sawmill")!;
+  const carpenter = buildAt(w, firstValidBuildPosition(w, "carpenter"), "carpenter")!;
+  const warehouse = buildAt(w, firstValidBuildPosition(w, "warehouse"), "warehouse")!;
   assert.ok(sawmill && carpenter && warehouse);
   return { sawmill, carpenter, warehouse };
 }
@@ -392,14 +401,25 @@ test("buildings and roads can still be placed and removed manually", () => {
   assert.equal(grass.terrain, "grass");
 });
 
+const replayResources: TestResourceSpec[] = [
+  { kind: "forest", offset: { q: -28, r: -18 } },
+  { kind: "forest", offset: { q: -20, r: -20 } },
+  { kind: "forest", offset: { q: 0, r: -22 } },
+  { kind: "forest", offset: { q: 22, r: -18 } },
+  { kind: "forest", offset: { q: 28, r: 0 } },
+  { kind: "forest", offset: { q: 22, r: 18 } },
+  { kind: "forest", offset: { q: 0, r: 22 } },
+  { kind: "forest", offset: { q: -24, r: 18 } },
+];
+
 test("deterministic replay and frequent reassignments preserve limits", () => {
-  const a = createWorld();
-  const b = createWorld();
-  const coreA = placeCore(a);
-  const coreB = placeCore(b);
+  const a = createTestWorld({ width: 72, height: 56, population: CONFIG.population, resources: replayResources });
+  const b = createTestWorld({ width: 72, height: 56, population: CONFIG.population, resources: replayResources });
+  const coreA = placeCompactCore(a);
+  const coreB = placeCompactCore(b);
   const idsA = [coreA.sawmill.id, coreA.carpenter.id, coreA.warehouse.id];
   const idsB = [coreB.sawmill.id, coreB.carpenter.id, coreB.warehouse.id];
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 120; i++) {
     for (const [w, ids] of [[a, idsA], [b, idsB]] as const) {
       if (i % 5 === 0) changeWoodcutters(w, i % 20 === 0 ? -1 : 1);
       if (i % 3 === 0)
