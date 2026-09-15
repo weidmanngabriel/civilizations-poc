@@ -20,9 +20,11 @@ Die Dokumentation soll so gepflegt werden, dass ein fähiger Agent die bestehend
 
 ## Entwicklungsworkflow
 
-Änderungen werden **direkt auf `main`** committed, damit sie sofort über die bestehende GitHub-Action gebaut und auf GitHub Pages veröffentlicht werden und der aktuelle Stand live getestet werden kann. Keine temporären Entwicklungsbranches oder PR-Zwischenschritte verwenden, sofern der Nutzer nicht ausdrücklich etwas anderes verlangt.
+Änderungen werden während eines Runs auf einem **temporären Branch** umgesetzt. Zwischencommits auf diesem Branch sind erlaubt.
 
-Nach Änderungen den Build-/Deploy-Status prüfen und konkrete Fehler direkt auf `main` nachbessern.
+Am Ende des Runs werden alle Änderungen **per Squash auf `main` übernommen**, sodass für die jeweilige Anpassung genau ein aussagekräftiger Commit auf `main` verbleibt. Dadurch wird die bestehende GitHub-Action nur einmal für den finalen Stand ausgelöst.
+
+Nach dem Squash-Merge den Build-/Deploy-Status prüfen und konkrete Fehler bei Bedarf erneut über einen temporären Branch beheben und anschließend wieder als einzelnen Squash-Commit auf `main` übernehmen.
 
 ## Aktiver Umbauplan
 
