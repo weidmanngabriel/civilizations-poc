@@ -132,7 +132,7 @@ The adapter serves two technical purposes:
 
 Because the generic production planner skips retired sources with no output before checking warehouse inventory, the internal adapter keeps a one-unit output sentinel. Actual source stock still comes exclusively from the shared inventory; the sentinel is never transported or shown as product state. This is intentionally a compatibility adapter until storage becomes a shared capability rather than a building-kind special case.
 
-HQ carriers themselves still collect only non-storage production/raw-material sources within the configured warehouse collection radius. Merchants remain the only automatic warehouse-to-warehouse mechanism.
+HQ carriers themselves collect only non-storage production/raw-material sources within **five coarse world tiles**, which equals 25 micro-steps at the current 5× refinement. Normal warehouse carriers use the same radius. Merchants remain the only automatic warehouse-to-warehouse mechanism.
 
 ## Movement and roads
 
@@ -183,7 +183,9 @@ Normal production outputs may be fractional because of profession experience. Pr
 
 Normal production buildings and farms hold 10 local output units; forests keep their separate cap of 3 wood. Warehouse and HQ inventory capacity is 20 per good.
 
-Production workers may source required inputs from reachable production outputs, wells, farms, normal warehouse inventory and HQ inventory. Sources are reserved before pickup so one physical unit cannot be claimed twice.
+Production workers may source required inputs from reachable production outputs, wells, farms, normal warehouse inventory and HQ inventory. Their input sourcing is not limited by the warehouse/HQ collection radius. Sources are reserved before pickup so one physical unit cannot be claimed twice.
+
+Construction builders use the same reachable-source selection for missing construction materials and are likewise not limited by the storage collection radius. Warehouse and HQ carriers use the five-world-tile radius only for autonomous local collection. Merchants are configured warehouse-to-warehouse routes and are constrained by reachability/capacity rather than that local collection radius.
 
 ## Profession experience
 
@@ -263,6 +265,6 @@ Coverage includes movement, placement, construction, production, farms, forests,
 
 Placement coverage verifies that roads are valid construction terrain and are permanently removed when covered by a building footprint. Sleep coverage verifies that a workplace assignment remains attached while sleep pauses the worker's activity.
 
-HQ supply coverage verifies that sawmill, carpenter, mill and bakery workers can source their required goods directly from HQ inventory. Food coverage verifies direct bakery eating, reservation of bakery bread portions and additive food recovery above hunger 100.
+HQ supply coverage verifies that sawmill, carpenter, mill and bakery workers can source their required goods directly from HQ inventory. Logistics-semantics coverage verifies the five-world-tile warehouse/HQ collection radius while keeping merchant routes and construction-material sourcing independent from that local radius. Food coverage verifies direct bakery eating, reservation of bakery bread portions and additive food recovery above hunger 100.
 
 `.github/workflows/deploy.yml` runs tests and the production build on pushes to `main`, then deploys GitHub Pages. Branch pushes do not deploy. The production build also emits the PWA service worker and network-only version metadata used by the client update check.
