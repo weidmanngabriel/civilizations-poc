@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 
 const MIN_CAMERA_ZOOM = 0.7;
-const MAX_CAMERA_ZOOM = 3.5;
+const MAX_CAMERA_ZOOM = 10;
 const TAP_MAX_DISTANCE = 18;
 
 type Point = { x: number; y: number };

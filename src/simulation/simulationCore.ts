@@ -105,14 +105,16 @@ const needDueBeforeNewTask = (p: Person): boolean =>
   foodDueBeforeNewTask(p) || sleepDueBeforeNewTask(p);
 
 const workRetryAfterTick = new WeakMap<Person, number>();
+const immediateWorkDecisionPeople = new WeakSet<Person>();
 const clearWorkRetry = (p: Person): void => {
   workRetryAfterTick.delete(p);
 };
 const scheduleWorkRetry = (w: World, p: Person): void => {
   workRetryAfterTick.set(p, w.round + CONFIG.decisionIntervalTicks);
 };
-const scheduleImmediateWorkDecision = (w: World, p: Person): void => {
-  workRetryAfterTick.set(p, w.round);
+const scheduleImmediateWorkDecision = (_w: World, p: Person): void => {
+  workRetryAfterTick.delete(p);
+  immediateWorkDecisionPeople.add(p);
 };
 const workRetryDue = (w: World, p: Person): boolean =>
   (workRetryAfterTick.get(p) ?? Number.POSITIVE_INFINITY) <= w.round;
@@ -264,6 +266,7 @@ function cancel(w: World, p: Person): void {
   p.pendingFarmBonus = undefined;
   clearFarmTask(p);
   clearWorkRetry(p);
+  immediateWorkDecisionPeople.delete(p);
   p.progress = 0;
   p.movement = 0;
   p.path = [];
@@ -328,7 +331,7 @@ export function changeAssignment(
     p.active = same(p.position, b.position);
     p.movement = 0;
     scheduleImmediateWorkDecision(w, p);
-    route(w, p, b);
+    if (!(b.kind === "farm" && role === "worker")) route(w, p, b);
     return true;
   }
   const p = people.at(-1);
@@ -752,9 +755,12 @@ function retireDepletedResources(w: World): void {
   }
 }
 
-function assignWaitingWoodcutters(w: World): void {
+function assignWaitingWoodcutters(w: World, includeUnscheduled = false): void {
   for (const person of woodcutters(w)) {
-    if (!person.resourceTarget && workRetryDue(w, person)) assignNaturalWorker(w, person, "forest");
+    if (
+      !person.resourceTarget &&
+      (includeUnscheduled || workRetryDue(w, person))
+    ) assignNaturalWorker(w, person, "forest");
   }
 }
 
@@ -909,6 +915,7 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
       p.merchantRoute = undefined;
       clearFarmTask(p);
       clearWorkRetry(p);
+      immediateWorkDecisionPeople.delete(p);
       p.active = false;
       p.progress = 0;
       p.movement = 0;
@@ -1063,6 +1070,9 @@ export function tick(w: World): void {
   const regularDecisionTick =
     (w.round - 1) % CONFIG.decisionIntervalTicks === 0;
   const immediateDecisionPeople = new Set<number>();
+  for (const p of w.people) {
+    if (immediateWorkDecisionPeople.delete(p)) immediateDecisionPeople.add(p.id);
+  }
   const movingAtTickStart = new Set(
     w.people.filter((p) => p.path.length > 0).map((p) => p.id),
   );
@@ -1175,7 +1185,7 @@ export function tick(w: World): void {
   measureFeature("planning", () => {
     retireDepletedResources(w);
     if (regularDecisionTick) {
-      assignWaitingWoodcutters(w);
+      assignWaitingWoodcutters(w, w.round === 1);
       assignWaitingExtractors(w);
       assignWaitingBuilders(w);
     }
@@ -1191,6 +1201,18 @@ export function tick(w: World): void {
     const retryDecision = regularDecisionTick && workRetryDue(w, p);
     if (!immediateDecision && !retryDecision) continue;
     if (immediateDecision) clearWorkRetry(p);
+    if (
+      p.assignment &&
+      !p.active &&
+      !p.path.length &&
+      !p.trip &&
+      !same(p.position, building(w, p.assignment.building).position)
+    ) {
+      route(w, p, building(w, p.assignment.building));
+      continue;
+    }
+    if (p.assignment && same(p.position, building(w, p.assignment.building).position))
+      p.active = true;
     if (needDueBeforeNewTask(p)) {
       scheduleWorkRetry(w, p);
       continue;
