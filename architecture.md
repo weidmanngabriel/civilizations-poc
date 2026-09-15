@@ -21,9 +21,9 @@ The deterministic simulation remains independent from Phaser. Presentation reads
 
 ## Simulation entry point
 
-`src/simulation/simulationCore.ts` is a thin scheduling facade around the historical core implementation in `simulationCoreEngine.ts`. UI-triggered autonomous profession changes can update cheap role state immediately while deferring expensive target/path planning until the next simulation tick.
+`src/simulation/simulationCore.ts` is a scheduling facade around the historical core implementation in `simulationCoreEngine.ts`. UI-triggered autonomous profession changes can update cheap role state immediately while deferring expensive target/path planning until the next simulation tick.
 
-`src/simulation/simulation.ts` remains the public simulation entry point and wraps/re-exports core behavior, including the physical raw-resource compatibility layer, resource-collision synchronization, profession-experience bookkeeping and technology progression. New callers should import from `simulation.ts`.
+`src/simulation/simulation.ts` is the public simulation entry point and wraps/re-exports core behavior, including the physical raw-resource compatibility layer, resource-collision synchronization, profession-experience bookkeeping and technology progression. New callers should import from `simulation.ts`.
 
 ## Fine-grid spatial model
 
@@ -55,19 +55,15 @@ Building placement and loose-good placement reserve the complete active resource
 
 ### Explicit interaction cells for blocking targets
 
-Blocking resource cells are never entered simply because they are the explicit endpoint of a route.
+Blocking resource cells are never entered simply because they are the explicit endpoint of a route. `src/simulation/hex.ts` resolves a blocking route target to the quickest reachable walkable neighboring micro-cell. Weighted A* and step-count routing share this rule.
 
-`src/simulation/hex.ts` resolves a blocking route target to the quickest reachable **walkable neighboring micro-cell**. Both weighted A* and step-count routing use this rule. The chosen arrival coordinate carries an internal, non-serialized logical target marker, allowing existing simulation checks such as “person is at resource” to succeed while the person's physical coordinates remain on walkable ground.
-
-This keeps the change below the economy/task layer: `Person`, `Trip`, resource ids and inventories do not need a second interaction-position field. Ordinary coordinate comparisons remain exact unless the first coordinate is the marked arrival of such a route.
-
-The interaction marker is presentation-independent and contains no authoritative stock or resource state. A later task change naturally replaces the person's physical position/path and therefore the old marker ceases to matter.
+The chosen arrival coordinate carries an internal, non-serialized logical target marker, allowing existing simulation checks such as “person is at resource” to succeed while the person's physical coordinates remain on walkable ground. This keeps interaction-position handling below the economy/task layer.
 
 ## Physical resource model
 
 `src/simulation/model.ts` defines `LooseGoodStack` with a stable id, concrete micro-cell, one good type, amount 1..3 and a reservation count. `World.looseGoods` is authoritative for migrated loose goods.
 
-Loose goods never mutate terrain or collision and are always walkable. New stack placement rejects blocked terrain, building footprints and every cell of an active natural-resource footprint. `findLooseGoodDropPosition()` searches locally and deterministically, preferring a compatible partial stack before a free cell.
+Loose goods never mutate terrain or collision and are always walkable. New stack placement rejects blocked terrain, building footprints and active natural-resource footprints. `findLooseGoodDropPosition()` searches locally and deterministically, preferring a compatible partial stack before a free cell.
 
 Wood, clay and rubble use the same physical flow:
 
@@ -75,25 +71,40 @@ Wood, clay and rubble use the same physical flow:
 natural source -> extractor -> loose ground stack -> pickup -> consumer/storage
 ```
 
-Each completed extraction action first appears in the historical resource output field inside the core tick, then `simulation.ts` moves whole units to `World.looseGoods` before public state is observed. This transitional field is no longer player-facing storage for migrated raw resources.
+Each completed extraction action first appears in the historical resource output field inside the core tick, then `simulation.ts` moves whole units to `World.looseGoods` before public state is observed. The current drop search radius is `GRID_REFINEMENT` = 5 micro-cells and stacks remain capped at 3 units.
 
-The current drop search radius is `GRID_REFINEMENT` = 5 micro-cells. Existing non-full stacks are preferred and stacks remain capped at 3 units.
-
-The historical `Trip` model still expects building/resource ids. `simulation.ts` therefore exposes short-lived depleted `ground-*` natural-resource proxies for wood, clay and rubble stacks while a legacy pickup is planned or active. Real stock remains exclusively in `World.looseGoods`; proxies are not rendered, selectable, or blocking.
+The historical `Trip` model still expects building/resource ids. `simulation.ts` exposes short-lived depleted `ground-*` natural-resource proxies for raw stacks while a legacy pickup is planned or active. Real stock remains exclusively in `World.looseGoods`; proxies are not rendered, selectable, or blocking.
 
 ## Resource specifics
 
 Each tree is an individual `NaturalResource` with exactly **3 wood**. A completed felling action produces one physical wood unit near the tree. When the tree is depleted, its underlying terrain stays unchanged and its collision disappears while deposited wood remains collectible.
 
-Clay and stone deposits retain the existing finite 10-unit yield. Clay occupies four logical cells but stays walkable. Stone occupies four logical cells and blocks all four. Extraction produces nearby physical `clay` or `rubble` units.
+Clay and stone deposits retain the finite 10-unit yield. Clay occupies four logical cells but stays walkable. Stone occupies four logical cells and blocks all four. Extraction produces nearby physical `clay` or `rubble` units.
 
 The start scenario expands each historical forest seed into three deterministic one-cell tree positions with deliberate gaps. Clay and stone keep fixed authoritative four-cell footprints while their presentation can be visually irregular.
 
+## Arbeitsflaggen und lokale Arbeitsbereiche
+
+`src/simulation/workAreas.ts` owns the authoritative local work-area rule. Eligible people carry a per-person `WorkArea { center, radius, retryAfterTick? }` in simulation state. The first implementation applies to woodcutters, clay diggers, stonecutters and every person assigned as a carrier.
+
+The current radius is **5 coarse world tiles = 25 micro-cells**. This is measured from the flag center, not from the person's current position.
+
+- A newly planned natural-resource worker receives the initial flag at the first reachable resource selected by the existing planner.
+- A newly assigned carrier receives the initial flag at its workplace.
+- Subsequent extractor/resource selection is restricted to unclaimed matching resources inside that person's area.
+- Carrier pickup source selection is restricted to sources inside that person's area. Normal storage carriers still do not move goods automatically from storage to storage.
+- A carried item may finish its delivery after the flag is moved; an unpicked source outside the new area is cancelled.
+- If no valid local target exists, only that person retries at the existing one-second fallback cadence. The flag does not migrate automatically.
+
+`simulationCore.ts` invokes `syncWorkAreas()` around the historical tick so legacy planners cannot make an out-of-area target authoritative for the next movement step. This is intentionally a compatibility layer rather than a rewrite of `Trip` or the historical planner during Phase F.
+
+`setWorkAreaCenter()` is the simulation command used by presentation. `src/game/workAreaInteraction.ts` renders the flags and the active radius, and converts a short desktop click or touch tap into a flag move. Dragging continues to pan and pinch continues to zoom. `src/ui/workAreaControls.ts` exposes the command from the selected-person panel. Presentation never owns the work-area state.
+
+Wayposts are deliberately separate and are not part of this implementation. A future waypost graph can constrain long-distance navigation without changing the local question answered by a work flag: which targets may this worker use?
+
 ## Bushes
 
-Bushes remain lightweight tile metadata and non-blocking. Their logical footprint is one micro-cell, while their visual may extend beyond that cell. `src/game/bushIndicators.ts` uses the shared `mapGeometry.pixel()` projection.
-
-The detailed hunger/regrowth behavior remains documented in `architecture-detail.md`.
+Bushes remain lightweight tile metadata and non-blocking. Their logical footprint is one micro-cell, while their visual may extend beyond that cell. `src/game/bushIndicators.ts` uses the shared `mapGeometry.pixel()` projection. Detailed hunger/regrowth behavior remains documented in `architecture-detail.md`.
 
 ## Profession experience and technologies
 
@@ -117,11 +128,11 @@ stonecutter    -> stonemason
 
 Expensive autonomous target selection is event-driven. A person keeps the selected hunger, sleep or work destination while travelling and does not continuously re-evaluate alternatives. Arrival, delivery, completed production/extraction, invalidated targets and similar task boundaries trigger the next decision immediately.
 
-Player-triggered profession assignment performs only cheap role/reservation state synchronously. Expensive target comparison and A* routing are flushed at the start of the next fixed simulation tick.
+Player-triggered profession assignment performs cheap role state synchronously. Expensive target comparison and A* routing are flushed at the start of the next fixed simulation tick.
 
-If a work planner cannot find a valid task or source, only that waiting person receives a retry deadline. The one-second cadence is a fallback for waiting persons rather than a global re-plan. Movement, need decay and active production still advance at 60 Hz.
+If a planner cannot find a valid task or source, only that waiting person receives a retry deadline. The one-second cadence is a fallback rather than a global re-plan. Movement, need decay and active production still advance at 60 Hz.
 
-Natural-resource depletion cleanup is fully event-driven: an extraction that reaches zero retires that concrete resource immediately. There is no periodic full resource-list consistency scan; resource mutations must trigger their lifecycle handling directly. Performance diagnostics split work planning into resource cleanup, waiting profession pools and per-person decisions so the former residual `planning` bucket no longer hides distinct costs.
+Natural-resource depletion cleanup is event-driven: an extraction that reaches zero retires that concrete resource immediately. There is no periodic full resource-list consistency scan.
 
 ## Building placement
 
@@ -131,14 +142,9 @@ The build-mode highlight layer computes valid anchors once on mode entry and sha
 
 ## Rendering and interaction
 
-Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map state and persistent person markers. Natural resources and loose goods are presentation overlays over authoritative simulation state.
+Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map state and persistent person markers. Natural resources, loose goods and work-area flags are presentation layers over authoritative simulation state.
 
-Person markers remain larger than micro-cells but intentionally compact. Camera zoom is clamped to 0.7×–10× for mouse-wheel and pinch input.
-
-Desktop and touch remain separate first-class adapters with shared simulation legality:
-
-- touch: tap chooses build ghost, drag pans, pinch zooms, DOM **Bauen** button confirms;
-- desktop: ghost follows mouse, short left click confirms a valid position, Escape cancels.
+Person markers remain larger than micro-cells but intentionally compact. Camera zoom is clamped to 0.7×–10× for mouse-wheel and pinch input. Desktop and touch remain separate first-class adapters with shared simulation legality.
 
 The iPhone 13 Mini remains the mobile baseline.
 
@@ -146,12 +152,12 @@ The iPhone 13 Mini remains the mobile baseline.
 
 All other architecture remains as documented in [`architecture-detail.md`](./architecture-detail.md), including hunger/sleep, HQ storage compatibility, organic roads, production/inventories, construction, farms, merchants, person selection, handbook/PWA and performance diagnostics.
 
-Where `architecture-detail.md` still describes forest as terrain, 10 wood per tree, clay/stone source-local output as player-facing storage, one-cell clay/stone deposits, old 41 × 25 geometry, fixed 24/21 render spacing, old Dijkstra, or targeted blocking resources as directly enterable endpoints, this file supersedes it.
+Where `architecture-detail.md` still describes forest as terrain, 10 wood per tree, clay/stone source-local output as player-facing storage, one-cell clay/stone deposits, old 41 × 25 geometry, fixed 24/21 render spacing, old Dijkstra, targeted blocking resources as directly enterable endpoints, globally roaming extractors, or a building-centered fixed carrier collection radius as the current rule, this file supersedes it.
 
 ## Testing and deployment
 
 `npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build.
 
-Fine-grid/resource regression coverage verifies geometry, terrain/resource separation, tree yield, resource footprints/collision, physical ground stacks, reservations and the invariant that loose goods never affect routing. Blocked-target routing coverage additionally verifies that a woodcutter can reach and work a tree while physically stopping on adjacent walkable ground.
+Fine-grid/resource regression coverage verifies geometry, terrain/resource separation, resource footprints/collision, physical ground stacks, reservations and blocked-target interaction positions. Work-area regression coverage verifies initial flags, local extractor retargeting and carrier source constraints.
 
-Changes are developed on a temporary branch and squash-merged to `main`. The GitHub Pages workflow runs tests before the production build and deploys only after both succeed.
+Per `agents.md`, work is performed on a temporary branch and transferred to `main` as one final squash commit. The GitHub Pages workflow runs tests before the production build and deploys only after both succeed.

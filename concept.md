@@ -31,17 +31,17 @@ Footprint und Wegblockierung sind getrennte Eigenschaften einer Ressource. Aktue
 
 Ein dichter Wald besitzt bewusst Lücken zwischen einzelnen Bäumen. Personen dürfen durch diese Lücken laufen, aber normale Wege dürfen nicht durch einen Baumstamm führen. Lehm darf dagegen betreten werden, während Stein seine komplette belegte Fläche für normale Wege sperrt.
 
-**Blockierende Ressourcen werden von einer begehbaren Nachbarzelle aus benutzt.** Ein Holzfäller läuft also bis neben den Baum statt auf dessen Stamm. Dasselbe Prinzip gilt für andere ausdrücklich angewählte blockierende Ziele: Die Person erreicht das Objekt spielerisch, bleibt physisch aber auf einem begehbaren Feld.
+**Blockierende Ressourcen werden von einer begehbaren Nachbarzelle aus benutzt.** Ein Holzfäller läuft also bis neben den Baum statt auf dessen Stamm. Dasselbe Prinzip gilt für andere ausdrücklich angewählte blockierende Ziele.
 
-Auch nicht-blockierende Ressourcen reservieren ihren Footprint gegen Gebäude und neue Warenhaufen. Ein Gebäude kann also nicht einfach auf einem Lehmvorkommen gebaut werden.
+Auch nicht-blockierende Ressourcen reservieren ihren Footprint gegen Gebäude und neue Warenhaufen.
 
 ## Physische Rohstoffhaufen
 
-Ein loser Warenhaufen besitzt eine konkrete Mikrozelle, genau einen Warentyp und 1 bis maximal 3 physische Einheiten. Mehrere Einheiten desselben Typs dürfen auf derselben Zelle bis zur Kapazität 3 gestapelt werden. Verschiedene lose Warentypen teilen sich aktuell keine Zelle.
+Ein loser Warenhaufen besitzt eine konkrete Mikrozelle, genau einen Warentyp und 1 bis maximal 3 physische Einheiten. Verschiedene lose Warentypen teilen sich aktuell keine Zelle.
 
 **Lose Warenhaufen sind niemals Hindernisse.** Bewohner können immer darüberlaufen. Ein Haufen verändert weder Untergrund noch Wegfindung, Bewegungskosten oder Kollision.
 
-Neue Haufen werden trotzdem nicht direkt auf Wasser, Berg, einem Gebäude-Footprint oder einer aktiven natürlichen Ressourcenfläche angelegt. Reservierungen schützen konkrete Einheiten vor Doppelabholung.
+Neue Haufen werden nicht direkt auf Wasser, Berg, einem Gebäude-Footprint oder einer aktiven natürlichen Ressourcenfläche angelegt. Reservierungen schützen konkrete Einheiten vor Doppelabholung.
 
 Holz, Lehm und Bruchstein verwenden dasselbe physische Grundmodell:
 
@@ -49,25 +49,36 @@ Holz, Lehm und Bruchstein verwenden dasselbe physische Grundmodell:
 
 Nach einer fertigen Abbauaktion entsteht genau eine physische Einheit in der Nähe der Ressource. Vorhandene passende Haufen mit freiem Platz werden zuerst aufgefüllt. Ein Haufen hält höchstens drei Einheiten. Wenn die Quelle verschwindet, bleiben bereits abgelegte Haufen erhalten.
 
-## Holz
+## Holz, Lehm und Stein
 
-Jeder Baum enthält genau **3 Holz**. Nach einer fertigen Fällaktion entsteht eine Einheit Holz auf dem Boden in der Nähe des Baums. Die Ablagesuche erfolgt aktuell bis maximal 5 Mikrozellen, also ungefähr innerhalb einer früheren großen Kachel.
+Jeder Baum enthält genau **3 Holz**. Nach einer fertigen Fällaktion entsteht eine Einheit Holz auf dem Boden in der Nähe des Baums. Die Ablagesuche erfolgt bis maximal 5 Mikrozellen.
 
-Bäume sind eigenständige blockierende Ressourcenobjekte auf normalem Untergrund. Nach der Erschöpfung verschwindet nur das Ressourcenobjekt; der Untergrund darunter bleibt unverändert und die Zelle wird wieder frei begehbar.
-
-## Lehm und Stein
-
-Lehm- und Steinvorkommen sind endlich mit aktuell 10 Einheiten pro Quelle. Beide liegen als eigenständige Ressourcenobjekte auf normalem Untergrund und belegen jeweils vier kompakte Mikrozellen.
-
-Lehm bleibt auf allen vier Zellen begehbar. Stein blockiert seine vier Zellen. Nach jeder fertigen Abbauaktion liegt eine Einheit Lehm bzw. Bruchstein als physischer Bodenhaufen in der Nähe des Vorkommens. Lehmgräber und Steinbrecher wechseln nach Erschöpfung automatisch zum nächsten passenden Vorkommen; bereits abgelegte Ware bleibt liegen.
+Lehm- und Steinvorkommen sind endlich mit aktuell 10 Einheiten pro Quelle. Beide belegen jeweils vier kompakte Mikrozellen. Lehm bleibt begehbar, Stein blockiert seine Fläche. Nach jeder fertigen Abbauaktion liegt eine Einheit Lehm bzw. Bruchstein als physischer Bodenhaufen in der Nähe des Vorkommens.
 
 Töpferei und Steinmetzhütte beziehen diese Rohstoffe aus dem normalen physischen Warenfluss statt aus einem sichtbaren lokalen Lager der Rohstoffquelle.
 
+## Arbeitsflaggen
+
+Holzfäller, Lehmgräber, Steinbrecher und Träger besitzen einen **lokalen Arbeitsbereich**, dessen Mittelpunkt durch eine sichtbare Arbeitsflagge festgelegt wird. Der aktuelle Radius beträgt fünf Weltkacheln.
+
+Die Flagge gehört zur einzelnen Person, nicht zum Gebäude. Zwei Träger desselben Lagers können deshalb unterschiedliche Bereiche abdecken.
+
+- Bei einem neuen Holzfäller oder Abbauer erscheint die erste Flagge am ersten tatsächlich gewählten Rohstoffvorkommen.
+- Bei einem neuen Träger erscheint sie zunächst am zugewiesenen Arbeitsplatz.
+- Abbauer wählen nur passende freie Rohstoffquellen innerhalb ihrer eigenen Flagge. Ist dort nichts mehr verfügbar, warten sie; sie wandern nicht automatisch über die Karte zum nächsten Vorkommen.
+- Träger holen nur Warenquellen innerhalb ihrer eigenen Flagge. Die Zielstätte ihrer Lieferung bleibt ihr Arbeitsplatz.
+- Wird eine Flagge verschoben, wird ein noch nicht abgeholtes Ziel außerhalb des neuen Bereichs verworfen. Bereits getragene Ware wird noch ausgeliefert.
+- Der Spieler versetzt die Flagge über die ausgewählte Person. Ein kurzer Klick oder Tap setzt den neuen Mittelpunkt; Ziehen verschiebt weiterhin die Karte.
+
+Die Arbeitsflagge beantwortet bewusst nur **„Wo darf diese Person arbeiten beziehungsweise abholen?“**. Langstrecken-Navigation über Wegweiser ist ein separates späteres System.
+
+Händler bleiben vom Arbeitsflaggen-System getrennt und sind weiterhin der Mechanismus für bewusst eingerichtete Lager-zu-Lager-Transporte. Produktionsarbeiter und Bauarbeiter behalten ihre eigenen bedarfsgetriebenen Beschaffungsregeln.
+
 ## Ressourcenverteilung und Darstellung
 
-Die bisherigen Waldregionen bestehen aus mehreren einzelnen Bäumen mit bewussten Lücken. Lehm- und Steinvorkommen behalten ihre vierzelligen logischen Footprints und werden deterministisch unregelmäßig verteilt.
+Waldregionen bestehen aus mehreren einzelnen Bäumen mit bewussten Lücken. Lehm- und Steinvorkommen behalten ihre vierzelligen logischen Footprints und werden deterministisch unregelmäßig verteilt.
 
-Lehm und Stein werden über mehrere sichtbare Teilstücke ihres Footprints dargestellt. Bodenhaufen zeigen eine, zwei oder drei Einheiten als unterschiedlich angeordnete Stücke; Holz, Lehm und Bruchstein sind optisch voneinander unterscheidbar. Diese Darstellung ändert keine Kollisions- oder Wirtschaftsregeln.
+Lehm und Stein werden über mehrere sichtbare Teilstücke ihres Footprints dargestellt. Bodenhaufen zeigen eine, zwei oder drei Einheiten als unterschiedlich angeordnete Stücke. Diese Darstellung ändert keine Kollisions- oder Wirtschaftsregeln.
 
 ## Büsche
 
@@ -104,11 +115,11 @@ Wohnhaus, Farm und Brunnen sind von Anfang an freigeschaltet. Baumenü und Gebä
 
 Autonome Bewohner treffen teure Zielentscheidungen nicht laufend neu. Für Hunger, Schlaf und Arbeit gilt: Ziel einmal wählen, dorthin laufen und erst am Ziel, nach Abschluss einer Tätigkeit oder bei einem dort festgestellten Fehlschlag neu entscheiden. Während des Weges bleibt die Entscheidung bestehen.
 
-Ist aktuell kein gültiges Ziel oder keine passende Arbeitsaufgabe verfügbar, sucht nur die betroffene Person höchstens einmal pro Sekunde erneut. Bewegung, Bedürfnisabbau und laufende Arbeit bleiben Teil der 60-Hz-Simulation; nur die Zielsuche ist ereignisgesteuert.
+Ist aktuell kein gültiges Ziel oder keine passende Arbeitsaufgabe verfügbar, sucht nur die betroffene Person höchstens einmal pro Sekunde erneut. Das gilt auch für einen leeren Arbeitsflaggen-Bereich. Bewegung, Bedürfnisabbau und laufende Arbeit bleiben Teil der 60-Hz-Simulation.
 
 ## Darstellung und Zoom
 
-Bewohner-Marker bleiben größer als einzelne Mikrozellen, sind gegenüber dem frühen Fine-Grid-Stand aber deutlich kompakter. Die Karte lässt sich mit Mausrad und Pinch bis auf 10× vergrößern.
+Bewohner-Marker bleiben größer als einzelne Mikrozellen, sind gegenüber dem frühen Fine-Grid-Stand aber kompakt. Die Karte lässt sich mit Mausrad und Pinch bis auf 10× vergrößern.
 
 ## Gebäudeplatzierung auf Desktop und Touch
 
@@ -132,11 +143,10 @@ Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`conc
 - 60 Simulationsschritte/s bei 1×,
 - organisch entstehende Wege,
 - Produktionsketten und Gebäudeinventare,
-- HQ- und Lagerlogik,
 - Händler als Lager-zu-Lager-Mechanismus,
 - Farmen und Felder,
 - Personenansicht,
 - Touch- und Desktop-Bedienung,
 - Technologiebaum und Handbuch.
 
-Alte Aussagen in `concept-detail.md` über 41 × 25 als aktuelles Raster, Wald als Terrain, 10 Holz pro Baum, lokale Lehm-/Stein-Ausgabelager oder das Betreten blockierender Ressourcen durch explizite Zielwahl sind durch diese Datei überholt.
+Alte Aussagen in `concept-detail.md` über 41 × 25 als aktuelles Raster, Wald als Terrain, 10 Holz pro Baum, lokale Lehm-/Stein-Ausgabelager, das Betreten blockierender Ressourcen, global wandernde Abbauer oder einen festen gebäudezentrierten Träger-Sammelradius sind durch diese Datei überholt.
