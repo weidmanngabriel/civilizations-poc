@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import type { BuildableBuildingKind } from "../src/simulation/model";
 import { createWorld } from "../src/simulation/scenario";
 import { same } from "../src/simulation/hex";
+import { placeLooseGood } from "../src/simulation/looseGoods";
 import {
   buildingFootprint,
   buildWithFootprint,
@@ -83,6 +84,20 @@ test("placement fails when the required free ring contains blocked terrain", () 
   const blocked = world.tiles.find((tile) => same(tile, ring[0]!))!;
   blocked.terrain = "river";
   assert.equal(canPlaceBuilding(world, origin, "warehouse"), false);
+});
+
+test("physical goods block only the actual building footprint", () => {
+  const world = createWorld();
+  const origin = findValidOrigin(world, "warehouse");
+  const footprint = footprintAt("warehouse", origin);
+  const ring = footprintRing(footprint);
+
+  assert.ok(placeLooseGood(world, footprint[0]!, "wood", 1));
+  assert.equal(canPlaceBuilding(world, origin, "warehouse"), false);
+
+  world.looseGoods = [];
+  assert.ok(placeLooseGood(world, ring[0]!, "wood", 1));
+  assert.equal(canPlaceBuilding(world, origin, "warehouse"), true);
 });
 
 test("demolishing a multi-tile building restores every occupied grass tile", () => {
