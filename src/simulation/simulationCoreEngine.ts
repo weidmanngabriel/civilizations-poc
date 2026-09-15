@@ -736,9 +736,7 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): boolean
 
 function retireDepletedResources(
   w: World,
-  resources: readonly NaturalResource[] = w.naturalResources.filter(
-    (candidate) => !candidate.depleted && candidate.remaining === 0,
-  ),
+  resources: readonly NaturalResource[],
 ): void {
   for (const resource of resources) {
     if (resource.depleted || resource.remaining !== 0) continue;
@@ -1193,12 +1191,9 @@ export function tick(w: World): void {
     }
   });
 
-  if (newlyDepletedResources.length || regularDecisionTick)
+  if (newlyDepletedResources.length)
     measureFeature("planningResourceCleanup", () =>
-      retireDepletedResources(
-        w,
-        newlyDepletedResources.length ? newlyDepletedResources : undefined,
-      ),
+      retireDepletedResources(w, newlyDepletedResources),
     );
   if (regularDecisionTick)
     measureFeature("planningIdlePools", () => {
