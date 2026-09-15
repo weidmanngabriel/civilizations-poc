@@ -8,7 +8,7 @@ import type {
 } from "./model";
 import { key, neighbors, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
-import { buildAt, removeBuilding } from "./simulation";
+import { buildAt, notifyConstructionSiteAdded, removeBuilding } from "./simulation";
 import { isBuildingUnlocked } from "./technology";
 import { GRID_REFINEMENT, refinedCellCluster } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
@@ -232,6 +232,7 @@ export function buildWithFootprint(
     tile.terrain = "building";
     tile.trafficTicks = undefined;
   }
+  notifyConstructionSiteAdded(world);
   return created;
 }
 

@@ -56,6 +56,25 @@ test("builder pool automatically assigns builders and completes construction", (
   assert.equal(changeAssignment(world, site!.id, "carrier", 1), true);
 });
 
+test("placing a construction site immediately reactivates an existing waiting builder", () => {
+  const world = createWorld();
+  assert.equal(changeBuilders(world, 1), true);
+  const builder = builders(world)[0]!;
+  assert.equal(builder.assignment, undefined);
+
+  const origin = world.tiles.find((tile) => canPlaceBuilding(world, tile, "warehouse"));
+  assert.ok(origin);
+  const site = buildWithFootprint(world, origin!, "warehouse")!;
+
+  assert.equal(builder.assignment?.building, site.id);
+  assert.equal(builder.assignment?.role, "builder");
+  assert.equal(builders(world).length, 1);
+
+  tick(world);
+
+  assert.equal(assigned(world, site.id, "builder")[0]?.id, builder.id);
+});
+
 test("newly assigned builder plans available construction material on the next simulation tick", () => {
   const world = createWorld();
   const origin = world.tiles.find((tile) => canPlaceBuilding(world, tile, "warehouse"));

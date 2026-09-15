@@ -272,6 +272,22 @@ export function changeBuilders(world: World, delta: 1 | -1): boolean {
   return true;
 }
 
+export function notifyConstructionSiteAdded(world: World): void {
+  for (const person of builders(world)) {
+    if (person.assignment) continue;
+    const site = nearestOpenConstructionSite(world, person);
+    if (!site) continue;
+    person.assignment = { building: site.id, role: "builder" };
+    person.active = samePosition(person.position, site.position);
+    person.movement = 0;
+    person.path = [];
+    const alreadyQueued = (pendingPlans.get(world) ?? []).some(
+      (plan) => plan.kind === "builder" && plan.person === person,
+    );
+    if (!alreadyQueued) queuePlan(world, { kind: "builder", person });
+  }
+}
+
 export function status(world: World, target: Building): string {
   if ((target.kind === "warehouse" || target.kind === "hq") && !isUnderConstruction(target)) {
     const carriers = assigned(world, target.id, "carrier").length;
