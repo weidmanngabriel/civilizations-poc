@@ -50,6 +50,7 @@ test("merchant moves one configured good between two warehouses and returns empt
   tick(w);
   assert.deepEqual(merchant.trip, {
     source: source.id,
+    sourcePosition: { ...source.position },
     target: target.id,
     good: "wood",
     picked: false,

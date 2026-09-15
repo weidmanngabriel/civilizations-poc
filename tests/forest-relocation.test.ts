@@ -171,7 +171,8 @@ test("leftover wood remains collectible after the tree has disappeared", () => {
   tick(world);
 
   assert.equal(carrier.trip?.source, stack.id);
-  assert.equal(carrier.trip?.sourceKind, "resource");
+  assert.equal(carrier.trip?.sourceKind, "looseGood");
+  assert.deepEqual(carrier.trip?.sourcePosition, stack.position);
   assert.equal(carrier.trip?.good, "wood");
   assert.equal(forest.depleted, true);
 });

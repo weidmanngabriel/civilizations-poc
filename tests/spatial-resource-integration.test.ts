@@ -2,11 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { key, neighbors, same } from "../src/simulation/hex";
 import { naturalResourceFootprint } from "../src/simulation/naturalResources";
-import { CONFIG, createWorld } from "../src/simulation/scenario";
+import { CONFIG, createDefaultGameWorld } from "../src/simulation/scenario";
 import { setRoad, tick } from "../src/simulation/simulation";
 
 test("manual roads cannot cover any active natural-resource footprint cell", () => {
-  const world = createWorld(1);
+  const world = createDefaultGameWorld();
   const resource = world.naturalResources.find(
     (candidate) => candidate.kind === "clay" && naturalResourceFootprint(candidate).length > 1,
   );
@@ -23,7 +23,7 @@ test("manual roads cannot cover any active natural-resource footprint cell", () 
 });
 
 test("traffic never turns a walkable resource footprint into a road", () => {
-  const world = createWorld(1);
+  const world = createDefaultGameWorld();
   const resource = world.naturalResources.find(
     (candidate) => candidate.kind === "clay" && naturalResourceFootprint(candidate).length > 1,
   );
