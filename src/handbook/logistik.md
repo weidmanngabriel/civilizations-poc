@@ -28,7 +28,9 @@ Zwei Träger desselben Lagers können unterschiedliche Flaggen besitzen und dadu
 
 Waren existieren immer an einem konkreten Ort. Eine Produktionsstätte kann nur weiterarbeiten, wenn die benötigten Waren tatsächlich dort ankommen.
 
-Lager- und HQ-Träger holen automatisch nur Nicht-Lager-Quellen innerhalb ihrer eigenen Arbeitsflagge. **Normale Lager-Träger verteilen Waren nicht automatisch zwischen verschiedenen Lagern.** Dafür gibt es Händler, die zwei Lager bewusst auch über größere Entfernungen verbinden.
+Lager- und HQ-Träger holen sichtbare Warenhaufen und andere Nicht-Lager-Quellen direkt innerhalb ihrer eigenen Arbeitsflagge ab und bringen sie in ihr zugewiesenes Lager beziehungsweise HQ.
+
+**Normale Lager-Träger verteilen Waren nicht automatisch zwischen verschiedenen Lagern.** Dafür gibt es Händler, die zwei Lager bewusst auch über größere Entfernungen verbinden.
 
 Produktionsarbeiter, Produktions-Träger und Bauarbeiter behalten in dieser Stufe ihre bestehenden Beschaffungsregeln und besitzen noch keine Arbeitsflagge.
 
