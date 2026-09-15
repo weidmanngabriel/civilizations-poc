@@ -1,8 +1,6 @@
 import type {
   Building,
-  BuildingId,
   Good,
-  GoodAmounts,
   Hex,
   NaturalResource,
   NaturalResourceKind,
@@ -33,12 +31,20 @@ const ALL_GOODS: Good[] = [
 const isComplete = (building: Building): boolean =>
   !building.construction || building.construction.complete;
 
-export const supportsWorkArea = (person: Person): boolean =>
-  Boolean(
-    person.woodcutter ||
-      person.extractor ||
-      person.assignment?.role === "carrier",
+const storageCarrierWorkplace = (world: World, person: Person): Building | undefined => {
+  if (person.assignment?.role !== "carrier") return undefined;
+  return world.buildings.find(
+    (building) =>
+      building.id === person.assignment!.building &&
+      !building.retired &&
+      isComplete(building) &&
+      (building.kind === "warehouse" || building.kind === "hq"),
   );
+};
+
+/** Presentation can use this without needing the world: eligible people always own a workArea. */
+export const supportsWorkArea = (person: Person): boolean =>
+  Boolean(person.woodcutter || person.extractor || person.workArea);
 
 export const workAreaContains = (person: Person, position: Hex): boolean =>
   Boolean(
@@ -53,13 +59,8 @@ function defaultWorkAreaCenter(world: World, person: Person): Hex {
     );
     if (resource) return resource.position;
   }
-  if (person.assignment?.role === "carrier") {
-    const workplace = world.buildings.find(
-      (candidate) => candidate.id === person.assignment!.building,
-    );
-    if (workplace) return workplace.position;
-  }
-  return person.position;
+  const workplace = storageCarrierWorkplace(world, person);
+  return workplace?.position ?? person.position;
 }
 
 export function ensureWorkArea(
@@ -67,7 +68,7 @@ export function ensureWorkArea(
   person: Person,
   preferredCenter?: Hex,
 ): void {
-  if (!supportsWorkArea(person) || person.workArea) return;
+  if (person.workArea) return;
   const center = preferredCenter ?? defaultWorkAreaCenter(world, person);
   person.workArea = {
     center: { q: center.q, r: center.r },
@@ -91,44 +92,50 @@ function claimedByOther(world: World, person: Person, resource: NaturalResource)
   );
 }
 
+type ResourceCandidate = {
+  resource: NaturalResource;
+  path: Hex[];
+  cost: number;
+};
+
 function planLocalResource(world: World, person: Person): boolean {
   const area = person.workArea;
   const kind = resourceKindFor(person);
   if (!area || !kind) return false;
-  const candidates = world.naturalResources
-    .filter(
-      (resource) =>
-        resource.kind === kind &&
-        !resource.depleted &&
-        resource.remaining > 0 &&
-        hexDistance(area.center, resource.position) <= area.radius &&
-        !claimedByOther(world, person, resource),
-    )
-    .map((resource) => {
-      const path = findPath(
-        world.tiles,
-        person.position,
-        resource.position,
-        CONFIG.roadSpeedMultiplier,
-      );
-      return path
-        ? {
-            resource,
-            path,
-            cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier),
-          }
-        : undefined;
-    })
-    .filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate))
-    .sort(
-      (a, b) =>
-        a.cost - b.cost ||
-        a.resource.position.q - b.resource.position.q ||
-        a.resource.position.r - b.resource.position.r ||
-        a.resource.id.localeCompare(b.resource.id),
+
+  const candidates: ResourceCandidate[] = [];
+  for (const resource of world.naturalResources) {
+    if (
+      resource.kind !== kind ||
+      resource.depleted ||
+      resource.remaining <= 0 ||
+      hexDistance(area.center, resource.position) > area.radius ||
+      claimedByOther(world, person, resource)
+    ) continue;
+    const path = findPath(
+      world.tiles,
+      person.position,
+      resource.position,
+      CONFIG.roadSpeedMultiplier,
     );
+    if (!path) continue;
+    candidates.push({
+      resource,
+      path,
+      cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier),
+    });
+  }
+
+  candidates.sort(
+    (a, b) =>
+      a.cost - b.cost ||
+      a.resource.position.q - b.resource.position.q ||
+      a.resource.position.r - b.resource.position.r ||
+      a.resource.id.localeCompare(b.resource.id),
+  );
   const candidate = candidates[0];
   if (!candidate) return false;
+
   person.resourceTarget = candidate.resource.id;
   person.assignment = undefined;
   person.path = candidate.path;
@@ -138,19 +145,7 @@ function planLocalResource(world: World, person: Person): boolean {
   return true;
 }
 
-const recipeRequirements = (building: Building): GoodAmounts => {
-  if (!building.recipe) return {};
-  if (building.recipe.inputs) return building.recipe.inputs;
-  if (building.recipe.input) return { [building.recipe.input]: building.recipe.amount };
-  return {};
-};
-
-const inputStock = (building: Building, good: Good): number => {
-  if (building.recipe?.inputs) return building.inputInventory?.[good] ?? 0;
-  return building.recipe?.input === good ? building.input : 0;
-};
-
-const incoming = (world: World, target: BuildingId, good: Good): number =>
+const incomingTo = (world: World, target: string, good: Good): number =>
   world.people.filter(
     (person) => person.trip?.target === target && person.trip.good === good,
   ).length;
@@ -171,8 +166,7 @@ const reservedAtSource = (
 
 const buildingSourceStock = (building: Building, good: Good): number => {
   if (!isComplete(building) || building.retired) return 0;
-  if (building.kind === "warehouse" || building.kind === "hq")
-    return building.inventory?.[good] ?? 0;
+  if (building.kind === "warehouse" || building.kind === "hq") return 0;
   if (building.kind === "well" && good === "water") return Number.MAX_SAFE_INTEGER;
   if (building.kind === "farm" && good === "wheat") return building.output;
   return building.recipe?.output === good ? building.output : 0;
@@ -180,33 +174,6 @@ const buildingSourceStock = (building: Building, good: Good): number => {
 
 const resourceGood = (resource: NaturalResource): Good =>
   resource.kind === "forest" ? "wood" : resource.kind === "clay" ? "clay" : "rubble";
-
-function targetGoodCapacity(world: World, target: Building, good: Good, tripTarget: BuildingId): boolean {
-  if (target.kind === "warehouse" || target.kind === "hq")
-    return (
-      (target.inventory?.[good] ?? 0) + incoming(world, tripTarget, good) + CONFIG.carryCapacity <=
-      CONFIG.warehouseCapacityPerGood + 1e-9
-    );
-  return (
-    inputStock(target, good) + incoming(world, tripTarget, good) + CONFIG.carryCapacity <=
-    CONFIG.inputCapacity + 1e-9
-  );
-}
-
-function candidateGoods(world: World, target: Building, tripTarget: BuildingId): Good[] {
-  if (target.kind === "warehouse" || target.kind === "hq")
-    return ALL_GOODS.filter((good) => targetGoodCapacity(world, target, good, tripTarget));
-  const requirements = recipeRequirements(target);
-  const recipeGoods = (Object.keys(requirements) as Good[]).filter((good) =>
-    targetGoodCapacity(world, target, good, tripTarget),
-  );
-  const missing = recipeGoods.filter(
-    (good) =>
-      inputStock(target, good) + incoming(world, tripTarget, good) <
-      (requirements[good] ?? 0),
-  );
-  return missing.length ? missing : recipeGoods;
-}
 
 type CarrierCandidate = {
   sourceId: string;
@@ -216,28 +183,28 @@ type CarrierCandidate = {
   cost: number;
 };
 
-function planLocalCarrier(world: World, person: Person): boolean {
-  const assignment = person.assignment;
+function planLocalStorageCarrier(world: World, person: Person): boolean {
+  const target = storageCarrierWorkplace(world, person);
   const area = person.workArea;
-  if (!assignment || assignment.role !== "carrier" || !area) return false;
-  const target = world.buildings.find(
-    (candidate) => candidate.id === assignment.building && !candidate.retired,
-  );
-  if (!target || !isComplete(target)) return false;
+  if (!target || !area) return false;
 
   const hqProxy = target.kind === "hq"
     ? world.buildings.find((candidate) => candidate.id === "hq-storage-proxy")
     : undefined;
   const tripTarget = target.kind === "hq" ? hqProxy?.id : target.id;
   if (!tripTarget) return false;
-  const storageCollection = target.kind === "warehouse" || target.kind === "hq";
-  const goods = candidateGoods(world, target, tripTarget);
   const candidates: CarrierCandidate[] = [];
 
-  for (const good of goods) {
+  for (const good of ALL_GOODS) {
+    if (
+      (target.inventory?.[good] ?? 0) +
+        incomingTo(world, tripTarget, good) +
+        CONFIG.carryCapacity >
+      CONFIG.warehouseCapacityPerGood + 1e-9
+    ) continue;
+
     for (const source of world.buildings) {
       if (source.id === target.id || source.id === tripTarget) continue;
-      if (storageCollection && (source.kind === "warehouse" || source.kind === "hq")) continue;
       if (hexDistance(area.center, source.position) > area.radius) continue;
       if (
         buildingSourceStock(source, good) -
@@ -289,6 +256,7 @@ function planLocalCarrier(world: World, person: Person): boolean {
   );
   const candidate = candidates[0];
   if (!candidate) return false;
+
   person.trip = {
     source: candidate.sourceId,
     ...(candidate.sourceKind ? { sourceKind: candidate.sourceKind } : {}),
@@ -315,9 +283,7 @@ function resetUnpickedTrip(world: World, person: Person): void {
   person.trip = undefined;
   person.path = [];
   person.movement = 0;
-  const workplace = person.assignment
-    ? world.buildings.find((building) => building.id === person.assignment!.building)
-    : undefined;
+  const workplace = storageCarrierWorkplace(world, person);
   person.active = Boolean(workplace && same(person.position, workplace.position));
 }
 
@@ -353,7 +319,7 @@ function enforceResourceWorker(world: World, person: Person): void {
     area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
 }
 
-function enforceCarrier(world: World, person: Person): void {
+function enforceStorageCarrier(world: World, person: Person): void {
   const area = person.workArea!;
   if (person.trip && !person.trip.picked) {
     const sourcePosition = tripSourcePosition(world, person);
@@ -371,36 +337,42 @@ function enforceCarrier(world: World, person: Person): void {
     person.progress > 0 ||
     (area.retryAfterTick !== undefined && world.round < area.retryAfterTick)
   ) return;
-  const workplace = person.assignment
-    ? world.buildings.find((building) => building.id === person.assignment!.building)
-    : undefined;
+  const workplace = storageCarrierWorkplace(world, person);
   if (!workplace || !same(person.position, workplace.position)) return;
   person.active = true;
-  if (!planLocalCarrier(world, person))
+  if (!planLocalStorageCarrier(world, person))
     area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
 }
 
 export function syncWorkAreas(world: World): void {
   for (const person of world.people) {
-    if (!supportsWorkArea(person)) {
+    const resourceWorker = Boolean(person.woodcutter || person.extractor);
+    const storageCarrier = Boolean(storageCarrierWorkplace(world, person));
+    if (!resourceWorker && !storageCarrier) {
       clearWorkArea(person);
       continue;
     }
     ensureWorkArea(world, person);
-    if (person.woodcutter || person.extractor) enforceResourceWorker(world, person);
-    else if (person.assignment?.role === "carrier") enforceCarrier(world, person);
+    if (resourceWorker) enforceResourceWorker(world, person);
+    else enforceStorageCarrier(world, person);
   }
 }
 
 export function setWorkAreaCenter(world: World, personId: number, center: Hex): boolean {
   const person = world.people.find((candidate) => candidate.id === personId);
-  if (!person || !supportsWorkArea(person)) return false;
+  const eligible = Boolean(
+    person &&
+      (person.woodcutter || person.extractor || storageCarrierWorkplace(world, person)),
+  );
+  if (!person || !eligible) return false;
   if (!world.tiles.some((tile) => tile.q === center.q && tile.r === center.r)) return false;
+
   ensureWorkArea(world, person, center);
   person.workArea = {
     center: { q: center.q, r: center.r },
     radius: WORK_AREA_RADIUS,
   };
+
   if (person.resourceTarget) {
     const target = world.naturalResources.find(
       (resource) => resource.id === person.resourceTarget,

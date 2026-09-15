@@ -166,10 +166,12 @@ export function changeAssignment(
   const before = assigned(world, id, role).slice();
   const changed = changeAssignmentNow(world, id, role, delta);
   if (!changed || role !== "carrier") return changed;
+  const target = building(world, id);
+  const localStorageCarrier = target.kind === "warehouse" || target.kind === "hq";
   const after = assigned(world, id, role);
   if (delta === 1) {
     const person = after.find((candidate) => !before.includes(candidate));
-    if (person) ensureWorkArea(world, person, building(world, id).position);
+    if (person && localStorageCarrier) ensureWorkArea(world, person, target.position);
   } else {
     const person = before.find((candidate) => !after.includes(candidate));
     if (person) clearWorkArea(person);
@@ -257,8 +259,8 @@ export function tick(world: World): void {
   flushPendingPlans(world);
   syncWorkAreas(world);
   tickNow(world);
-  // The historical planners may have selected a new source at a task boundary.
-  // Re-apply the work-area constraint before the next simulation step can move there.
+  // Legacy planners may select a target at a task boundary. Re-apply local constraints
+  // before the next simulation step can move toward an invalid source.
   syncWorkAreas(world);
 }
 
