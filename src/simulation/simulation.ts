@@ -33,6 +33,7 @@ import {
   deferLocalResourceDepletion,
   finishDeferredResourceDepletion,
 } from "./resourceDepletion";
+import { measureResourcePerformance } from "../debug/resourcePerformance";
 
 const RESOURCE_DROP_RADIUS = GRID_REFINEMENT;
 
@@ -72,15 +73,17 @@ type ResourceBeforeTick = {
 const sameHex = (a: Hex, b: Hex): boolean => a.q === b.q && a.r === b.r;
 
 function syncResourceBlocking(world: World): void {
-  for (const tile of world.tiles) tile.resourceBlocking = undefined;
-  const tiles = tileIndex(world.tiles);
-  for (const resource of world.naturalResources) {
-    if (resource.depleted || !naturalResourceBlocksMovement(resource)) continue;
-    for (const position of naturalResourceFootprint(resource)) {
-      const tile = tiles.get(key(position));
-      if (tile) tile.resourceBlocking = true;
+  measureResourcePerformance("resourceBlockingSync", () => {
+    for (const tile of world.tiles) tile.resourceBlocking = undefined;
+    const tiles = tileIndex(world.tiles);
+    for (const resource of world.naturalResources) {
+      if (resource.depleted || !naturalResourceBlocksMovement(resource)) continue;
+      for (const position of naturalResourceFootprint(resource)) {
+        const tile = tiles.get(key(position));
+        if (tile) tile.resourceBlocking = true;
+      }
     }
-  }
+  });
 }
 
 function migrateNaturalResourceOutputToGround(world: World): void {
