@@ -242,6 +242,7 @@ const harvestField = (w: World, field: Building): void => {
 export function advanceFarmSystem(w: World): number[] {
   const immediate = new Set<number>();
   const activeFertilizers = new Map<string, Person>();
+  const physicalObstacles = physicalObstacleCells(w);
 
   for (const p of w.people) {
     const task = p.farmTask;
@@ -296,7 +297,7 @@ export function advanceFarmSystem(w: World): number[] {
     }
 
     if (task.kind === "sow" && !fieldFootprintAt(task.target).every((position) =>
-      tileAt(w, position)?.terrain === "grass" && !physicalObstacleCells(w).has(key(position)))) {
+      tileAt(w, position)?.terrain === "grass" && !physicalObstacles.has(key(position)))) {
       p.farmTask = undefined;
       p.progress = 0;
       immediate.add(p.id);
