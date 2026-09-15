@@ -1,7 +1,7 @@
 name: Test, build and deploy PoC
 on:
   push:
-    branches: [main, agent/fix-phase-f-regressions]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
