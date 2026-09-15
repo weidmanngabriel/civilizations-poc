@@ -33,7 +33,7 @@ Holz, Lehm und Bruchstein folgen dem physischen Grundmodell:
 
 ## Arbeitsflaggen
 
-Holzfäller, Lehmgräber, Steinbrecher sowie **Lager- und HQ-Träger** besitzen einen lokalen Arbeitsbereich, dessen Mittelpunkt durch eine sichtbare persönliche Arbeitsflagge festgelegt wird. Der aktuelle Radius beträgt fünf Weltkacheln.
+Holzfäller, Lehmgräber, Steinbrecher sowie **Lager- und HQ-Träger** besitzen einen lokalen Arbeitsbereich, dessen Mittelpunkt durch eine sichtbare persönliche Arbeitsflagge festgelegt wird. Der gemeinsame Radius beträgt **2,5 Weltkacheln**.
 
 Die Flagge gehört zur einzelnen Person, nicht zum Gebäude. Zwei Träger desselben Lagers können deshalb unterschiedliche Bereiche abdecken. **Abbauer-Flaggen sind rot.**
 
