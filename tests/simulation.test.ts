@@ -115,10 +115,15 @@ function woodcutterAtForest(w: World) {
   changeWoodcutters(w, 1);
   const p = woodcutters(w).at(-1)!;
   const forest = naturalResource(w, p.resourceTarget!);
-  p.position = { ...forest.position };
+  const path = findPath(w.tiles, p.position, forest.position, CONFIG.roadSpeedMultiplier);
+  assert.ok(path);
+  const interaction = path.at(-1) ?? p.position;
+  p.position = { ...interaction };
   p.path = [];
   p.movement = 0;
   p.active = true;
+  assert.equal(same(p.position, forest.position), true);
+  assert.notDeepEqual({ q: p.position.q, r: p.position.r }, forest.position);
   return { p, forest };
 }
 
