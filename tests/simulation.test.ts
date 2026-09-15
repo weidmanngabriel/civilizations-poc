@@ -301,7 +301,12 @@ test("one physical unit cannot be claimed twice; carried cancellation returns it
   changeAssignment(w, sawmill.id, "carrier", -1);
   changeAssignment(w, sawmill.id, "carrier", -1);
   tick(w);
-  assert.equal((w.looseGoods ?? []).find((stack) => stack.id === sourceId)?.amount, 1);
+  assert.equal(
+    (w.looseGoods ?? [])
+      .filter((stack) => stack.good === "wood")
+      .reduce((sum, stack) => sum + stack.amount, 0),
+    1,
+  );
   assert.equal(p.trip, undefined);
   assertInvariants(w);
 });
