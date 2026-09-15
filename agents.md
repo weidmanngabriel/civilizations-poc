@@ -26,10 +26,10 @@ Am Ende des Runs werden alle Änderungen **per Squash auf `main` übernommen**, 
 
 Nach dem Squash-Merge den Build-/Deploy-Status prüfen und konkrete Fehler bei Bedarf erneut über einen temporären Branch beheben und anschließend wieder als einzelnen Squash-Commit auf `main` übernehmen.
 
-## Aktiver Umbauplan
+## Räumliches Referenzmodell
 
-Für den geplanten Umbau auf ein feineres räumliches Raster und physische Ressourcen gilt zusätzlich [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md).
+Der Umbau auf ein feineres räumliches Raster und physische Ressourcen ist abgeschlossen und in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md) dokumentiert.
 
-Solange dieser Plan als aktiv markiert ist, muss er vor Änderungen an **Kartenmaßstab, Terrain, Gebäudegrößen oder -platzierung, Bewohnerdarstellung/-skalierung, natürlichen Ressourcen, losen Waren, Pathfinding, Wegen oder Ressourcenlogistik** gelesen und berücksichtigt werden. Auch Änderungen an angrenzenden Systemen sollen darauf geprüft werden, ob sie Annahmen schaffen, die dem geplanten Umbau entgegenstehen.
+Vor Änderungen an **Kartenmaßstab, Terrain, Gebäudegrößen oder -platzierung, Bewohnerdarstellung/-skalierung, natürlichen Ressourcen, losen Waren, Pathfinding, Wegen oder Ressourcenlogistik** muss neben `architecture.md` und `concept.md` auch dieses Referenzdokument gelesen werden. Es enthält die abgeschlossenen Migrationsentscheidungen und die bewusst getrennten späteren Folgefragen.
 
-Der Plan wird nach jeder umgesetzten Phase aktualisiert, damit der aktuelle Stand und die nächsten Schritte auch in einem neuen Chat eindeutig nachvollziehbar bleiben.
+Wird künftig erneut ein größerer Umbau dieser Systeme gestartet, soll dafür der bestehende Plan ausdrücklich wieder geöffnet oder ein neuer aktiver Plan angelegt werden.
