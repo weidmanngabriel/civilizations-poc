@@ -2,7 +2,7 @@
 
 Diese Datei ist der aktuelle Einstieg in das Produktkonzept. Ausführliche unveränderte Regeln bleiben in [`concept-detail.md`](./concept-detail.md) dokumentiert. Bei Widersprüchen beschreibt diese Datei den neueren Stand.
 
-Der aktive Umbau wird in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md) geführt.
+Der abgeschlossene Umbau auf das feine Raster und physische Ressourcen ist in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md) dokumentiert.
 
 ## PoC 1: personenbasierte Produktionslogistik
 
@@ -31,6 +31,14 @@ Holz, Lehm und Bruchstein folgen dem physischen Grundmodell:
 
 **Ressource → Abbauer → Bodenhaufen → Abholung → Verarbeitung/Lagerung.**
 
+Bodenhaufen sind echte Transportquellen. Sie werden nicht zusätzlich als unsichtbare Rohstoffquelle gespiegelt. Eine reservierte Einheit bleibt sichtbar am Boden, bis sie tatsächlich abgeholt wird.
+
+## Lager und Hauptquartier
+
+Das Hauptquartier und normale Lager besitzen echte Inventare. Träger liefern direkt in dieses Inventar; es gibt kein verborgenes Hilfslager für das Hauptquartier.
+
+Automatische Lager-zu-Lager-Verteilung bleibt verboten. Händler verbinden weiterhin explizit Lager miteinander. Produktionsgebäude und Bauarbeiter dürfen benötigte Waren nach ihren eigenen Regeln aus Lager/HQ oder von physischen Bodenhaufen beschaffen.
+
 ## Arbeitsflaggen
 
 Holzfäller, Lehmgräber, Steinbrecher sowie **Lager- und HQ-Träger** besitzen einen lokalen Arbeitsbereich, dessen Mittelpunkt durch eine sichtbare persönliche Arbeitsflagge festgelegt wird. Der gemeinsame Radius beträgt **2,5 Weltkacheln**.
@@ -41,19 +49,39 @@ Die Flagge gehört zur einzelnen Person, nicht zum Gebäude. Zwei Träger dessel
 - Bei einem neuen Lager-/HQ-Träger erscheint sie zunächst am zugewiesenen Lagergebäude.
 - Abbauer wählen nur passende freie Rohstoffquellen innerhalb ihrer eigenen Flagge. Ist dort nichts mehr verfügbar, warten sie und wandern nicht automatisch über die Karte zum nächsten Vorkommen.
 - Ein Abbauer verschiebt seine Flagge niemals selbst. Nur der Spieler kann den Mittelpunkt verändern.
-- Lager-/HQ-Träger holen nur Nicht-Lager-Quellen innerhalb ihrer Flagge. Lager-zu-Lager-Verteilung bleibt Händlersache.
-- Wird eine Flagge durch den Spieler verschoben, wird ein noch nicht abgeholtes Ziel außerhalb des neuen Bereichs verworfen. Bereits getragene Ware wird noch ausgeliefert.
+- Lager-/HQ-Träger holen nur Nicht-Lager-Quellen innerhalb ihrer Flagge. Dazu gehören Produktionsausgänge und physische Warenhaufen. Lager-zu-Lager-Verteilung bleibt Händlersache.
+- Wird eine Flagge durch den Spieler verschoben, wird ein noch nicht abgeholtes Ziel außerhalb des neuen Bereichs verworfen und dessen Reservierung freigegeben. Bereits getragene Ware wird noch ausgeliefert.
 - Der Spieler versetzt die Flagge über die ausgewählte Person. Ein kurzer Klick oder Tap setzt den neuen Mittelpunkt; Ziehen verschiebt weiterhin die Karte.
 
-Produktions-Träger behalten in dieser ersten Stufe ihre bestehende bedarfsgetriebene Beschaffung. Damit ändern wir nicht gleichzeitig die Produktionskettenlogik; die Ausweitung auf weitere Berufe kann später bewusst entschieden werden.
+Produktions-Träger behalten ihre bestehende bedarfsgetriebene Beschaffung. Eine spätere Ausweitung der Arbeitsflaggen auf weitere Berufe bleibt eine eigene Produktentscheidung.
 
 Die Arbeitsflagge beantwortet **„Wo darf diese Person Ressourcen abbauen oder lokal einsammeln?“**. Langstrecken-Navigation über Wegweiser ist ein separates späteres System.
 
+## Farmen und Felder
+
+Die bestehenden Farmregeln bleiben unverändert. Ein Acker belegt aber vollständig seine feine Rasterfläche und darf beim Säen keine natürliche Ressource oder lose Ware überschreiben. Bereits reservierte Feldflächen und besetzte Zellen bleiben ebenfalls tabu.
+
+Wird eine Farm abgerissen, verschwinden ihre aktiven Felder wie bisher und die belegten Zellen werden wieder zu Gras.
+
+## Gebäude, Freiraum und Abriss
+
+Gebäude behalten ihren mehrzelligen Grundriss und den bestehenden freien Ring von einer alten Weltkachel rundherum. Der komplette Grundriss und der Freiraum dürfen keine aktiven natürlichen Ressourcen schneiden.
+
+Lose Waren dürfen im freien Ring liegen bleiben, aber nicht unter dem eigentlichen Gebäudegrundriss. Damit kann ein Gebäude keine sichtbare Ware beim Platzieren löschen.
+
+Beim Abriss wird die komplette belegte Fläche wieder freigegeben, nicht nur der Ankerpunkt. Eine zuvor überbaute Straße kehrt nicht automatisch zurück; die Fläche wird wie bisher zu Gras.
+
+## Wege
+
+Die bestehende Regel bleibt: **8 Überquerungen innerhalb von 32 simulierten Sekunden** erzeugen einen dauerhaften Weg. Auf Wegen bewegen sich Bewohner mit dem bestehenden Faktor **1,3×**.
+
+Weder manuell gesetzte noch automatisch entstehende Wege dürfen eine aktive natürliche Ressourcenfläche überdecken. Das gilt für den kompletten Ressourcen-Grundriss, nicht nur für dessen Mittelpunkt.
+
 ## Hunger
 
-Die eigentliche Simulation und Bewegung laufen weiterhin mit 60 Schritten pro Sekunde. **Hunger wird nur einmal pro simulierter Sekunde aktualisiert und geprüft.** Erst bei diesem Sekundenschritt werden Hungergrenzen bewertet und bei Bedarf ein Essensziel gesucht. Das reicht für die Spielentscheidung aus und verhindert unnötige tickweise Neuprüfungen.
+Die eigentliche Simulation und Bewegung laufen weiterhin mit 60 Schritten pro Sekunde. **Hunger wird nur einmal pro simulierter Sekunde aktualisiert und geprüft.** Erst bei diesem Sekundenschritt werden Hungergrenzen bewertet und bei Bedarf ein Essensziel gesucht.
 
-Hat eine Person bereits ein Essensziel und ist unterwegs, behält sie dieses Ziel und ihre Route bei, solange die Reise läuft.
+Hat eine Person bereits ein Essensziel und ist unterwegs, behält sie dieses Ziel und ihre Route bei, solange die Reise läuft. Auch eine durch Hunger oder Schlaf unterbrochene Warenabholung kann danach zur selben physischen Abholposition fortgesetzt werden, solange der Auftrag noch gültig ist.
 
 ## Berufserfahrung und Technologien
 
@@ -71,8 +99,19 @@ Bewohner bleiben größer als einzelne Mikrozellen. Die Karte lässt sich per Ma
 
 Gebäudeplatzierung bleibt für Desktop und Touch getrennt bedienbar, verwendet aber dieselbe autoritative Platzierungslogik. Für Arbeitsflaggen gilt ebenfalls: kurzer Klick/Tap setzt die Flagge, Drag bleibt Kartenbewegung.
 
+## Noch offene spätere Produktentscheidungen
+
+Nicht Teil des abgeschlossenen Raster-/Ressourcenumbaus sind:
+
+- unterschiedliche Arbeitsradien nach Beruf oder Upgrade,
+- Arbeitsflaggen für Produktions-Träger,
+- gemeinsam genutzte Flaggen,
+- Wegweiser/High-Level-Navigation,
+- Ressourcen-Regeneration und neue prozedurale Clusterregeln,
+- Save/Load.
+
 ## Unveränderte Produktbereiche
 
-Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`concept-detail.md`](./concept-detail.md), insbesondere Startzustand, Schlaf, Beeren, Bau/Abriss, 60-Hz-Simulation, organische Wege, Produktionsketten, Händler, Farmen, Personenansicht, Technologiebaum und Handbuch.
+Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`concept-detail.md`](./concept-detail.md), insbesondere Startzustand, Schlaf, Beeren, 60-Hz-Simulation, Produktionsketten, Händler, Personenansicht, Technologiebaum und Handbuch.
 
-Alte Aussagen in `concept-detail.md` über das grobe Raster, Wald als Terrain, alte Rohstofflagerung, direktes Betreten blockierender Ressourcen, global wandernde Abbauer, tickweise Hungerplanung oder einen festen gebäudezentrierten Lagerträger-Sammelradius sind durch diese Datei überholt.
+Alte Aussagen in `concept-detail.md` über das grobe Raster, Wald als Terrain, alte Rohstofflagerung, versteckte HQ-Lagerlogik, physische Waren als Rohstoff-Proxies, direktes Betreten blockierender Ressourcen, global wandernde Abbauer, tickweise Hungerplanung oder einen festen gebäudezentrierten Lagerträger-Sammelradius sind durch diese Datei überholt.
