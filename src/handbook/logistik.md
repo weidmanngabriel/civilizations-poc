@@ -2,7 +2,9 @@
 
 ## Holz
 
-Holzfäller arbeiten an einzelnen Bäumen. Fertiges Holz liegt anschließend **sichtbar als Warenhaufen auf dem Boden** in der Nähe des Baums und nicht mehr im Baum selbst.
+Holzfäller arbeiten an einzelnen Bäumen. Da ein Baum den Weg blockiert, bleibt der Holzfäller auf einem freien Feld direkt daneben und arbeitet von dort aus. Er läuft nicht auf den Baumstamm.
+
+Fertiges Holz liegt anschließend **sichtbar als Warenhaufen auf dem Boden** in der Nähe des Baums und nicht mehr im Baum selbst.
 
 Ein Holzhaufen enthält höchstens drei Einheiten. Ist ein Haufen voll, kann in der Nähe ein weiterer entstehen. Bewohner können immer über solche Warenhaufen laufen; sie blockieren keine Wege.
 
@@ -10,7 +12,7 @@ Sägewerker und Träger holen das Holz direkt von diesen Haufen ab. Bereits abge
 
 ## Lehm und Stein
 
-Lehmvorkommen findest du in Flussnähe, Steinvorkommen in Bergnähe. Beide sind endlich und liegen als eigene Ressourcen auf dem normalen Untergrund. Lehmflächen bleiben begehbar; Steinflächen blockieren den direkten Durchgang.
+Lehmvorkommen findest du in Flussnähe, Steinvorkommen in Bergnähe. Beide sind endlich und liegen als eigene Ressourcen auf dem normalen Untergrund. Lehmflächen bleiben begehbar; Steinflächen blockieren den direkten Durchgang. Bei blockierenden Rohstoffstellen bleiben Bewohner auf einem freien Feld daneben, statt die blockierte Fläche zu betreten.
 
 Holzfäller, Lehmgräber und Steinbrecher werden ausschließlich am HQ zugewiesen, suchen selbständig freie Rohstoffstellen und wechseln nach deren Erschöpfung automatisch weiter. Direkt an einer Rohstoffstelle gibt es keine Arbeiterzuweisung. Pro Rohstoffstelle arbeitet höchstens eine Person.
 

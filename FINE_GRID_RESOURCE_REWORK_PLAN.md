@@ -31,7 +31,7 @@ The grid is authoritative for spatial simulation but should not become visually 
 - Do not combine multiple large migrations just to avoid temporary compatibility code.
 - Avoid repeated full-map scans on the fine grid.
 - Existing behavior outside the active phase remains unchanged unless explicitly documented.
-- Changes are made directly on `main` per current project instruction; deployment is gated by the full test suite and build.
+- Changes are developed on a temporary branch and squash-merged to `main`; deployment is gated by the full test suite and build.
 
 ## Spatial model
 
@@ -46,7 +46,7 @@ Visible world size remains approximately comparable. Buildings and fields expand
 
 ## Terrain/resource separation
 
-Terrain is only the underlying ground. Natural resources must not create special terrain types just because they occupy a location. A tree can therefore sit on grass today and potentially on another suitable ground type later.
+Terrain is only the underlying ground. Natural resources do not create special terrain types merely because they occupy a location.
 
 Resource footprint and movement blocking are independent properties. Current authoritative rules are data-driven in `src/simulation/naturalResources.ts`:
 
@@ -61,7 +61,11 @@ Resource footprint and movement blocking are independent properties. Current aut
 
 The start scenario no longer uses forest as player-facing terrain. Trees are individual resource objects on ordinary ground. `Tile.resourceBlocking` is a derived collision overlay synchronized from active blocking resource footprints; depletion removes only the resource/collision, not the terrain underneath.
 
-Current extraction compatibility still permits a blocking resource anchor to be an explicit route endpoint. Normal transit cannot pass through its blocking footprint. A later cleanup may move extraction to explicit adjacent interaction cells.
+### Blocking-resource interaction positions
+
+Blocking cells are never entered merely because they are an explicit route target. When pathfinding is asked to reach a blocking target cell, it deterministically chooses the quickest reachable **walkable neighboring micro-cell** as the physical interaction position. The arrival point retains a logical reference to the blocked target, so existing work, pickup and need logic can still recognize that the person has reached the intended object without moving onto it.
+
+This rule applies equally to weighted routing and step-count routing. Normal transit therefore never crosses or terminates on a blocking resource cell.
 
 ## Target resource model
 
@@ -86,7 +90,7 @@ A new stack may not be created on blocked terrain, a building footprint, or any 
 For one completed physical extraction action:
 
 1. choose/retain a concrete resource source,
-2. reach the source or its interaction position,
+2. reach its valid interaction position,
 3. extract one unit,
 4. find a drop cell near the source,
 5. prefer an existing non-full stack of the same good,
@@ -149,13 +153,10 @@ Implemented:
 - sawmill workers, sawmill carriers and HQ carriers source wood from physical stacks,
 - reservations prevent duplicate pickup,
 - depleted trees disappear while dropped wood remains collectible,
-- focused end-to-end coverage verifies tree → ground stack → sawmill input,
 - one tree = one micro-cell resource object,
 - one tree = exactly 3 wood,
 - tree collision is separate from terrain,
-- the start scenario no longer paints forest terrain under tree clusters,
-- tree depletion restores walkability without rewriting the ground type,
-- bush logical size is one micro-cell and bush rendering uses the shared fine-grid projection.
+- dense forest clusters retain walkable gaps.
 
 **Status: complete.**
 
@@ -163,19 +164,16 @@ Implemented:
 
 Implemented:
 
-- clay extraction now produces physical `clay` ground stacks,
-- stone extraction now produces physical `rubble` ground stacks,
-- clay and stone use the same capacity/reservation/return-cargo compatibility flow as wood,
-- real clay/stone source output is drained to the ground before public state is observed,
+- clay extraction produces physical `clay` ground stacks,
+- stone extraction produces physical `rubble` ground stacks,
+- clay and stone share the wood capacity/reservation/return-cargo compatibility flow,
 - clay uses a compact four-cell non-blocking footprint,
 - stone uses a compact four-cell blocking footprint,
 - footprint, blocking and raw-good mapping are centralized in `naturalResources.ts`,
-- building placement and loose-good placement reserve the complete active resource footprint,
-- depletion removes stone collision across the complete footprint while already dropped goods remain,
-- focused tests cover physical extraction and four-cell collision semantics,
-- the in-app logistics handbook documents physical clay/rubble piles.
+- placement reserves complete active resource footprints,
+- depletion removes complete stone collision while dropped goods remain.
 
-The generic trip/source model itself is intentionally not redesigned yet; short-lived `ground-*` proxies remain until the Phase-F cleanup.
+The generic trip/source model itself remains intentionally compatible through short-lived `ground-*` proxies until later Phase-F cleanup.
 
 **Status: complete.**
 
@@ -184,36 +182,34 @@ The generic trip/source model itself is intentionally not redesigned yet; short-
 Implemented:
 
 - every historical forest seed expands into three deterministic one-cell trees,
-- the tree patterns leave intentional micro-cell gaps so forests are denser without becoming solid pathfinding walls,
-- clay and stone keep their Phase-D four-cell logical footprints,
-- clay/stone source anchors are selected with deterministic spatial scoring instead of simple map scan order,
-- clay and stone render as multiple visible pieces across their logical footprint,
-- loose wood, clay and rubble use distinct silhouettes,
+- tree patterns leave intentional walkable micro-cell gaps,
+- clay and stone keep their four-cell logical footprints,
+- clay/stone source anchors use deterministic spatial scoring,
+- clay and stone render as multiple visible pieces,
+- loose wood, clay and rubble have distinct silhouettes,
 - 1/2/3-unit ground stacks use visibly different arrangements,
 - reserved ground stacks receive a presentation-only highlight,
-- the micro-grid remains hidden as a simulation mechanism rather than becoming a visual board,
-- focused regression coverage verifies dense forests still contain walkable gaps.
-
-Phase E intentionally does **not** vary the authoritative four-cell clay/stone footprint shape. Visual irregularity is decoupled from pathfinding/placement so this pass does not reopen Phase-D spatial rules.
+- the micro-grid remains hidden as a simulation mechanism.
 
 **Status: complete.**
 
 ### Phase F — Cross-system cleanup and performance
 
-Implemented in the current cleanup slice:
+Implemented in the current cleanup slices:
 
 - autonomous work planning is event-driven instead of globally re-planning every idle worker once per second,
 - arrival, delivery and completed work trigger immediate follow-up decisions,
 - a worker that cannot find a valid task/source gets an individual one-second retry deadline,
-- existing hunger behavior was verified to retain its selected food target while travelling and retry only once per second when no target exists,
-- existing sleep behavior was verified to retain its selected destination while travelling and only validate/replan at the destination/task boundary,
+- hunger and sleep retain their selected targets while travelling and re-evaluate at task boundaries,
 - person markers are substantially smaller while remaining readable,
-- desktop wheel and touch pinch zoom now share a maximum camera zoom of 10×.
+- desktop wheel and touch pinch zoom share a maximum camera zoom of 10×,
+- explicit blocked-target interaction positions: pathfinding now stops on the quickest reachable walkable neighboring cell instead of entering a blocking resource cell,
+- weighted and step-count routing share the same blocked-target interaction rule,
+- regression coverage verifies that a woodcutter reaches and works a blocking tree while physically remaining on walkable ground.
 
 Still review at minimum:
 
-- explicit adjacent interaction positions for blocking resources,
-- hunger/sleep nature targeting,
+- hunger/sleep nature targeting as a product/behavior pass beyond the new generic blocked-target routing,
 - farms and fields,
 - building clearance and demolition,
 - roads and traffic thresholds,
@@ -235,32 +231,31 @@ Still review at minimum:
 - The fine grid is a simulation/spatial mechanism, not a visual tile aesthetic.
 - The final Phase-A refinement factor is 5× per axis.
 - Terrain and natural resources are separate systems.
-- Forest is not a required terrain type; a forest is a spatial cluster of tree resource objects.
+- Forest is a cluster of tree resource objects, not a required terrain type.
 - Resource footprint and movement blocking are separate properties.
 - Tree = 1 cell, blocking, 3 wood.
-- Bush = 1 cell, non-blocking, visual may exceed the cell.
+- Bush = 1 cell, non-blocking; the visual may exceed the cell.
 - Mushroom = 1 cell, non-blocking.
 - Clay = compact 4 cells, non-blocking.
 - Stone = compact 4 cells, blocking.
 - Ore target remains about 4 cells, blocking.
-- Buildings become many cells large instead of becoming visually tiny.
-- People remain readable in screen space and are not shrunk to micro-cell size.
+- Buildings become many cells large instead of visually tiny.
+- People remain readable and are not shrunk to micro-cell size.
 - Extracted raw resources become physical loose goods.
-- Loose ground stacks hold at most 3 units of one good type.
-- Loose ground stacks are always walkable and never obstacles.
+- Loose ground stacks hold at most 3 units of one good type and never block movement.
 - Reservations protect concrete units without removing them before pickup.
-- Wood, clay and rubble currently use a 5-micro-cell / one-old-step drop radius.
-- Active resource footprints reserve space against construction and new loose-good stacks even when the resource is non-blocking.
-- Current forest density uses three trees per historical forest seed with deterministic pattern variation.
-- Clay/stone visual irregularity does not change their authoritative four-cell footprint shape.
+- Wood, clay and rubble use a 5-micro-cell / one-old-step drop radius.
+- Active resource footprints reserve construction/drop space even when non-blocking.
+- Current forest density uses three trees per historical forest seed with deterministic variation.
+- Clay/stone visual irregularity does not change their authoritative footprint.
 - Autonomous target selection is retained while travelling; missing work targets retry per person at most once per second.
+- Blocking route targets are interacted with from a walkable adjacent cell; the blocking target cell itself is not entered.
 - Camera zoom supports up to 10× on desktop and touch.
 
 ## Open decisions
 
 Resolve these in the relevant phase rather than inventing them early:
 
-- whether explicit adjacent interaction cells should replace the temporary targeted-blocker endpoint behavior,
 - whether future maps should procedurally generate resource cluster density rather than use the current deterministic scenario seeds,
 - whether different loose goods may later coexist on one cell (current rule: no),
 - regeneration rules for future renewable resources.

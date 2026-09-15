@@ -2,7 +2,20 @@ import { performanceNow, performanceProfiler } from "../debug/performanceProfile
 import type { Hex, Tile } from "./model";
 
 export const key = (h: Hex): string => `${h.q},${h.r}`;
-export const same = (a: Hex, b: Hex): boolean => a.q === b.q && a.r === b.r;
+
+const interactionTargetKey = Symbol("interactionTargetKey");
+type RoutedHex = Hex & { [interactionTargetKey]?: string };
+
+const exactSame = (a: Hex, b: Hex): boolean => a.q === b.q && a.r === b.r;
+
+/**
+ * Coordinates normally compare exactly. A person that has just reached an explicit
+ * interaction cell for a blocking target also compares as being "at" that logical
+ * target without ever entering its blocked cell.
+ */
+export const same = (a: Hex, b: Hex): boolean =>
+  exactSame(a, b) || (a as RoutedHex)[interactionTargetKey] === key(b);
+
 export const neighbors = (h: Hex): Hex[] =>
   [
     [1, 0],
@@ -50,7 +63,7 @@ const reconstructPath = (
 ): Hex[] => {
   const path: Hex[] = [];
   let cursor = end;
-  while (!same(cursor, start)) {
+  while (!exactSame(cursor, start)) {
     path.unshift(cursor);
     cursor = previous.get(key(cursor))!;
   }
@@ -110,10 +123,33 @@ class MinHeap {
   }
 }
 
-const traversableForPath = (tile: Tile, position: Hex, end: Hex): boolean =>
-  terrainWalkable(tile) && (!tile.resourceBlocking || same(position, end));
+const pathTargets = (index: Map<string, Tile>, end: Hex): Hex[] | null => {
+  const endTile = index.get(key(end));
+  if (!endTile || !terrainWalkable(endTile)) return null;
+  if (!endTile.resourceBlocking) return [end];
+  return neighbors(end).filter((position) => {
+    const tile = index.get(key(position));
+    return Boolean(tile && walkable(tile));
+  });
+};
 
-/** Returns the quickest path, excluding the start, or null when unreachable. */
+const targetHeuristic = (
+  position: Hex,
+  targets: Hex[],
+  roadSpeedMultiplier: number,
+): number =>
+  Math.min(...targets.map((target) => hexDistance(position, target))) / roadSpeedMultiplier;
+
+const markInteractionArrival = (start: Hex, path: Hex[], logicalTarget: Hex): void => {
+  const arrival = path.at(-1) ?? start;
+  (arrival as RoutedHex)[interactionTargetKey] = key(logicalTarget);
+};
+
+/**
+ * Returns the quickest path, excluding the start, or null when unreachable.
+ * Blocking targets are never entered. Instead the route ends on the quickest
+ * walkable adjacent interaction cell while preserving logical target arrival.
+ */
 export function findPath(
   tiles: Tile[],
   start: Hex,
@@ -123,14 +159,25 @@ export function findPath(
   return profilePath(() => {
     const index = tileIndex(tiles);
     const startTile = index.get(key(start));
-    const endTile = index.get(key(end));
-    if (!startTile || !endTile || !terrainWalkable(startTile) || !terrainWalkable(endTile)) return null;
+    const targets = pathTargets(index, end);
+    if (!startTile || !terrainWalkable(startTile) || !targets?.length) return null;
 
+    const interactionTarget = Boolean(index.get(key(end))?.resourceBlocking);
+    const targetKeys = new Set(targets.map(key));
     const startKey = key(start);
+    if (targetKeys.has(startKey)) {
+      if (interactionTarget) markInteractionArrival(start, [], end);
+      return [];
+    }
+
     const distances = new Map<string, number>([[startKey, 0]]);
     const previous = new Map<string, Hex | null>([[startKey, null]]);
     const open = new MinHeap();
-    open.push({ position: start, distance: 0, priority: hexDistance(start, end) / roadSpeedMultiplier });
+    open.push({
+      position: start,
+      distance: 0,
+      priority: targetHeuristic(start, targets, roadSpeedMultiplier),
+    });
 
     while (open.length) {
       const currentEntry = open.pop()!;
@@ -138,11 +185,15 @@ export function findPath(
       const currentKey = key(current);
       const currentDistance = distances.get(currentKey);
       if (currentDistance === undefined || currentEntry.distance > currentDistance + 1e-9) continue;
-      if (same(current, end)) return reconstructPath(previous, start, current);
+      if (targetKeys.has(currentKey)) {
+        const path = reconstructPath(previous, start, current);
+        if (interactionTarget) markInteractionArrival(start, path, end);
+        return path;
+      }
 
       for (const next of neighbors(current)) {
         const tile = index.get(key(next));
-        if (!tile || !traversableForPath(tile, next, end)) continue;
+        if (!tile || !walkable(tile)) continue;
         const nextDistance = currentDistance + movementCost(tile, roadSpeedMultiplier);
         const nextKey = key(next);
         const knownDistance = distances.get(nextKey);
@@ -152,7 +203,7 @@ export function findPath(
         open.push({
           position: next,
           distance: nextDistance,
-          priority: nextDistance + hexDistance(next, end) / roadSpeedMultiplier,
+          priority: nextDistance + targetHeuristic(next, targets, roadSpeedMultiplier),
         });
       }
     }
@@ -165,17 +216,31 @@ export function findPathBySteps(tiles: Tile[], start: Hex, end: Hex): Hex[] | nu
   return profilePath(() => {
     const index = tileIndex(tiles);
     const startTile = index.get(key(start));
-    const endTile = index.get(key(end));
-    if (!startTile || !endTile || !terrainWalkable(startTile) || !terrainWalkable(endTile)) return null;
+    const targets = pathTargets(index, end);
+    if (!startTile || !terrainWalkable(startTile) || !targets?.length) return null;
+
+    const interactionTarget = Boolean(index.get(key(end))?.resourceBlocking);
+    const targetKeys = new Set(targets.map(key));
+    const startKey = key(start);
+    if (targetKeys.has(startKey)) {
+      if (interactionTarget) markInteractionArrival(start, [], end);
+      return [];
+    }
+
     const queue = [start];
-    const previous = new Map<string, Hex | null>([[key(start), null]]);
+    const previous = new Map<string, Hex | null>([[startKey, null]]);
     for (let i = 0; i < queue.length; i += 1) {
       const current = queue[i]!;
-      if (same(current, end)) return reconstructPath(previous, start, current);
+      const currentKey = key(current);
+      if (targetKeys.has(currentKey)) {
+        const path = reconstructPath(previous, start, current);
+        if (interactionTarget) markInteractionArrival(start, path, end);
+        return path;
+      }
       for (const next of neighbors(current)) {
         const nextKey = key(next);
         const tile = index.get(nextKey);
-        if (tile && traversableForPath(tile, next, end) && !previous.has(nextKey)) {
+        if (tile && walkable(tile) && !previous.has(nextKey)) {
           previous.set(nextKey, current);
           queue.push(next);
         }

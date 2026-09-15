@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createWorld, CONFIG } from "../src/simulation/scenario";
-import { findPath, same, walkable } from "../src/simulation/hex";
+import { findPath, hexDistance, same, walkable } from "../src/simulation/hex";
 import {
   assigned,
   buildAt,
@@ -45,7 +45,36 @@ test("trees are blocking resource objects on ordinary ground", () => {
     assert.equal(walkable(tile), false);
   }
 
-  assert.ok(findPath(world.tiles, building(world, "hq").position, trees[0]!.position));
+  const tree = trees[0]!;
+  const path = findPath(world.tiles, building(world, "hq").position, tree.position);
+  assert.ok(path);
+  const interaction = path.at(-1)!;
+  assert.notDeepEqual({ q: interaction.q, r: interaction.r }, tree.position);
+  assert.equal(hexDistance(interaction, tree.position), 1);
+  const interactionTile = world.tiles.find((tile) => tile.q === interaction.q && tile.r === interaction.r)!;
+  assert.equal(walkable(interactionTile), true);
+  assert.equal(same(interaction, tree.position), true);
+});
+
+test("a woodcutter reaches a tree from beside it without entering the blocked tree cell", () => {
+  const world = createWorld();
+  assert.equal(changeWoodcutters(world, 1), true);
+  const worker = woodcutters(world)[0]!;
+  const forest = naturalResource(world, worker.resourceTarget!);
+
+  for (let i = 0; i < 6000 && worker.progress === 0; i += 1) {
+    worker.hunger = 100;
+    worker.sleep = 100;
+    tick(world);
+  }
+
+  assert.ok(worker.progress > 0);
+  assert.equal(worker.path.length, 0);
+  assert.notDeepEqual(worker.position, forest.position);
+  assert.equal(hexDistance(worker.position, forest.position), 1);
+  const workerTile = world.tiles.find((tile) => tile.q === worker.position.q && tile.r === worker.position.r)!;
+  assert.equal(walkable(workerTile), true);
+  assert.equal(same(worker.position, forest.position), true);
 });
 
 test("each appointed woodcutter claims a different tree", () => {
