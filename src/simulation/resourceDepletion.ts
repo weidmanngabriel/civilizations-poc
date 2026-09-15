@@ -1,7 +1,8 @@
 import type { NaturalResource, Person, World } from "./model";
 import { CONFIG } from "./scenario";
 import { extractionSpeedMultiplier } from "./experience";
-import { key, tileIndex } from "./hex";
+import { key, same, tileIndex } from "./hex";
+import { measureResourcePerformance } from "../debug/resourcePerformance";
 
 type DeferredResourceDepletion = {
   resource: NaturalResource;
@@ -9,11 +10,6 @@ type DeferredResourceDepletion = {
 };
 
 const resourceIndexCache = new WeakMap<World, Map<string, NaturalResource>>();
-
-const samePosition = (
-  a: { q: number; r: number },
-  b: { q: number; r: number },
-): boolean => a.q === b.q && a.r === b.r;
 
 const resourceProfession = (
   resource: NaturalResource,
@@ -64,7 +60,7 @@ export function deferLocalResourceDepletion(
       !resource ||
       resource.depleted ||
       resource.remaining !== 1 ||
-      !samePosition(person.position, resource.position) ||
+      !same(person.position, resource.position) ||
       person.progress + extractionSpeedMultiplier(person, resourceProfession(resource)) <
         CONFIG.duration
     ) continue;
@@ -87,27 +83,29 @@ export function finishDeferredResourceDepletion(
   deferred: readonly DeferredResourceDepletion[],
 ): void {
   if (!deferred.length) return;
-  const tiles = tileIndex(world.tiles);
+  measureResourcePerformance("resourceRetirement", () => {
+    const tiles = tileIndex(world.tiles);
 
-  for (const { resource, workers } of deferred) {
-    if (resource.depleted || resource.remaining !== 1) continue;
-    resource.remaining = 0;
-    resource.depleted = true;
+    for (const { resource, workers } of deferred) {
+      if (resource.depleted || resource.remaining !== 1) continue;
+      resource.remaining = 0;
+      resource.depleted = true;
 
-    const tile = tiles.get(key(resource.position));
-    if (tile) {
-      if (resource.kind === "forest") tile.terrain = "grass";
-      tile.trafficTicks = undefined;
+      const tile = tiles.get(key(resource.position));
+      if (tile) {
+        if (resource.kind === "forest") tile.terrain = "grass";
+        tile.trafficTicks = undefined;
+      }
+
+      for (const person of workers) {
+        if (person.resourceTarget !== resource.id) continue;
+        person.resourceTarget = undefined;
+        person.active = false;
+        person.progress = 0;
+        person.movement = 0;
+        person.path = [];
+        if (person.workArea) person.workArea.retryAfterTick = undefined;
+      }
     }
-
-    for (const person of workers) {
-      if (person.resourceTarget !== resource.id) continue;
-      person.resourceTarget = undefined;
-      person.active = false;
-      person.progress = 0;
-      person.movement = 0;
-      person.path = [];
-      if (person.workArea) person.workArea.retryAfterTick = undefined;
-    }
-  }
+  });
 }
