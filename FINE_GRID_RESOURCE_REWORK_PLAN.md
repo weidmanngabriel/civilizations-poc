@@ -42,15 +42,21 @@ Current scope:
 
 The work-area radius is **5 coarse world tiles / 25 micro-cells**.
 
-Natural-resource workers get their initial flag at the first reachable resource selected by the existing planner. After that they only choose matching unclaimed sources inside their flag. When the area is exhausted they wait and retry locally instead of roaming globally; the flag never migrates automatically.
+Natural-resource workers get their initial flag at the first reachable resource selected by the existing planner. After that they only choose matching unclaimed sources inside their flag. When the area is exhausted they wait and retry locally instead of roaming globally. Extractor flags are rendered red and never move through autonomous worker logic; only explicit player input changes an established flag center.
 
 Warehouse/HQ carriers get their initial flag at their storage workplace and only auto-collect non-storage sources inside their personal flag. Storage-to-storage automatic movement remains forbidden. A moved flag cancels an unpicked source outside the new area while already carried goods still finish delivery.
 
 Production-building carriers deliberately remain outside this first slice and retain their current demand-driven sourcing behavior. Merchants and builders also retain their existing separate sourcing semantics.
 
-`src/simulation/workAreas.ts` is a compatibility layer around the historical planners and `Trip` model. `setWorkAreaCenter()` is authoritative simulation input. `workAreaInteraction.ts` and `workAreaControls.ts` provide rendering and desktop/touch interaction without owning simulation state.
+`src/simulation/workAreas.ts` remains the authoritative local target filter around the historical planner/`Trip` model. During Phase F, `simulationCore.ts` suppresses the historical whole-map extractor replanning that would otherwise run during resource depletion or idle retry and then be discarded by the work-area filter. Local retries are handled by `syncWorkAreas()` instead.
 
 Work flags and future wayposts are separate: flags restrict **eligible local targets**; wayposts will later restrict **long-distance navigation**.
+
+## Phase F: needs/planning performance
+
+Hunger decay, hunger threshold checks and food-target planning now run **once per simulated second** rather than on every 60-Hz simulation tick. Movement and the rest of the fixed-step simulation remain at 60 Hz.
+
+Food-source selection no longer calculates an A* route to every available bread source and bush up front. Candidates are ordered by a cheap spatial lower bound, then exact paths are calculated only while a candidate can still beat the best reachable route already found.
 
 ## Previous completed phases
 
@@ -77,11 +83,14 @@ Complete: denser walkable tree clusters, multi-piece resource presentation and d
 ## Other Phase-F cleanup already completed
 
 - autonomous work planning is event-driven with per-person one-second retry fallback,
+- hunger planning and decay run at 1 Hz while movement remains 60 Hz,
+- food-target A* is pruned by spatial lower bounds,
 - hunger/sleep retain selected destinations while travelling,
+- extractor depletion/idle retries do not launch discarded whole-map resource planning,
 - person markers are compact and camera zoom reaches 10×,
 - blocking targets use explicit adjacent interaction positions,
 - storage-to-storage, merchant and builder sourcing semantics are covered by regressions,
-- natural-resource depletion retirement is event-driven rather than a periodic full scan,
+- natural-resource depletion retirement is event-driven rather than a periodic full resource-list scan,
 - performance diagnostics split planning costs.
 
 ## Still review
@@ -91,7 +100,7 @@ Complete: denser walkable tree clusters, multi-piece resource presentation and d
 - building clearance/demolition,
 - roads and traffic thresholds,
 - generic trip/source representation after physical-resource migration,
-- pathfinding cost/performance,
+- remaining pathfinding cost/performance,
 - future waypost/high-level navigation,
 - save/load assumptions,
 - remaining detail-document cleanup and regression coverage.
@@ -101,11 +110,12 @@ Complete: denser walkable tree clusters, multi-piece resource presentation and d
 - Fine grid is a simulation mechanism, not a visual board.
 - Work areas are per person, not per building.
 - Initial flag radius is five coarse world tiles.
-- Extractor flags begin at the first reachable source.
+- Extractor flags begin at the first reachable source and are shown in red.
+- Extractors never move their own flags; established flag centers change only via player input.
 - Warehouse/HQ carrier flags begin at the storage workplace.
-- Flags never auto-migrate.
 - Moving a flag invalidates unpicked outside targets but not carried cargo.
 - Production carriers, merchants and builders are not governed by this first work-area slice.
+- Hunger/food planning cadence is one simulated second, not every simulation tick.
 - Work flags and future wayposts are separate systems.
 
 ## Open decisions
