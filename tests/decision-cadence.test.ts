@@ -49,6 +49,7 @@ test("idle autonomous planning runs once per simulated second", () => {
   tick(world);
   assert.deepEqual(worker.trip, {
     source: warehouse.id,
+    sourcePosition: { ...warehouse.position },
     target: sawmill.id,
     good: "wood",
     picked: false,
@@ -71,6 +72,7 @@ test("delivery triggers the required follow-up decision immediately", () => {
   assert.equal(sawmill.input, 1);
   assert.deepEqual(worker.trip, {
     source: warehouse.id,
+    sourcePosition: { ...warehouse.position },
     target: sawmill.id,
     good: "wood",
     picked: false,
@@ -98,6 +100,7 @@ test("arrival at a merchant source triggers the next transfer immediately", () =
 
   assert.deepEqual(merchant.trip, {
     source: source.id,
+    sourcePosition: { ...source.position },
     target: target.id,
     good: "wood",
     picked: false,
