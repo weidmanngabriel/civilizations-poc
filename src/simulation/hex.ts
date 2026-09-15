@@ -19,12 +19,14 @@ export const hexDistance = (a: Hex, b: Hex): number => {
   return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
 };
 
-export const walkable = (t: Tile): boolean =>
+const terrainWalkable = (t: Tile): boolean =>
   t.terrain === "grass" ||
   t.terrain === "road" ||
   t.terrain === "forest" ||
   t.terrain === "field" ||
   t.terrain === "building";
+
+export const walkable = (t: Tile): boolean => terrainWalkable(t) && !t.resourceBlocking;
 
 export const movementCost = (t: Tile, roadSpeedMultiplier = 1.3): number =>
   t.terrain === "road" ? 1 / roadSpeedMultiplier : 1;
@@ -108,6 +110,9 @@ class MinHeap {
   }
 }
 
+const traversableForPath = (tile: Tile, position: Hex, end: Hex): boolean =>
+  terrainWalkable(tile) && (!tile.resourceBlocking || same(position, end));
+
 /** Returns the quickest path, excluding the start, or null when unreachable. */
 export function findPath(
   tiles: Tile[],
@@ -119,7 +124,7 @@ export function findPath(
     const index = tileIndex(tiles);
     const startTile = index.get(key(start));
     const endTile = index.get(key(end));
-    if (!startTile || !endTile || !walkable(startTile) || !walkable(endTile)) return null;
+    if (!startTile || !endTile || !terrainWalkable(startTile) || !terrainWalkable(endTile)) return null;
 
     const startKey = key(start);
     const distances = new Map<string, number>([[startKey, 0]]);
@@ -137,7 +142,7 @@ export function findPath(
 
       for (const next of neighbors(current)) {
         const tile = index.get(key(next));
-        if (!tile || !walkable(tile)) continue;
+        if (!tile || !traversableForPath(tile, next, end)) continue;
         const nextDistance = currentDistance + movementCost(tile, roadSpeedMultiplier);
         const nextKey = key(next);
         const knownDistance = distances.get(nextKey);
@@ -161,7 +166,7 @@ export function findPathBySteps(tiles: Tile[], start: Hex, end: Hex): Hex[] | nu
     const index = tileIndex(tiles);
     const startTile = index.get(key(start));
     const endTile = index.get(key(end));
-    if (!startTile || !endTile || !walkable(startTile) || !walkable(endTile)) return null;
+    if (!startTile || !endTile || !terrainWalkable(startTile) || !terrainWalkable(endTile)) return null;
     const queue = [start];
     const previous = new Map<string, Hex | null>([[key(start), null]]);
     for (let i = 0; i < queue.length; i += 1) {
@@ -170,7 +175,7 @@ export function findPathBySteps(tiles: Tile[], start: Hex, end: Hex): Hex[] | nu
       for (const next of neighbors(current)) {
         const nextKey = key(next);
         const tile = index.get(nextKey);
-        if (tile && walkable(tile) && !previous.has(nextKey)) {
+        if (tile && traversableForPath(tile, next, end) && !previous.has(nextKey)) {
           previous.set(nextKey, current);
           queue.push(next);
         }
