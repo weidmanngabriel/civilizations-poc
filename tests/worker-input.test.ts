@@ -40,7 +40,8 @@ test("production worker keeps producing while input and output space allow it", 
   assert.equal(worker.progress, 0);
   assert.deepEqual(worker.trip, {
     source: stack.id,
-    sourceKind: "resource",
+    sourceKind: "looseGood",
+    sourcePosition: { ...stack.position },
     target: sawmill.id,
     good: "wood",
     picked: false,
@@ -58,7 +59,8 @@ test("production worker keeps filling free input slots while output is full", ()
   assert.equal(worker.progress, 0);
   assert.deepEqual(worker.trip, {
     source: stack.id,
-    sourceKind: "resource",
+    sourceKind: "looseGood",
+    sourcePosition: { ...stack.position },
     target: sawmill.id,
     good: "wood",
     picked: false,
