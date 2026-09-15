@@ -24,8 +24,10 @@ Waren existieren immer an einem konkreten Ort. Eine Produktionsstätte kann nur 
 
 Zum Beispiel verarbeitet ein Sägewerk Holz weiter. Das Holz muss aber erst zum Sägewerk gebracht oder von einem Arbeiter abgeholt werden.
 
-Arbeiter holen benötigte Waren teilweise selbst. Lager und Träger helfen dabei, Waren aus der Umgebung zu sammeln und Transportwege zu verkürzen.
+Arbeiter holen benötigte Waren teilweise selbst. Lager-Träger und HQ-Träger sammeln automatisch nur Nicht-Lager-Quellen innerhalb von **fünf Weltkacheln**. Produktionsarbeiter dürfen benötigte Zutaten auch aus weiter entfernten Lagern oder dem HQ holen.
 
-**Normale Träger verteilen Waren nicht automatisch zwischen verschiedenen Lagern.** Dafür gibt es Händler. Ein Händler verbindet zwei Lager und transportiert die von dir gewählte Ware zwischen ihnen.
+**Normale Träger verteilen Waren nicht automatisch zwischen verschiedenen Lagern.** Dafür gibt es Händler. Ein Händler verbindet zwei Lager und transportiert die von dir gewählte Ware auch über größere Entfernungen zwischen ihnen.
+
+Bauarbeiter beschaffen fehlendes Baumaterial ebenfalls aus erreichbaren Quellen und sind dabei nicht auf den lokalen Sammelradius eines Lagers beschränkt.
 
 Wenn eine Produktion stockt, lohnt sich deshalb immer ein Blick auf den tatsächlichen Warenfluss.
