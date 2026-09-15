@@ -107,6 +107,10 @@ Wood, clay and rubble are collected from ground stacks instead of source-local o
 
 Building inventories remain normal inventories.
 
+Warehouse carriers and HQ carriers automatically collect only non-storage sources within **5 coarse world tiles**, equal to 25 micro-steps at the current refinement. Normal carriers never move goods automatically from one warehouse/storage inventory to another.
+
+Production workers and builders may fetch needed inputs/materials from any reachable valid source; the local warehouse/HQ collection radius does not limit those demand-driven trips. Configured merchants are the explicit warehouse-to-warehouse transport mechanism and are likewise not limited by the local collection radius.
+
 The historical `Trip` type still expects building/resource ids. Short-lived depleted `ground-*` resource proxies therefore remain as a compatibility adapter for physical raw stacks while a pickup is planned or active. `World.looseGoods` remains authoritative.
 
 ## Phases
@@ -205,7 +209,12 @@ Implemented in the current cleanup slices:
 - desktop wheel and touch pinch zoom share a maximum camera zoom of 10×,
 - explicit blocked-target interaction positions: pathfinding now stops on the quickest reachable walkable neighboring cell instead of entering a blocking resource cell,
 - weighted and step-count routing share the same blocked-target interaction rule,
-- regression coverage verifies that a woodcutter reaches and works a blocking tree while physically remaining on walkable ground.
+- regression coverage verifies that a woodcutter reaches and works a blocking tree while physically remaining on walkable ground,
+- warehouse and HQ carrier collection is explicitly limited to five coarse world tiles / 25 micro-steps,
+- normal carrier collection continues to exclude storage-to-storage transfer,
+- configured merchant routes are explicitly independent from the local storage collection radius,
+- construction-material pickup is explicitly independent from the local storage collection radius,
+- regression coverage locks these logistics semantics across warehouse, HQ, merchant and builder flows.
 
 Still review at minimum:
 
@@ -213,16 +222,13 @@ Still review at minimum:
 - farms and fields,
 - building clearance and demolition,
 - roads and traffic thresholds,
-- warehouse/HQ collection radius semantics,
-- merchant behavior,
-- construction material pickup,
 - generic trip/source representation after physical-resource migration,
 - pathfinding cost/performance,
 - person selection and camera focus,
 - future save/load assumptions,
-- handbook text,
-- concept and architecture documentation,
-- automated regression coverage.
+- handbook text beyond the completed resource/logistics updates,
+- concept and architecture documentation beyond the completed resource/logistics updates,
+- automated regression coverage for the remaining cleanup areas.
 
 **Status: in progress.**
 
@@ -250,6 +256,7 @@ Still review at minimum:
 - Clay/stone visual irregularity does not change their authoritative footprint.
 - Autonomous target selection is retained while travelling; missing work targets retry per person at most once per second.
 - Blocking route targets are interacted with from a walkable adjacent cell; the blocking target cell itself is not entered.
+- Warehouse/HQ automatic carrier collection radius is 5 coarse world tiles / 25 micro-steps; production sourcing, construction sourcing and configured merchants are not constrained by this local radius.
 - Camera zoom supports up to 10× on desktop and touch.
 
 ## Open decisions
