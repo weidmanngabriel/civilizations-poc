@@ -21,7 +21,7 @@ The deterministic simulation remains independent from Phaser. Presentation reads
 
 ## Simulation entry point
 
-`src/simulation/simulationCore.ts` contains the historical simulation tick. `src/simulation/simulation.ts` is the public simulation entry point and wraps/re-exports the core behavior, including the physical raw-resource compatibility layer, resource-collision synchronization, profession-experience bookkeeping and technology progression. New callers should import from `simulation.ts`, not directly from `simulationCore.ts`.
+`src/simulation/simulationCore.ts` is now a thin scheduling facade around the historical core implementation in `simulationCoreEngine.ts`. UI-triggered autonomous profession changes can update cheap role state immediately while deferring expensive target/path planning until the next simulation tick. `src/simulation/simulation.ts` remains the public simulation entry point and wraps/re-exports core behavior, including the physical raw-resource compatibility layer, resource-collision synchronization, profession-experience bookkeeping and technology progression. New callers should import from `simulation.ts`, not directly from either core module.
 
 ## Fine-grid spatial model — Phase A complete
 
@@ -131,6 +131,8 @@ stonecutter    -> stonemason
 
 Expensive autonomous target selection is event-driven. A person keeps the selected hunger, sleep or work destination while travelling and does not continuously re-evaluate alternatives. Arrival, delivery, completed production/extraction, invalidated targets and similar task boundaries trigger the next decision immediately.
 
+Player-triggered profession assignment follows the same boundary: clicking Holzfäller, Lehmgräber, Steinbrecher or Bauarbeiter performs only cheap role/reservation state synchronously. The expensive target comparison, A* routing and builder source planning are flushed at the start of the next fixed simulation tick. This keeps the input handler free of pathfinding work while retaining deterministic simulation ordering.
+
 If a work planner cannot find a valid task or source, only that waiting person receives a retry deadline. The one-second decision cadence is therefore a fallback for waiting persons rather than a global re-plan of all idle workers. Running movement, need decay and active production still advance on the fixed 60 Hz simulation tick.
 
 Hunger already uses the same rule: a selected food source is trusted while travelling; if no source exists it retries after one second. Sleep likewise retains its selected destination while travelling and validates it at the destination/task boundary rather than continuously searching for a better one.
@@ -166,6 +168,6 @@ Where `architecture-detail.md` still describes forest as terrain, 10 wood per tr
 
 Fine-grid/resource regression coverage verifies 205 × 125 geometry, terrain/resource separation, tree yield of 3, dense multi-tree forest clusters with walkable gaps, four-cell clay/stone footprints, tree/stone blocking versus clay non-blocking, collision removal after depletion, physical wood/clay/rubble stacks, stack capacity/reservations and the invariant that loose goods never affect routing.
 
-Decision-cadence coverage verifies that waiting autonomous work retries at one-second intervals while arrival and delivery trigger immediate follow-up planning.
+Decision-cadence coverage verifies that waiting autonomous work retries at one-second intervals while arrival and delivery trigger immediate follow-up planning. Assignment regressions additionally verify that player-triggered autonomous professions do not start pathfinding inside the assignment call.
 
 Per current project instruction, changes are made directly on `main`. The GitHub Pages workflow runs tests before the production build and deploys only after both succeed.

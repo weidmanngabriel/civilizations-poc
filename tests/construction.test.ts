@@ -56,7 +56,7 @@ test("builder pool automatically assigns builders and completes construction", (
   assert.equal(changeAssignment(world, site!.id, "carrier", 1), true);
 });
 
-test("newly assigned builder goes directly to available construction material", () => {
+test("newly assigned builder plans available construction material on the next simulation tick", () => {
   const world = createWorld();
   const origin = world.tiles.find((tile) => canPlaceBuilding(world, tile, "warehouse"));
   assert.ok(origin);
@@ -66,10 +66,16 @@ test("newly assigned builder goes directly to available construction material", 
   world.buildings.push({ id: "ready-wood-source", kind: "warehouse", name: "Bereites Holz", position: { q: sourcePosition!.q, r: sourcePosition!.r }, workers: 0, carriers: 0, merchants: 0, input: 0, output: 0, inventory: { wood: 4 } });
   assert.equal(changeBuilders(world, 1), true);
   const builder = assigned(world, site.id, "builder")[0]!;
-  assert.equal(builder.trip?.source, "ready-wood-source");
-  assert.equal(builder.trip?.target, site.id);
-  assert.equal(builder.trip?.picked, false);
-  const destination = builder.path.at(-1) ?? builder.position;
+  assert.equal(Boolean(builder.trip), false);
+  assert.equal(builder.path.length, 0);
+
+  tick(world);
+
+  const plannedBuilder = assigned(world, site.id, "builder")[0]!;
+  assert.equal(plannedBuilder.trip?.source, "ready-wood-source");
+  assert.equal(plannedBuilder.trip?.target, site.id);
+  assert.equal(plannedBuilder.trip?.picked, false);
+  const destination = plannedBuilder.path.at(-1) ?? plannedBuilder.position;
   assert.ok(same(destination, sourcePosition!));
   assert.equal(same(destination, site.position), false);
 });

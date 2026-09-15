@@ -7,7 +7,10 @@ import {
   assigned,
   buildAt,
   changeAssignment,
+  changeExtractors,
+  changeWoodcutters,
   tick,
+  woodcutters,
 } from "../src/simulation/simulation";
 import { hexDistance } from "../src/simulation/spatial";
 
@@ -22,6 +25,34 @@ test("starting woodcutters choose trees on the first simulation tick", () => {
 
   assert.ok(woodcutters.every((person) => person.resourceTarget));
   assert.equal(new Set(woodcutters.map((person) => person.resourceTarget)).size, 2);
+});
+
+test("assigning a woodcutter keeps pathfinding out of the assignment call", () => {
+  const world = createWorld();
+
+  assert.equal(changeWoodcutters(world, 1), true);
+  const worker = woodcutters(world)[0]!;
+  assert.ok(worker.resourceTarget);
+  assert.equal(worker.path.length, 0);
+
+  tick(world);
+
+  assert.ok(worker.resourceTarget);
+  assert.ok(worker.active || worker.path.length > 0);
+});
+
+test("assigning an extractor keeps pathfinding out of the assignment call", () => {
+  const world = createDefaultGameWorld();
+
+  assert.equal(changeExtractors(world, "clay", 1), true);
+  const worker = world.people.find((person) => person.extractor === "clay")!;
+  assert.ok(worker.resourceTarget);
+  assert.equal(worker.path.length, 0);
+
+  tick(world);
+
+  assert.ok(worker.resourceTarget);
+  assert.ok(worker.active || worker.path.length > 0);
 });
 
 test("assigning a farmer defers the initial route search to the simulation tick", () => {
