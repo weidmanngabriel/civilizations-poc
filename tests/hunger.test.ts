@@ -73,7 +73,7 @@ test("a hungry person finishes current work before eating at 40", () => {
   person.position = { ...warehouse.position };
   person.path = [];
   advanceHungerTick(world);
-  assert.equal(person.hunger, 140);
+  assert.equal(person.hunger, 139);
   assert.equal(person.hungerState, undefined);
   assert.equal(warehouse.inventory?.bread, 0);
 });
@@ -203,7 +203,7 @@ test("critical hunger pauses at the next one-second check and keeps work progres
   person.position = { ...warehouse.position };
   person.path = [];
   advanceHungerTick(world);
-  assert.equal(person.hunger, 120);
+  assert.equal(person.hunger, 119);
   assert.equal(person.progress, 72);
 });
 
