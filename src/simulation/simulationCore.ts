@@ -44,33 +44,9 @@ type PendingPlan =
   | { kind: "builder"; person: Person };
 
 const pendingPlans = new WeakMap<World, PendingPlan[]>();
-const HQ_STORAGE_PROXY_ID = "hq-storage-proxy";
 
 const samePosition = (a: { q: number; r: number }, b: { q: number; r: number }): boolean =>
   a.q === b.q && a.r === b.r;
-
-function ensureHqStorageProxy(world: World, hq: Building): void {
-  let proxy = world.buildings.find((candidate) => candidate.id === HQ_STORAGE_PROXY_ID);
-  if (!proxy) {
-    proxy = {
-      id: HQ_STORAGE_PROXY_ID,
-      kind: "warehouse",
-      name: "HQ storage adapter",
-      position: { ...hq.position },
-      workers: 0,
-      carriers: 0,
-      merchants: 0,
-      input: 0,
-      output: CONFIG.carryCapacity,
-      inventory: hq.inventory,
-      retired: true,
-    };
-    world.buildings.push(proxy);
-  }
-  proxy.position = { ...hq.position };
-  proxy.inventory = hq.inventory;
-  proxy.output = CONFIG.carryCapacity;
-}
 
 const freePerson = (world: World): Person | undefined =>
   world.people.find(
@@ -196,10 +172,7 @@ export function changeAssignment(
   const after = assigned(world, id, role);
   if (delta === 1) {
     const person = after.find((candidate) => !before.includes(candidate));
-    if (person && localStorageCarrier) {
-      if (target.kind === "hq") ensureHqStorageProxy(world, target);
-      ensureWorkArea(world, person, target.position);
-    }
+    if (person && localStorageCarrier) ensureWorkArea(world, person, target.position);
   } else {
     const person = before.find((candidate) => !after.includes(candidate));
     if (person) clearWorkArea(person);

@@ -5,6 +5,7 @@ import type {
   Good,
   GoodAmounts,
   Hex,
+  LooseGoodStack,
   NaturalResource,
   NaturalResourceId,
   NaturalResourceKind,
@@ -16,6 +17,7 @@ import type {
 import {
   findPath,
   findPathBySteps,
+  key,
   movementCost,
   pathTravelCost,
   same,
@@ -42,6 +44,18 @@ import {
   type PathReason,
   type PerformanceFeature,
 } from "../debug/performanceProfiler";
+import { GRID_REFINEMENT, hexDistance } from "./spatial";
+import { naturalResourceFootprint } from "./naturalResources";
+import {
+  availableLooseGoodAmount,
+  findLooseGoodDropPosition,
+  looseGoodStack,
+  looseGoodStacks,
+  pickupReservedLooseGood,
+  placeLooseGood,
+  releaseLooseGoodReservation,
+  reserveLooseGood,
+} from "./looseGoods";
 
 export const building = (w: World, id: BuildingId): Building =>
   w.buildings.find((b) => b.id === id)!;
@@ -65,6 +79,8 @@ export const freePeople = (w: World): Person[] =>
   w.people.filter((p) => !p.assignment && !p.woodcutter && !p.extractor && !p.builder);
 export const isUnderConstruction = (b: Building): boolean =>
   Boolean(b.construction && !b.construction.complete);
+const isStorageBuilding = (b: Building): boolean =>
+  (b.kind === "warehouse" || b.kind === "hq") && !isUnderConstruction(b) && !b.retired;
 const incoming = (w: World, id: BuildingId, good?: Good) =>
   w.people.filter(
     (p) => p.trip?.target === id && (!good || p.trip.good === good),
@@ -93,8 +109,6 @@ export const outputOccupied = (w: World, b: Building): number =>
 const outputCapacityFor = (_b: Building): number => CONFIG.outputCapacity;
 const naturalOutputCapacity = (resource: NaturalResource): number =>
   resource.kind === "forest" ? CONFIG.forestOutputCapacity : CONFIG.resourceOutputCapacity;
-const naturalResourceGood = (resource: NaturalResource): Good =>
-  resource.kind === "forest" ? "wood" : resource.kind === "clay" ? "clay" : "rubble";
 const naturalResourceProfession = (resource: NaturalResource): "woodcutter" | "clayDigger" | "stonecutter" =>
   resource.kind === "forest" ? "woodcutter" : resource.kind === "clay" ? "clayDigger" : "stonecutter";
 const foodDueBeforeNewTask = (p: Person): boolean =>
@@ -148,8 +162,11 @@ const route = (
 const tileAt = (w: World, position: Hex): Tile =>
   w.tiles.find((tile) => same(tile, position))!;
 
-const measureFeature = <T>(key: PerformanceFeature, run: () => T): T =>
-  performanceProfiler.profileFeature(key, run);
+const measureFeature = <T>(keyName: PerformanceFeature, run: () => T): T =>
+  performanceProfiler.profileFeature(keyName, run);
+
+const storageStock = (b: Building, good: Good): number =>
+  isStorageBuilding(b) ? (b.inventory?.[good] ?? 0) : 0;
 
 export const warehouseStock = (b: Building, good: Good): number =>
   b.kind === "warehouse" && !isUnderConstruction(b)
@@ -217,16 +234,16 @@ const addProductionInput = (b: Building, good: Good): void => {
 
 const sourceStock = (b: Building, good: Good): number => {
   if (isUnderConstruction(b)) return 0;
-  if (b.kind === "warehouse") return warehouseStock(b, good);
+  if (isStorageBuilding(b)) return storageStock(b, good);
   if (b.kind === "well" && good === "water") return Number.MAX_SAFE_INTEGER;
   if (b.kind === "farm" && good === "wheat") return b.output;
   return b.recipe?.output === good ? b.output : 0;
 };
 const available = (w: World, b: Building, good: Good) =>
   sourceStock(b, good) - reservedAtSource(w, b.id, good);
-const warehouseHasSpace = (w: World, b: Building, good: Good) =>
-  !isUnderConstruction(b) &&
-  warehouseStock(b, good) + incoming(w, b.id, good) + CONFIG.carryCapacity <=
+const storageHasSpace = (w: World, b: Building, good: Good) =>
+  isStorageBuilding(b) &&
+  storageStock(b, good) + incoming(w, b.id, good) + CONFIG.carryCapacity <=
     CONFIG.warehouseCapacityPerGood + 1e-9;
 const constructionMaterialsComplete = (b: Building): boolean => {
   const construction = b.construction;
@@ -240,6 +257,14 @@ const constructionMaterialsComplete = (b: Building): boolean => {
 function returnCargoToSource(w: World, p: Person): void {
   if (!p.trip?.picked) return;
   const amount = CONFIG.carryCapacity + (p.pendingFarmBonus ?? 0);
+  if (p.trip.sourceKind === "looseGood") {
+    const origin = p.trip.sourcePosition ?? p.position;
+    const drop = findLooseGoodDropPosition(w, origin, p.trip.good, GRID_REFINEMENT) ??
+      findLooseGoodDropPosition(w, p.position, p.trip.good, GRID_REFINEMENT);
+    if (drop) placeLooseGood(w, drop, p.trip.good, amount);
+    p.pendingFarmBonus = undefined;
+    return;
+  }
   if (p.trip.sourceKind === "resource") {
     const source = w.naturalResources.find((resource) => resource.id === p.trip!.source);
     if (source) source.output += amount;
@@ -251,7 +276,7 @@ function returnCargoToSource(w: World, p: Person): void {
     p.pendingFarmBonus = undefined;
     return;
   }
-  if (source.kind === "warehouse" && !isUnderConstruction(source)) {
+  if (isStorageBuilding(source)) {
     source.inventory ??= {};
     source.inventory[p.trip.good] = (source.inventory[p.trip.good] ?? 0) + amount;
   } else {
@@ -261,6 +286,8 @@ function returnCargoToSource(w: World, p: Person): void {
 }
 
 function cancel(w: World, p: Person): void {
+  if (p.trip?.sourceKind === "looseGood" && !p.trip.picked)
+    releaseLooseGoodReservation(w, p.trip.source, CONFIG.carryCapacity);
   returnCargoToSource(w, p);
   p.trip = undefined;
   p.pendingFarmBonus = undefined;
@@ -275,6 +302,13 @@ function cancel(w: World, p: Person): void {
 function rerouteCurrentTask(w: World, p: Person): void {
   if (performanceProfiler.withPathReason("reroute", () => rerouteFarmTask(w, p))) return;
   if (p.trip) {
+    if (!p.trip.picked && p.trip.sourceKind === "looseGood") {
+      const source = looseGoodStack(w, p.trip.source);
+      const position = source?.position ?? p.trip.sourcePosition;
+      if (position) routeToPosition(w, p, position, "reroute");
+      else p.path = [];
+      return;
+    }
     if (!p.trip.picked && p.trip.sourceKind === "resource") {
       const source = w.naturalResources.find((resource) => resource.id === p.trip!.source);
       if (source) routeToPosition(w, p, source.position, "reroute");
@@ -599,12 +633,27 @@ export function changeBuilders(w: World, delta: 1 | -1): boolean {
 
 type SourceCandidate =
   | { sourceKind: "building"; source: Building; good: Good; path: Hex[] }
-  | { sourceKind: "resource"; source: NaturalResource; good: Good; path: Hex[] };
+  | { sourceKind: "looseGood"; source: LooseGoodStack; good: Good; path: Hex[] };
+
+const collectionSourceAllowed = (
+  w: World,
+  p: Person,
+  target: Building,
+  position: Hex,
+  reason: PathReason,
+): boolean => {
+  if (p.workArea)
+    return hexDistance(p.workArea.center, position) <= p.workArea.radius;
+  const collectionPath = performanceProfiler.withPathReason(reason, () =>
+    findPathBySteps(w.tiles, target.position, position),
+  );
+  return Boolean(collectionPath && collectionPath.length <= CONFIG.warehouseCollectionRadius);
+};
 
 function requestInput(w: World, p: Person, b: Building): boolean {
   const construction = isUnderConstruction(b) ? b.construction! : undefined;
   const pathReason: PathReason = construction ? "builder" : "logistics";
-  const isWarehouseCollection = b.kind === "warehouse" && !construction;
+  const isStorageCollection = isStorageBuilding(b) && !construction;
   const recipeGoods = (Object.keys(recipeRequirements(b)) as Good[]).filter((good) =>
     inputHasSpace(w, b, good),
   );
@@ -617,7 +666,7 @@ function requestInput(w: World, p: Person, b: Building): boolean {
           (construction.delivered[good] ?? 0) + incoming(w, b.id, good) <
           (construction.required[good] ?? 0),
       )
-    : isWarehouseCollection
+    : isStorageCollection
       ? ALL_GOODS
       : missingForNextBatch.length
         ? missingForNextBatch
@@ -627,22 +676,17 @@ function requestInput(w: World, p: Person, b: Building): boolean {
   const collectSources = (candidateGoods: Good[]): SourceCandidate[] => {
     const sources: SourceCandidate[] = [];
     for (const good of candidateGoods) {
-      if (isWarehouseCollection && !warehouseHasSpace(w, b, good)) continue;
+      if (isStorageCollection && !storageHasSpace(w, b, good)) continue;
       for (const source of w.buildings) {
         if (
           source.id === b.id ||
           (source.retired && source.output < CONFIG.carryCapacity) ||
           available(w, source, good) + 1e-9 < CONFIG.carryCapacity ||
-          (isWarehouseCollection && source.kind === "warehouse")
+          (isStorageCollection && isStorageBuilding(source))
         )
           continue;
-        if (isWarehouseCollection) {
-          const collectionPath = performanceProfiler.withPathReason(pathReason, () =>
-            findPathBySteps(w.tiles, b.position, source.position),
-          );
-          if (!collectionPath || collectionPath.length > CONFIG.warehouseCollectionRadius)
-            continue;
-        }
+        if (isStorageCollection && !collectionSourceAllowed(w, p, b, source.position, pathReason))
+          continue;
         const path = performanceProfiler.withPathReason(pathReason, () =>
           findPath(
             w.tiles,
@@ -653,38 +697,40 @@ function requestInput(w: World, p: Person, b: Building): boolean {
         );
         if (path) sources.push({ sourceKind: "building", source, good, path });
       }
-      for (const source of w.naturalResources) {
+      for (const source of looseGoodStacks(w)) {
         if (
-          naturalResourceGood(source) !== good ||
-          source.output - reservedAtSource(w, source.id, good, "resource") + 1e-9 < CONFIG.carryCapacity
+          source.good !== good ||
+          availableLooseGoodAmount(source) + 1e-9 < CONFIG.carryCapacity
         ) continue;
-        if (isWarehouseCollection) {
-          const collectionPath = performanceProfiler.withPathReason(pathReason, () =>
-            findPathBySteps(w.tiles, b.position, source.position),
-          );
-          if (!collectionPath || collectionPath.length > CONFIG.warehouseCollectionRadius) continue;
-        }
+        if (isStorageCollection && !collectionSourceAllowed(w, p, b, source.position, pathReason))
+          continue;
         const path = performanceProfiler.withPathReason(pathReason, () =>
           findPath(w.tiles, p.position, source.position, CONFIG.roadSpeedMultiplier),
         );
-        if (path) sources.push({ sourceKind: "resource", source, good, path });
+        if (path) sources.push({ sourceKind: "looseGood", source, good, path });
       }
     }
     sources.sort(
       (a, b) =>
         pathTravelCost(w.tiles, a.path, CONFIG.roadSpeedMultiplier) -
-        pathTravelCost(w.tiles, b.path, CONFIG.roadSpeedMultiplier),
+          pathTravelCost(w.tiles, b.path, CONFIG.roadSpeedMultiplier) ||
+        a.source.id.localeCompare(b.source.id),
     );
     return sources;
   };
   let sources = collectSources(goods);
-  if (!sources.length && !construction && !isWarehouseCollection && missingForNextBatch.length)
+  if (!sources.length && !construction && !isStorageCollection && missingForNextBatch.length)
     sources = collectSources(recipeGoods);
   const source = sources[0];
   if (!source) return false;
+  if (
+    source.sourceKind === "looseGood" &&
+    !reserveLooseGood(w, source.source.id, CONFIG.carryCapacity)
+  ) return false;
   p.trip = {
     source: source.source.id,
-    ...(source.sourceKind === "resource" ? { sourceKind: "resource" as const } : {}),
+    ...(source.sourceKind === "looseGood" ? { sourceKind: "looseGood" as const } : {}),
+    sourcePosition: { ...source.source.position },
     target: b.id,
     good: source.good,
     picked: false,
@@ -719,7 +765,7 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): boolean
   }
   if (
     available(w, source, routeConfig.good) + 1e-9 < CONFIG.carryCapacity ||
-    !warehouseHasSpace(w, target, routeConfig.good) ||
+    !storageHasSpace(w, target, routeConfig.good) ||
     !performanceProfiler.withPathReason("merchant", () =>
       findPath(w.tiles, source.position, target.position, CONFIG.roadSpeedMultiplier),
     )
@@ -727,6 +773,7 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): boolean
     return false;
   p.trip = {
     source: source.id,
+    sourcePosition: { ...source.position },
     target: target.id,
     good: routeConfig.good,
     picked: false,
@@ -922,23 +969,34 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
       p.progress = 0;
       p.movement = 0;
       route(w, p, building(w, "hq"), "reroute");
-    } else if (affectedTrip) {
-      rerouteCurrentTask(w, p);
     }
   }
 
   const currentIndex = w.buildings.findIndex((b) => b.id === id);
   if (currentIndex >= 0) w.buildings.splice(currentIndex, 1);
-  const restored = tileAt(w, removed.position);
-  restored.terrain = removed.baseTerrain ?? "grass";
-  restored.trafficTicks = undefined;
+  const footprint = removed.footprint ?? [removed.position];
+  for (const position of footprint) {
+    const restored = tileAt(w, position);
+    restored.terrain =
+      removed.baseTerrains?.[key(position)] ??
+      (same(position, removed.position) ? removed.baseTerrain : undefined) ??
+      "grass";
+    restored.trafficTicks = undefined;
+  }
+  const footprintKeys = new Set(footprint.map(key));
   for (const p of w.people) {
-    if (same(p.position, removed.position)) continue;
-    if (p.path.some((step) => same(step, removed.position))) rerouteCurrentTask(w, p);
+    if (p.path.some((step) => footprintKeys.has(key(step)))) rerouteCurrentTask(w, p);
   }
   assignWaitingBuilders(w);
   return true;
 }
+
+const activeResourceCells = (w: World): Set<string> =>
+  new Set(
+    w.naturalResources
+      .filter((resource) => !resource.depleted)
+      .flatMap((resource) => naturalResourceFootprint(resource).map(key)),
+  );
 
 export function setRoad(w: World, position: Hex, enabled: boolean): boolean {
   const tile = w.tiles.find((candidate) => same(candidate, position));
@@ -946,7 +1004,7 @@ export function setRoad(w: World, position: Hex, enabled: boolean): boolean {
   if (enabled) {
     if (
       tile.terrain !== "grass" ||
-      w.naturalResources.some((resource) => !resource.depleted && same(resource.position, tile))
+      activeResourceCells(w).has(key(tile))
     ) return false;
     tile.terrain = "road";
   } else {
@@ -959,11 +1017,8 @@ export function setRoad(w: World, position: Hex, enabled: boolean): boolean {
   return true;
 }
 
-function recordTraffic(w: World, tile: Tile): boolean {
-  if (
-    tile.terrain !== "grass" ||
-    w.naturalResources.some((resource) => !resource.depleted && same(resource.position, tile))
-  ) return false;
+function recordTraffic(w: World, tile: Tile, resourceCells: Set<string>): boolean {
+  if (tile.terrain !== "grass" || resourceCells.has(key(tile))) return false;
   const cutoff = w.round - CONFIG.trafficWindowTicks + 1;
   const traffic = (tile.trafficTicks ?? []).filter((tick) => tick >= cutoff);
   traffic.push(w.round);
@@ -978,6 +1033,7 @@ function recordTraffic(w: World, tile: Tile): boolean {
 
 function movePeople(w: World): boolean {
   let roadCreated = false;
+  const resourceCells = activeResourceCells(w);
   for (const p of w.people) {
     if (!p.path.length) {
       p.movement = 0;
@@ -1002,7 +1058,7 @@ function movePeople(w: World): boolean {
       p.movement = Math.max(0, p.movement - cost);
       p.path.shift();
       p.position = { ...next };
-      if (recordTraffic(w, tile)) roadCreated = true;
+      if (recordTraffic(w, tile, resourceCells)) roadCreated = true;
       moves++;
     }
   }
@@ -1101,16 +1157,26 @@ export function tick(w: World): void {
       const home = building(w, p.assignment.building);
       if (p.trip) {
         if (!p.trip.picked) {
-          if (p.trip.sourceKind === "resource") {
+          if (p.trip.sourceKind === "looseGood") {
+            const source = looseGoodStack(w, p.trip.source);
+            const position = source?.position ?? p.trip.sourcePosition;
+            if (!position || !same(p.position, position)) continue;
+            if (!pickupReservedLooseGood(w, p.trip.source, CONFIG.carryCapacity)) {
+              cancel(w, p);
+              immediateDecisionPeople.add(p.id);
+              continue;
+            }
+          } else if (p.trip.sourceKind === "resource") {
             const source = naturalResource(w, p.trip.source);
             if (!same(p.position, source.position)) continue;
             source.output -= CONFIG.carryCapacity;
           } else {
             const source = building(w, p.trip.source);
             if (!same(p.position, source.position)) continue;
-            if (source.kind === "warehouse" && !isUnderConstruction(source)) {
-              source.inventory![p.trip.good] =
-                (source.inventory![p.trip.good] ?? 0) - CONFIG.carryCapacity;
+            if (isStorageBuilding(source)) {
+              source.inventory ??= {};
+              source.inventory[p.trip.good] =
+                (source.inventory[p.trip.good] ?? 0) - CONFIG.carryCapacity;
             } else if (!(source.kind === "well" && p.trip.good === "water")) {
               source.output -= CONFIG.carryCapacity;
             }
@@ -1124,9 +1190,10 @@ export function tick(w: World): void {
           if (isUnderConstruction(target)) {
             const delivered = target.construction!.delivered;
             delivered[p.trip.good] = (delivered[p.trip.good] ?? 0) + CONFIG.carryCapacity;
-          } else if (target.kind === "warehouse") {
-            target.inventory![p.trip.good] =
-              (target.inventory![p.trip.good] ?? 0) + CONFIG.carryCapacity;
+          } else if (isStorageBuilding(target)) {
+            target.inventory ??= {};
+            target.inventory[p.trip.good] =
+              (target.inventory[p.trip.good] ?? 0) + CONFIG.carryCapacity;
           } else if (target.kind === "farm" && p.trip.good === "wheat") {
             target.output += CONFIG.carryCapacity + (p.pendingFarmBonus ?? 0);
           } else {

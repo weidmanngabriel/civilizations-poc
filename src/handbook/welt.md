@@ -8,6 +8,6 @@ Lehm und Stein erscheinen als größere Vorkommen aus mehreren sichtbaren Teilst
 
 Beerenbüsche blockieren keine Wege. Sie belegen nur einen kleinen Standort, ihre Darstellung kann aber größer sein, damit sie auf der Karte gut zu erkennen sind.
 
-Wege musst du nicht vollständig im Voraus planen. Wo Bewohner häufig über Wiesen laufen, können mit der Zeit von selbst Wege entstehen. Auf Wegen bewegen sie sich schneller.
+Wege musst du nicht vollständig im Voraus planen. Wo Bewohner häufig über freie Wiesen laufen, können mit der Zeit von selbst Wege entstehen. Auf Wegen bewegen sie sich schneller. Aktive Rohstoffvorkommen werden dabei nicht von Wegen überdeckt, auch wenn ihre Fläche begehbar ist.
 
 So entwickelt die Siedlung nach und nach ihre eigenen Hauptwege. Gute Standorte für Gebäude nutzen diese Wege und halten wichtige Ziele nah beieinander.

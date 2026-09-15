@@ -12,6 +12,7 @@ import { buildAt, notifyConstructionSiteAdded, removeBuilding } from "./simulati
 import { isBuildingUnlocked } from "./technology";
 import { GRID_REFINEMENT, refinedCellCluster } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
+import { looseGoodStacks } from "./looseGoods";
 
 export type BuildingPlacementShape = {
   cells: Hex[];
@@ -132,6 +133,7 @@ const clearanceAt = (kind: PlaceableBuildingKind, anchorPosition: Hex): Hex[] =>
 type PlacementLookup = {
   tiles: ReturnType<typeof tileIndex>;
   occupiedResources: Set<string>;
+  looseGoods: Set<string>;
   people: Set<string>;
 };
 
@@ -142,16 +144,22 @@ const createPlacementLookup = (world: World): PlacementLookup => ({
       .filter((resource) => !resource.depleted)
       .flatMap((resource) => naturalResourceFootprint(resource).map(key)),
   ),
+  looseGoods: new Set(looseGoodStacks(world).map((stack) => key(stack.position))),
   people: new Set(world.people.map((person) => key(person.position))),
 });
 
-const freePlacementTile = (lookup: PlacementLookup, position: Hex): boolean => {
+const freePlacementTile = (
+  lookup: PlacementLookup,
+  position: Hex,
+  requireEmptyGround: boolean,
+): boolean => {
   const positionKey = key(position);
   const tile = lookup.tiles.get(positionKey);
   return Boolean(
     tile &&
     (tile.terrain === "grass" || tile.terrain === "road") &&
-    !lookup.occupiedResources.has(positionKey),
+    !lookup.occupiedResources.has(positionKey) &&
+    (!requireEmptyGround || !lookup.looseGoods.has(positionKey)),
   );
 };
 
@@ -161,8 +169,8 @@ const canPlaceWithLookup = (
   kind: PlaceableBuildingKind,
 ): boolean => {
   const footprint = footprintAt(kind, anchorPosition);
-  if (!footprint.every((position) => freePlacementTile(lookup, position))) return false;
-  if (!clearanceAt(kind, anchorPosition).every((position) => freePlacementTile(lookup, position))) return false;
+  if (!footprint.every((position) => freePlacementTile(lookup, position, true))) return false;
+  if (!clearanceAt(kind, anchorPosition).every((position) => freePlacementTile(lookup, position, false))) return false;
   return !footprint.some((position) => lookup.people.has(key(position)));
 };
 

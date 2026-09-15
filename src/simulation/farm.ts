@@ -2,6 +2,8 @@ import type { Building, Hex, Person, Tile, World } from "./model";
 import { findPath, key, neighbors, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 import { refinedCellCluster } from "./spatial";
+import { naturalResourceFootprint } from "./naturalResources";
+import { looseGoodStacks } from "./looseGoods";
 import {
   gainProfessionExperience,
   productionMultiplier,
@@ -51,11 +53,22 @@ const farmAreaPositions = (farm: Building): Hex[] => {
   return [...visited.values()];
 };
 
+const physicalObstacleCells = (w: World): Set<string> => {
+  const blocked = new Set<string>();
+  for (const resource of w.naturalResources) {
+    if (resource.depleted) continue;
+    for (const position of naturalResourceFootprint(resource)) blocked.add(key(position));
+  }
+  for (const stack of looseGoodStacks(w)) blocked.add(key(stack.position));
+  return blocked;
+};
+
 const fieldAreaIsFree = (
   w: World,
   target: Hex,
   reserved: Set<string>,
   occupiedByPeople: Set<string>,
+  physicalObstacles: Set<string>,
 ): boolean => {
   const tiles = tileIndex(w.tiles);
   return fieldFootprintAt(target).every((position) => {
@@ -63,7 +76,8 @@ const fieldAreaIsFree = (
     return (
       tiles.get(positionKey)?.terrain === "grass" &&
       !reserved.has(positionKey) &&
-      !occupiedByPeople.has(positionKey)
+      !occupiedByPeople.has(positionKey) &&
+      !physicalObstacles.has(positionKey)
     );
   });
 };
@@ -75,11 +89,12 @@ const sowCandidates = (w: World, farm: Building, p: Person): { tile: Tile; path:
     for (const position of fieldFootprintAt(person.farmTask.target)) reserved.add(key(position));
   }
   const occupiedByPeople = new Set(w.people.map((person) => key(person.position)));
+  const physicalObstacles = physicalObstacleCells(w);
   const tiles = tileIndex(w.tiles);
   return farmAreaPositions(farm)
     .map((position) => tiles.get(key(position)))
     .filter((tile): tile is Tile => Boolean(tile?.terrain === "grass"))
-    .filter((tile) => fieldAreaIsFree(w, tile, reserved, occupiedByPeople))
+    .filter((tile) => fieldAreaIsFree(w, tile, reserved, occupiedByPeople, physicalObstacles))
     .map((tile) => {
       const path = routeTo(w, p, tile);
       return path ? { tile, path } : undefined;
@@ -180,7 +195,9 @@ export function planFarmWorker(w: World, p: Person, farm: Building): boolean {
 const createField = (w: World, farm: Building, target: Hex): boolean => {
   const footprint = fieldFootprintAt(target);
   const tiles = tileIndex(w.tiles);
-  if (!footprint.every((position) => tiles.get(key(position))?.terrain === "grass")) return false;
+  const physicalObstacles = physicalObstacleCells(w);
+  if (!footprint.every((position) =>
+    tiles.get(key(position))?.terrain === "grass" && !physicalObstacles.has(key(position)))) return false;
   const number = w.nextFieldId++;
   w.buildings.push({
     id: `field-${number}`,
@@ -225,6 +242,7 @@ const harvestField = (w: World, field: Building): void => {
 export function advanceFarmSystem(w: World): number[] {
   const immediate = new Set<number>();
   const activeFertilizers = new Map<string, Person>();
+  const physicalObstacles = physicalObstacleCells(w);
 
   for (const p of w.people) {
     const task = p.farmTask;
@@ -278,7 +296,8 @@ export function advanceFarmSystem(w: World): number[] {
       continue;
     }
 
-    if (task.kind === "sow" && !fieldFootprintAt(task.target).every((position) => tileAt(w, position)?.terrain === "grass")) {
+    if (task.kind === "sow" && !fieldFootprintAt(task.target).every((position) =>
+      tileAt(w, position)?.terrain === "grass" && !physicalObstacles.has(key(position)))) {
       p.farmTask = undefined;
       p.progress = 0;
       immediate.add(p.id);

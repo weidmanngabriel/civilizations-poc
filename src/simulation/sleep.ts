@@ -42,23 +42,14 @@ const routeTo = (world: World, person: Person, target: Hex): Hex[] | undefined =
   ) ?? undefined;
 
 const isCompletedHouse = (building: Building): boolean =>
-  building.kind === "house" &&
-  !building.retired &&
-  (!building.construction || building.construction.complete);
+  building.kind === "house" && !building.retired && (!building.construction || building.construction.complete);
 
 const withinSleepRadius = (world: World, origin: Hex, target: Hex): boolean => {
-  const path = performanceProfiler.withPathReason("sleep", () =>
-    findPathBySteps(world.tiles, origin, target),
-  );
+  const path = performanceProfiler.withPathReason("sleep", () => findPathBySteps(world.tiles, origin, target));
   return Boolean(path && path.length <= SLEEP_RADIUS_STEPS);
 };
 
-type SleepCandidate = {
-  kind: Exclude<SleepLocationKind, "ground">;
-  target: Hex;
-  path: Hex[];
-  cost: number;
-};
+type SleepCandidate = { kind: Exclude<SleepLocationKind, "ground">; target: Hex; path: Hex[]; cost: number };
 
 const natureTargets = (world: World): Hex[] => {
   const targets = new Map<string, Hex>();
@@ -73,78 +64,44 @@ const natureTargets = (world: World): Hex[] => {
   return [...targets.values()];
 };
 
-const bestCandidate = (
-  world: World,
-  person: Person,
-  kind: "house" | "nature",
-): SleepCandidate | undefined => {
-  const targets: Hex[] = kind === "house"
-    ? world.buildings.filter(isCompletedHouse).map((building) => building.position)
-    : natureTargets(world);
-
+const bestCandidate = (world: World, person: Person, kind: "house" | "nature"): SleepCandidate | undefined => {
+  const targets = kind === "house" ? world.buildings.filter(isCompletedHouse).map((building) => building.position) : natureTargets(world);
   const candidates = targets
     .filter((target) => withinSleepRadius(world, person.position, target))
     .map((target) => {
       const path = routeTo(world, person, target);
       if (!path) return undefined;
-      return {
-        kind,
-        target,
-        path,
-        cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier),
-      } as SleepCandidate;
+      return { kind, target, path, cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier) } as SleepCandidate;
     })
     .filter((candidate): candidate is SleepCandidate => Boolean(candidate));
-
-  candidates.sort(
-    (a, b) => a.cost - b.cost || a.target.r - b.target.r || a.target.q - b.target.q,
-  );
+  candidates.sort((a, b) => a.cost - b.cost || a.target.r - b.target.r || a.target.q - b.target.q);
   return candidates[0];
 };
 
-const chooseSleepTarget = (world: World, person: Person): SleepCandidate | {
-  kind: "ground";
-  target: Hex;
-  path: Hex[];
-} =>
-  bestCandidate(world, person, "house") ??
-  bestCandidate(world, person, "nature") ?? {
-    kind: "ground",
-    target: { ...person.position },
-    path: [],
-  };
+const chooseSleepTarget = (world: World, person: Person): SleepCandidate | { kind: "ground"; target: Hex; path: Hex[] } =>
+  bestCandidate(world, person, "house") ?? bestCandidate(world, person, "nature") ?? { kind: "ground", target: { ...person.position }, path: [] };
 
 const targetStillValid = (world: World, state: SleepState): boolean => {
   if (state.kind === "ground") return true;
-  if (state.kind === "house")
-    return world.buildings.some(
-      (building) => isCompletedHouse(building) && same(building.position, state.target),
-    );
-  if (world.naturalResources.some(
-    (resource) => resource.kind === "forest" && !resource.depleted && same(resource.position, state.target),
-  )) return true;
+  if (state.kind === "house") return world.buildings.some((building) => isCompletedHouse(building) && same(building.position, state.target));
+  if (world.naturalResources.some((resource) => resource.kind === "forest" && !resource.depleted && same(resource.position, state.target))) return true;
   const tile = tileIndex(world.tiles).get(key(state.target));
   return Boolean(tile?.terrain === "grass" && tile.bush);
 };
 
-const atTaskBoundary = (person: Person): boolean =>
-  person.progress === 0 &&
-  !person.farmTask &&
-  !person.trip &&
-  person.path.length === 0;
+const atTaskBoundary = (person: Person): boolean => person.progress === 0 && !person.farmTask && !person.trip && person.path.length === 0;
 
 const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
   if (person.farmTask) return person.farmTask.target;
   if (person.trip) {
+    if (!person.trip.picked && person.trip.sourcePosition) return person.trip.sourcePosition;
     if (!person.trip.picked && person.trip.sourceKind === "resource")
       return world.naturalResources.find((resource) => resource.id === person.trip!.source)?.position;
     const buildingId = person.trip.picked ? person.trip.target : person.trip.source;
     return world.buildings.find((building) => building.id === buildingId)?.position;
   }
-  if (person.resourceTarget)
-    return world.naturalResources.find((resource) => resource.id === person.resourceTarget)?.position;
-  if (person.assignment)
-    return world.buildings.find((building) => building.id === person.assignment!.building)?.position;
+  if (person.resourceTarget) return world.naturalResources.find((resource) => resource.id === person.resourceTarget)?.position;
+  if (person.assignment) return world.buildings.find((building) => building.id === person.assignment!.building)?.position;
   return world.buildings.find((building) => building.id === "hq")?.position;
 };
 
@@ -153,24 +110,15 @@ const resumeTask = (world: World, person: Person, state: SleepState): void => {
   person.woodcutter = state.resumeWoodcutter || undefined;
   person.extractor = state.resumeExtractor;
   const resourceStillAvailable = state.resumeResourceTarget
-    ? world.naturalResources.some(
-        (resource) =>
-          resource.id === state.resumeResourceTarget &&
-          !resource.depleted &&
-          !world.people.some(
-            (other) => other.id !== person.id && other.resourceTarget === state.resumeResourceTarget,
-          ),
-      )
+    ? world.naturalResources.some((resource) => resource.id === state.resumeResourceTarget && !resource.depleted &&
+        !world.people.some((other) => other.id !== person.id && other.resourceTarget === state.resumeResourceTarget))
     : false;
   person.resourceTarget = resourceStillAvailable ? state.resumeResourceTarget : undefined;
   if (state.resumeResourceTarget && !resourceStillAvailable) person.progress = 0;
   person.active = false;
   person.movement = 0;
   const target = currentTaskTarget(world, person);
-  if (!target) {
-    person.path = [];
-    return;
-  }
+  if (!target) { person.path = []; return; }
   if (same(person.position, target)) {
     person.path = [];
     person.active = state.resumeActive || Boolean(person.assignment);
@@ -236,16 +184,9 @@ const applySleepPhase = (person: Person, state: SleepState): void => {
 const ensureSleepRouteOrProgress = (world: World, person: Person): void => {
   const state = person.sleepState!;
   if (person.hungerState) return;
-  if (person.path.length > 0) {
-    person.active = false;
-    return;
-  }
-
+  if (person.path.length > 0) { person.active = false; return; }
   if (!same(person.position, state.target)) {
-    if (!targetStillValid(world, state)) {
-      applyReplacementTarget(world, person, state);
-      return;
-    }
+    if (!targetStillValid(world, state)) { applyReplacementTarget(world, person, state); return; }
     const reroute = routeTo(world, person, state.target);
     if (!reroute) applyReplacementTarget(world, person, state);
     else person.path = reroute;
@@ -253,16 +194,13 @@ const ensureSleepRouteOrProgress = (world: World, person: Person): void => {
     person.active = false;
     return;
   }
-
   if (state.progress === 0 && state.completedPhases === 0 && !targetStillValid(world, state)) {
     applyReplacementTarget(world, person, state);
     return;
   }
-
   person.active = false;
   person.movement = 0;
   state.progress++;
-
   if (state.completedPhases === 0 && state.progress >= SLEEP_PHASE_TICKS) {
     applySleepPhase(person, state);
     state.completedPhases = 1;
@@ -279,24 +217,12 @@ export function advanceSleepTick(world: World): void {
     for (const person of world.people) {
       sleepValue(person);
       if (person.sleepGraceTicks! > 0) person.sleepGraceTicks!--;
-
-      if (person.sleepState) {
-        ensureSleepRouteOrProgress(world, person);
-        continue;
-      }
-
+      if (person.sleepState) { ensureSleepRouteOrProgress(world, person); continue; }
       decaySleep(person);
-
       if (person.hungerState || (person.hunger ?? 100) <= 40) continue;
       if (person.sleepGraceTicks! > 0) continue;
-
-      if (person.sleep! <= CRITICAL_SLEEP_THRESHOLD) {
-        startSleeping(world, person);
-        continue;
-      }
-
-      if (person.sleep! <= WANTS_TO_SLEEP_THRESHOLD && atTaskBoundary(person))
-        startSleeping(world, person);
+      if (person.sleep! <= CRITICAL_SLEEP_THRESHOLD) { startSleeping(world, person); continue; }
+      if (person.sleep! <= WANTS_TO_SLEEP_THRESHOLD && atTaskBoundary(person)) startSleeping(world, person);
     }
   } finally {
     performanceProfiler.recordFeature("sleep", performanceNow() - started);
@@ -306,12 +232,7 @@ export function advanceSleepTick(world: World): void {
 export function attachSleep(world: World): World {
   return new Proxy(world, {
     set(target, property, value, receiver) {
-      if (
-        property === "round" &&
-        typeof value === "number" &&
-        value === target.round + 1
-      )
-        advanceSleepTick(receiver as World);
+      if (property === "round" && typeof value === "number" && value === target.round + 1) advanceSleepTick(receiver as World);
       return Reflect.set(target, property, value, receiver);
     },
   });
