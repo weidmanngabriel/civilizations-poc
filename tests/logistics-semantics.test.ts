@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildWithFootprint, canPlaceBuilding } from "../src/simulation/buildingPlacement";
 import { findPathBySteps, hexDistance } from "../src/simulation/hex";
+import { placeLooseGood } from "../src/simulation/looseGoods";
 import type { Hex, World } from "../src/simulation/model";
 import { CONFIG, createWorld } from "../src/simulation/scenario";
 import {
@@ -31,8 +32,6 @@ function grassAtReachableDistance(
         hexDistance(origin, a) - hexDistance(origin, b) || a.r - b.r || a.q - b.q,
     );
 
-  // The fine grid is large; keep fixture setup cheap by checking only a handful of
-  // geometrically suitable candidates instead of running BFS for the whole map.
   for (const tile of candidates.slice(0, 8)) {
     const path = findPathBySteps(world.tiles, origin, tile);
     if (path && path.length >= minSteps && path.length <= maxSteps)
@@ -90,6 +89,29 @@ test("warehouse and HQ carriers respect their shared work-area radius", () => {
     assert.equal(farCarrier.trip, undefined, `${storageKind} must ignore sources outside radius`);
     assert.equal(farSource.output, 1);
   }
+});
+
+test("HQ carriers reserve and collect physical ground stacks directly", () => {
+  const world = createWorld(2);
+  const hq = world.buildings.find((building) => building.id === "hq")!;
+  hq.inventory ??= {};
+  hq.inventory.wood = 0;
+  const groundPosition = grassAtReachableDistance(world, hq.position, 2, Math.floor(WORK_AREA_RADIUS));
+  const stack = placeLooseGood(world, groundPosition, "wood", 1);
+  assert.ok(stack);
+
+  assert.equal(changeAssignment(world, hq.id, "carrier", 1), true);
+  const carrier = activateAtHome(world, hq.id, "carrier");
+  tick(world);
+
+  assert.equal(carrier.trip?.sourceKind, "looseGood");
+  assert.equal(carrier.trip?.source, stack!.id);
+  assert.equal(stack!.reserved, 1);
+  assert.equal(world.buildings.some((building) => building.id === "hq-storage-proxy"), false);
+
+  for (let i = 0; i < 2_000 && (hq.inventory.wood ?? 0) === 0; i += 1) tick(world);
+  assert.equal(hq.inventory.wood, 1);
+  assert.equal(world.looseGoods?.some((candidate) => candidate.id === stack!.id), false);
 });
 
 test("merchant routes are not limited by the warehouse collection radius", () => {
