@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createWorld, CONFIG } from "../src/simulation/scenario";
 import { findPathBySteps } from "../src/simulation/hex";
 import { canPlaceBuilding } from "../src/simulation/buildingPlacement";
+import { placeLooseGood } from "../src/simulation/looseGoods";
 import { assigned, buildAt, changeAssignment, tick, warehouseStock } from "../src/simulation/simulation";
 import { activeFarmFieldCount } from "../src/simulation/farm";
 import type { Building, BuildableBuildingKind, Hex, World } from "../src/simulation/model";
@@ -100,6 +101,33 @@ test("farmer sows up to four random fields around the farm", () => {
       "field",
     );
   }
+});
+
+test("a pending sow task is cancelled instead of overwriting a loose good", () => {
+  const w = createWorld();
+  const { farm, farmer } = finishedFarm(w);
+  const target = nearbyGrass(w, farm.position);
+  assert.ok(placeLooseGood(w, target, "wood", 1));
+
+  farmer.position = { ...target };
+  farmer.path = [];
+  farmer.movement = 0;
+  farmer.farmTask = {
+    kind: "sow",
+    target: { ...target },
+    progress: CONFIG.farmActionDurationTicks - 1,
+  };
+  farmer.progress = farmer.farmTask.progress;
+
+  tick(w);
+
+  assert.equal(farmer.farmTask, undefined);
+  assert.equal(
+    w.buildings.some((building) => building.kind === "field" && building.farmId === farm.id &&
+      building.position.q === target.q && building.position.r === target.r),
+    false,
+  );
+  assert.equal(w.looseGoods?.some((stack) => stack.position.q === target.q && stack.position.r === target.r), true);
 });
 
 test("fertilizing reduces the remaining time to the next stage to one third", () => {
