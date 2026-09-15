@@ -12,6 +12,7 @@ import {
   refinedCellCluster,
   scaleHex,
 } from "./spatial";
+import { key, tileIndex } from "./hex";
 
 export const CONFIG = {
   population: 12,
@@ -31,7 +32,7 @@ export const CONFIG = {
   warehouseCapacityPerGood: 20,
   warehouseCollectionRadiusWorldTiles: 10,
   warehouseCollectionRadius: 10 * GRID_REFINEMENT,
-  forestYield: 10,
+  forestYield: 3,
   resourceYield: 10,
   resourceOutputCapacity: 3,
   farmMaxFields: 4,
@@ -195,7 +196,6 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
 
   const coordinateSet = (list: number[][]) =>
     new Set(list.map(([col, row]) => `${col},${row}`));
-  const forestSet = coordinateSet(forestTiles);
   const riverSet = coordinateSet(river);
   const mountainSet = coordinateSet(mountains);
   const buildingCells = new Set(
@@ -219,9 +219,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
           ? "river"
           : mountainSet.has(parentKey)
             ? "mountain"
-            : forestSet.has(parentKey)
-              ? "forest"
-              : "grass";
+            : "grass";
       const bush = suppliedStart && terrain === "grass" && bushPositions.has(positionKey);
       tiles.push({
         ...position,
@@ -275,6 +273,13 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     };
     spread(adjacentGrass("river"), 4).forEach((tile, index) => addResource(tile, "clay", index));
     spread(adjacentGrass("mountain"), 4).forEach((tile, index) => addResource(tile, "stone", index));
+  }
+
+  const indexedTiles = tileIndex(tiles);
+  for (const resource of naturalResources) {
+    if (resource.kind !== "forest" && resource.kind !== "stone") continue;
+    const tile = indexedTiles.get(key(resource.position));
+    if (tile) tile.resourceBlocking = true;
   }
 
   const people: Person[] = Array.from({ length: population }, (_, i) => ({
