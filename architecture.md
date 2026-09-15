@@ -61,7 +61,7 @@ Trees are one-cell blocking resources with three wood. Clay and stone have finit
 
 The first implementation applies to **woodcutters, clay diggers, stonecutters, warehouse carriers and HQ carriers**. Production-building carriers deliberately keep their existing demand-driven sourcing behavior in this stage.
 
-The radius is **5 coarse world tiles = 25 micro-cells**, measured from the flag center.
+The shared radius is **2.5 coarse world tiles = 12.5 micro-cells**, measured from the flag center. Because hex-cell distances are discrete, target eligibility is determined by the existing `hexDistance <= radius` rule while the rendered boundary may use the fractional radius directly.
 
 - A newly planned natural-resource worker receives the initial flag at the first reachable resource selected by the existing planner.
 - A warehouse/HQ carrier receives the initial flag at its storage workplace.
@@ -108,6 +108,6 @@ Where `architecture-detail.md` still describes old grid/resource semantics, dire
 
 ## Testing and deployment
 
-`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Regressions cover the one-second hunger cadence, initial/local work flags and storage-carrier source constraints.
+`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Regressions cover the one-second hunger cadence, the shared 2.5-world-tile work-area radius, initial/local work flags and storage-carrier source constraints.
 
 Per `agents.md`, work is performed on a temporary branch and transferred to `main` as one final squash commit. The GitHub Pages workflow runs tests before the production build and deploys only after both succeed.
