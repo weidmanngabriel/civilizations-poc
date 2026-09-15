@@ -26,6 +26,11 @@ test("wood extraction creates a ground stack and sawmill workers collect from it
   assert.ok(stack, "extracted wood should become a physical ground stack");
   assert.equal(stack.amount, 1);
   assert.ok(hexDistance(forest.position, stack.position) <= CONFIG.spatialScale);
+  assert.equal(
+    world.naturalResources.some((resource) => resource.id === stack.id),
+    false,
+    "physical goods must not be mirrored as fake natural resources",
+  );
 
   woodcutter.woodcutter = undefined;
   woodcutter.resourceTarget = undefined;
@@ -64,6 +69,8 @@ test("wood extraction creates a ground stack and sawmill workers collect from it
   assert.ok(worker.trip, "sawmill worker should plan a wood pickup");
   assert.equal(worker.trip!.good, "wood");
   assert.equal(worker.trip!.source, stack.id, "pickup must target the physical stack");
+  assert.equal(worker.trip!.sourceKind, "looseGood");
+  assert.deepEqual(worker.trip!.sourcePosition, stack.position);
   assert.equal(world.looseGoods?.find((candidate) => candidate.id === stack.id)?.reserved, 1);
 
   for (let i = 0; i < 2_000 && sawmill.input < 1; i += 1) tick(world);
