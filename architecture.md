@@ -121,7 +121,7 @@ Player-triggered profession assignment performs only cheap role/reservation stat
 
 If a work planner cannot find a valid task or source, only that waiting person receives a retry deadline. The one-second cadence is a fallback for waiting persons rather than a global re-plan. Movement, need decay and active production still advance at 60 Hz.
 
-Natural-resource depletion cleanup is also event-driven: an extraction that reaches zero retires that concrete resource immediately. A full resource-list scan remains only as a one-second fallback for externally changed or inconsistent state instead of running at 60 Hz. Performance diagnostics split work planning into resource cleanup, waiting profession pools and per-person decisions so the former residual `planning` bucket no longer hides distinct costs.
+Natural-resource depletion cleanup is fully event-driven: an extraction that reaches zero retires that concrete resource immediately. There is no periodic full resource-list consistency scan; resource mutations must trigger their lifecycle handling directly. Performance diagnostics split work planning into resource cleanup, waiting profession pools and per-person decisions so the former residual `planning` bucket no longer hides distinct costs.
 
 ## Building placement
 

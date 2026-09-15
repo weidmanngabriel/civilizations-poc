@@ -216,7 +216,7 @@ Implemented in the current cleanup slices:
 - construction-material pickup is explicitly independent from the local storage collection radius,
 - regression coverage locks these logistics semantics across warehouse, HQ, merchant and builder flows,
 - natural-resource depletion retirement is event-driven on actual extraction instead of scanning every resource on every 60-Hz simulation tick,
-- the full depleted-resource scan is retained only as a one-second consistency fallback,
+- the periodic depleted-resource consistency scan has been removed; depletion lifecycle handling is fully event-driven,
 - performance diagnostics split work planning into resource cleanup, waiting profession pools and per-person decisions instead of one residual `planning` bucket.
 
 Still review at minimum:
