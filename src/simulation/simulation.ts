@@ -28,6 +28,11 @@ import {
 } from "./experience";
 import { updateTechnologyUnlocks } from "./technology";
 import { tick as coreTick } from "./simulationCore";
+import { syncWorkAreas } from "./workAreas";
+import {
+  deferLocalResourceDepletion,
+  finishDeferredResourceDepletion,
+} from "./resourceDepletion";
 
 const RESOURCE_DROP_RADIUS = GRID_REFINEMENT;
 
@@ -275,8 +280,11 @@ export function tick(world: World): void {
   );
   const buildingIdsBefore = new Set(world.buildings.map((building) => building.id));
 
+  const deferredResourceDepletion = deferLocalResourceDepletion(world);
   coreTick(world);
+  finishDeferredResourceDepletion(world, deferredResourceDepletion);
   finishPhysicalResourceTick(world);
+  if (deferredResourceDepletion.length) syncWorkAreas(world);
 
   awardCompletedActions(
     world,
