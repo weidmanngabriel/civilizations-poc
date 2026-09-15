@@ -36,13 +36,15 @@ export function createTestWorld({
   const rMax = rMin + height;
   const hqCells = new Set((hq.footprint ?? [hq.position]).map(key));
 
-  world.tiles = world.tiles
-    .filter((tile) => tile.q >= qMin && tile.q < qMax && tile.r >= rMin && tile.r < rMax)
-    .map((tile) => ({
-      q: tile.q,
-      r: tile.r,
-      terrain: hqCells.has(key(tile)) ? "building" : "grass",
-    }));
+  world.tiles = [];
+  for (let r = rMin; r < rMax; r += 1)
+    for (let q = qMin; q < qMax; q += 1)
+      world.tiles.push({
+        q,
+        r,
+        terrain: hqCells.has(key({ q, r })) ? "building" : "grass",
+      });
+
   world.naturalResources = [];
   world.looseGoods = [];
 
