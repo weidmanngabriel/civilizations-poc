@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildWithFootprint, canPlaceBuilding } from "../src/simulation/buildingPlacement";
-import { findPathBySteps } from "../src/simulation/hex";
+import { findPathBySteps, hexDistance } from "../src/simulation/hex";
 import type { Hex, World } from "../src/simulation/model";
 import { CONFIG, createWorld } from "../src/simulation/scenario";
 import { GRID_REFINEMENT } from "../src/simulation/spatial";
@@ -14,15 +14,27 @@ import {
   tick,
 } from "../src/simulation/simulation";
 
-function grassAtDistance(
+function grassAtReachableDistance(
   world: World,
   origin: Hex,
-  predicate: (steps: number) => boolean,
+  minSteps: number,
+  maxSteps = Number.POSITIVE_INFINITY,
 ): Hex {
-  for (const tile of world.tiles) {
-    if (tile.terrain !== "grass") continue;
+  const candidates = world.tiles
+    .filter((tile) => {
+      if (tile.terrain !== "grass") return false;
+      const distance = hexDistance(origin, tile);
+      return distance >= minSteps && distance <= maxSteps;
+    })
+    .sort(
+      (a, b) =>
+        hexDistance(origin, a) - hexDistance(origin, b) || a.r - b.r || a.q - b.q,
+    );
+
+  for (const tile of candidates.slice(0, 80)) {
     const path = findPathBySteps(world.tiles, origin, tile);
-    if (path && predicate(path.length)) return { q: tile.q, r: tile.r };
+    if (path && path.length >= minSteps && path.length <= maxSteps)
+      return { q: tile.q, r: tile.r };
   }
   assert.fail("expected suitable reachable grass tile");
 }
@@ -43,21 +55,15 @@ test("warehouse and HQ collection radius is five coarse world tiles", () => {
 
   for (const storageKind of ["warehouse", "hq"] as const) {
     const nearWorld = createWorld(2);
+    const nearHq = nearWorld.buildings.find((building) => building.id === "hq")!;
     const storage = storageKind === "hq"
-      ? nearWorld.buildings.find((building) => building.id === "hq")!
-      : buildAt(
-          nearWorld,
-          grassAtDistance(
-            nearWorld,
-            nearWorld.buildings.find((building) => building.id === "hq")!.position,
-            (steps) => steps >= 2,
-          ),
-          "warehouse",
-        )!;
-    const nearSourcePosition = grassAtDistance(
+      ? nearHq
+      : buildAt(nearWorld, grassAtReachableDistance(nearWorld, nearHq.position, 2, 8), "warehouse")!;
+    const nearSourcePosition = grassAtReachableDistance(
       nearWorld,
       storage.position,
-      (steps) => steps >= CONFIG.warehouseCollectionRadius - 2 && steps <= CONFIG.warehouseCollectionRadius,
+      CONFIG.warehouseCollectionRadius - 2,
+      CONFIG.warehouseCollectionRadius,
     );
     const nearSource = buildAt(nearWorld, nearSourcePosition, "sawmill")!;
     nearSource.output = 1;
@@ -67,21 +73,15 @@ test("warehouse and HQ collection radius is five coarse world tiles", () => {
     assert.equal(nearCarrier.trip?.source, nearSource.id, `${storageKind} should collect inside radius`);
 
     const farWorld = createWorld(2);
+    const farHq = farWorld.buildings.find((building) => building.id === "hq")!;
     const farStorage = storageKind === "hq"
-      ? farWorld.buildings.find((building) => building.id === "hq")!
-      : buildAt(
-          farWorld,
-          grassAtDistance(
-            farWorld,
-            farWorld.buildings.find((building) => building.id === "hq")!.position,
-            (steps) => steps >= 2,
-          ),
-          "warehouse",
-        )!;
-    const farSourcePosition = grassAtDistance(
+      ? farHq
+      : buildAt(farWorld, grassAtReachableDistance(farWorld, farHq.position, 2, 8), "warehouse")!;
+    const farSourcePosition = grassAtReachableDistance(
       farWorld,
       farStorage.position,
-      (steps) => steps > CONFIG.warehouseCollectionRadius,
+      CONFIG.warehouseCollectionRadius + 1,
+      CONFIG.warehouseCollectionRadius + 8,
     );
     const farSource = buildAt(farWorld, farSourcePosition, "sawmill")!;
     farSource.output = 1;
@@ -95,16 +95,13 @@ test("warehouse and HQ collection radius is five coarse world tiles", () => {
 
 test("merchant routes are not limited by the warehouse collection radius", () => {
   const world = createWorld(1);
-  const sourcePosition = grassAtDistance(
-    world,
-    world.buildings.find((building) => building.id === "hq")!.position,
-    (steps) => steps >= 2,
-  );
-  const source = buildAt(world, sourcePosition, "warehouse")!;
-  const targetPosition = grassAtDistance(
+  const hq = world.buildings.find((building) => building.id === "hq")!;
+  const source = buildAt(world, grassAtReachableDistance(world, hq.position, 2, 8), "warehouse")!;
+  const targetPosition = grassAtReachableDistance(
     world,
     source.position,
-    (steps) => steps > CONFIG.warehouseCollectionRadius,
+    CONFIG.warehouseCollectionRadius + 1,
+    CONFIG.warehouseCollectionRadius + 8,
   );
   const target = buildAt(world, targetPosition, "warehouse")!;
   assert.ok(findPathBySteps(world.tiles, source.position, target.position)!.length > CONFIG.warehouseCollectionRadius);
@@ -125,10 +122,11 @@ test("builders may fetch construction material beyond the warehouse collection r
   const sitePosition = world.tiles.find((tile) => canPlaceBuilding(world, tile, "warehouse"));
   assert.ok(sitePosition);
   const site = buildWithFootprint(world, sitePosition!, "warehouse")!;
-  const sourcePosition = grassAtDistance(
+  const sourcePosition = grassAtReachableDistance(
     world,
     site.position,
-    (steps) => steps > CONFIG.warehouseCollectionRadius,
+    CONFIG.warehouseCollectionRadius + 1,
+    CONFIG.warehouseCollectionRadius + 8,
   );
   const source = buildAt(world, sourcePosition, "warehouse")!;
   source.inventory!.wood = 4;
