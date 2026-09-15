@@ -8,6 +8,8 @@ type DeferredResourceDepletion = {
   workers: Person[];
 };
 
+const resourceIndexCache = new WeakMap<World, Map<string, NaturalResource>>();
+
 const samePosition = (
   a: { q: number; r: number },
   b: { q: number; r: number },
@@ -22,6 +24,15 @@ const resourceProfession = (
       ? "clayDigger"
       : "stonecutter";
 
+function resourceIndex(world: World): Map<string, NaturalResource> {
+  let index = resourceIndexCache.get(world);
+  if (!index || index.size !== world.naturalResources.length) {
+    index = new Map(world.naturalResources.map((resource) => [resource.id, resource]));
+    resourceIndexCache.set(world, index);
+  }
+  return index;
+}
+
 /**
  * The historical core still performs global replanning inside resource retirement.
  * Local work areas own that decision now. A final local extraction temporarily keeps
@@ -30,18 +41,13 @@ const resourceProfession = (
 export function deferLocalResourceDepletion(
   world: World,
 ): DeferredResourceDepletion[] {
-  const localWorkers = world.people.filter(
-    (person) => person.workArea && (person.woodcutter || person.extractor),
-  );
-  if (!localWorkers.length) return [];
+  let resourcesById: Map<string, NaturalResource> | undefined;
+  let deferredById: Map<string, DeferredResourceDepletion> | undefined;
 
-  const resourcesById = new Map(
-    world.naturalResources.map((resource) => [resource.id, resource]),
-  );
-  const deferredById = new Map<string, DeferredResourceDepletion>();
-
-  for (const person of localWorkers) {
+  for (const person of world.people) {
     if (
+      !person.workArea ||
+      (!person.woodcutter && !person.extractor) ||
       !person.resourceTarget ||
       !person.active ||
       person.path.length ||
@@ -52,6 +58,7 @@ export function deferLocalResourceDepletion(
       person.progress <= 0
     ) continue;
 
+    resourcesById ??= resourceIndex(world);
     const resource = resourcesById.get(person.resourceTarget);
     if (
       !resource ||
@@ -62,11 +69,13 @@ export function deferLocalResourceDepletion(
         CONFIG.duration
     ) continue;
 
+    deferredById ??= new Map();
     const existing = deferredById.get(resource.id);
     if (existing) existing.workers.push(person);
     else deferredById.set(resource.id, { resource, workers: [person] });
   }
 
+  if (!deferredById) return [];
   const deferred = [...deferredById.values()];
   for (const { resource } of deferred) resource.remaining = 2;
   return deferred;
