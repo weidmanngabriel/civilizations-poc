@@ -27,6 +27,8 @@ export interface Hex {
 }
 export interface Tile extends Hex {
   terrain: "grass" | "road" | "forest" | "field" | "mountain" | "river" | "building";
+  /** Derived collision overlay. Natural resources never change the underlying terrain type. */
+  resourceBlocking?: boolean;
   trafficTicks?: number[];
   bush?: boolean;
   bushAvailable?: boolean;
