@@ -18,10 +18,20 @@ function activeWoodcutter() {
   assert.equal(changeWoodcutters(world, 1), true);
   const worker = woodcutters(world)[0]!;
   const forest = naturalResource(world, worker.resourceTarget!);
-  worker.position = { ...forest.position };
+  const path = findPath(
+    world.tiles,
+    worker.position,
+    forest.position,
+    CONFIG.roadSpeedMultiplier,
+  );
+  assert.ok(path);
+  const interaction = path.at(-1) ?? worker.position;
+  worker.position = { ...interaction };
   worker.path = [];
   worker.movement = 0;
   worker.active = true;
+  assert.equal(same(worker.position, forest.position), true);
+  assert.notDeepEqual({ q: worker.position.q, r: worker.position.r }, forest.position);
   return { world, forest, worker };
 }
 
