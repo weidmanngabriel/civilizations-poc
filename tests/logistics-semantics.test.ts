@@ -31,7 +31,9 @@ function grassAtReachableDistance(
         hexDistance(origin, a) - hexDistance(origin, b) || a.r - b.r || a.q - b.q,
     );
 
-  for (const tile of candidates.slice(0, 80)) {
+  // The fine grid is large; keep fixture setup cheap by checking only a handful of
+  // geometrically suitable candidates instead of running BFS for the whole map.
+  for (const tile of candidates.slice(0, 8)) {
     const path = findPathBySteps(world.tiles, origin, tile);
     if (path && path.length >= minSteps && path.length <= maxSteps)
       return { q: tile.q, r: tile.r };
