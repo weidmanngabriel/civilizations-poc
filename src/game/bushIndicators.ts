@@ -1,14 +1,7 @@
 import Phaser from "phaser";
-import type { Hex, Tile, World } from "../simulation/model";
+import type { Tile, World } from "../simulation/model";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
-
-const HEX_X = 24;
-const HEX_Y = 21;
-
-const pixel = (h: Hex) => ({
-  x: 34 + HEX_X * (h.q + h.r / 2),
-  y: 34 + h.r * HEX_Y,
-});
+import { pixel } from "./mapGeometry";
 
 type BushVisualState = "full" | "empty" | "hidden";
 type BushIndicator = {
