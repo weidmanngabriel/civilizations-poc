@@ -35,18 +35,25 @@ Holz, Lehm und Bruchstein folgen dem physischen Grundmodell:
 
 Holzfäller, Lehmgräber, Steinbrecher sowie **Lager- und HQ-Träger** besitzen einen lokalen Arbeitsbereich, dessen Mittelpunkt durch eine sichtbare persönliche Arbeitsflagge festgelegt wird. Der aktuelle Radius beträgt fünf Weltkacheln.
 
-Die Flagge gehört zur einzelnen Person, nicht zum Gebäude. Zwei Träger desselben Lagers können deshalb unterschiedliche Bereiche abdecken.
+Die Flagge gehört zur einzelnen Person, nicht zum Gebäude. Zwei Träger desselben Lagers können deshalb unterschiedliche Bereiche abdecken. **Abbauer-Flaggen sind rot.**
 
 - Bei einem neuen Holzfäller oder Abbauer erscheint die erste Flagge am ersten tatsächlich gewählten Rohstoffvorkommen.
 - Bei einem neuen Lager-/HQ-Träger erscheint sie zunächst am zugewiesenen Lagergebäude.
 - Abbauer wählen nur passende freie Rohstoffquellen innerhalb ihrer eigenen Flagge. Ist dort nichts mehr verfügbar, warten sie und wandern nicht automatisch über die Karte zum nächsten Vorkommen.
+- Ein Abbauer verschiebt seine Flagge niemals selbst. Nur der Spieler kann den Mittelpunkt verändern.
 - Lager-/HQ-Träger holen nur Nicht-Lager-Quellen innerhalb ihrer Flagge. Lager-zu-Lager-Verteilung bleibt Händlersache.
-- Wird eine Flagge verschoben, wird ein noch nicht abgeholtes Ziel außerhalb des neuen Bereichs verworfen. Bereits getragene Ware wird noch ausgeliefert.
+- Wird eine Flagge durch den Spieler verschoben, wird ein noch nicht abgeholtes Ziel außerhalb des neuen Bereichs verworfen. Bereits getragene Ware wird noch ausgeliefert.
 - Der Spieler versetzt die Flagge über die ausgewählte Person. Ein kurzer Klick oder Tap setzt den neuen Mittelpunkt; Ziehen verschiebt weiterhin die Karte.
 
 Produktions-Träger behalten in dieser ersten Stufe ihre bestehende bedarfsgetriebene Beschaffung. Damit ändern wir nicht gleichzeitig die Produktionskettenlogik; die Ausweitung auf weitere Berufe kann später bewusst entschieden werden.
 
 Die Arbeitsflagge beantwortet **„Wo darf diese Person Ressourcen abbauen oder lokal einsammeln?“**. Langstrecken-Navigation über Wegweiser ist ein separates späteres System.
+
+## Hunger
+
+Die eigentliche Simulation und Bewegung laufen weiterhin mit 60 Schritten pro Sekunde. **Hunger wird nur einmal pro simulierter Sekunde aktualisiert und geprüft.** Erst bei diesem Sekundenschritt werden Hungergrenzen bewertet und bei Bedarf ein Essensziel gesucht. Das reicht für die Spielentscheidung aus und verhindert unnötige tickweise Neuprüfungen.
+
+Hat eine Person bereits ein Essensziel und ist unterwegs, behält sie dieses Ziel und ihre Route bei, solange die Reise läuft.
 
 ## Berufserfahrung und Technologien
 
@@ -56,7 +63,7 @@ Eine Technologie wird dauerhaft freigeschaltet, sobald irgendeine Person erstmal
 
 ## Ereignisbasierte Entscheidungen
 
-Autonome Bewohner treffen teure Zielentscheidungen nicht laufend neu. Ein Ziel bleibt während der Reise bestehen und wird an Aufgabenübergängen neu bewertet. Ist kein gültiges Ziel verfügbar, sucht nur die betroffene Person höchstens einmal pro Sekunde erneut. Das gilt auch für einen leeren Arbeitsflaggen-Bereich.
+Autonome Bewohner treffen teure Zielentscheidungen nicht laufend neu. Ein Ziel bleibt während der Reise bestehen und wird an Aufgabenübergängen neu bewertet. Hunger und fehlende Arbeitsziele werden höchstens einmal pro Sekunde erneut geprüft. Für Abbauer findet diese Arbeitssuche ausschließlich innerhalb der bestehenden Arbeitsflagge statt.
 
 ## Darstellung, Zoom und Eingabe
 
@@ -66,6 +73,6 @@ Gebäudeplatzierung bleibt für Desktop und Touch getrennt bedienbar, verwendet 
 
 ## Unveränderte Produktbereiche
 
-Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`concept-detail.md`](./concept-detail.md), insbesondere Startzustand, Hunger/Schlaf, Beeren, Bau/Abriss, 60-Hz-Simulation, organische Wege, Produktionsketten, Händler, Farmen, Personenansicht, Technologiebaum und Handbuch.
+Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`concept-detail.md`](./concept-detail.md), insbesondere Startzustand, Schlaf, Beeren, Bau/Abriss, 60-Hz-Simulation, organische Wege, Produktionsketten, Händler, Farmen, Personenansicht, Technologiebaum und Handbuch.
 
-Alte Aussagen in `concept-detail.md` über das grobe Raster, Wald als Terrain, alte Rohstofflagerung, direktes Betreten blockierender Ressourcen, global wandernde Abbauer oder einen festen gebäudezentrierten Lagerträger-Sammelradius sind durch diese Datei überholt.
+Alte Aussagen in `concept-detail.md` über das grobe Raster, Wald als Terrain, alte Rohstofflagerung, direktes Betreten blockierender Ressourcen, global wandernde Abbauer, tickweise Hungerplanung oder einen festen gebäudezentrierten Lagerträger-Sammelradius sind durch diese Datei überholt.

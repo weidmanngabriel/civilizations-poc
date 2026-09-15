@@ -29,9 +29,7 @@ const AXIAL_DIRECTIONS: readonly Hex[] = [
 ];
 
 const flagColor = (person: Person): number => {
-  if (person.woodcutter) return 0x4d7a45;
-  if (person.extractor === "clay") return 0xa36f4f;
-  if (person.extractor === "stone") return 0x8f9691;
+  if (person.woodcutter || person.extractor) return 0xc83b32;
   return 0xd6b24a;
 };
 

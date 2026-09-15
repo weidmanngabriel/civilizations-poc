@@ -70,11 +70,17 @@ The radius is **5 coarse world tiles = 25 micro-cells**, measured from the flag 
 - A carried item may finish delivery after the flag moves; an unpicked outside source is cancelled.
 - If no valid local target exists, only that person retries at the existing one-second fallback cadence. The flag never migrates automatically.
 
-`simulationCore.ts` invokes `syncWorkAreas()` around the historical tick so legacy planners cannot make an out-of-area target authoritative for the next movement step. This is a compatibility layer rather than a `Trip` rewrite during Phase F.
+Natural-resource workers no longer need the historical global resource search when a source is exhausted or while a local area is empty. `simulationCore.ts` suppresses those legacy global planner entries and lets `syncWorkAreas()` perform the authoritative local retry. This avoids computing whole-map A* candidates that would immediately be rejected by the work-area rule.
 
-`setWorkAreaCenter()` is the simulation command. `src/game/workAreaInteraction.ts` renders flags and the active radius and maps a short click/tap to a new center; drag continues to pan and pinch to zoom. `src/ui/workAreaControls.ts` exposes the command from the selected-person panel. Presentation never owns work-area state.
+`setWorkAreaCenter()` is the simulation command. `src/game/workAreaInteraction.ts` renders extractor flags in red and storage-carrier flags separately; it maps a short click/tap to a new center while drag continues to pan and pinch to zoom. Only player input changes an established work-area center; worker planning never moves the flag itself. `src/ui/workAreaControls.ts` exposes the command from the selected-person panel. Presentation never owns work-area state.
 
 Wayposts are separate and not part of this implementation. A future waypost graph can constrain long-distance navigation without changing the local target eligibility represented by a flag.
+
+## Hunger cadence and food planning
+
+The world still advances at 60 simulation ticks/s, but hunger decay, hunger threshold checks and food-target planning are intentionally sampled only **once per simulated second**. Movement, production, transport and other 60-Hz systems remain unchanged.
+
+`src/simulation/needs.ts` performs food search in two stages: cheap spatial lower bounds order possible bread/bush targets, then A* is evaluated only while a remaining candidate can still beat the best reachable route found so far. A selected food destination and route remain stable while travelling.
 
 ## Profession experience and technologies
 
@@ -82,9 +88,9 @@ Experience is persistent per person and profession from 0–100. One successfull
 
 ## Event-driven person planning
 
-Expensive autonomous target selection is event-driven. A person retains selected hunger, sleep or work destinations while travelling and normally re-evaluates at task boundaries. Missing work receives a per-person one-second retry deadline rather than a global re-plan.
+Expensive autonomous target selection is event-driven. A person retains selected hunger, sleep or work destinations while travelling and normally re-evaluates at task boundaries. Hunger is checked once per simulated second. Missing work receives a per-person one-second retry deadline rather than a global re-plan.
 
-Natural-resource depletion retirement is event-driven; there is no periodic full resource-list cleanup scan.
+Natural-resource depletion retirement is event-driven; there is no periodic full resource-list cleanup scan. Work-area extractors do not launch global resource A* during depletion cleanup.
 
 ## Building placement
 
@@ -98,10 +104,10 @@ Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches m
 
 All other architecture remains as documented in [`architecture-detail.md`](./architecture-detail.md), including hunger/sleep, HQ storage compatibility, organic roads, production/inventories, construction, farms, merchants, person selection, handbook/PWA and performance diagnostics.
 
-Where `architecture-detail.md` still describes old grid/resource semantics, directly entering blocking targets, globally roaming extractors, or a building-centered storage-carrier collection radius as the current rule, this file supersedes it.
+Where `architecture-detail.md` still describes old grid/resource semantics, directly entering blocking targets, globally roaming extractors, tick-wise hunger planning, or a building-centered storage-carrier collection radius as the current rule, this file supersedes it.
 
 ## Testing and deployment
 
-`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Work-area regressions verify initial flags, local extractor retargeting and storage-carrier source constraints.
+`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Regressions cover the one-second hunger cadence, initial/local work flags and storage-carrier source constraints.
 
 Per `agents.md`, work is performed on a temporary branch and transferred to `main` as one final squash commit. The GitHub Pages workflow runs tests before the production build and deploys only after both succeed.
