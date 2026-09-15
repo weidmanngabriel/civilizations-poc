@@ -16,7 +16,7 @@ Abgebauter Lehm und Bruchstein liegen ebenfalls sichtbar als begehbare Warenhauf
 
 ## Arbeitsflaggen
 
-Holzfäller, Lehmgräber, Steinbrecher sowie **Lager- und HQ-Träger** besitzen einen lokalen Arbeitsbereich rund um ihre persönliche Flagge. Die Flaggen der Abbauer sind rot.
+Holzfäller, Lehmgräber, Steinbrecher sowie **Lager- und HQ-Träger** besitzen einen lokalen Arbeitsbereich mit **2,5 Weltkacheln Radius** rund um ihre persönliche Flagge. Die Flaggen der Abbauer sind rot.
 
 Neue Abbauer erhalten ihre Flagge zunächst am ersten gewählten Vorkommen; Lager-/HQ-Träger an ihrem Lagergebäude. Wähle die Person aus und nutze **„Arbeitsflagge versetzen“**, um den Bereich zu ändern. Ein kurzer Klick oder Tap setzt den neuen Mittelpunkt. Ziehen verschiebt weiterhin die Karte.
 
