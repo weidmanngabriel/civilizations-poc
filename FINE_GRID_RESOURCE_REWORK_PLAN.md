@@ -40,7 +40,7 @@ Current scope:
 - warehouse carriers,
 - HQ carriers.
 
-The work-area radius is **5 coarse world tiles / 25 micro-cells**.
+The shared work-area radius is **2.5 coarse world tiles / 12.5 micro-cells**.
 
 Natural-resource workers get their initial flag at the first reachable resource selected by the existing planner. After that they only choose matching unclaimed sources inside their flag. When the area is exhausted they wait and retry locally instead of roaming globally. Extractor flags are rendered red and never move through autonomous worker logic; only explicit player input changes an established flag center.
 
@@ -109,7 +109,7 @@ Complete: denser walkable tree clusters, multi-piece resource presentation and d
 
 - Fine grid is a simulation mechanism, not a visual board.
 - Work areas are per person, not per building.
-- Initial flag radius is five coarse world tiles.
+- Shared flag radius is 2.5 coarse world tiles.
 - Extractor flags begin at the first reachable source and are shown in red.
 - Extractors never move their own flags; established flag centers change only via player input.
 - Warehouse/HQ carrier flags begin at the storage workplace.

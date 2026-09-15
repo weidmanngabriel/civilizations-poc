@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createWorld } from "../src/simulation/scenario";
+import { GRID_REFINEMENT } from "../src/simulation/spatial";
 import { hexDistance } from "../src/simulation/hex";
 import {
   buildAt,
@@ -9,8 +10,14 @@ import {
   setWorkAreaCenter,
   tick,
   WORK_AREA_RADIUS,
+  WORK_AREA_RADIUS_WORLD_TILES,
   woodcutters,
 } from "../src/simulation/simulation";
+
+test("work areas use a 2.5-world-tile radius", () => {
+  assert.equal(WORK_AREA_RADIUS_WORLD_TILES, 2.5);
+  assert.equal(WORK_AREA_RADIUS, 2.5 * GRID_REFINEMENT);
+});
 
 test("woodcutters keep resource targets inside their movable work flag", () => {
   const world = createWorld();
@@ -73,6 +80,7 @@ test("carriers receive a work flag at their workplace and reject outside pickup 
   carrier.path = [];
   carrier.active = true;
   assert.deepEqual(carrier.workArea?.center, warehouse.position);
+  assert.equal(carrier.workArea?.radius, WORK_AREA_RADIUS);
 
   const farTile = world.tiles
     .filter((tile) => hexDistance(tile, source.position) > WORK_AREA_RADIUS)

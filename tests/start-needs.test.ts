@@ -4,7 +4,7 @@ import { buildWithFootprint, footprintAt, removeBuildingWithFootprint, validBuil
 import { findPathBySteps } from "../src/simulation/hex";
 import { advanceHungerTick } from "../src/simulation/needs";
 import { createDefaultGameWorld, createWorld, CONFIG } from "../src/simulation/scenario";
-import { tick } from "../src/simulation/simulation";
+import { tick, WORK_AREA_RADIUS } from "../src/simulation/simulation";
 import type { Building, Hex } from "../src/simulation/model";
 
 const hexDistance = (a: Hex, b: Hex): number => {
@@ -106,9 +106,9 @@ test("an HQ carrier collects nearby production output into HQ inventory", () => 
   const sourceTile = world.tiles.find((tile) => {
     if (tile.terrain !== "grass") return false;
     const directDistance = hexDistance(hq.position, tile);
-    if (directDistance < 2 || directDistance > CONFIG.warehouseCollectionRadius) return false;
+    if (directDistance < 2 || directDistance > WORK_AREA_RADIUS) return false;
     const path = findPathBySteps(world.tiles, hq.position, tile);
-    return path !== null && path.length <= CONFIG.warehouseCollectionRadius;
+    return path !== null && path.length <= WORK_AREA_RADIUS;
   })!;
   assert.ok(sourceTile);
   const source: Building = {

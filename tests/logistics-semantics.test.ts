@@ -4,7 +4,6 @@ import { buildWithFootprint, canPlaceBuilding } from "../src/simulation/building
 import { findPathBySteps, hexDistance } from "../src/simulation/hex";
 import type { Hex, World } from "../src/simulation/model";
 import { CONFIG, createWorld } from "../src/simulation/scenario";
-import { GRID_REFINEMENT } from "../src/simulation/spatial";
 import {
   assigned,
   buildAt,
@@ -12,6 +11,7 @@ import {
   changeBuilders,
   setMerchantRoute,
   tick,
+  WORK_AREA_RADIUS,
 } from "../src/simulation/simulation";
 
 function grassAtReachableDistance(
@@ -51,10 +51,7 @@ function activateAtHome(world: World, buildingId: string, role: "carrier" | "mer
   return person;
 }
 
-test("warehouse and HQ collection radius is five coarse world tiles", () => {
-  assert.equal(CONFIG.warehouseCollectionRadiusWorldTiles, 5);
-  assert.equal(CONFIG.warehouseCollectionRadius, 5 * GRID_REFINEMENT);
-
+test("warehouse and HQ carriers respect their shared work-area radius", () => {
   for (const storageKind of ["warehouse", "hq"] as const) {
     const nearWorld = createWorld(2);
     const nearHq = nearWorld.buildings.find((building) => building.id === "hq")!;
@@ -64,8 +61,8 @@ test("warehouse and HQ collection radius is five coarse world tiles", () => {
     const nearSourcePosition = grassAtReachableDistance(
       nearWorld,
       storage.position,
-      CONFIG.warehouseCollectionRadius - 2,
-      CONFIG.warehouseCollectionRadius,
+      Math.max(2, WORK_AREA_RADIUS - 2),
+      WORK_AREA_RADIUS,
     );
     const nearSource = buildAt(nearWorld, nearSourcePosition, "sawmill")!;
     nearSource.output = 1;
@@ -82,8 +79,8 @@ test("warehouse and HQ collection radius is five coarse world tiles", () => {
     const farSourcePosition = grassAtReachableDistance(
       farWorld,
       farStorage.position,
-      CONFIG.warehouseCollectionRadius + 1,
-      CONFIG.warehouseCollectionRadius + 8,
+      Math.ceil(WORK_AREA_RADIUS) + 1,
+      WORK_AREA_RADIUS + 8,
     );
     const farSource = buildAt(farWorld, farSourcePosition, "sawmill")!;
     farSource.output = 1;
