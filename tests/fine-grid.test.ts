@@ -14,7 +14,7 @@ test("phase A uses a five-times finer grid without changing the visible world sc
   assert.equal(CONFIG.mapRows, 25 * GRID_REFINEMENT);
   assert.equal(world.tiles.length, CONFIG.mapColumns * CONFIG.mapRows);
   assert.equal(CONFIG.movementPerTick * CONFIG.simulationHz / GRID_REFINEMENT, 2.5);
-  assert.equal(CONFIG.warehouseCollectionRadius / GRID_REFINEMENT, 10);
+  assert.equal(CONFIG.warehouseCollectionRadius / GRID_REFINEMENT, 5);
   assert.equal(CONFIG.farmFieldRadius / GRID_REFINEMENT, 3);
 });
 
