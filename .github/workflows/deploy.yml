@@ -1,7 +1,7 @@
 name: Test, build and deploy PoC
 on:
   push:
-    branches: [main]
+    branches: [main, work/perf-hunger-resource-flags]
   workflow_dispatch:
 permissions:
   contents: read
@@ -27,6 +27,7 @@ jobs:
         with:
           path: dist
   deploy:
+    if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     environment:
