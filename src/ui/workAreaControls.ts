@@ -38,13 +38,15 @@ export function installWorkAreaControls(world: World): void {
     }
 
     const button = existing ?? document.createElement("button");
+    const isActive = modePersonId === person.id;
+    const label = isActive
+      ? "🚩 Karte antippen · Abbrechen"
+      : `🚩 Arbeitsflagge versetzen · ${WORK_AREA_RADIUS_WORLD_TILES} Kacheln`;
     button.type = "button";
     button.className = "person-open-list";
     button.dataset.workAreaControl = "true";
-    button.setAttribute("aria-pressed", String(modePersonId === person.id));
-    button.textContent = modePersonId === person.id
-      ? "🚩 Karte antippen · Abbrechen"
-      : `🚩 Arbeitsflagge versetzen · ${WORK_AREA_RADIUS_WORLD_TILES} Kacheln`;
+    button.setAttribute("aria-pressed", String(isActive));
+    if (button.textContent !== label) button.textContent = label;
     if (!existing) {
       button.addEventListener("click", () => {
         dispatchMode(modePersonId !== selectedPersonId);
