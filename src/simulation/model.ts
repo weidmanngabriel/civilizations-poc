@@ -85,7 +85,7 @@ export interface NaturalResource {
   kind: NaturalResourceKind;
   position: Hex;
   remaining: number;
-  /** Phase-B compatibility only. New physical extraction writes to loose-good stacks instead. */
+  /** Short-lived extraction output is migrated to physical loose-good stacks after each tick. */
   output: number;
   depleted?: boolean;
 }
@@ -99,8 +99,11 @@ export interface LooseGoodStack {
   reserved: number;
 }
 export interface Trip {
-  source: BuildingId | NaturalResourceId;
-  sourceKind?: "resource";
+  source: BuildingId | NaturalResourceId | LooseGoodStackId;
+  /** Building is the default source kind for compatibility with existing trips. */
+  sourceKind?: "resource" | "looseGood";
+  /** Stable physical pickup position, especially important after a ground stack is exhausted. */
+  sourcePosition?: Hex;
   target: BuildingId;
   good: Good;
   picked: boolean;
@@ -169,7 +172,7 @@ export interface World {
   nextId: number;
   nextBuildingId: number;
   nextFieldId: number;
-  /** Phase-B loose-good ids are initialized lazily for compatibility with older fixtures. */
+  /** Loose-good ids are initialized lazily for compatibility with older fixtures. */
   nextLooseGoodId?: number;
   rngState: number;
   nextBushRegrowTick?: number;
