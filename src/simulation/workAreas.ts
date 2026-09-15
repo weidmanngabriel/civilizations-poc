@@ -11,7 +11,7 @@ import { findPath, pathTravelCost, same } from "./hex";
 import { CONFIG } from "./scenario";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 
-export const WORK_AREA_RADIUS_WORLD_TILES = 5;
+export const WORK_AREA_RADIUS_WORLD_TILES = 2.5;
 export const WORK_AREA_RADIUS = WORK_AREA_RADIUS_WORLD_TILES * GRID_REFINEMENT;
 
 const ALL_GOODS: Good[] = [
