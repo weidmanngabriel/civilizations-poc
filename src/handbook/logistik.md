@@ -10,17 +10,17 @@ Fertiges Holz liegt anschließend **sichtbar als Warenhaufen auf dem Boden** in 
 
 Lehmvorkommen findest du in Flussnähe, Steinvorkommen in Bergnähe. Lehm bleibt begehbar; Stein blockiert den direkten Durchgang. Bewohner benutzen blockierende Rohstoffstellen von einem freien Feld daneben.
 
-Holzfäller, Lehmgräber und Steinbrecher werden am HQ zugewiesen. Jeder besitzt eine **Arbeitsflagge** und arbeitet nur an passenden freien Rohstoffstellen in deren Bereich. Ist dort nichts mehr verfügbar, wartet er, bis du die Flagge in ein neues Gebiet versetzt. Pro Rohstoffstelle arbeitet höchstens eine Person.
+Holzfäller, Lehmgräber und Steinbrecher werden am HQ zugewiesen. Jeder besitzt eine **rote Arbeitsflagge** und arbeitet nur an passenden freien Rohstoffstellen in deren Bereich. Ist dort nichts mehr verfügbar, wartet er, bis du die Flagge in ein neues Gebiet versetzt. Pro Rohstoffstelle arbeitet höchstens eine Person.
 
 Abgebauter Lehm und Bruchstein liegen ebenfalls sichtbar als begehbare Warenhaufen auf dem Boden und bleiben nach Erschöpfung des Vorkommens liegen.
 
 ## Arbeitsflaggen
 
-Holzfäller, Lehmgräber, Steinbrecher sowie **Lager- und HQ-Träger** besitzen einen lokalen Arbeitsbereich rund um ihre persönliche Flagge.
+Holzfäller, Lehmgräber, Steinbrecher sowie **Lager- und HQ-Träger** besitzen einen lokalen Arbeitsbereich rund um ihre persönliche Flagge. Die Flaggen der Abbauer sind rot.
 
 Neue Abbauer erhalten ihre Flagge zunächst am ersten gewählten Vorkommen; Lager-/HQ-Träger an ihrem Lagergebäude. Wähle die Person aus und nutze **„Arbeitsflagge versetzen“**, um den Bereich zu ändern. Ein kurzer Klick oder Tap setzt den neuen Mittelpunkt. Ziehen verschiebt weiterhin die Karte.
 
-Die Person sucht nur innerhalb dieses Bereichs neue Rohstoff- oder Abholziele. Die Flagge wandert nicht automatisch mit. Bereits aufgenommene Ware wird nach dem Versetzen noch zum Ziel gebracht.
+Die Person sucht nur innerhalb dieses Bereichs neue Rohstoff- oder Abholziele. **Abbauer versetzen ihre Flagge niemals selbst.** Ist der Bereich leer, warten sie auf eine neue Position durch dich. Bereits aufgenommene Ware wird nach dem Versetzen noch zum Ziel gebracht.
 
 Zwei Träger desselben Lagers können unterschiedliche Flaggen besitzen und dadurch verschiedene Bereiche abdecken.
 
