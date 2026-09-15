@@ -214,7 +214,10 @@ Implemented in the current cleanup slices:
 - normal carrier collection continues to exclude storage-to-storage transfer,
 - configured merchant routes are explicitly independent from the local storage collection radius,
 - construction-material pickup is explicitly independent from the local storage collection radius,
-- regression coverage locks these logistics semantics across warehouse, HQ, merchant and builder flows.
+- regression coverage locks these logistics semantics across warehouse, HQ, merchant and builder flows,
+- natural-resource depletion retirement is event-driven on actual extraction instead of scanning every resource on every 60-Hz simulation tick,
+- the full depleted-resource scan is retained only as a one-second consistency fallback,
+- performance diagnostics split work planning into resource cleanup, waiting profession pools and per-person decisions instead of one residual `planning` bucket.
 
 Still review at minimum:
 

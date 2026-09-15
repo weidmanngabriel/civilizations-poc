@@ -734,10 +734,14 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): boolean
   return true;
 }
 
-function retireDepletedResources(w: World): void {
-  for (const resource of w.naturalResources.filter(
+function retireDepletedResources(
+  w: World,
+  resources: readonly NaturalResource[] = w.naturalResources.filter(
     (candidate) => !candidate.depleted && candidate.remaining === 0,
-  )) {
+  ),
+): void {
+  for (const resource of resources) {
+    if (resource.depleted || resource.remaining !== 0) continue;
     resource.depleted = true;
     const tile = tileAt(w, resource.position);
     if (resource.kind === "forest") tile.terrain = "grass";
@@ -1007,7 +1011,11 @@ function movePeople(w: World): boolean {
   return roadCreated;
 }
 
-function advanceNaturalResourceExtraction(w: World, immediateDecisionPeople: Set<number>): void {
+function advanceNaturalResourceExtraction(
+  w: World,
+  immediateDecisionPeople: Set<number>,
+): NaturalResource[] {
+  const depletedResources: NaturalResource[] = [];
   for (const p of w.people) {
     if (!p.resourceTarget || !p.active || p.trip || p.path.length || p.farmTask || p.hungerState || p.sleepState)
       continue;
@@ -1026,10 +1034,12 @@ function advanceNaturalResourceExtraction(w: World, immediateDecisionPeople: Set
     if (p.progress >= CONFIG.duration) {
       resource.output += 1;
       resource.remaining--;
+      if (resource.remaining === 0) depletedResources.push(resource);
       p.progress = 0;
       immediateDecisionPeople.add(p.id);
     }
   }
+  return depletedResources;
 }
 
 function advanceConstruction(w: World): void {
@@ -1148,8 +1158,9 @@ export function tick(w: World): void {
   );
   for (const id of farmImmediate) immediateDecisionPeople.add(id);
 
+  let newlyDepletedResources: NaturalResource[] = [];
   measureFeature("production", () => {
-    advanceNaturalResourceExtraction(w, immediateDecisionPeople);
+    newlyDepletedResources = advanceNaturalResourceExtraction(w, immediateDecisionPeople);
     for (const p of w.people) {
       if (!p.assignment || !p.active || p.trip || p.path.length || p.farmTask) continue;
       const b = building(w, p.assignment.building);
@@ -1182,14 +1193,19 @@ export function tick(w: World): void {
     }
   });
 
-  measureFeature("planning", () => {
-    retireDepletedResources(w);
-    if (regularDecisionTick) {
+  if (newlyDepletedResources.length || regularDecisionTick)
+    measureFeature("planningResourceCleanup", () =>
+      retireDepletedResources(
+        w,
+        newlyDepletedResources.length ? newlyDepletedResources : undefined,
+      ),
+    );
+  if (regularDecisionTick)
+    measureFeature("planningIdlePools", () => {
       assignWaitingWoodcutters(w, w.round === 1);
       assignWaitingExtractors(w);
       assignWaitingBuilders(w);
-    }
-  });
+    });
 
   if (!regularDecisionTick && immediateDecisionPeople.size === 0) return;
 
@@ -1273,7 +1289,7 @@ export function tick(w: World): void {
   if (decisionFarmMs > 0)
     performanceProfiler.recordFeature("farm", decisionFarmMs);
   performanceProfiler.recordFeature(
-    "planning",
+    "planningDecisions",
     Math.max(0, decisionTotalMs - decisionTransportMs - decisionFarmMs),
   );
 }
