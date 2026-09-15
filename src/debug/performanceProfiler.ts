@@ -11,7 +11,9 @@ export type PerformanceFeature =
   | "construction"
   | "farm"
   | "production"
-  | "planning"
+  | "planningResourceCleanup"
+  | "planningIdlePools"
+  | "planningDecisions"
   | "renderWorld"
   | "overlayHunger"
   | "overlayBush";
@@ -87,7 +89,9 @@ export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
   "construction",
   "farm",
   "production",
-  "planning",
+  "planningResourceCleanup",
+  "planningIdlePools",
+  "planningDecisions",
   "renderWorld",
   "overlayHunger",
   "overlayBush",
@@ -113,7 +117,9 @@ const SIMULATION_FEATURES = new Set<PerformanceFeature>([
   "construction",
   "farm",
   "production",
-  "planning",
+  "planningResourceCleanup",
+  "planningIdlePools",
+  "planningDecisions",
 ]);
 
 const HISTORY_MS = 30_000;
