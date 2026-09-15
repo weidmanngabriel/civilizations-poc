@@ -13,7 +13,7 @@ import type {
   World,
 } from "./model";
 import { CONFIG } from "./scenario";
-import { findPath } from "./hex";
+import { findPath, key, tileIndex } from "./hex";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import {
   availableLooseGoodAmount,
@@ -68,6 +68,17 @@ const isGroundProxy = (resource: NaturalResource): boolean =>
   resource.depleted === true && resource.id.startsWith(GROUND_PROXY_PREFIX);
 const isRealForest = (resource: NaturalResource): boolean =>
   resource.kind === "forest" && !isGroundProxy(resource);
+
+function syncResourceBlocking(world: World): void {
+  for (const tile of world.tiles) tile.resourceBlocking = undefined;
+  const tiles = tileIndex(world.tiles);
+  for (const resource of world.naturalResources) {
+    if (resource.depleted || isGroundProxy(resource)) continue;
+    if (resource.kind !== "forest" && resource.kind !== "stone") continue;
+    const tile = tiles.get(key(resource.position));
+    if (tile) tile.resourceBlocking = true;
+  }
+}
 
 const activeGroundTripIds = (world: World): Set<string> =>
   new Set(
@@ -217,6 +228,7 @@ function migrateForestOutputToGround(world: World): void {
 }
 
 function preparePhysicalWoodTick(world: World): void {
+  syncResourceBlocking(world);
   syncStacksFromGroundProxies(world);
   cleanupIdleGroundProxies(world);
   migrateForestOutputToGround(world);
@@ -230,6 +242,7 @@ function finishPhysicalWoodTick(world: World): void {
   syncGroundReservations(world);
   ensureGroundProxies(world);
   cleanupIdleGroundProxies(world);
+  syncResourceBlocking(world);
 }
 
 function advanceBuilderActionProgress(person: Person): void {
