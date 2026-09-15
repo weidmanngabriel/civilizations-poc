@@ -23,20 +23,33 @@ const addBreadWarehouse = (world: World, bread = 1): Building => {
   return warehouse;
 };
 
-test("hunger decays at idle, walking and active-work rates", () => {
+test("hunger decays at idle, walking and active-work rates in one-second steps", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
 
-  for (let i = 0; i < 4 * 60; i += 1) advanceHungerTick(world);
+  for (let i = 0; i < 4; i += 1) advanceHungerTick(world);
   assert.equal(person.hunger, 99);
 
   person.path = [{ q: person.position.q + 1, r: person.position.r }];
-  for (let i = 0; i < 2 * 60; i += 1) advanceHungerTick(world);
+  for (let i = 0; i < 2; i += 1) advanceHungerTick(world);
   assert.equal(person.hunger, 98);
 
   person.trip = { source: "a", target: "b", good: "wood", picked: true };
-  for (let i = 0; i < 60; i += 1) advanceHungerTick(world);
+  advanceHungerTick(world);
   assert.equal(person.hunger, 97);
+});
+
+test("normal simulation checks hunger only once per second", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  person.hunger = 20;
+  addBreadWarehouse(world);
+
+  for (let i = 0; i < CONFIG.simulationHz - 1; i += 1) tick(world);
+  assert.equal(person.hungerState, undefined);
+
+  tick(world);
+  assert.ok(person.hungerState);
 });
 
 test("a hungry person finishes current work before eating at 40", () => {
@@ -169,12 +182,12 @@ test("light hunger prevents a new task after the current production cycle", () =
   assert.equal(person.progress, 0);
   assert.equal(person.trip, undefined);
 
-  tick(world);
+  for (let i = 1; i < CONFIG.simulationHz; i += 1) tick(world);
   assert.ok(person.hungerState);
   assert.equal(person.hungerState?.foodSource, warehouse.id);
 });
 
-test("critical hunger pauses immediately and keeps work progress", () => {
+test("critical hunger pauses at the next one-second check and keeps work progress", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
   const warehouse = addBreadWarehouse(world);
