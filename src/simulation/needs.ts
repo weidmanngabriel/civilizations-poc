@@ -1,6 +1,18 @@
-import type { Building, BuildingId, Good, Hex, HungerState, NaturalResource, NaturalResourceId, Person, Tile, World } from "./model";
+import type {
+  Building,
+  BuildingId,
+  Good,
+  Hex,
+  HungerState,
+  NaturalResource,
+  NaturalResourceId,
+  Person,
+  Tile,
+  World,
+} from "./model";
 import { findPath, findPathBySteps, pathTravelCost, same } from "./hex";
 import { CONFIG } from "./scenario";
+import { hexDistance } from "./spatial";
 import {
   performanceNow,
   performanceProfiler,
@@ -15,7 +27,19 @@ const HUNGER_MAX = 100;
 const BREAD_FOOD_VALUE = 100;
 const ACCUMULATOR_EPSILON = 1e-9;
 const HQ_STORAGE_PROXY_ID = "hq-storage-proxy";
-const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "wheat", "flour", "water", "bread", "clay", "rubble", "brick", "stoneBlock"];
+const ALL_GOODS: Good[] = [
+  "wood",
+  "plank",
+  "woodenTool",
+  "wheat",
+  "flour",
+  "water",
+  "bread",
+  "clay",
+  "rubble",
+  "brick",
+  "stoneBlock",
+];
 
 type BreadCandidate = {
   kind: "bread";
@@ -32,6 +56,9 @@ type BushCandidate = {
 };
 
 type FoodCandidate = BreadCandidate | BushCandidate;
+type FoodSource =
+  | { kind: "bread"; source: Building; target: Hex; lowerBound: number }
+  | { kind: "bush"; tile: Tile; target: Hex; lowerBound: number };
 type SelectedFoodTarget =
   | { kind: "bread"; source: Building }
   | { kind: "bush"; tile: Tile };
@@ -84,9 +111,10 @@ const secondsPerHungerPoint = (person: Person): number => {
   return 4;
 };
 
+/** Hunger is intentionally sampled once per simulated second. */
 const decayHunger = (person: Person): void => {
   hungerValue(person);
-  person.hungerAccumulator! += 1 / (secondsPerHungerPoint(person) * SIMULATION_HZ);
+  person.hungerAccumulator! += 1 / secondsPerHungerPoint(person);
   while (person.hungerAccumulator! + ACCUMULATOR_EPSILON >= 1 && person.hunger! > 0) {
     person.hungerAccumulator = Math.max(0, person.hungerAccumulator! - 1);
     person.hunger!--;
@@ -103,53 +131,65 @@ const routeTo = (
     findPath(world.tiles, person.position, target, ROAD_SPEED_MULTIPLIER),
   ) ?? undefined;
 
-const foodCandidates = (world: World, person: Person): FoodCandidate[] => {
-  const bread: BreadCandidate[] = world.buildings
-    .filter(
-      (source) =>
-        breadStock(source) - reservedBread(world, source.id, person.id) >= 1,
-    )
-    .map((source) => {
-      const path = routeTo(world, person, source.position);
-      if (!path) return undefined;
-      return {
-        kind: "bread" as const,
-        source,
-        path,
-        cost: pathTravelCost(world.tiles, path, ROAD_SPEED_MULTIPLIER),
-      };
-    })
-    .filter((candidate): candidate is BreadCandidate => Boolean(candidate));
+const sourceTie = (source: FoodSource): string =>
+  source.kind === "bread"
+    ? `0:${source.source.id}`
+    : `1:${String(source.tile.r).padStart(5, "0")}:${String(source.tile.q).padStart(5, "0")}`;
 
-  const bushes: BushCandidate[] = world.tiles
-    .filter(
-      (tile) =>
-        tile.terrain === "grass" &&
-        tile.bush &&
-        tile.bushAvailable &&
-        !reservedBush(world, tile, person.id),
-    )
-    .map((tile) => {
-      const path = routeTo(world, person, tile);
-      if (!path) return undefined;
-      return {
-        kind: "bush" as const,
-        tile,
-        path,
-        cost: pathTravelCost(world.tiles, path, ROAD_SPEED_MULTIPLIER),
-      };
-    })
-    .filter((candidate): candidate is BushCandidate => Boolean(candidate));
+const foodCandidate = (world: World, person: Person): FoodCandidate | undefined => {
+  const sources: FoodSource[] = [];
+  for (const source of world.buildings) {
+    if (breadStock(source) - reservedBread(world, source.id, person.id) < 1) continue;
+    sources.push({
+      kind: "bread",
+      source,
+      target: source.position,
+      lowerBound: hexDistance(person.position, source.position) / ROAD_SPEED_MULTIPLIER,
+    });
+  }
+  for (const tile of world.tiles) {
+    if (
+      tile.terrain !== "grass" ||
+      !tile.bush ||
+      !tile.bushAvailable ||
+      reservedBush(world, tile, person.id)
+    ) continue;
+    sources.push({
+      kind: "bush",
+      tile,
+      target: tile,
+      lowerBound: hexDistance(person.position, tile) / ROAD_SPEED_MULTIPLIER,
+    });
+  }
 
-  return [...bread, ...bushes].sort((a, b) => {
-    if (Math.abs(a.cost - b.cost) > 1e-9) return a.cost - b.cost;
-    if (a.kind !== b.kind) return a.kind === "bread" ? -1 : 1;
-    if (a.kind === "bread" && b.kind === "bread")
-      return a.source.id.localeCompare(b.source.id);
-    if (a.kind === "bush" && b.kind === "bush")
-      return a.tile.r - b.tile.r || a.tile.q - b.tile.q;
-    return 0;
-  });
+  sources.sort(
+    (a, b) => a.lowerBound - b.lowerBound || sourceTie(a).localeCompare(sourceTie(b)),
+  );
+
+  let best: FoodCandidate | undefined;
+  for (const source of sources) {
+    if (best && source.lowerBound > best.cost + ACCUMULATOR_EPSILON) break;
+    const path = routeTo(world, person, source.target);
+    if (!path) continue;
+    const cost = pathTravelCost(world.tiles, path, ROAD_SPEED_MULTIPLIER);
+    const candidate: FoodCandidate = source.kind === "bread"
+      ? { kind: "bread", source: source.source, path, cost }
+      : { kind: "bush", tile: source.tile, path, cost };
+    if (
+      !best ||
+      cost < best.cost - ACCUMULATOR_EPSILON ||
+      (Math.abs(cost - best.cost) <= ACCUMULATOR_EPSILON &&
+        (candidate.kind === "bread" && best.kind === "bush")) ||
+      (Math.abs(cost - best.cost) <= ACCUMULATOR_EPSILON &&
+        candidate.kind === best.kind &&
+        (candidate.kind === "bread"
+          ? candidate.source.id.localeCompare((best as BreadCandidate).source.id) < 0
+          : candidate.tile.r < (best as BushCandidate).tile.r ||
+            (candidate.tile.r === (best as BushCandidate).tile.r &&
+              candidate.tile.q < (best as BushCandidate).tile.q)))
+    ) best = candidate;
+  }
+  return best;
 };
 
 const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
@@ -163,8 +203,7 @@ const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
   if (person.resourceTarget)
     return world.naturalResources.find((resource) => resource.id === person.resourceTarget)?.position;
   if (person.assignment)
-    return world.buildings.find((building) => building.id === person.assignment!.building)
-      ?.position;
+    return world.buildings.find((building) => building.id === person.assignment!.building)?.position;
   return world.buildings.find((building) => building.id === "hq")?.position;
 };
 
@@ -210,8 +249,7 @@ const nextRandom = (world: World): number => {
 const consumeBush = (world: World, person: Person, tile: Tile): void => {
   tile.bushAvailable = false;
   const span = CONFIG.bushRegrowMaxTicks - CONFIG.bushRegrowMinTicks;
-  const regrowTick =
-    world.round + CONFIG.bushRegrowMinTicks + (nextRandom(world) % (span + 1));
+  const regrowTick = world.round + CONFIG.bushRegrowMinTicks + (nextRandom(world) % (span + 1));
   tile.bushRegrowTick = regrowTick;
   world.nextBushRegrowTick = Math.min(world.nextBushRegrowTick ?? regrowTick, regrowTick);
   person.hunger = (person.hunger ?? HUNGER_MAX) + CONFIG.bushFoodValue;
@@ -223,17 +261,13 @@ const useCandidate = (world: World, person: Person, candidate: FoodCandidate): v
     if (same(person.position, candidate.source.position)) {
       person.path = [];
       consumeBread(world, person, candidate.source);
-    } else {
-      person.path = candidate.path;
-    }
+    } else person.path = candidate.path;
     return;
   }
   if (same(person.position, candidate.tile)) {
     person.path = [];
     consumeBush(world, person, candidate.tile);
-  } else {
-    person.path = candidate.path;
-  }
+  } else person.path = candidate.path;
 };
 
 const assignFoodCandidate = (
@@ -257,29 +291,21 @@ const assignFoodCandidate = (
 };
 
 const startEating = (world: World, person: Person): boolean => {
-  const candidate = foodCandidates(world, person)[0];
-  person.hungerState = {
-    resumeActive: person.active,
-  };
+  const candidate = foodCandidate(world, person);
+  person.hungerState = { resumeActive: person.active };
   person.active = false;
   person.movement = 0;
   return assignFoodCandidate(world, person, person.hungerState, candidate);
 };
 
 const atTaskBoundary = (person: Person): boolean =>
-  person.progress === 0 &&
-  !person.farmTask &&
-  !person.trip &&
-  person.path.length === 0;
+  person.progress === 0 && !person.farmTask && !person.trip && person.path.length === 0;
 
 const selectedFoodTarget = (world: World, person: Person): SelectedFoodTarget | undefined => {
   const state = person.hungerState!;
   if (state.foodSource) {
     const source = world.buildings.find((building) => building.id === state.foodSource);
-    if (
-      source &&
-      breadStock(source) - reservedBread(world, source.id, person.id) >= 1
-    )
+    if (source && breadStock(source) - reservedBread(world, source.id, person.id) >= 1)
       return { kind: "bread", source };
   }
   if (state.foodBush) {
@@ -289,14 +315,14 @@ const selectedFoodTarget = (world: World, person: Person): SelectedFoodTarget | 
       tile.bush &&
       tile.bushAvailable &&
       !reservedBush(world, tile, person.id)
-    )
-      return { kind: "bush", tile };
+    ) return { kind: "bush", tile };
   }
   return undefined;
 };
 
 const selectedTargetPosition = (target: SelectedFoodTarget): Hex =>
   target.kind === "bread" ? target.source.position : target.tile;
+
 const consumeSelectedTarget = (
   world: World,
   person: Person,
@@ -308,9 +334,6 @@ const consumeSelectedTarget = (
 
 const ensureFoodRoute = (world: World, person: Person): void => {
   const state = person.hungerState!;
-
-  // While travelling, trust the selected target and route. Source validity is checked
-  // only once the route has ended, normally at arrival.
   if (person.path.length > 0) {
     person.active = false;
     return;
@@ -323,7 +346,6 @@ const ensureFoodRoute = (world: World, person: Person): void => {
       consumeSelectedTarget(world, person, target);
       return;
     }
-
     const path = routeTo(world, person, targetPosition);
     if (path) {
       person.path = path;
@@ -331,7 +353,6 @@ const ensureFoodRoute = (world: World, person: Person): void => {
       person.active = false;
       return;
     }
-
     state.foodSource = undefined;
     state.foodBush = undefined;
   }
@@ -340,14 +361,12 @@ const ensureFoodRoute = (world: World, person: Person): void => {
     person.active = false;
     return;
   }
-
-  assignFoodCandidate(world, person, state, foodCandidates(world, person)[0]);
+  assignFoodCandidate(world, person, state, foodCandidate(world, person));
 };
 
 const cleanupAndRegrowBushes = (world: World): void => {
   const cleanupDue = world.round % CONFIG.decisionIntervalTicks === 0;
-  const regrowDue =
-    world.nextBushRegrowTick !== undefined && world.round >= world.nextBushRegrowTick;
+  const regrowDue = world.nextBushRegrowTick !== undefined && world.round >= world.nextBushRegrowTick;
   if (!cleanupDue && !regrowDue) return;
 
   let nextRegrowTick: number | undefined;
@@ -411,9 +430,6 @@ const ensureHqStorageProxy = (world: World, hq: Building): Building => {
       carriers: 0,
       merchants: 0,
       input: 0,
-      // The generic production-supply planner ignores retired outputless sources before
-      // reading warehouse inventory. A one-unit internal sentinel keeps this hidden
-      // adapter eligible while actual stock still comes exclusively from `inventory`.
       output: CONFIG.carryCapacity,
       inventory: hq.inventory,
       retired: true,
@@ -440,8 +456,7 @@ const planHqCarrier = (world: World, person: Person, hq: Building): void => {
         source.kind === "hq" ||
         (source.retired && sourceStock(source, good) < CONFIG.carryCapacity) ||
         sourceStock(source, good) - reservedAtSource(world, source.id, good) < CONFIG.carryCapacity
-      )
-        continue;
+      ) continue;
       const rangePath = performanceProfiler.withPathReason("logistics", () =>
         findPathBySteps(world.tiles, hq.position, source.position),
       );
@@ -496,32 +511,27 @@ const advanceHqWarehouseCarrier = (world: World): void => {
   if (!hq) return;
   hq.inventory ??= {};
   ensureHqStorageProxy(world, hq);
-
-  if (world.round % CONFIG.decisionIntervalTicks !== 0) return;
   for (const person of world.people.filter(
     (candidate) =>
       candidate.assignment?.building === hq.id && candidate.assignment.role === "carrier",
-  ))
-    planHqCarrier(world, person, hq);
+  )) planHqCarrier(world, person, hq);
 };
 
+/** One one-second needs update. Movement and the rest of the simulation stay at 60 Hz. */
 export function advanceHungerTick(world: World): void {
   const hungerStarted = performanceNow();
   cleanupAndRegrowBushes(world);
 
   for (const person of world.people) {
     decayHunger(person);
-
     if (person.hungerState) {
       ensureFoodRoute(world, person);
       continue;
     }
-
     if (person.hunger! <= CRITICAL_HUNGER_THRESHOLD) {
       startEating(world, person);
       continue;
     }
-
     if (person.hunger! <= WANTS_TO_EAT_THRESHOLD && atTaskBoundary(person))
       startEating(world, person);
   }
@@ -535,13 +545,14 @@ export function advanceHungerTick(world: World): void {
 export function attachNeeds(world: World): World {
   return new Proxy(world, {
     set(target, property, value, receiver) {
-      if (
+      const oneTickAdvance =
         property === "round" &&
         typeof value === "number" &&
-        value === target.round + 1
-      )
+        value === target.round + 1;
+      const changed = Reflect.set(target, property, value, receiver);
+      if (changed && oneTickAdvance && value % SIMULATION_HZ === 0)
         advanceHungerTick(receiver as World);
-      return Reflect.set(target, property, value, receiver);
+      return changed;
     },
   });
 }
