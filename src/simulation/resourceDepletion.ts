@@ -1,7 +1,7 @@
 import type { NaturalResource, Person, World } from "./model";
 import { CONFIG } from "./scenario";
 import { extractionSpeedMultiplier } from "./experience";
-import { key, tileIndex } from "./hex";
+import { key, same, tileIndex } from "./hex";
 
 type DeferredResourceDepletion = {
   resource: NaturalResource;
@@ -9,11 +9,6 @@ type DeferredResourceDepletion = {
 };
 
 const resourceIndexCache = new WeakMap<World, Map<string, NaturalResource>>();
-
-const samePosition = (
-  a: { q: number; r: number },
-  b: { q: number; r: number },
-): boolean => a.q === b.q && a.r === b.r;
 
 const resourceProfession = (
   resource: NaturalResource,
@@ -64,7 +59,7 @@ export function deferLocalResourceDepletion(
       !resource ||
       resource.depleted ||
       resource.remaining !== 1 ||
-      !samePosition(person.position, resource.position) ||
+      !same(person.position, resource.position) ||
       person.progress + extractionSpeedMultiplier(person, resourceProfession(resource)) <
         CONFIG.duration
     ) continue;
