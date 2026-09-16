@@ -84,6 +84,9 @@ export function mountGameMenu(world: World, renderMap: () => void): void {
   };
 
   const worldReplaced = (reason: "new" | "load"): void => {
+    document
+      .querySelector<HTMLButtonElement>('#selection-panel button[data-action="close"]')
+      ?.click();
     window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
     window.dispatchEvent(new CustomEvent(WORLD_REPLACED_EVENT, { detail: { reason } }));
     renderMap();
@@ -130,6 +133,12 @@ export function mountGameMenu(world: World, renderMap: () => void): void {
     }
   });
 
+  document.querySelector<HTMLButtonElement>("#build-menu-toggle")?.addEventListener("click", () => {
+    if (!panel.hidden) setOpen(false);
+  });
+  document.querySelector<HTMLButtonElement>("#handbook-toggle")?.addEventListener("click", () => {
+    if (!panel.hidden) setOpen(false);
+  });
   window.addEventListener(BUILD_MODE_EVENT, () => setOpen(false));
   window.addEventListener(MERCHANT_TARGET_MODE_EVENT, () => setOpen(false));
   document.addEventListener("keydown", (event) => {
