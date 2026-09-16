@@ -350,7 +350,7 @@ document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((button) => 
 
 importButton.addEventListener("click", () => importInput.click());
 importInput.addEventListener("change", () => {
-  if (importInput.files?.length) void importFiles([...importInput.files]);
+  if (importInput.files?.length) void importFiles(Array.from(importInput.files));
 });
 dropzone.addEventListener("click", () => spriteInput.click());
 spriteInput.addEventListener("change", () => {
@@ -370,7 +370,7 @@ for (const eventName of ["dragleave", "drop"]) {
   });
 }
 dropzone.addEventListener("drop", (event) => {
-  const files = [...(event.dataTransfer?.files ?? [])];
+  const files = Array.from(event.dataTransfer?.files ?? []);
   if (!files.length) return;
   if (files.some((file) => file.name.toLowerCase().endsWith(".json"))) void importFiles(files);
   else void loadSprite(files[0]!);
