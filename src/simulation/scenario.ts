@@ -18,14 +18,16 @@ import {
   naturalResourceFootprint,
 } from "./naturalResources";
 
+const BASE_MOVEMENT_TILES_PER_SECOND = 2.5 / 3;
+
 export const CONFIG = {
   population: 12,
   simulationHz: 60,
   decisionIntervalTicks: 60,
   duration: 240,
   spatialScale: GRID_REFINEMENT,
-  baseMovementTilesPerSecond: 2.5,
-  movementPerTick: (2.5 * GRID_REFINEMENT) / 60,
+  baseMovementTilesPerSecond: BASE_MOVEMENT_TILES_PER_SECOND,
+  movementPerTick: (BASE_MOVEMENT_TILES_PER_SECOND * GRID_REFINEMENT) / 60,
   roadSpeedMultiplier: 1.3,
   trafficThreshold: 8,
   trafficWindowTicks: 32 * 60,
