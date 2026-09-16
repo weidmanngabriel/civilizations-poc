@@ -18,6 +18,7 @@ const FEATURE_LABELS: Record<PerformanceFeature, string> = {
   hunger: "Hunger / Nahrung",
   sleep: "Schlaf / Schlafplatz",
   movement: "Bewegung",
+  movementArrival: "Bewegung: Ankunft/Reroute",
   transport: "Logistik / Transport",
   construction: "Baustellen",
   farm: "Farm / Felder",

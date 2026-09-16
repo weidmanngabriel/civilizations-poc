@@ -131,7 +131,7 @@ Experience is persistent per person and profession from 0–100. One successfull
 
 Expensive autonomous target selection is event-driven. A person retains selected hunger, sleep or work destinations while travelling and normally re-evaluates at task boundaries. Missing work receives a per-person one-second retry deadline rather than a global re-plan.
 
-Natural-resource depletion retirement is event-driven; there is no periodic full resource-list cleanup scan. Farm physical-obstacle state is built once per farm-system tick, and road resource footprints once per movement tick. Placement anchor enumeration reuses indexed lookups. Further optimization should be driven by `src/debug/performanceProfiler.ts`, not speculative cache layers.
+Natural-resource depletion retirement is event-driven; there is no periodic full resource-list cleanup scan. Farm physical-obstacle state is built once per farm-system tick, and road resource footprints once per movement tick. The movement hot path reuses the cached tile index instead of linearly scanning the full fine-grid tile array for every traversed micro-cell; arrival/reroute bookkeeping is profiled separately from traversal. Placement anchor enumeration reuses indexed lookups. Further optimization should be driven by `src/debug/performanceProfiler.ts`, not speculative cache layers.
 
 ## Rendering and interaction
 
