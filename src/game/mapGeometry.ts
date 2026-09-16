@@ -3,6 +3,8 @@ import { key, tileIndex } from "../simulation/hex";
 import {
   HEX_X,
   HEX_Y,
+  MAP_ORIGIN_X,
+  MAP_ORIGIN_Y,
   pixel,
 } from "./mapProjection";
 
@@ -25,8 +27,8 @@ export function nearestTileAtWorldPoint(
   worldX: number,
   worldY: number,
 ): Tile | undefined {
-  const rFloat = (worldY - 34) / HEX_Y;
-  const qFloat = (worldX - 34) / HEX_X - rFloat / 2;
+  const rFloat = (worldY - MAP_ORIGIN_Y) / HEX_Y;
+  const qFloat = (worldX - MAP_ORIGIN_X) / HEX_X - rFloat / 2;
   const qBase = Math.round(qFloat);
   const rBase = Math.round(rFloat);
   const index = tileIndex(tiles);
