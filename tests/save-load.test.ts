@@ -8,7 +8,9 @@ import {
   serializeSaveGame,
 } from "../src/simulation/saveGame";
 
-test("save/load roundtrip preserves the complete authoritative world state", () => {
+const jsonState = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+test("save/load roundtrip preserves the complete authoritative JSON world state", () => {
   const world = createDefaultGameWorld();
   const person = world.people[0]!;
   const target = world.buildings.find((building) => building.id === "hq")!;
@@ -30,7 +32,7 @@ test("save/load roundtrip preserves the complete authoritative world state", () 
   const json = serializeSaveGame(world, new Date("2026-09-16T04:46:00.000Z"));
   const loaded = deserializeSaveGame(json);
 
-  assert.deepEqual(loaded, world);
+  assert.deepEqual(loaded, jsonState(world));
 });
 
 test("save format exposes readable string ids and current activities", () => {
@@ -47,7 +49,7 @@ test("save format exposes readable string ids and current activities", () => {
   assert.match(save.world.tiles[0]!.id, /^tile--?\d+--?\d+$/);
 });
 
-test("replaceWorldState keeps the shared world object but replaces its snapshot", () => {
+test("replaceWorldState keeps the shared world object but replaces its JSON snapshot", () => {
   const target = createDefaultGameWorld();
   const source = createDefaultGameWorld();
   const sameReference = target;
@@ -59,7 +61,7 @@ test("replaceWorldState keeps the shared world object but replaces its snapshot"
   replaceWorldState(target, source);
 
   assert.equal(target, sameReference);
-  assert.deepEqual(target, source);
+  assert.deepEqual(target, jsonState(source));
   source.people[0]!.experience!.baker = 1;
   assert.equal(target.people[0]!.experience!.baker, 42);
 });
