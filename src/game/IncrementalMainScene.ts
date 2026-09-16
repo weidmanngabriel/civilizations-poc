@@ -15,6 +15,7 @@ const TEXT_RESOLUTION = 3;
 const PERSON_TEXT_RESOLUTION = 4;
 const PERSON_NAME_SCALE = 0.34;
 const PERSON_DETAIL_SCALE = 0.28;
+const CARGO_SCALE = 0.28;
 
 const terrainCodes: Record<Tile["terrain"], number> = {
   grass: 1,
@@ -63,11 +64,13 @@ type PersonMarkerObjects = {
  * Phaser display tree on every presentation frame.
  */
 export class IncrementalMainScene extends MainScene {
+  private bushGraphics?: Phaser.GameObjects.Graphics;
   private inventoryGraphics?: Phaser.GameObjects.Graphics;
   private inventoryLabels?: Phaser.GameObjects.Container;
   private personLayer?: Phaser.GameObjects.Container;
   private personMarkers = new Map<number, PersonMarkerObjects>();
   private lastMapSignature = "";
+  private lastBushSignature = "";
   private lastInventorySignature = "";
   private lastModalSignature = "";
 
@@ -84,10 +87,11 @@ export class IncrementalMainScene extends MainScene {
     if (!markers) return false;
     if (this.inventoryGraphics) return true;
 
+    this.bushGraphics = this.add.graphics();
     this.inventoryGraphics = this.add.graphics();
     this.inventoryLabels = this.add.container(0, 0);
     this.personLayer = this.add.container(0, 0);
-    markers.add([this.inventoryGraphics, this.inventoryLabels, this.personLayer]);
+    markers.add([this.bushGraphics, this.inventoryGraphics, this.inventoryLabels, this.personLayer]);
     return true;
   }
 
@@ -125,6 +129,13 @@ export class IncrementalMainScene extends MainScene {
     ].join("#");
   }
 
+  private bushSignature(): string {
+    return this.worldRef.tiles
+      .filter((tile) => tile.bush)
+      .map((tile) => `${tile.q},${tile.r}:${tile.terrain}:${tile.bushAvailable === false ? 0 : 1}`)
+      .join("|");
+  }
+
   private inventorySignature(): string {
     const buildings = this.worldRef.buildings
       .filter(
@@ -150,6 +161,23 @@ export class IncrementalMainScene extends MainScene {
       internals.buildHover ? `${internals.buildHover.q},${internals.buildHover.r}` : "",
       mapSignature,
     ].join("#");
+  }
+
+  private drawBushMarkers(): void {
+    if (!this.bushGraphics) return;
+    const g = this.bushGraphics;
+    g.clear();
+    for (const tile of this.worldRef.tiles) {
+      if (!tile.bush || tile.bushAvailable === false || tile.terrain !== "grass") continue;
+      const { x, y } = pixel(tile);
+      g.fillStyle(0x355b35, 0.95);
+      g.fillCircle(x - 1.4, y + 0.5, 1.6);
+      g.fillCircle(x + 1.2, y + 0.5, 1.5);
+      g.fillCircle(x, y - 0.8, 1.5);
+      g.fillStyle(0x9d3f4b, 0.95);
+      g.fillCircle(x - 0.8, y, 0.45);
+      g.fillCircle(x + 0.9, y + 0.2, 0.45);
+    }
   }
 
   private drawInventoryMarkers(): void {
@@ -247,10 +275,9 @@ export class IncrementalMainScene extends MainScene {
     ).setResolution(PERSON_TEXT_RESOLUTION).setOrigin(0.5, 0).setScale(PERSON_DETAIL_SCALE);
     const cargo = this.add.text(0, 0, "", {
       fontFamily: "system-ui",
-      fontSize: "5px",
+      fontSize: "10px",
       color: "#fff2a3",
-      backgroundColor: "#263c2d",
-    }).setResolution(TEXT_RESOLUTION).setVisible(false);
+    }).setResolution(PERSON_TEXT_RESOLUTION).setOrigin(0.5).setScale(CARGO_SCALE).setVisible(false);
 
     this.personLayer?.add([dot, label, nameLabel, detailLabel, cargo]);
     return { dot, label, nameLabel, detailLabel, cargo };
@@ -293,7 +320,10 @@ export class IncrementalMainScene extends MainScene {
       marker.detailLabel.setPosition(x, groundY + 4.6);
 
       if (person.trip?.picked) {
-        marker.cargo.setPosition(x + PERSON_MARKER_RADIUS, y - PERSON_MARKER_RADIUS - 2);
+        marker.cargo.setPosition(
+          x + PERSON_MARKER_RADIUS * 0.72,
+          y - PERSON_MARKER_RADIUS * 0.72,
+        );
         const cargoLabel = GOOD_ICONS[person.trip.good];
         if (marker.cargo.text !== cargoLabel) marker.cargo.setText(cargoLabel);
         marker.cargo.setVisible(true);
@@ -312,6 +342,12 @@ export class IncrementalMainScene extends MainScene {
       internals.drawMap();
       this.lastMapSignature = mapSignature;
       this.lastModalSignature = "";
+    }
+
+    const bushSignature = this.bushSignature();
+    if (bushSignature !== this.lastBushSignature) {
+      this.drawBushMarkers();
+      this.lastBushSignature = bushSignature;
     }
 
     const inventorySignature = this.inventorySignature();
