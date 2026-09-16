@@ -242,6 +242,16 @@ const ensureFoodRoute = (world: World, person: Person): void => {
   assignFoodCandidate(world, person, state, foodCandidate(world, person));
 };
 
+/** Completes eating on the exact movement tick that a selected food source is reached. */
+export function resolveFoodArrivals(world: World): void {
+  for (const person of world.people) {
+    if (!person.hungerState) continue;
+    const target = selectedFoodTarget(world, person);
+    if (!target || !same(person.position, selectedTargetPosition(target))) continue;
+    consumeSelectedTarget(world, person, target);
+  }
+}
+
 const cleanupAndRegrowBushes = (world: World): void => {
   const cleanupDue = world.round % CONFIG.decisionIntervalTicks === 0;
   const regrowDue = world.nextBushRegrowTick !== undefined && world.round >= world.nextBushRegrowTick;
