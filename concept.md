@@ -79,7 +79,7 @@ Der Editor definiert nur das **Aussehen und räumliche Verhalten** eines Gebäud
 
 Produktionsregeln, Waren, Arbeiter, Lagerkapazitäten, Baukosten, Technologie und andere Gameplay-Funktionen sind ausdrücklich nicht Teil des Editors.
 
-Im veröffentlichten Editor werden `building.json` und Sprite heruntergeladen. Bei lokaler Entwicklung kann derselbe Stand direkt nach `src/assets/buildings/<id>/` gespeichert werden. Bestehende Gebäude werden nicht automatisch auf dieses Format migriert; neue Runtime-Integration kann schrittweise erfolgen.
+Im veröffentlichten Editor werden `building.json` und Sprite heruntergeladen. Dieses Dateipaar kann anschließend gemeinsam wieder importiert und vollständig weiterbearbeitet werden; ungültige oder unvollständige Imports überschreiben den aktuellen Editorzustand nicht. Bei lokaler Entwicklung kann derselbe Stand direkt nach `src/assets/buildings/<id>/` gespeichert werden. Bestehende Gebäude werden nicht automatisch auf dieses Format migriert; neue Runtime-Integration kann schrittweise erfolgen.
 
 ## Wege
 

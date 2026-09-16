@@ -42,6 +42,9 @@ app.innerHTML = `
           <div class="field"><label for="building-id">ID</label><input id="building-id" type="text" value="new-building" spellcheck="false" /></div>
           <div class="dropzone" id="dropzone">PNG oder WebP hier hineinziehen<br />oder klicken</div>
           <input id="sprite-input" type="file" accept="image/png,image/webp" hidden />
+          <button class="secondary" id="import-building">Export importieren</button>
+          <input id="import-input" type="file" accept="application/json,image/png,image/webp,.json,.png,.webp" multiple hidden />
+          <p class="help">Zum Import building.json und das zugehörige Sprite gemeinsam auswählen oder zusammen hier hineinziehen.</p>
         </section>
         <section class="panel">
           <h2>Werkzeug</h2>
@@ -72,6 +75,8 @@ const grid = document.querySelector<SVGSVGElement>("#grid")!;
 const canvas = document.querySelector<HTMLDivElement>("#canvas")!;
 const spritePreview = document.querySelector<HTMLImageElement>("#sprite-preview")!;
 const spriteInput = document.querySelector<HTMLInputElement>("#sprite-input")!;
+const importInput = document.querySelector<HTMLInputElement>("#import-input")!;
+const importButton = document.querySelector<HTMLButtonElement>("#import-building")!;
 const dropzone = document.querySelector<HTMLDivElement>("#dropzone")!;
 const idInput = document.querySelector<HTMLInputElement>("#building-id")!;
 const anchorXInput = document.querySelector<HTMLInputElement>("#anchor-x")!;
@@ -89,6 +94,45 @@ let entrance: Hex | undefined;
 
 const cellKey = (cell: Hex): string => `${cell.q},${cell.r}`;
 const hasCell = (map: Map<string, Hex>, cell: Hex): boolean => map.has(cellKey(cell));
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+
+function parseHex(value: unknown): Hex | undefined {
+  if (!isRecord(value) || typeof value.q !== "number" || typeof value.r !== "number") return undefined;
+  if (!Number.isFinite(value.q) || !Number.isFinite(value.r)) return undefined;
+  return { q: value.q, r: value.r };
+}
+
+function parseDefinition(value: unknown): BuildingVisualDefinition {
+  if (!isRecord(value)) throw new Error("building.json enthält kein gültiges Objekt.");
+  if (value.schema !== "civilizations-building-visual" || value.version !== 1)
+    throw new Error("building.json hat ein unbekanntes Schema oder eine nicht unterstützte Version.");
+  if (typeof value.id !== "string" || typeof value.sprite !== "string")
+    throw new Error("building.json enthält keine gültige ID oder Sprite-Datei.");
+  if (!isRecord(value.spriteAnchor) || typeof value.spriteAnchor.x !== "number" || typeof value.spriteAnchor.y !== "number")
+    throw new Error("building.json enthält keinen gültigen Sprite-Anchor.");
+  if (!Array.isArray(value.footprint) || !Array.isArray(value.blocked))
+    throw new Error("building.json enthält keinen gültigen Grundriss.");
+
+  const footprintCells = value.footprint.map(parseHex);
+  const blockedCells = value.blocked.map(parseHex);
+  const entranceCell = parseHex(value.entrance);
+  if (footprintCells.some((cell) => !cell) || blockedCells.some((cell) => !cell) || !entranceCell)
+    throw new Error("building.json enthält ungültige Rasterkoordinaten.");
+
+  const parsed: BuildingVisualDefinition = {
+    schema: "civilizations-building-visual",
+    version: 1,
+    id: value.id,
+    sprite: value.sprite,
+    spriteAnchor: { x: value.spriteAnchor.x, y: value.spriteAnchor.y },
+    footprint: footprintCells as Hex[],
+    blocked: blockedCells as Hex[],
+    entrance: entranceCell,
+  };
+  const definitionErrors = validateBuildingVisualDefinition(parsed);
+  if (definitionErrors.length) throw new Error(definitionErrors.join("\n"));
+  return parsed;
+}
 
 const center = (): { x: number; y: number } => ({
   x: canvas.clientWidth / 2,
@@ -143,9 +187,7 @@ function editCell(cell: Hex): void {
       footprint.delete(key);
       blocked.delete(key);
       if (entrance && cellKey(entrance) === key) entrance = undefined;
-    } else {
-      footprint.set(key, cell);
-    }
+    } else footprint.set(key, cell);
   } else if (currentTool === "blocked") {
     if (!footprint.has(key)) footprint.set(key, cell);
     if (blocked.has(key)) blocked.delete(key);
@@ -180,10 +222,7 @@ function definition(): BuildingVisualDefinition {
     version: 1,
     id: idInput.value.trim(),
     sprite: `sprite.${extension}`,
-    spriteAnchor: {
-      x: Number(anchorXInput.value) || 0,
-      y: Number(anchorYInput.value) || 0,
-    },
+    spriteAnchor: { x: Number(anchorXInput.value) || 0, y: Number(anchorYInput.value) || 0 },
     footprint: [...footprint.values()],
     blocked: [...blocked.values()],
     entrance: entrance ?? { q: Number.NaN, r: Number.NaN },
@@ -203,21 +242,29 @@ function refreshStatus(message?: string): boolean {
   return currentErrors.length === 0;
 }
 
-async function loadSprite(file: File): Promise<void> {
-  if (!new Set(["image/png", "image/webp"]).has(file.type)) {
-    status.classList.add("error");
-    status.textContent = "Nur PNG und WebP werden unterstützt.";
-    return;
-  }
-  spriteFile = file;
-  spriteDataUrl = await new Promise<string>((resolve, reject) => {
+function setError(message: string): void {
+  status.classList.add("error");
+  status.textContent = message;
+}
+
+async function fileToDataUrl(file: File): Promise<string> {
+  return await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+async function loadSprite(file: File, preserveAnchor = false): Promise<void> {
+  if (!new Set(["image/png", "image/webp"]).has(file.type)) {
+    setError("Nur PNG und WebP werden unterstützt.");
+    return;
+  }
+  spriteFile = file;
+  spriteDataUrl = await fileToDataUrl(file);
   spritePreview.onload = () => {
-    if (Number(anchorXInput.value) === 0 && Number(anchorYInput.value) === 0) {
+    if (!preserveAnchor && Number(anchorXInput.value) === 0 && Number(anchorYInput.value) === 0) {
       anchorXInput.value = String(Math.round(spritePreview.naturalWidth / 2));
       anchorYInput.value = String(Math.round(spritePreview.naturalHeight * 0.82));
     }
@@ -227,6 +274,34 @@ async function loadSprite(file: File): Promise<void> {
   spritePreview.hidden = false;
   dropzone.textContent = `${file.name} · ${Math.round(file.size / 1024)} KB`;
   refreshStatus();
+}
+
+async function importFiles(files: File[]): Promise<void> {
+  try {
+    const jsonFile = files.find((file) => file.name.toLowerCase().endsWith(".json"));
+    if (!jsonFile) throw new Error("Zum Import fehlt building.json.");
+    const parsed = parseDefinition(JSON.parse(await jsonFile.text()) as unknown);
+    const imageFile = files.find((file) => file.name === parsed.sprite);
+    if (!imageFile) throw new Error(`Zum Import fehlt das Sprite ${parsed.sprite}.`);
+    if (!new Set(["image/png", "image/webp"]).has(imageFile.type))
+      throw new Error("Das Sprite muss PNG oder WebP sein.");
+
+    idInput.value = parsed.id;
+    anchorXInput.value = String(parsed.spriteAnchor.x);
+    anchorYInput.value = String(parsed.spriteAnchor.y);
+    footprint.clear();
+    blocked.clear();
+    for (const cell of parsed.footprint) footprint.set(cellKey(cell), cell);
+    for (const cell of parsed.blocked) blocked.set(cellKey(cell), cell);
+    entrance = parsed.entrance;
+    await loadSprite(imageFile, true);
+    renderGrid();
+    refreshStatus(`Importiert: ${parsed.id}`);
+  } catch (error) {
+    setError(error instanceof Error ? error.message : "Import fehlgeschlagen.");
+  } finally {
+    importInput.value = "";
+  }
 }
 
 function downloadBlob(blob: Blob, filename: string): void {
@@ -259,8 +334,7 @@ saveProjectButton.addEventListener("click", async () => {
     if (!response.ok || !result.ok) throw new Error(result.error ?? "Speichern fehlgeschlagen");
     refreshStatus(`Gespeichert: ${result.path}`);
   } catch (error) {
-    status.classList.add("error");
-    status.textContent = error instanceof Error ? error.message : "Speichern fehlgeschlagen";
+    setError(error instanceof Error ? error.message : "Speichern fehlgeschlagen");
   } finally {
     saveProjectButton.disabled = false;
   }
@@ -274,6 +348,10 @@ document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((button) => 
   });
 });
 
+importButton.addEventListener("click", () => importInput.click());
+importInput.addEventListener("change", () => {
+  if (importInput.files?.length) void importFiles([...importInput.files]);
+});
 dropzone.addEventListener("click", () => spriteInput.click());
 spriteInput.addEventListener("change", () => {
   const file = spriteInput.files?.[0];
@@ -292,8 +370,10 @@ for (const eventName of ["dragleave", "drop"]) {
   });
 }
 dropzone.addEventListener("drop", (event) => {
-  const file = event.dataTransfer?.files[0];
-  if (file) void loadSprite(file);
+  const files = [...(event.dataTransfer?.files ?? [])];
+  if (!files.length) return;
+  if (files.some((file) => file.name.toLowerCase().endsWith(".json"))) void importFiles(files);
+  else void loadSprite(files[0]!);
 });
 
 idInput.addEventListener("input", () => refreshStatus());

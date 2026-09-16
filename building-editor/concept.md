@@ -13,6 +13,7 @@ Ein neues Gebäude soll ohne Codeänderung räumlich beschrieben werden können:
 5. Zellen innerhalb des Grundrisses als blockiert markieren.
 6. Genau eine begehbare Eingangszelle wählen.
 7. Definition exportieren oder lokal direkt ins Projekt speichern.
+8. Einen früheren Export aus `building.json` plus zugehörigem Sprite wieder vollständig importieren und weiterbearbeiten.
 
 Der Editor definiert **nicht**, was ein Gebäude im Spiel tut. Produktion, Waren, Arbeiter, Baukosten, Technologie und andere Funktionalität bleiben im Hauptspiel.
 
@@ -28,4 +29,6 @@ Der Editor definiert **nicht**, was ein Gebäude im Spiel tut. Produktion, Waren
 
 Desktop ist der Zielmodus. Die Seite darf auf Mobilgeräten geöffnet werden und zeigt dort einen Hinweis, wird aber nicht künstlich gesperrt.
 
-Version 1 soll bewusst klein bleiben: Sprite-Import, Rasterbearbeitung, Anchor, Eingang, Validierung und Export. Gameplay-Editor, Animationen, mehrere Eingänge und komplexe Polygon-Hitboxen sind spätere Entscheidungen.
+Ein Export kann über **Export importieren** geladen werden. Dabei werden `building.json` und das darin referenzierte PNG/WebP gemeinsam ausgewählt. Alternativ können beide Dateien zusammen auf die Sprite-Fläche gezogen werden. Der aktuelle Editorzustand wird nur ersetzt, wenn Schema, Rasterdaten und Sprite vollständig zusammenpassen.
+
+Version 1 soll bewusst klein bleiben: Sprite-Import, Export-Reimport, Rasterbearbeitung, Anchor, Eingang, Validierung und Export. Gameplay-Editor, Animationen, mehrere Eingänge und komplexe Polygon-Hitboxen sind spätere Entscheidungen.
