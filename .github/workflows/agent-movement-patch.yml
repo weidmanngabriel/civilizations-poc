@@ -71,8 +71,15 @@ jobs:
           new_features = '''  "movement",\n  "movementArrival",\n  "transport",'''
           if text.count(old_features) < 2:
               raise SystemExit('profiler feature anchors not found')
-          text = text.replace(old_features, new_features)
-          profiler.write_text(text)
+          profiler.write_text(text.replace(old_features, new_features))
+
+          debug_ui = Path('src/ui/performanceDebug.ts')
+          text = debug_ui.read_text()
+          old_label = '''  movement: "Bewegung",\n  transport: "Transport",'''
+          new_label = '''  movement: "Bewegung",\n  movementArrival: "Bewegung: Ankunft/Reroute",\n  transport: "Transport",'''
+          if old_label not in text:
+              raise SystemExit('performance debug label anchor not found')
+          debug_ui.write_text(text.replace(old_label, new_label, 1))
 
           architecture = Path('architecture.md')
           text = architecture.read_text()
