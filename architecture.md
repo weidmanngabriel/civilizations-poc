@@ -134,6 +134,16 @@ Natural-resource depletion retirement is event-driven; there is no periodic full
 
 Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map/person state; natural resources, loose goods and work-area flags are presentation layers over authoritative state. Camera zoom is 0.7×–10× for mouse-wheel and pinch. Desktop and touch remain first-class input adapters. The iPhone 13 Mini remains the mobile baseline.
 
+## Save/load persistence
+
+`src/simulation/saveGame.ts` serializes a versioned, human-readable JSON snapshot of the complete authoritative `World`. The snapshot includes simulation tick/round, RNG state, ID counters, technologies, profession experience, buildings and construction state, terrain/traffic history, natural resources, loose goods and reservations, people, paths, movement/progress, work areas, needs, sleep state, farm tasks, merchant routes and trips.
+
+The save schema adds readable external identifiers such as `person-17` and `tile-q-r` plus an explicit human-readable current `activity` for each person. Runtime identifiers and simulation structures are restored exactly on load; the descriptive activity is informational and not used to reconstruct logic.
+
+Loading and starting a new game replace the contents of the existing shared `World` object instead of swapping its object identity. Phaser, UI modules and simulation systems therefore continue to hold the same authoritative world reference. Presentation caches may rebuild after replacement but do not become save-state owners.
+
+The first save format is `civilizations-save` version 1. Unsupported versions and structurally invalid JSON are rejected instead of being guessed or partially loaded. Browser persistence is intentionally file-based for now: save downloads JSON, load uses the platform file picker on desktop and mobile.
+
 ## Existing architecture
 
 All other architecture remains as documented in [`architecture-detail.md`](./architecture-detail.md), including sleep, beeren/food behavior, production/inventories, construction, merchants, person selection, handbook/PWA and performance diagnostics.
@@ -142,6 +152,6 @@ Where `architecture-detail.md` still describes old grid/resource semantics, fake
 
 ## Testing and deployment
 
-`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Regressions cover physical loose-good pickup/reservation, HQ direct storage collection, shared work areas, storage-to-storage restrictions, placement/demolition and existing farm/road behavior.
+`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Regressions cover physical loose-good pickup/reservation, HQ direct storage collection, shared work areas, storage-to-storage restrictions, placement/demolition, existing farm/road behavior and exact save/load world-state roundtrips.
 
 Per `agents.md`, work is performed on a temporary branch and transferred to `main` as one final squash commit. The GitHub Pages workflow runs tests before the production build and deploys only after both succeed.

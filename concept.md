@@ -99,6 +99,18 @@ Bewohner bleiben größer als einzelne Mikrozellen. Die Karte lässt sich per Ma
 
 Gebäudeplatzierung bleibt für Desktop und Touch getrennt bedienbar, verwendet aber dieselbe autoritative Platzierungslogik. Für Arbeitsflaggen gilt ebenfalls: kurzer Klick/Tap setzt die Flagge, Drag bleibt Kartenbewegung.
 
+## Neues Spiel, Speichern und Laden
+
+Über ein eigenes **Spiel**-Menü kann der Spieler jederzeit ein neues Spiel starten, speichern oder laden. Das Menü ist auf Desktop und Touch identisch erreichbar.
+
+**Spiel speichern** friert den vollständigen autoritativen Zustand des aktuellen Simulationsticks als menschenlesbare JSON-Datei ein und lädt diese Datei auf das Gerät herunter. Dazu gehören insbesondere Weltzellen und Wege, Gebäude und Baustände, Ressourcen und lose Waren samt Reservierungen, Personenpositionen und Pfade, laufende Arbeit und Transporte, Hunger und Schlaf, Arbeitsflaggen, Inventare, Berufs-XP, dauerhaft freigeschaltete Technologien, Zufallszustand und laufende ID-Zähler.
+
+Jede gespeicherte Person und Zelle erhält eine lesbare String-ID; laufende Personentätigkeiten werden zusätzlich als Klartext-Zustand wie `moving`, `transporting-good` oder `sleeping` ausgewiesen. Diese Klartextangabe dient der Lesbarkeit; geladen wird der vollständige zugrunde liegende Simulationszustand.
+
+**Spiel laden** öffnet die lokale Dateiauswahl des Geräts und akzeptiert einen kompatiblen JSON-Spielstand. Nach dem Laden muss die Simulation am gespeicherten Zustand weiterlaufen, als wäre sie nicht unterbrochen worden. Ungültige oder nicht unterstützte Save-Versionen werden nicht teilweise geraten oder geladen.
+
+**Neues Spiel** erzeugt wieder denselben initialen Weltzustand wie beim Start der Anwendung. Vor dem Zurücksetzen wird bestätigt, dass ein ungespeicherter Spielstand verloren geht.
+
 ## Noch offene spätere Produktentscheidungen
 
 Nicht Teil des abgeschlossenen Raster-/Ressourcenumbaus sind:
@@ -107,8 +119,7 @@ Nicht Teil des abgeschlossenen Raster-/Ressourcenumbaus sind:
 - Arbeitsflaggen für Produktions-Träger,
 - gemeinsam genutzte Flaggen,
 - Wegweiser/High-Level-Navigation,
-- Ressourcen-Regeneration und neue prozedurale Clusterregeln,
-- Save/Load.
+- Ressourcen-Regeneration und neue prozedurale Clusterregeln.
 
 ## Unveränderte Produktbereiche
 
