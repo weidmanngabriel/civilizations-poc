@@ -20,6 +20,8 @@ src/assets/buildings/
 
 Der Editor importiert die gemeinsame Kartenprojektion aus `src/game/mapProjection.ts`. Damit stimmen Zellpositionen mit dem Hauptspiel überein, ohne `mapGeometry.ts` oder Phaser-spezifische Teile zu laden.
 
+Die Rasterzentren werden exakt mit dieser Spielprojektion berechnet. Die sichtbaren Hex-Polygone werden daraus als gemeinsame Zellgrenzen der sechs direkten Nachbarzentren abgeleitet. Dadurch bleiben die autoritativen Spielpositionen unverändert, während angrenzende Editor-Kacheln exakt dieselben Kanten teilen und sich nicht überlappen.
+
 ## Datenmodell
 
 `BuildingVisualDefinition` Version 1 enthält ausschließlich:

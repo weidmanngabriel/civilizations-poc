@@ -12,8 +12,9 @@ const GRID_RADIUS = 8;
 const PREVIEW_SCALE = 10;
 const CELL_X = HEX_X * PREVIEW_SCALE;
 const CELL_Y = HEX_Y * PREVIEW_SCALE;
-const CELL_RADIUS_X = CELL_X * 0.58;
-const CELL_RADIUS_Y = CELL_Y * 0.72;
+const CELL_HALF_X = CELL_X / 2;
+const CELL_TOP_Y = CELL_Y / 2 + (CELL_X * CELL_X) / (8 * CELL_Y);
+const CELL_SIDE_Y = CELL_Y / 2 - (CELL_X * CELL_X) / (8 * CELL_Y);
 const SVG_NS = "http://www.w3.org/2000/svg";
 const SUPPORTED_IMAGE_TYPES = new Set(["image/png", "image/webp"]);
 
@@ -172,12 +173,12 @@ function projected(cell: Hex): { x: number; y: number } {
 function polygonPoints(cell: Hex): string {
   const point = projected(cell);
   return [
-    [point.x - CELL_RADIUS_X, point.y],
-    [point.x - CELL_RADIUS_X / 2, point.y - CELL_RADIUS_Y],
-    [point.x + CELL_RADIUS_X / 2, point.y - CELL_RADIUS_Y],
-    [point.x + CELL_RADIUS_X, point.y],
-    [point.x + CELL_RADIUS_X / 2, point.y + CELL_RADIUS_Y],
-    [point.x - CELL_RADIUS_X / 2, point.y + CELL_RADIUS_Y],
+    [point.x - CELL_HALF_X, point.y - CELL_SIDE_Y],
+    [point.x, point.y - CELL_TOP_Y],
+    [point.x + CELL_HALF_X, point.y - CELL_SIDE_Y],
+    [point.x + CELL_HALF_X, point.y + CELL_SIDE_Y],
+    [point.x, point.y + CELL_TOP_Y],
+    [point.x - CELL_HALF_X, point.y + CELL_SIDE_Y],
   ].map(([x, y]) => `${x},${y}`).join(" ");
 }
 
