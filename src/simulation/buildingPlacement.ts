@@ -6,7 +6,13 @@ import type {
   PlaceableBuildingKind,
   World,
 } from "./model";
-import { key, neighbors, same, tileIndex } from "./hex";
+import {
+  buildingInteractionAt,
+  definitionBlockedAt,
+  definitionFootprintAt,
+  definitionFootprintForBuilding,
+} from "../buildings/buildingDefinitionRegistry";
+import { key, neighbors, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 import { buildAt, notifyConstructionSiteAdded, removeBuilding } from "./simulation";
 import { isBuildingUnlocked } from "./technology";
@@ -93,10 +99,12 @@ export const footprintFromShape = (shape: BuildingPlacementShape, anchorPosition
   }));
 
 export const footprintAt = (kind: PlaceableBuildingKind, anchorPosition: Hex): Hex[] =>
-  footprintFromShape(SHAPES[kind], anchorPosition);
+  definitionFootprintAt(kind, anchorPosition) ?? footprintFromShape(SHAPES[kind], anchorPosition);
 
 export const buildingFootprint = (building: Building): Hex[] =>
-  building.footprint?.map((position) => ({ ...position })) ?? [{ ...building.position }];
+  definitionFootprintForBuilding(building) ??
+  building.footprint?.map((position) => ({ ...position })) ??
+  [{ ...building.position }];
 
 const ringAround = (footprint: Hex[]): Hex[] => {
   const occupied = new Set(footprint.map(key));
@@ -120,14 +128,20 @@ const ringAround = (footprint: Hex[]): Hex[] => {
 /** Preserve the former one-tile physical clearance at fine-grid scale. */
 export const footprintRing = (footprint: Hex[]): Hex[] => ringAround(footprint);
 
+const relativeFootprint = (kind: PlaceableBuildingKind): Hex[] =>
+  footprintAt(kind, { q: 0, r: 0 });
+
 const SHAPE_RINGS: Record<PlaceableBuildingKind, Hex[]> = Object.fromEntries(
-  (Object.keys(SHAPES) as PlaceableBuildingKind[]).map((kind) => [kind, ringAround(SHAPES[kind].cells)]),
+  (Object.keys(SHAPES) as PlaceableBuildingKind[]).map((kind) => [
+    kind,
+    ringAround(relativeFootprint(kind)),
+  ]),
 ) as Record<PlaceableBuildingKind, Hex[]>;
 
 const clearanceAt = (kind: PlaceableBuildingKind, anchorPosition: Hex): Hex[] =>
   SHAPE_RINGS[kind].map((cell) => ({
-    q: anchorPosition.q + cell.q - SHAPES[kind].anchor.q,
-    r: anchorPosition.r + cell.r - SHAPES[kind].anchor.r,
+    q: anchorPosition.q + cell.q,
+    r: anchorPosition.r + cell.r,
   }));
 
 type PlacementLookup = {
@@ -201,13 +215,18 @@ export function buildWithFootprint(
 ): Building | undefined {
   if (!canPlaceBuilding(world, anchorPosition, kind)) return;
   const footprint = footprintAt(kind, anchorPosition);
+  const blocked = new Set((definitionBlockedAt(kind, anchorPosition) ?? []).map(key));
   const baseTerrains: Record<string, "grass" | "road"> = {};
   for (const position of footprint) {
     // Roads never survive construction. After demolition every footprint tile becomes grass.
     baseTerrains[key(position)] = "grass";
   }
 
-  const created = buildAt(world, anchorPosition, kind as BuildableBuildingKind);
+  const created = buildAt(
+    world,
+    buildingInteractionAt(kind, anchorPosition),
+    kind as BuildableBuildingKind,
+  );
   if (!created) return;
   if (kind === "house") {
     created.kind = "house";
@@ -238,6 +257,7 @@ export function buildWithFootprint(
     tile.bushAvailable = undefined;
     tile.bushRegrowTick = undefined;
     tile.terrain = "building";
+    tile.buildingBlocking = blocked.has(key(position)) || undefined;
     tile.trafficTicks = undefined;
   }
   notifyConstructionSiteAdded(world);
@@ -256,6 +276,7 @@ export function removeBuildingWithFootprint(world: World, id: string): boolean {
     const tile = tiles.get(key(position));
     if (!tile) continue;
     tile.terrain = baseTerrains?.[key(position)] ?? "grass";
+    tile.buildingBlocking = undefined;
     tile.trafficTicks = undefined;
   }
   return true;
