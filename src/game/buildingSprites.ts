@@ -21,6 +21,10 @@ type MainSceneLayers = {
   markers?: Phaser.GameObjects.Container;
 };
 
+type CreatableScene = MainScene & {
+  create?: () => void;
+};
+
 async function loadDefinition(): Promise<BuildingVisualDefinition> {
   const response = await fetch(HQ_DEFINITION_URL);
   if (!response.ok) throw new Error(`HQ-Definition konnte nicht geladen werden (${response.status}).`);
@@ -47,8 +51,9 @@ function loadTexture(scene: MainScene): Promise<void> {
  * authoritative; this module only replaces the temporary geometric HQ drawing.
  */
 export function installBuildingSprites(scene: MainScene, world: World): void {
+  const creatableScene = scene as CreatableScene;
+  const originalCreate = creatableScene.create?.bind(scene);
   let sprite: Phaser.GameObjects.Image | undefined;
-  let installed = false;
 
   const sync = () => {
     if (!sprite) return;
@@ -62,8 +67,6 @@ export function installBuildingSprites(scene: MainScene, world: World): void {
   };
 
   const install = async () => {
-    if (installed) return;
-    installed = true;
     try {
       const definition = await loadDefinition();
       await loadTexture(scene);
@@ -84,18 +87,18 @@ export function installBuildingSprites(scene: MainScene, world: World): void {
       sync();
       scene.events.on(Phaser.Scenes.Events.POST_UPDATE, sync);
     } catch (error) {
-      installed = false;
       console.error("HQ-Visual konnte nicht initialisiert werden.", error);
     }
   };
 
-  if (scene.sys.isActive()) void install();
-  else scene.events.once(Phaser.Scenes.Events.CREATE, () => void install());
+  creatableScene.create = () => {
+    originalCreate?.();
+    void install();
 
-  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-    scene.events.off(Phaser.Scenes.Events.POST_UPDATE, sync);
-    sprite?.destroy();
-    sprite = undefined;
-    installed = false;
-  });
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      scene.events.off(Phaser.Scenes.Events.POST_UPDATE, sync);
+      sprite?.destroy();
+      sprite = undefined;
+    });
+  };
 }
