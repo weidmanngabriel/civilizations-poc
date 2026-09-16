@@ -5,9 +5,12 @@ import { key } from "../simulation/hex";
 import { personWorldPosition } from "../simulation/movement";
 import { CONFIG } from "../simulation/scenario";
 import { GOOD_ICONS } from "../icons";
-import { pixel } from "./mapGeometry";
+import { HEX_Y, pixel } from "./mapGeometry";
 
 const TEXT_RESOLUTION = 3;
+const PERSON_MARKER_RADIUS = HEX_Y / 2;
+const PERSON_FEET_OFFSET_Y = HEX_Y * 0.15;
+const PERSON_MARKER_CENTER_OFFSET_Y = PERSON_FEET_OFFSET_Y - PERSON_MARKER_RADIUS;
 
 const terrainCodes: Record<Tile["terrain"], number> = {
   grass: 1,
@@ -211,10 +214,10 @@ export class IncrementalMainScene extends MainScene {
   }
 
   private createPersonMarker(person: Person): PersonMarkerObjects {
-    const dot = this.add.circle(0, 0, 3, 0xdde5db).setStrokeStyle(0.75, 0xffffff);
+    const dot = this.add.circle(0, 0, PERSON_MARKER_RADIUS, 0xdde5db).setStrokeStyle(0.5, 0xffffff);
     const label = this.add.text(0, 0, this.internals().personMarker(person), {
       fontFamily: "system-ui",
-      fontSize: "6px",
+      fontSize: "4px",
       color: "#ffffff",
     }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
     const idLabel = this.add.text(0, 0, String(person.id), {
@@ -256,7 +259,8 @@ export class IncrementalMainScene extends MainScene {
       const x = position.x + (moving
         ? ((person.id % 3) - 1) * 1.5
         : ((groupIndex % 4) - 1.5) * 5);
-      const y = position.y + (moving ? 1 : 1 + Math.floor(groupIndex / 4) * 5);
+      const groundY = position.y + (moving ? 0 : Math.floor(groupIndex / 4) * 5);
+      const y = groundY + PERSON_MARKER_CENTER_OFFSET_Y;
       const color = !person.assignment && !person.woodcutter && !person.extractor && !person.builder
         ? 0xdde5db
         : person.assignment?.role === "worker" || person.woodcutter
@@ -266,13 +270,13 @@ export class IncrementalMainScene extends MainScene {
       const marker = this.personMarkers.get(person.id) ?? this.createPersonMarker(person);
       this.personMarkers.set(person.id, marker);
       marker.dot.setPosition(x, y).setFillStyle(color);
-      marker.label.setPosition(x, y - 0.5);
+      marker.label.setPosition(x, y);
       const personLabel = this.internals().personMarker(person);
       if (marker.label.text !== personLabel) marker.label.setText(personLabel);
-      marker.idLabel.setPosition(x + 3, y + 3);
+      marker.idLabel.setPosition(x + PERSON_MARKER_RADIUS, groundY + 2);
 
       if (person.trip?.picked) {
-        marker.cargo.setPosition(x + 3, y - 5);
+        marker.cargo.setPosition(x + PERSON_MARKER_RADIUS, y - PERSON_MARKER_RADIUS - 2);
         const cargoLabel = GOOD_ICONS[person.trip.good];
         if (marker.cargo.text !== cargoLabel) marker.cargo.setText(cargoLabel);
         marker.cargo.setVisible(true);
