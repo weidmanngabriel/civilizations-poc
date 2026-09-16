@@ -122,7 +122,7 @@ function parseHex(value: unknown): Hex | undefined {
 
 function parseDefinition(value: unknown): BuildingVisualDefinition {
   if (!isRecord(value)) throw new Error("building.json enthält kein gültiges Objekt.");
-  if (value.schema !== "civilizations-building-visual" || value.version !== 1)
+  if (value.schema !== "civilizations-building-visual" || value.version !== 2)
     throw new Error("building.json hat ein unbekanntes Schema oder eine nicht unterstützte Version.");
   if (typeof value.id !== "string" || typeof value.sprite !== "string")
     throw new Error("building.json enthält keine gültige ID oder Sprite-Datei.");
@@ -141,7 +141,7 @@ function parseDefinition(value: unknown): BuildingVisualDefinition {
 
   const parsed: BuildingVisualDefinition = {
     schema: "civilizations-building-visual",
-    version: 1,
+    version: 2,
     id: value.id,
     sprite: value.sprite,
     spriteAnchor: { x: value.spriteAnchor.x, y: value.spriteAnchor.y },
@@ -253,7 +253,7 @@ function definition(): BuildingVisualDefinition {
   const extension = spriteFile?.type === "image/webp" ? "webp" : "png";
   return {
     schema: "civilizations-building-visual",
-    version: 1,
+    version: 2,
     id: idInput.value.trim(),
     sprite: `sprite.${extension}`,
     spriteAnchor: { x: Number(anchorXInput.value) || 0, y: Number(anchorYInput.value) || 0 },
