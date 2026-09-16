@@ -17,24 +17,36 @@ button { cursor: pointer; }
 .editor-header a { color: #d8eadc; }
 .editor-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: 0; }
 .workspace { position: relative; overflow: auto; min-height: 680px; background: radial-gradient(circle at center, #203527 0, #16251c 70%); }
-.canvas { position: relative; width: 100%; min-width: 820px; height: 100%; min-height: 680px; user-select: none; }
-.sprite { position: absolute; max-width: none; pointer-events: none; image-rendering: auto; opacity: .92; z-index: 1; }
-.grid-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; overflow: visible; }
-.grid-cell { fill: rgba(230, 242, 233, .035); stroke: rgba(217, 234, 221, .22); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.canvas { position: relative; width: 100%; min-width: 820px; height: 100%; min-height: 680px; user-select: none; overflow: hidden; }
+.sprite { position: absolute; max-width: none; pointer-events: none; touch-action: none; image-rendering: auto; opacity: .92; z-index: 2; }
+.sprite.movable { pointer-events: auto; cursor: grab; }
+.sprite.dragging { cursor: grabbing; opacity: .82; }
+.grid-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; overflow: visible; pointer-events: none; }
+.grid-cell { fill: rgba(230, 242, 233, .035); stroke: rgba(217, 234, 221, .22); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: auto; }
+.grid-svg.moving-sprite .grid-cell { pointer-events: none; }
 .grid-cell:hover { stroke: rgba(255,255,255,.7); fill: rgba(255,255,255,.08); }
+.grid-cell.axis-cell { stroke: rgba(214, 232, 218, .36); }
 .grid-cell.footprint { fill: rgba(70, 150, 92, .26); stroke: rgba(128, 210, 147, .9); }
 .grid-cell.blocked { fill: rgba(190, 70, 60, .38); stroke: rgba(255, 128, 115, .95); }
 .grid-cell.entrance { fill: rgba(62, 132, 225, .5); stroke: rgba(143, 192, 255, 1); stroke-width: 2; }
 .grid-cell.origin { stroke-dasharray: 4 3; stroke-width: 2; }
+.origin-marker { position: absolute; z-index: 4; width: 12px; height: 12px; border: 2px solid #fff1a8; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 0 0 3px rgba(18, 32, 24, .55); }
+.origin-marker::before, .origin-marker::after { content: ""; position: absolute; background: #fff1a8; }
+.origin-marker::before { width: 20px; height: 1px; left: -6px; top: 3px; }
+.origin-marker::after { width: 1px; height: 20px; left: 3px; top: -6px; }
+.axis-label { position: absolute; z-index: 4; color: rgba(240, 247, 241, .72); font-size: 11px; font-weight: 700; pointer-events: none; }
+.axis-q { left: calc(50% + 150px); top: calc(50% + 58px); }
+.axis-r { left: calc(50% + 88px); top: calc(50% + 180px); }
 .sidebar { padding: 20px; overflow: auto; border-left: 1px solid #31463a; background: #192a21; }
 .panel { margin-bottom: 22px; }
 .panel h2 { margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: #aebdb2; }
 .field { display: grid; gap: 6px; margin-bottom: 12px; }
 .field label { font-size: 12px; color: #becbc1; }
 .field input[type="text"], .field input[type="number"] { width: 100%; padding: 9px 10px; color: #eef5ef; background: #102018; border: 1px solid #3d5547; border-radius: 7px; }
+.field input[type="range"] { width: 100%; }
 .dropzone { display: grid; place-items: center; min-height: 92px; padding: 14px; text-align: center; border: 1px dashed #63806d; border-radius: 9px; color: #bdcec1; background: #13231a; }
 .dropzone.dragging { border-color: #b9d9c0; background: #1f3427; }
-.tool-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.tool-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
 .tool { padding: 9px 6px; border-radius: 7px; border: 1px solid #425c4b; background: #102018; color: #dfe9e1; }
 .tool.active { border-color: #a6cdb0; background: #2e4b38; }
 .actions { display: grid; gap: 8px; }
