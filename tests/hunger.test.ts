@@ -224,3 +224,48 @@ test("critical hunger blocks work while no food is reachable", () => {
   assert.equal(person.path.length, 0);
   assert.ok((person.hungerState?.retryAfterTick ?? 0) >= CONFIG.decisionIntervalTicks);
 });
+
+test("worker eats immediately on HQ arrival before returning to work", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const hq = world.buildings.find((building) => building.id === "hq")!;
+  hq.inventory ??= {};
+  hq.inventory.bread = 1;
+
+  const workplace: Building = {
+    id: "hq-food-regression-workplace",
+    kind: "sawmill",
+    name: "Arbeitsstätte",
+    position: { q: hq.position.q + 8, r: hq.position.r },
+    workers: 1,
+    carriers: 0,
+    input: 0,
+    output: 0,
+    recipe: { input: "wood", amount: 2, output: "plank", duration: 240 },
+  };
+  world.buildings.push(workplace);
+  person.assignment = { building: workplace.id, role: "worker" };
+  person.position = { ...workplace.position };
+  person.active = false;
+  person.progress = 0;
+  person.path = [];
+  person.hunger = 20;
+
+  advanceHungerTick(world);
+  assert.equal(person.hungerState?.foodSource, hq.id);
+  assert.ok(person.path.length > 0);
+
+  let arrivalTick = -1;
+  for (let i = 0; i < 300; i += 1) {
+    tick(world);
+    if (person.hungerState === undefined) {
+      arrivalTick = i;
+      break;
+    }
+  }
+
+  assert.ok(arrivalTick >= 0, "person should eat after reaching the HQ");
+  assert.equal(hq.inventory.bread, 0);
+  assert.equal(person.hunger, 120);
+  assert.ok(person.path.length > 0, "person should resume the route to the workplace after eating");
+});
