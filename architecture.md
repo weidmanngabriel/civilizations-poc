@@ -40,7 +40,7 @@ refinement              5× per linear axis
 current simulation      205 × 125 micro-cells
 ```
 
-`src/simulation/spatial.ts` owns scale conversions. Buildings and fields preserve approximately their former world-space size by expanding to many micro-cells. `src/simulation/hex.ts` uses cached coordinate lookup and heap-backed A*. `src/game/mapProjection.ts` owns the shared affine projection constants and `pixel()` transform; `mapGeometry.ts` adds runtime tile lookup around that projection. The building editor imports only the shared projection layer.
+`src/simulation/spatial.ts` owns scale conversions. Buildings and fields preserve approximately their former world-space size by expanding to many micro-cells. `src/simulation/hex.ts` uses cached coordinate lookup and heap-backed A*. `src/game/mapProjection.ts` owns the shared affine projection constants, `pixel()` transform and visible hex-corner geometry; `mapGeometry.ts` adds runtime tile lookup around that projection. The building editor consumes the same projection geometry and applies only an editor preview zoom.
 
 ## Terrain, resources and physical goods
 
@@ -141,7 +141,11 @@ Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches m
 
 `building-editor/` is a separate Vite multi-page entry published at `/civilizations-poc/building-editor/`. It is an internal desktop-first authoring tool and does not start Phaser or own simulation state. Its local rules and boundaries are documented in `building-editor/agents.md`, `building-editor/architecture.md` and `building-editor/concept.md`.
 
-`src/buildings/buildingVisualDefinition.ts` defines version 1 of the shared visual schema: sprite filename and anchor, relative fine-grid footprint, blocked footprint subset and one walkable entrance cell. Gameplay properties stay outside this schema. Runtime-ready exports live under `src/assets/buildings/<id>/`.
+The editor is a WYSIWYG authoring view of the game projection: cell centers and visible hex-corner geometry come from `src/game/mapProjection.ts`. A fixed editor-only preview zoom enlarges both the grid and building sprite by the same factor, so the authored sprite-to-grid size relation matches the later runtime.
+
+`src/buildings/buildingVisualDefinition.ts` defines version 2 of the shared visual schema: sprite filename, original-pixel anchor, required positive `spriteScale`, relative fine-grid footprint, blocked footprint subset and one walkable entrance cell. Gameplay properties stay outside this schema. Runtime-ready exports live under `src/assets/buildings/<id>/`.
+
+The editor currently provides no backward-compatibility or migration layer for older visual-definition versions. The current schema is authoritative; old exports may be rejected until backward compatibility is explicitly requested.
 
 The published static editor can download `building.json` plus the sprite. During `vite` development only, `vite.config.ts` exposes a local middleware endpoint that writes the same validated export directly into `src/assets/buildings/<id>/`; no repository credentials are exposed to the browser or production build.
 
@@ -167,7 +171,7 @@ Where `architecture-detail.md` still describes old grid/resource semantics, fake
 
 ## Testing and deployment
 
-`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Regressions cover physical loose-good pickup/reservation, HQ direct storage collection, shared work areas, storage-to-storage restrictions, placement/demolition, existing farm/road behavior, building-visual schema validation and anchor-only save/load reconstruction. Save tests explicitly verify that `tiles`, entity footprints and stored underlying terrain do not appear in the JSON and that old save versions are rejected.
+`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Regressions cover physical loose-good pickup/reservation, HQ direct storage collection, shared work areas, storage-to-storage restrictions, placement/demolition, existing farm/road behavior, building-visual schema validation, shared projection geometry and anchor-only save/load reconstruction. Save tests explicitly verify that `tiles`, entity footprints and stored underlying terrain do not appear in the JSON and that old save versions are rejected.
 
 Vite builds both the game root and `building-editor/index.html`; GitHub Pages publishes both from the same `dist` artifact.
 
