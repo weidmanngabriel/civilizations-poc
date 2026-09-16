@@ -1,7 +1,24 @@
-import type { Person, Tile, World } from "./model";
+import type {
+  Building,
+  Hex,
+  LooseGoodStack,
+  NaturalResource,
+  Person,
+  PlaceableBuildingKind,
+  Tile,
+  World,
+} from "./model";
+import { footprintAt } from "./buildingPlacement";
+import { key, tileIndex } from "./hex";
+import {
+  naturalResourceBlocksMovement,
+  naturalResourceFootprint,
+} from "./naturalResources";
+import { createDefaultGameWorld } from "./scenario";
+import { refinedCellCluster } from "./spatial";
 
 export const SAVE_FORMAT = "civilizations-save";
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export type SavedActivity =
   | "idle"
@@ -23,14 +40,23 @@ type SavedPerson = {
   state: Omit<Person, "id">;
 };
 
-type SavedTile = {
-  id: string;
-  state: Tile;
+type SavedBuilding = Omit<Building, "footprint" | "baseTerrain" | "baseTerrains">;
+
+type SavedMapState = {
+  roads: Hex[];
+  traffic: Array<{ position: Hex; ticks: number[] }>;
+  bushes: Array<{ position: Hex; available?: boolean; regrowTick?: number }>;
 };
 
-type SavedWorld = Omit<World, "people" | "tiles"> & {
+type SavedWorld = Omit<
+  World,
+  "people" | "buildings" | "naturalResources" | "looseGoods" | "tiles"
+> & {
   people: SavedPerson[];
-  tiles: SavedTile[];
+  buildings: SavedBuilding[];
+  naturalResources: NaturalResource[];
+  looseGoods?: LooseGoodStack[];
+  map: SavedMapState;
 };
 
 export type SaveGame = {
@@ -56,9 +82,25 @@ export const currentActivity = (person: Person): SavedActivity => {
   return "idle";
 };
 
+const saveBuilding = (building: Building): SavedBuilding => {
+  const saved = cloneJson(building);
+  delete saved.footprint;
+  delete saved.baseTerrain;
+  delete saved.baseTerrains;
+  return saved;
+};
+
 export const createSaveGame = (world: World, savedAt = new Date()): SaveGame => {
   const snapshot = cloneJson(world);
-  const { people, tiles, ...rest } = snapshot;
+  const {
+    people,
+    buildings,
+    naturalResources,
+    looseGoods,
+    tiles,
+    ...rest
+  } = snapshot;
+
   return {
     format: SAVE_FORMAT,
     version: SAVE_VERSION,
@@ -70,10 +112,27 @@ export const createSaveGame = (world: World, savedAt = new Date()): SaveGame => 
         activity: currentActivity({ id, ...state }),
         state,
       })),
-      tiles: tiles.map((state) => ({
-        id: `tile-${state.q}-${state.r}`,
-        state,
-      })),
+      buildings: buildings.map(saveBuilding),
+      naturalResources,
+      ...(looseGoods ? { looseGoods } : {}),
+      map: {
+        roads: tiles
+          .filter((tile) => tile.terrain === "road")
+          .map(({ q, r }) => ({ q, r })),
+        traffic: tiles
+          .filter((tile) => tile.trafficTicks !== undefined)
+          .map((tile) => ({
+            position: { q: tile.q, r: tile.r },
+            ticks: [...(tile.trafficTicks ?? [])],
+          })),
+        bushes: tiles
+          .filter((tile) => tile.bush)
+          .map((tile) => ({
+            position: { q: tile.q, r: tile.r },
+            ...(tile.bushAvailable !== undefined ? { available: tile.bushAvailable } : {}),
+            ...(tile.bushRegrowTick !== undefined ? { regrowTick: tile.bushRegrowTick } : {}),
+          })),
+      },
     },
   };
 };
@@ -87,11 +146,134 @@ const requireObject = (value: unknown, label: string): Record<string, unknown> =
   return value as Record<string, unknown>;
 };
 
+const requireHex = (value: unknown, label: string): Hex => {
+  const position = requireObject(value, label);
+  if (typeof position.q !== "number" || typeof position.r !== "number")
+    throw new Error(`${label} enthält keine gültige Position.`);
+  return { q: position.q, r: position.r };
+};
+
 const personRuntimeId = (value: unknown): number => {
   if (typeof value !== "string") throw new Error("Person-ID fehlt.");
   const match = /^person-(\d+)$/.exec(value);
   if (!match) throw new Error(`Ungültige Person-ID: ${value}`);
   return Number(match[1]);
+};
+
+const buildingFootprintFromAnchor = (building: SavedBuilding): Hex[] => {
+  if (building.kind === "field")
+    return refinedCellCluster({ q: 0, r: 0 }).map((offset) => ({
+      q: building.position.q + offset.q,
+      r: building.position.r + offset.r,
+    }));
+  if (building.kind === "hq") return footprintAt("house", building.position);
+  return footprintAt(building.kind as PlaceableBuildingKind, building.position);
+};
+
+const restoreBuilding = (saved: SavedBuilding): Building => {
+  const building = cloneJson(saved) as Building;
+  const footprint = buildingFootprintFromAnchor(saved);
+  building.footprint = footprint;
+  if (building.kind === "hq") building.baseTerrain = "grass";
+  else if (building.kind !== "field")
+    building.baseTerrains = Object.fromEntries(
+      footprint.map((position) => [key(position), "grass"]),
+    );
+  return building;
+};
+
+const baseTiles = (): Tile[] =>
+  createDefaultGameWorld().tiles.map((tile) => ({
+    q: tile.q,
+    r: tile.r,
+    terrain:
+      tile.terrain === "river" || tile.terrain === "mountain"
+        ? tile.terrain
+        : "grass",
+  }));
+
+const parseMapState = (value: unknown): SavedMapState => {
+  const map = requireObject(value, "Kartenzustand");
+  if (!Array.isArray(map.roads) || !Array.isArray(map.traffic) || !Array.isArray(map.bushes))
+    throw new Error("Der Spielstand enthält keinen gültigen Kartenzustand.");
+
+  return {
+    roads: map.roads.map((entry) => requireHex(entry, "Straße")),
+    traffic: map.traffic.map((entry) => {
+      const saved = requireObject(entry, "Verkehr");
+      if (!Array.isArray(saved.ticks) || !saved.ticks.every((tick) => typeof tick === "number"))
+        throw new Error("Ungültige Verkehrshistorie im Spielstand.");
+      return {
+        position: requireHex(saved.position, "Verkehrsposition"),
+        ticks: [...saved.ticks] as number[],
+      };
+    }),
+    bushes: map.bushes.map((entry) => {
+      const saved = requireObject(entry, "Busch");
+      if (saved.available !== undefined && typeof saved.available !== "boolean")
+        throw new Error("Ungültiger Buschzustand im Spielstand.");
+      if (saved.regrowTick !== undefined && typeof saved.regrowTick !== "number")
+        throw new Error("Ungültiger Busch-Timer im Spielstand.");
+      return {
+        position: requireHex(saved.position, "Buschposition"),
+        ...(saved.available !== undefined ? { available: saved.available } : {}),
+        ...(saved.regrowTick !== undefined ? { regrowTick: saved.regrowTick } : {}),
+      };
+    }),
+  };
+};
+
+const reconstructTiles = (
+  map: SavedMapState,
+  buildings: Building[],
+  naturalResources: NaturalResource[],
+): Tile[] => {
+  const tiles = baseTiles();
+  const indexed = tileIndex(tiles);
+
+  for (const position of map.roads) {
+    const tile = indexed.get(key(position));
+    if (!tile) throw new Error("Straße liegt außerhalb der Welt.");
+    tile.terrain = "road";
+  }
+
+  for (const savedTraffic of map.traffic) {
+    const tile = indexed.get(key(savedTraffic.position));
+    if (!tile) throw new Error("Verkehrshistorie liegt außerhalb der Welt.");
+    tile.trafficTicks = [...savedTraffic.ticks];
+  }
+
+  for (const bush of map.bushes) {
+    const tile = indexed.get(key(bush.position));
+    if (!tile) throw new Error("Busch liegt außerhalb der Welt.");
+    tile.bush = true;
+    if (bush.available !== undefined) tile.bushAvailable = bush.available;
+    if (bush.regrowTick !== undefined) tile.bushRegrowTick = bush.regrowTick;
+  }
+
+  for (const building of buildings) {
+    if (building.retired) continue;
+    for (const position of building.footprint ?? [building.position]) {
+      const tile = indexed.get(key(position));
+      if (!tile) throw new Error(`Gebäude ${building.id} liegt außerhalb der Welt.`);
+      tile.terrain = building.kind === "field" ? "field" : "building";
+      tile.trafficTicks = undefined;
+      tile.bush = undefined;
+      tile.bushAvailable = undefined;
+      tile.bushRegrowTick = undefined;
+    }
+  }
+
+  for (const resource of naturalResources) {
+    if (resource.depleted || !naturalResourceBlocksMovement(resource)) continue;
+    for (const position of naturalResourceFootprint(resource)) {
+      const tile = indexed.get(key(position));
+      if (!tile) throw new Error(`Ressource ${resource.id} liegt außerhalb der Welt.`);
+      tile.resourceBlocking = true;
+    }
+  }
+
+  return tiles;
 };
 
 export const deserializeSaveGame = (json: string): World => {
@@ -108,25 +290,66 @@ export const deserializeSaveGame = (json: string): World => {
     throw new Error(`Spielstand-Version ${String(root.version)} wird nicht unterstützt.`);
 
   const savedWorld = requireObject(root.world, "Welt");
-  if (!Array.isArray(savedWorld.people) || !Array.isArray(savedWorld.tiles))
-    throw new Error("Der Spielstand enthält keine vollständige Welt.");
+  if (
+    !Array.isArray(savedWorld.people) ||
+    !Array.isArray(savedWorld.buildings) ||
+    !Array.isArray(savedWorld.naturalResources)
+  )
+    throw new Error("Der Spielstand enthält keine vollständigen Entitäten.");
 
   const people = savedWorld.people.map((entry) => {
     const savedPerson = requireObject(entry, "Person");
     const state = requireObject(savedPerson.state, "Personzustand") as unknown as Omit<Person, "id">;
     return { id: personRuntimeId(savedPerson.id), ...state } as Person;
   });
-  const tiles = savedWorld.tiles.map((entry) => {
-    const savedTile = requireObject(entry, "Zelle");
-    if (typeof savedTile.id !== "string" || !savedTile.id.startsWith("tile-"))
-      throw new Error("Ungültige Zellen-ID im Spielstand.");
-    return requireObject(savedTile.state, "Zellenzustand") as unknown as Tile;
+
+  const buildings = savedWorld.buildings.map((entry) => {
+    const saved = requireObject(entry, "Gebäude") as unknown as SavedBuilding;
+    if (typeof saved.id !== "string" || typeof saved.kind !== "string")
+      throw new Error("Ungültiges Gebäude im Spielstand.");
+    requireHex(saved.position, `Position von Gebäude ${saved.id}`);
+    return restoreBuilding(saved);
   });
 
-  const { people: _people, tiles: _tiles, ...rest } = savedWorld;
-  const world = { ...rest, people, tiles } as unknown as World;
-  if (!Array.isArray(world.buildings) || !Array.isArray(world.naturalResources))
-    throw new Error("Der Spielstand enthält keine vollständigen Entitäten.");
+  const naturalResources = savedWorld.naturalResources.map((entry) => {
+    const resource = requireObject(entry, "Ressource") as unknown as NaturalResource;
+    if (typeof resource.id !== "string" || typeof resource.kind !== "string")
+      throw new Error("Ungültige Ressource im Spielstand.");
+    requireHex(resource.position, `Position von Ressource ${resource.id}`);
+    return cloneJson(resource);
+  });
+
+  let looseGoods: LooseGoodStack[] | undefined;
+  if (savedWorld.looseGoods !== undefined) {
+    if (!Array.isArray(savedWorld.looseGoods))
+      throw new Error("Ungültige lose Waren im Spielstand.");
+    looseGoods = savedWorld.looseGoods.map((entry) => {
+      const stack = requireObject(entry, "Lose Ware") as unknown as LooseGoodStack;
+      if (typeof stack.id !== "string") throw new Error("Ungültige Waren-ID im Spielstand.");
+      requireHex(stack.position, `Position von ${stack.id}`);
+      return cloneJson(stack);
+    });
+  }
+
+  const map = parseMapState(savedWorld.map);
+  const {
+    people: _people,
+    buildings: _buildings,
+    naturalResources: _naturalResources,
+    looseGoods: _looseGoods,
+    map: _map,
+    ...rest
+  } = savedWorld;
+
+  const world = {
+    ...rest,
+    people,
+    buildings,
+    naturalResources,
+    ...(looseGoods ? { looseGoods } : {}),
+    tiles: reconstructTiles(map, buildings, naturalResources),
+  } as unknown as World;
+
   if (typeof world.round !== "number" || typeof world.rngState !== "number")
     throw new Error("Der Spielstand enthält keinen gültigen Simulationszustand.");
   return cloneJson(world);
