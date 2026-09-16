@@ -105,7 +105,7 @@ Autonome Bewohner treffen teure Zielentscheidungen nicht laufend neu. Ein Ziel b
 
 ## Darstellung, Zoom und Eingabe
 
-Bewohner werden visuell ungefähr so groß wie eine einzelne Mikrozelle dargestellt. Ihr Fußpunkt liegt leicht unterhalb der autoritativen Simulationsposition, damit spätere Personen-Sprites natürlich auf der Weltposition stehen können. Die Karte lässt sich per Mausrad und Pinch bis 10× vergrößern.
+Bewohner werden visuell ungefähr so groß wie eine einzelne Mikrozelle dargestellt. Ihr Fußpunkt liegt leicht unterhalb der autoritativen Simulationsposition, damit spätere Personen-Sprites natürlich auf der Weltposition stehen können. Direkt unter jeder Person stehen ihr Name sowie kleiner darunter `Beruf (aktuelle Tätigkeit)`; diese Beschriftung liegt in Weltkoordinaten und skaliert daher beim Zoomen zusammen mit der Karte. Die Karte lässt sich per Mausrad und Pinch bis 10× vergrößern.
 
 Gebäudeplatzierung bleibt für Desktop und Touch getrennt bedienbar, verwendet aber dieselbe autoritative Platzierungslogik. Für Arbeitsflaggen gilt ebenfalls: kurzer Klick/Tap setzt die Flagge, Drag bleibt Kartenbewegung.
 
