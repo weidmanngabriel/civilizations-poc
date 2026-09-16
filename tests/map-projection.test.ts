@@ -9,22 +9,26 @@ import {
   pixel,
 } from "../src/game/mapProjection";
 
+const closeTo = (actual: number, expected: number): void => {
+  assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} should be close to ${expected}`);
+};
+
 test("shared projection keeps axial cell centers on the runtime spacing", () => {
   const origin = pixel({ q: 0, r: 0 });
   const qNeighbor = pixel({ q: 1, r: 0 });
   const rNeighbor = pixel({ q: 0, r: 1 });
 
-  assert.equal(qNeighbor.x - origin.x, HEX_X);
-  assert.equal(qNeighbor.y - origin.y, 0);
-  assert.equal(rNeighbor.x - origin.x, HEX_X / 2);
-  assert.equal(rNeighbor.y - origin.y, HEX_Y);
+  closeTo(qNeighbor.x - origin.x, HEX_X);
+  closeTo(qNeighbor.y - origin.y, 0);
+  closeTo(rNeighbor.x - origin.x, HEX_X / 2);
+  closeTo(rNeighbor.y - origin.y, HEX_Y);
 });
 
 test("shared hex corners reproduce the runtime hex radius", () => {
   const offsets = hexCornerOffsets();
   assert.equal(offsets.length, 6);
   for (const offset of offsets) {
-    assert.ok(Math.abs(Math.hypot(offset.x, offset.y) - HEX_RADIUS) < 1e-10);
+    closeTo(Math.hypot(offset.x, offset.y), HEX_RADIUS);
   }
 });
 
