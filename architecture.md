@@ -12,9 +12,12 @@ The prototype is a browser-first TypeScript application using TypeScript, Vite a
 src/
   simulation/   deterministic authoritative world state and rules
   game/         Phaser rendering and map input
+  buildings/    shared building visual data contracts
   ui/           DOM overlays and controls
   handbook/     player-facing Markdown help
   debug/        performance diagnostics
+
+building-editor/   desktop-first building authoring subpage
 ```
 
 The deterministic simulation remains independent from Phaser. Presentation reads simulation state and never owns authoritative game state. The fixed simulation runs at 60 ticks/s at displayed 1×; rendering stays independent on `requestAnimationFrame`.
@@ -37,7 +40,7 @@ refinement              5× per linear axis
 current simulation      205 × 125 micro-cells
 ```
 
-`src/simulation/spatial.ts` owns scale conversions. Buildings and fields preserve approximately their former world-space size by expanding to many micro-cells. `src/simulation/hex.ts` uses cached coordinate lookup and heap-backed A*; `src/game/mapGeometry.ts` owns projection.
+`src/simulation/spatial.ts` owns scale conversions. Buildings and fields preserve approximately their former world-space size by expanding to many micro-cells. `src/simulation/hex.ts` uses cached coordinate lookup and heap-backed A*. `src/game/mapProjection.ts` owns the shared affine projection constants and `pixel()` transform; `mapGeometry.ts` adds runtime tile lookup around that projection. The building editor imports only the shared projection layer.
 
 ## Terrain, resources and physical goods
 
@@ -134,6 +137,14 @@ Natural-resource depletion retirement is event-driven; there is no periodic full
 
 Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map/person state; natural resources, loose goods and work-area flags are presentation layers over authoritative state. Camera zoom is 0.7×–10× for mouse-wheel and pinch. Desktop and touch remain first-class input adapters. The iPhone 13 Mini remains the mobile baseline.
 
+## Building editor
+
+`building-editor/` is a separate Vite multi-page entry published at `/civilizations-poc/building-editor/`. It is an internal desktop-first authoring tool and does not start Phaser or own simulation state. Its local rules and boundaries are documented in `building-editor/agents.md`, `building-editor/architecture.md` and `building-editor/concept.md`.
+
+`src/buildings/buildingVisualDefinition.ts` defines version 1 of the shared visual schema: sprite filename and anchor, relative fine-grid footprint, blocked footprint subset and one walkable entrance cell. Gameplay properties stay outside this schema. Runtime-ready exports live under `src/assets/buildings/<id>/`.
+
+The published static editor can download `building.json` plus the sprite. During `vite` development only, `vite.config.ts` exposes a local middleware endpoint that writes the same validated export directly into `src/assets/buildings/<id>/`; no repository credentials are exposed to the browser or production build.
+
 ## Save/load persistence
 
 `src/simulation/saveGame.ts` owns the versioned, human-readable JSON persistence format. Save files preserve all non-derived simulation state required to continue at the exact saved tick: round/tick, RNG and ID counters, technology unlocks, profession experience, inventories, construction and production progress, people, paths, work areas, needs, farm tasks, merchant routes, trips, natural-resource state, loose goods and reservations.
@@ -156,6 +167,8 @@ Where `architecture-detail.md` still describes old grid/resource semantics, fake
 
 ## Testing and deployment
 
-`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Regressions cover physical loose-good pickup/reservation, HQ direct storage collection, shared work areas, storage-to-storage restrictions, placement/demolition, existing farm/road behavior and anchor-only save/load reconstruction. Save tests explicitly verify that `tiles`, entity footprints and stored underlying terrain do not appear in the JSON and that old save versions are rejected.
+`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Regressions cover physical loose-good pickup/reservation, HQ direct storage collection, shared work areas, storage-to-storage restrictions, placement/demolition, existing farm/road behavior, building-visual schema validation and anchor-only save/load reconstruction. Save tests explicitly verify that `tiles`, entity footprints and stored underlying terrain do not appear in the JSON and that old save versions are rejected.
+
+Vite builds both the game root and `building-editor/index.html`; GitHub Pages publishes both from the same `dist` artifact.
 
 Per `agents.md`, work is performed on a temporary branch and transferred to `main` as one final squash commit. The GitHub Pages workflow runs tests before the production build and deploys only after both succeed.

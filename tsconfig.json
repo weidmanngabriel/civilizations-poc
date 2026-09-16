@@ -11,5 +11,5 @@
     "allowImportingTsExtensions": true,
     "types": ["node"]
   },
-  "include": ["src", "tests", "vite.config.ts"]
+  "include": ["src", "tests", "building-editor/src", "vite.config.ts"]
 }

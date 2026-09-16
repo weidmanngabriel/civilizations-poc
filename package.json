@@ -4,6 +4,7 @@
   "description": "",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "dev:building-editor": "vite --host 0.0.0.0 --open /civilizations-poc/building-editor/",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "tsx --test tests/*.test.ts"

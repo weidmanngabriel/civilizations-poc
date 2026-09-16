@@ -1,17 +1,21 @@
-import type { Hex, Tile } from "../simulation/model";
+import type { Tile } from "../simulation/model";
 import { key, tileIndex } from "../simulation/hex";
-import { GRID_REFINEMENT } from "../simulation/spatial";
+import {
+  HEX_X,
+  HEX_Y,
+  MAP_ORIGIN_X,
+  MAP_ORIGIN_Y,
+  pixel,
+} from "./mapProjection";
 
-export const HEX_X = 24 / GRID_REFINEMENT;
-export const HEX_Y = 21 / GRID_REFINEMENT;
-export const HEX_RADIUS = 14 / GRID_REFINEMENT;
-export const MAP_ORIGIN_X = 34;
-export const MAP_ORIGIN_Y = 34;
-
-export const pixel = (h: Hex) => ({
-  x: MAP_ORIGIN_X + HEX_X * (h.q + h.r / 2),
-  y: MAP_ORIGIN_Y + h.r * HEX_Y,
-});
+export {
+  HEX_RADIUS,
+  HEX_X,
+  HEX_Y,
+  MAP_ORIGIN_X,
+  MAP_ORIGIN_Y,
+  pixel,
+} from "./mapProjection";
 
 /**
  * Find the nearest fine-grid cell without scanning the complete map. The
