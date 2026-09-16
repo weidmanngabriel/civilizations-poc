@@ -65,6 +65,8 @@ export interface Building {
   kind: BuildingKind;
   name: string;
   position: Hex;
+  /** Runtime binding to a validated editor-authored visual/spatial definition. */
+  visualDefinitionId?: string;
   footprint?: Hex[];
   workers: number;
   carriers: number;
