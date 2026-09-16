@@ -75,8 +75,8 @@ jobs:
 
           debug_ui = Path('src/ui/performanceDebug.ts')
           text = debug_ui.read_text()
-          old_label = '''  movement: "Bewegung",\n  transport: "Transport",'''
-          new_label = '''  movement: "Bewegung",\n  movementArrival: "Bewegung: Ankunft/Reroute",\n  transport: "Transport",'''
+          old_label = '''  movement: "Bewegung",\n  transport: "Logistik / Transport",'''
+          new_label = '''  movement: "Bewegung",\n  movementArrival: "Bewegung: Ankunft/Reroute",\n  transport: "Logistik / Transport",'''
           if old_label not in text:
               raise SystemExit('performance debug label anchor not found')
           debug_ui.write_text(text.replace(old_label, new_label, 1))
