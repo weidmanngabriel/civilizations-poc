@@ -1,17 +1,17 @@
 import Phaser from "phaser";
-import type { Tile, World } from "../simulation/model";
+import type { World } from "../simulation/model";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 import { pixel } from "./mapGeometry";
+import {
+  bushVisualKey,
+  bushVisualState,
+  currentBushTiles,
+  type BushVisualState,
+} from "./bushVisualState";
 
-type BushVisualState = "full" | "empty" | "hidden";
 type BushIndicator = {
   graphics: Phaser.GameObjects.Graphics;
   state: BushVisualState;
-};
-
-const visualState = (tile: Tile): BushVisualState => {
-  if (!tile.bush || tile.terrain !== "grass") return "hidden";
-  return tile.bushAvailable ? "full" : "empty";
 };
 
 const drawBush = (graphics: Phaser.GameObjects.Graphics, full: boolean): void => {
@@ -35,16 +35,18 @@ export function installBushIndicators(scene: Phaser.Scene, world: World): void {
     originalCreate?.();
 
     const container = scene.add.container(0, 0).setDepth(20);
-    const bushTiles = world.tiles.filter((tile) => tile.bush);
-    const indicators = new Map<Tile, BushIndicator>();
+    const indicators = new Map<string, BushIndicator>();
 
     const render = () => {
       const started = performanceNow();
       let createdObjects = 0;
+      const activeKeys = new Set<string>();
 
-      for (const tile of bushTiles) {
-        const state = visualState(tile);
-        let indicator = indicators.get(tile);
+      for (const tile of currentBushTiles(world)) {
+        const key = bushVisualKey(tile);
+        const state = bushVisualState(tile);
+        activeKeys.add(key);
+        let indicator = indicators.get(key);
 
         if (!indicator) {
           if (state === "hidden") continue;
@@ -52,7 +54,7 @@ export function installBushIndicators(scene: Phaser.Scene, world: World): void {
           const graphics = scene.add.graphics().setPosition(x, y);
           drawBush(graphics, state === "full");
           indicator = { graphics, state };
-          indicators.set(tile, indicator);
+          indicators.set(key, indicator);
           container.add(graphics);
           createdObjects++;
           continue;
@@ -64,9 +66,16 @@ export function installBushIndicators(scene: Phaser.Scene, world: World): void {
           continue;
         }
 
-        indicator.graphics.setVisible(true);
+        const { x, y } = pixel(tile);
+        indicator.graphics.setPosition(x, y).setVisible(true);
         if (indicator.state !== state) drawBush(indicator.graphics, state === "full");
         indicator.state = state;
+      }
+
+      for (const [key, indicator] of indicators) {
+        if (activeKeys.has(key)) continue;
+        indicator.graphics.setVisible(false);
+        indicator.state = "hidden";
       }
 
       performanceProfiler.recordFeature(
