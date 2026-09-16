@@ -33,6 +33,7 @@ import {
   deferLocalResourceDepletion,
   finishDeferredResourceDepletion,
 } from "./resourceDepletion";
+import { resolveFoodArrivals } from "./needs";
 import { measureResourcePerformance } from "../debug/resourcePerformance";
 
 const RESOURCE_DROP_RADIUS = GRID_REFINEMENT;
@@ -285,6 +286,7 @@ export function tick(world: World): void {
 
   const deferredResourceDepletion = deferLocalResourceDepletion(world);
   coreTick(world);
+  resolveFoodArrivals(world);
   finishDeferredResourceDepletion(world, deferredResourceDepletion);
   finishPhysicalResourceTick(world);
   if (deferredResourceDepletion.length) syncWorkAreas(world);
