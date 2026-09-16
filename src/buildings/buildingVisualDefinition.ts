@@ -7,7 +7,7 @@ export interface SpriteAnchor {
 
 export interface BuildingVisualDefinition {
   schema: "civilizations-building-visual";
-  version: 1;
+  version: 2;
   id: string;
   sprite: string;
   spriteAnchor: SpriteAnchor;
