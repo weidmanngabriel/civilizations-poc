@@ -104,6 +104,7 @@ installBushIndicators(scene, world);
 installNaturalResourceIndicators(scene, world);
 installLooseGoodsIndicators(scene, world);
 installBuildPlacementHighlights(scene, world);
+installBuildingSprites(scene, world);
 installHungerIndicators(scene, world);
 installSleepIndicators(scene, world);
 installPersonSelection(scene, world);
@@ -136,9 +137,6 @@ const game = new Phaser.Game({
   },
   render: { antialias: true },
 });
-
-// Scene plugins such as scene.events are guaranteed only after Phaser has booted the game.
-installBuildingSprites(scene, world);
 
 // Keep touch and desktop input adapters separate so neither interaction model regresses the other.
 installMobileMapTouchControls(game, scene);
