@@ -23,6 +23,9 @@ const addBreadWarehouse = (world: World, bread = 1): Building => {
   return warehouse;
 };
 
+const eatingUntilTickOf = (person: Person): number | undefined =>
+  person.hungerState?.eatingUntilTick;
+
 const finishTimedEating = (world: World, person: Person): void => {
   for (let i = 0; i < CONFIG.simulationHz * 6 && person.hungerState; i += 1) tick(world);
   assert.equal(person.hungerState, undefined, "eating should finish within five simulated seconds after starting");
@@ -78,7 +81,7 @@ test("a hungry person finishes current work before eating at 40", () => {
   person.position = { ...warehouse.position };
   person.path = [];
   resolveFoodArrivals(world);
-  assert.ok(person.hungerState?.eatingUntilTick !== undefined);
+  assert.ok(eatingUntilTickOf(person) !== undefined);
   assert.equal(warehouse.inventory?.bread, 1);
 
   finishTimedEating(world, person);
@@ -96,7 +99,7 @@ test("eating occupies exactly five simulated seconds before food is consumed", (
   person.hungerState = { resumeActive: false, foodSource: warehouse.id };
 
   resolveFoodArrivals(world);
-  const eatingUntilTick = person.hungerState?.eatingUntilTick;
+  const eatingUntilTick = eatingUntilTickOf(person);
   assert.equal(eatingUntilTick, world.round + CONFIG.simulationHz * 5);
   assert.equal(warehouse.inventory?.bread, 1);
 
@@ -127,7 +130,7 @@ test("food recovery is not capped at 100 and harvesting marks a bush unavailable
   bush.bushAvailable = true;
 
   resolveFoodArrivals(world);
-  assert.ok(person.hungerState?.eatingUntilTick !== undefined);
+  assert.ok(eatingUntilTickOf(person) !== undefined);
   assert.equal(bush.bushAvailable, true);
 
   finishTimedEating(world, person);
@@ -240,7 +243,7 @@ test("critical hunger pauses at the next one-second check and keeps work progres
   person.position = { ...warehouse.position };
   person.path = [];
   resolveFoodArrivals(world);
-  assert.ok(person.hungerState?.eatingUntilTick !== undefined);
+  assert.ok(eatingUntilTickOf(person) !== undefined);
   assert.equal(person.progress, 72);
 
   finishTimedEating(world, person);
@@ -300,7 +303,7 @@ test("worker spends five seconds eating at HQ before returning to work", () => {
   let eatingFinishedAt = -1;
   for (let i = 0; i < 900; i += 1) {
     tick(world);
-    if (eatingStartedAt < 0 && person.hungerState?.eatingUntilTick !== undefined)
+    if (eatingStartedAt < 0 && eatingUntilTickOf(person) !== undefined)
       eatingStartedAt = world.round;
     if (eatingStartedAt >= 0 && person.hungerState === undefined) {
       eatingFinishedAt = world.round;
