@@ -11,7 +11,7 @@ export interface BuildingVisualDefinition {
   id: string;
   sprite: string;
   spriteAnchor: SpriteAnchor;
-  spriteScale?: number;
+  spriteScale: number;
   footprint: Hex[];
   blocked: Hex[];
   entrance: Hex;
@@ -25,7 +25,7 @@ export function validateBuildingVisualDefinition(
   const errors: string[] = [];
   if (!/^[a-z0-9][a-z0-9-]*$/.test(definition.id))
     errors.push("Die ID darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten.");
-  if (definition.spriteScale !== undefined && (!Number.isFinite(definition.spriteScale) || definition.spriteScale <= 0))
+  if (!Number.isFinite(definition.spriteScale) || definition.spriteScale <= 0)
     errors.push("Die Sprite-Skalierung muss größer als 0 sein.");
   if (definition.footprint.length === 0)
     errors.push("Der Gebäudegrundriss darf nicht leer sein.");
