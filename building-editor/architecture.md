@@ -33,9 +33,11 @@ Der Editor importiert die gemeinsame Kartenprojektion aus `src/game/mapProjectio
 
 Begehbare Gebäudezellen ergeben sich aus `footprint - blocked`; sie werden nicht redundant gespeichert.
 
-## Export
+## Export und Reimport
 
 Im Produktionsbuild/GitHub Pages lädt **Export herunterladen** `building.json` und das unveränderte Sprite als lokale Dateien herunter.
+
+Der Editor kann genau dieses Dateipaar wieder importieren. `building.json` wird zunächst strukturell und über die gemeinsame Schema-Validierung geprüft. Anschließend muss unter den gleichzeitig ausgewählten Dateien genau das vom JSON referenzierte PNG/WebP vorhanden sein. Erst nach erfolgreicher Prüfung werden Editorzustand und Sprite ersetzt. Dasselbe funktioniert per gemeinsamer Dateiauswahl oder Drag & Drop beider Dateien.
 
 Im Vite-Entwicklungsserver ist zusätzlich **Ins Projekt speichern** verfügbar. Ein Development-only-Middleware-Endpunkt validiert ID und Bildtyp und schreibt nach `src/assets/buildings/<id>/`. Dieser Endpunkt existiert im statischen Produktionsbuild nicht und benötigt keine GitHub-Anmeldedaten.
 
