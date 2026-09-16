@@ -48,13 +48,27 @@ export const buildingDefinition = (
 export const hasBuildingDefinition = (kind: BuildingKind): boolean =>
   DEFINITIONS.has(kind);
 
+export const definitionForBuilding = (
+  building: Building,
+): RegisteredBuildingDefinition | undefined => {
+  const definition = buildingDefinition(building.kind);
+  return definition && building.visualDefinitionId === definition.visual.id
+    ? definition
+    : undefined;
+};
+
+export const bindBuildingDefinition = (building: Building): void => {
+  const definition = buildingDefinition(building.kind);
+  building.visualDefinitionId = definition?.visual.id;
+};
+
 const add = (a: Hex, b: Hex): Hex => ({ q: a.q + b.q, r: a.r + b.r });
 const subtract = (a: Hex, b: Hex): Hex => ({ q: a.q - b.q, r: a.r - b.r });
 
 /**
  * Placement/editor coordinates use the definition's visual anchor. Runtime
- * Building.position remains the interaction coordinate; for editor-authored
- * buildings that is the authored entrance cell.
+ * Building.position remains the gameplay interaction coordinate; for bound
+ * editor-authored buildings that is the authored entrance cell.
  */
 export const buildingInteractionAt = (kind: BuildingKind, visualAnchor: Hex): Hex => {
   const definition = buildingDefinition(kind);
@@ -62,7 +76,7 @@ export const buildingInteractionAt = (kind: BuildingKind, visualAnchor: Hex): He
 };
 
 export const buildingVisualAnchor = (building: Building): Hex => {
-  const definition = buildingDefinition(building.kind);
+  const definition = definitionForBuilding(building);
   return definition
     ? subtract(building.position, definition.visual.entrance)
     : { ...building.position };
@@ -84,8 +98,14 @@ export const definitionBlockedAt = (
   return definition?.visual.blocked.map((cell) => add(visualAnchor, cell));
 };
 
-export const definitionFootprintForBuilding = (building: Building): Hex[] | undefined =>
-  definitionFootprintAt(building.kind, buildingVisualAnchor(building));
+export const definitionFootprintForBuilding = (building: Building): Hex[] | undefined => {
+  const definition = definitionForBuilding(building);
+  const visualAnchor = buildingVisualAnchor(building);
+  return definition?.visual.footprint.map((cell) => add(visualAnchor, cell));
+};
 
-export const definitionBlockedForBuilding = (building: Building): Hex[] | undefined =>
-  definitionBlockedAt(building.kind, buildingVisualAnchor(building));
+export const definitionBlockedForBuilding = (building: Building): Hex[] | undefined => {
+  const definition = definitionForBuilding(building);
+  const visualAnchor = buildingVisualAnchor(building);
+  return definition?.visual.blocked.map((cell) => add(visualAnchor, cell));
+};
