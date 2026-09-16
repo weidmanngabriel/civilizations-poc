@@ -83,7 +83,7 @@ Im veröffentlichten Editor werden `building.json` und Sprite heruntergeladen. D
 
 ## Wege
 
-Die bestehende Regel bleibt: **8 Überquerungen innerhalb von 32 simulierten Sekunden** erzeugen einen dauerhaften Weg. Auf Wegen bewegen sich Bewohner mit dem bestehenden Faktor **1,3×**.
+Die Grundgeschwindigkeit von Bewohnern beträgt **5/6 Weltkachel pro Sekunde**. Die bestehende Regel bleibt: **8 Überquerungen innerhalb von 32 simulierten Sekunden** erzeugen einen dauerhaften Weg. Auf Wegen bewegen sich Bewohner mit dem bestehenden Faktor **1,3×**.
 
 Weder manuell gesetzte noch automatisch entstehende Wege dürfen eine aktive natürliche Ressourcenfläche überdecken. Das gilt für den kompletten Ressourcen-Grundriss, nicht nur für dessen Mittelpunkt.
 
