@@ -18,10 +18,12 @@ button { cursor: pointer; }
 .editor-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: 0; }
 .workspace { position: relative; overflow: auto; min-height: 680px; background: radial-gradient(circle at center, #203527 0, #16251c 70%); }
 .canvas { position: relative; width: 100%; min-width: 820px; height: 100%; min-height: 680px; user-select: none; overflow: hidden; }
-.sprite { position: absolute; max-width: none; pointer-events: auto; touch-action: none; image-rendering: auto; opacity: .92; z-index: 2; cursor: grab; }
+.sprite { position: absolute; max-width: none; pointer-events: none; touch-action: none; image-rendering: auto; opacity: .92; z-index: 2; }
+.sprite.movable { pointer-events: auto; cursor: grab; }
 .sprite.dragging { cursor: grabbing; opacity: .82; }
 .grid-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; overflow: visible; pointer-events: none; }
 .grid-cell { fill: rgba(230, 242, 233, .035); stroke: rgba(217, 234, 221, .22); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: auto; }
+.grid-svg.moving-sprite .grid-cell { pointer-events: none; }
 .grid-cell:hover { stroke: rgba(255,255,255,.7); fill: rgba(255,255,255,.08); }
 .grid-cell.axis-cell { stroke: rgba(214, 232, 218, .36); }
 .grid-cell.footprint { fill: rgba(70, 150, 92, .26); stroke: rgba(128, 210, 147, .9); }
@@ -44,7 +46,7 @@ button { cursor: pointer; }
 .field input[type="range"] { width: 100%; }
 .dropzone { display: grid; place-items: center; min-height: 92px; padding: 14px; text-align: center; border: 1px dashed #63806d; border-radius: 9px; color: #bdcec1; background: #13231a; }
 .dropzone.dragging { border-color: #b9d9c0; background: #1f3427; }
-.tool-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.tool-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
 .tool { padding: 9px 6px; border-radius: 7px; border: 1px solid #425c4b; background: #102018; color: #dfe9e1; }
 .tool.active { border-color: #a6cdb0; background: #2e4b38; }
 .actions { display: grid; gap: 8px; }
