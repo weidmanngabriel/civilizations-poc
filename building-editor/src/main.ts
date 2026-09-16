@@ -15,6 +15,7 @@ const CELL_Y = HEX_Y * PREVIEW_SCALE;
 const CELL_RADIUS_X = CELL_X * 0.58;
 const CELL_RADIUS_Y = CELL_Y * 0.72;
 const SVG_NS = "http://www.w3.org/2000/svg";
+const SUPPORTED_IMAGE_TYPES = new Set(["image/png", "image/webp"]);
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Editor root missing");
@@ -32,8 +33,11 @@ app.innerHTML = `
     <main class="editor-layout">
       <section class="workspace">
         <div class="canvas" id="canvas">
+          <div class="axis-label axis-q">q →</div>
+          <div class="axis-label axis-r">r ↘</div>
           <img class="sprite" id="sprite-preview" alt="Gebäudesprite" hidden />
           <svg class="grid-svg" id="grid" aria-label="Gebäuderaster"></svg>
+          <div class="origin-marker" id="origin-marker" aria-hidden="true"></div>
         </div>
       </section>
       <aside class="sidebar">
@@ -47,6 +51,15 @@ app.innerHTML = `
           <p class="help">Zum Import building.json und das zugehörige Sprite gemeinsam auswählen oder zusammen hier hineinziehen.</p>
         </section>
         <section class="panel">
+          <h2>Sprite</h2>
+          <div class="field">
+            <label for="sprite-scale">Skalierung <span id="scale-label">100 %</span></label>
+            <input id="sprite-scale" type="range" min="5" max="200" step="1" value="100" />
+          </div>
+          <div class="field"><label for="scale-number">Skalierung (%)</label><input id="scale-number" type="number" min="1" max="1000" step="1" value="100" /></div>
+          <p class="help">Sprite direkt mit der Maus ziehen, um es relativ zum Raster auszurichten. Die Skalierung verändert nur die Darstellung, nicht die Originaldatei.</p>
+        </section>
+        <section class="panel">
           <h2>Werkzeug</h2>
           <div class="tool-row">
             <button class="tool active" data-tool="footprint">Grundriss</button>
@@ -57,9 +70,9 @@ app.innerHTML = `
         </section>
         <section class="panel">
           <h2>Sprite-Anchor</h2>
-          <div class="field"><label for="anchor-x">X im Sprite (px)</label><input id="anchor-x" type="number" value="0" step="1" /></div>
-          <div class="field"><label for="anchor-y">Y im Sprite (px)</label><input id="anchor-y" type="number" value="0" step="1" /></div>
-          <p class="help">Der Anchor-Punkt des Bildes liegt auf der Rasterzelle q=0 / r=0.</p>
+          <div class="field"><label for="anchor-x">X im Original-Sprite (px)</label><input id="anchor-x" type="number" value="0" step="1" /></div>
+          <div class="field"><label for="anchor-y">Y im Original-Sprite (px)</label><input id="anchor-y" type="number" value="0" step="1" /></div>
+          <p class="help">Der Anchor-Punkt liegt auf q=0 / r=0. Ziehen des Sprites aktualisiert diese Werte automatisch.</p>
         </section>
         <section class="panel actions">
           <button class="primary" id="download">Export herunterladen</button>
@@ -81,6 +94,10 @@ const dropzone = document.querySelector<HTMLDivElement>("#dropzone")!;
 const idInput = document.querySelector<HTMLInputElement>("#building-id")!;
 const anchorXInput = document.querySelector<HTMLInputElement>("#anchor-x")!;
 const anchorYInput = document.querySelector<HTMLInputElement>("#anchor-y")!;
+const scaleRange = document.querySelector<HTMLInputElement>("#sprite-scale")!;
+const scaleNumber = document.querySelector<HTMLInputElement>("#scale-number")!;
+const scaleLabel = document.querySelector<HTMLSpanElement>("#scale-label")!;
+const originMarker = document.querySelector<HTMLDivElement>("#origin-marker")!;
 const status = document.querySelector<HTMLDivElement>("#status")!;
 const downloadButton = document.querySelector<HTMLButtonElement>("#download")!;
 const saveProjectButton = document.querySelector<HTMLButtonElement>("#save-project")!;
@@ -88,6 +105,8 @@ const saveProjectButton = document.querySelector<HTMLButtonElement>("#save-proje
 let currentTool: Tool = "footprint";
 let spriteFile: File | undefined;
 let spriteDataUrl = "";
+let spriteScale = 1;
+let dragStart: { pointerX: number; pointerY: number; anchorX: number; anchorY: number } | undefined;
 const footprint = new Map<string, Hex>();
 const blocked = new Map<string, Hex>();
 let entrance: Hex | undefined;
@@ -119,12 +138,17 @@ function parseDefinition(value: unknown): BuildingVisualDefinition {
   if (footprintCells.some((cell) => !cell) || blockedCells.some((cell) => !cell) || !entranceCell)
     throw new Error("building.json enthält ungültige Rasterkoordinaten.");
 
+  const scale = value.spriteScale === undefined ? 1 : value.spriteScale;
+  if (typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0)
+    throw new Error("building.json enthält keine gültige Sprite-Skalierung.");
+
   const parsed: BuildingVisualDefinition = {
     schema: "civilizations-building-visual",
     version: 1,
     id: value.id,
     sprite: value.sprite,
     spriteAnchor: { x: value.spriteAnchor.x, y: value.spriteAnchor.y },
+    spriteScale: scale,
     footprint: footprintCells as Hex[],
     blocked: blockedCells as Hex[],
     entrance: entranceCell,
@@ -141,10 +165,7 @@ const center = (): { x: number; y: number } => ({
 
 function projected(cell: Hex): { x: number; y: number } {
   const origin = center();
-  return {
-    x: origin.x + CELL_X * (cell.q + cell.r / 2),
-    y: origin.y + CELL_Y * cell.r,
-  };
+  return { x: origin.x + CELL_X * (cell.q + cell.r / 2), y: origin.y + CELL_Y * cell.r };
 }
 
 function polygonPoints(cell: Hex): string {
@@ -162,7 +183,6 @@ function polygonPoints(cell: Hex): string {
 function renderGrid(): void {
   grid.replaceChildren();
   grid.setAttribute("viewBox", `0 0 ${canvas.clientWidth} ${canvas.clientHeight}`);
-
   for (let r = -GRID_RADIUS; r <= GRID_RADIUS; r += 1) {
     for (let q = -GRID_RADIUS; q <= GRID_RADIUS; q += 1) {
       const cell = { q, r };
@@ -170,6 +190,7 @@ function renderGrid(): void {
       polygon.setAttribute("points", polygonPoints(cell));
       polygon.classList.add("grid-cell");
       if (q === 0 && r === 0) polygon.classList.add("origin");
+      if (q === 0 || r === 0) polygon.classList.add("axis-cell");
       if (hasCell(footprint, cell)) polygon.classList.add("footprint");
       if (hasCell(blocked, cell)) polygon.classList.add("blocked");
       if (entrance && cellKey(entrance) === cellKey(cell)) polygon.classList.add("entrance");
@@ -177,6 +198,9 @@ function renderGrid(): void {
       grid.append(polygon);
     }
   }
+  const origin = projected({ q: 0, r: 0 });
+  originMarker.style.left = `${origin.x}px`;
+  originMarker.style.top = `${origin.y}px`;
   renderSpritePosition();
 }
 
@@ -209,10 +233,20 @@ function renderSpritePosition(): void {
   const origin = projected({ q: 0, r: 0 });
   const anchorX = Number(anchorXInput.value) || 0;
   const anchorY = Number(anchorYInput.value) || 0;
-  spritePreview.style.width = `${spritePreview.naturalWidth}px`;
-  spritePreview.style.height = `${spritePreview.naturalHeight}px`;
-  spritePreview.style.left = `${origin.x - anchorX}px`;
-  spritePreview.style.top = `${origin.y - anchorY}px`;
+  spritePreview.style.width = `${spritePreview.naturalWidth * spriteScale}px`;
+  spritePreview.style.height = `${spritePreview.naturalHeight * spriteScale}px`;
+  spritePreview.style.left = `${origin.x - anchorX * spriteScale}px`;
+  spritePreview.style.top = `${origin.y - anchorY * spriteScale}px`;
+}
+
+function setScale(nextScale: number): void {
+  spriteScale = Math.max(0.01, Math.min(10, nextScale));
+  const percent = Math.round(spriteScale * 100);
+  scaleNumber.value = String(percent);
+  scaleRange.value = String(Math.max(Number(scaleRange.min), Math.min(Number(scaleRange.max), percent)));
+  scaleLabel.textContent = `${percent} %`;
+  renderSpritePosition();
+  refreshStatus();
 }
 
 function definition(): BuildingVisualDefinition {
@@ -223,6 +257,7 @@ function definition(): BuildingVisualDefinition {
     id: idInput.value.trim(),
     sprite: `sprite.${extension}`,
     spriteAnchor: { x: Number(anchorXInput.value) || 0, y: Number(anchorYInput.value) || 0 },
+    spriteScale,
     footprint: [...footprint.values()],
     blocked: [...blocked.values()],
     entrance: entrance ?? { q: Number.NaN, r: Number.NaN },
@@ -238,7 +273,7 @@ function errors(): string[] {
 function refreshStatus(message?: string): boolean {
   const currentErrors = errors();
   status.classList.toggle("error", currentErrors.length > 0);
-  status.textContent = message ?? (currentErrors.length ? currentErrors.join("\n") : `Bereit · ${footprint.size} Grundrisszellen, ${blocked.size} blockiert.`);
+  status.textContent = message ?? (currentErrors.length ? currentErrors.join("\n") : `Bereit · ${footprint.size} Grundrisszellen, ${blocked.size} blockiert · ${Math.round(spriteScale * 100)} % Sprite.`);
   return currentErrors.length === 0;
 }
 
@@ -256,19 +291,20 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-async function loadSprite(file: File, preserveAnchor = false): Promise<void> {
-  if (!new Set(["image/png", "image/webp"]).has(file.type)) {
+async function loadSprite(file: File, preserveTransform = false): Promise<void> {
+  if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
     setError("Nur PNG und WebP werden unterstützt.");
     return;
   }
   spriteFile = file;
   spriteDataUrl = await fileToDataUrl(file);
   spritePreview.onload = () => {
-    if (!preserveAnchor && Number(anchorXInput.value) === 0 && Number(anchorYInput.value) === 0) {
+    if (!preserveTransform) {
       anchorXInput.value = String(Math.round(spritePreview.naturalWidth / 2));
       anchorYInput.value = String(Math.round(spritePreview.naturalHeight * 0.82));
-    }
-    renderSpritePosition();
+      const fitScale = Math.min(1, 720 / spritePreview.naturalWidth, 520 / spritePreview.naturalHeight);
+      setScale(fitScale);
+    } else renderSpritePosition();
   };
   spritePreview.src = spriteDataUrl;
   spritePreview.hidden = false;
@@ -283,12 +319,12 @@ async function importFiles(files: File[]): Promise<void> {
     const parsed = parseDefinition(JSON.parse(await jsonFile.text()) as unknown);
     const imageFile = files.find((file) => file.name === parsed.sprite);
     if (!imageFile) throw new Error(`Zum Import fehlt das Sprite ${parsed.sprite}.`);
-    if (!new Set(["image/png", "image/webp"]).has(imageFile.type))
-      throw new Error("Das Sprite muss PNG oder WebP sein.");
+    if (!SUPPORTED_IMAGE_TYPES.has(imageFile.type)) throw new Error("Das Sprite muss PNG oder WebP sein.");
 
     idInput.value = parsed.id;
     anchorXInput.value = String(parsed.spriteAnchor.x);
     anchorYInput.value = String(parsed.spriteAnchor.y);
+    setScale(parsed.spriteScale ?? 1);
     footprint.clear();
     blocked.clear();
     for (const cell of parsed.footprint) footprint.set(cellKey(cell), cell);
@@ -347,6 +383,41 @@ document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((button) => 
     button.classList.add("active");
   });
 });
+
+scaleRange.addEventListener("input", () => setScale(Number(scaleRange.value) / 100));
+scaleNumber.addEventListener("input", () => {
+  const percent = Number(scaleNumber.value);
+  if (Number.isFinite(percent) && percent > 0) setScale(percent / 100);
+});
+
+spritePreview.addEventListener("pointerdown", (event) => {
+  if (!spriteFile) return;
+  event.preventDefault();
+  spritePreview.setPointerCapture(event.pointerId);
+  dragStart = {
+    pointerX: event.clientX,
+    pointerY: event.clientY,
+    anchorX: Number(anchorXInput.value) || 0,
+    anchorY: Number(anchorYInput.value) || 0,
+  };
+  spritePreview.classList.add("dragging");
+});
+spritePreview.addEventListener("pointermove", (event) => {
+  if (!dragStart) return;
+  const dx = event.clientX - dragStart.pointerX;
+  const dy = event.clientY - dragStart.pointerY;
+  anchorXInput.value = String(Math.round((dragStart.anchorX - dx / spriteScale) * 10) / 10);
+  anchorYInput.value = String(Math.round((dragStart.anchorY - dy / spriteScale) * 10) / 10);
+  renderSpritePosition();
+});
+const finishSpriteDrag = () => {
+  if (!dragStart) return;
+  dragStart = undefined;
+  spritePreview.classList.remove("dragging");
+  refreshStatus();
+};
+spritePreview.addEventListener("pointerup", finishSpriteDrag);
+spritePreview.addEventListener("pointercancel", finishSpriteDrag);
 
 importButton.addEventListener("click", () => importInput.click());
 importInput.addEventListener("change", () => {
