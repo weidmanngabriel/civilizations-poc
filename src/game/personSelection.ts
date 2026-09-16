@@ -1,8 +1,9 @@
 import Phaser from "phaser";
 import type { Person, World } from "../simulation/model";
-import { key } from "../simulation/hex";
-import { personWorldPosition } from "../simulation/movement";
-import { pixel } from "./mapGeometry";
+import {
+  PERSON_MARKER_RADIUS,
+  personMarkerPositions,
+} from "./personMarkerGeometry";
 
 const PERSON_HIT_RADIUS_PX = 30;
 const PERSON_SELECTED_EVENT = "poc-person-selected";
@@ -23,25 +24,6 @@ type SelectableScene = Phaser.Scene & {
 
 type ModeDetail = { active: boolean };
 type PersonSelectionDetail = { id: number; focus?: boolean };
-type MarkerPosition = { person: Person; x: number; y: number };
-
-function markerPositions(world: World): MarkerPosition[] {
-  const groups = new Map<string, number>();
-  return world.people.map((person) => {
-    const moving = person.path.length > 0;
-    const positionKey = key(person.position);
-    const groupIndex = groups.get(positionKey) ?? 0;
-    groups.set(positionKey, groupIndex + 1);
-    const position = pixel(personWorldPosition(world, person));
-    return {
-      person,
-      x: position.x + (moving
-        ? ((person.id % 3) - 1) * 2
-        : ((groupIndex % 4) - 1.5) * 8),
-      y: position.y + (moving ? 1 : 1 + Math.floor(groupIndex / 4) * 8),
-    };
-  });
-}
 
 function nearestPersonAtScreenPoint(
   scene: Phaser.Scene,
@@ -52,7 +34,7 @@ function nearestPersonAtScreenPoint(
   const camera = scene.cameras.main;
   const point = camera.getWorldPoint(screenX, screenY);
   const maxDistance = PERSON_HIT_RADIUS_PX / camera.zoom;
-  return markerPositions(world)
+  return personMarkerPositions(world)
     .map((candidate) => ({
       person: candidate.person,
       distance: Phaser.Math.Distance.Between(point.x, point.y, candidate.x, candidate.y),
@@ -76,7 +58,7 @@ export function installPersonSelection(scene: Phaser.Scene, world: World): void 
   };
 
   const focusPerson = (personId: number): void => {
-    const marker = markerPositions(world).find((candidate) => candidate.person.id === personId);
+    const marker = personMarkerPositions(world).find((candidate) => candidate.person.id === personId);
     if (!marker) return;
     const camera = scene.cameras.main;
     const mobile = window.matchMedia("(max-width: 700px)").matches;
@@ -121,7 +103,7 @@ export function installPersonSelection(scene: Phaser.Scene, world: World): void 
     const renderSelection = (): void => {
       selectionRing.clear();
       if (selectedPersonId === undefined) return;
-      const marker = markerPositions(world).find(
+      const marker = personMarkerPositions(world).find(
         (candidate) => candidate.person.id === selectedPersonId,
       );
       if (!marker) {
@@ -129,8 +111,12 @@ export function installPersonSelection(scene: Phaser.Scene, world: World): void 
         return;
       }
       const zoom = scene.cameras.main.zoom;
-      selectionRing.lineStyle(2 / zoom, 0xf3d36a, 1);
-      selectionRing.strokeCircle(marker.x, marker.y, 11 / zoom);
+      selectionRing.lineStyle(1.5 / zoom, 0xf3d36a, 1);
+      selectionRing.strokeCircle(
+        marker.x,
+        marker.y,
+        PERSON_MARKER_RADIUS + 1.5 / zoom,
+      );
     };
 
     const onSelectionRequested = (event: Event): void => {
