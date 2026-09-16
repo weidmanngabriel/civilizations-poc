@@ -1,0 +1,55 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  buildingDefinition,
+  buildingVisualAnchor,
+  definitionBlockedForBuilding,
+  definitionFootprintForBuilding,
+} from "../src/buildings/buildingDefinitionRegistry";
+import { key, walkable } from "../src/simulation/hex";
+import { createDefaultGameWorld } from "../src/simulation/scenario";
+
+const setOf = (positions: Array<{ q: number; r: number }>): Set<string> =>
+  new Set(positions.map(key));
+
+test("registered HQ uses its authored entrance as runtime interaction position", () => {
+  const world = createDefaultGameWorld();
+  const hq = world.buildings.find((building) => building.kind === "hq")!;
+  const registered = buildingDefinition("hq")!;
+  const visualAnchor = buildingVisualAnchor(hq);
+
+  assert.deepEqual(hq.position, {
+    q: visualAnchor.q + registered.visual.entrance.q,
+    r: visualAnchor.r + registered.visual.entrance.r,
+  });
+  assert.deepEqual(
+    setOf(hq.footprint ?? []),
+    setOf(definitionFootprintForBuilding(hq) ?? []),
+  );
+  assert.ok(world.people.every((person) => key(person.position) === key(hq.position)));
+});
+
+test("registered blocked cells block movement while the authored entrance stays walkable", () => {
+  const world = createDefaultGameWorld();
+  const hq = world.buildings.find((building) => building.kind === "hq")!;
+  const blocked = definitionBlockedForBuilding(hq)!;
+  const tileByKey = new Map(world.tiles.map((tile) => [key(tile), tile]));
+
+  assert.ok(blocked.length > 0);
+  for (const position of blocked) {
+    const tile = tileByKey.get(key(position));
+    assert.equal(tile?.terrain, "building");
+    assert.equal(tile?.buildingBlocking, true);
+    assert.equal(tile ? walkable(tile) : true, false);
+  }
+
+  const entranceTile = tileByKey.get(key(hq.position));
+  assert.equal(entranceTile?.terrain, "building");
+  assert.equal(entranceTile?.buildingBlocking, undefined);
+  assert.equal(entranceTile ? walkable(entranceTile) : false, true);
+});
+
+test("unregistered building kinds retain the legacy spatial fallback", () => {
+  assert.equal(buildingDefinition("house"), undefined);
+  assert.equal(buildingDefinition("warehouse"), undefined);
+});
