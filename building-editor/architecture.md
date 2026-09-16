@@ -40,6 +40,10 @@ Große Sprites werden beim ersten Laden passend in die Vorschau eingepasst. Dabe
 
 Das Sprite kann über das Werkzeug **Sprite verschieben** direkt über dem Raster verschoben werden. Diese Drag-Bewegung verändert den `spriteAnchor`; das Raster selbst bleibt unverändert. q-/r-Achsen und Ursprung werden zusätzlich hervorgehoben.
 
+Rasterwerkzeuge arbeiten als Paint-Interaktion. Ein einzelner Klick toggelt die erste Zelle. Bei gehaltenem Pointer wird daraus für den gesamten Drag ein fester Setz- oder Löschmodus; jede danach erstmals überfahrene Zelle erhält dasselbe Ergebnis. `Shift` erzwingt für Klick und Drag den Löschmodus. Eine Zelle wird innerhalb desselben Drags nur einmal verarbeitet, damit wiederholte Pointer-Events das Ergebnis nicht zurücktoggeln.
+
+Die Overlay-Stärke der markierten Rasterzellen ist eine reine Editor-Vorschau-Einstellung. Sie beeinflusst weder `BuildingVisualDefinition` noch exportierte Dateien.
+
 ## Export und Reimport
 
 Im Produktionsbuild/GitHub Pages lädt **Export herunterladen** `building.json` und das unveränderte Sprite als lokale Dateien herunter.

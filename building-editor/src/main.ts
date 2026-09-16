@@ -7,6 +7,8 @@ import { HEX_X, HEX_Y, hexCornerOffsets } from "../../src/game/mapProjection";
 import type { Hex } from "../../src/simulation/model";
 
 type Tool = "move" | "footprint" | "blocked" | "entrance";
+type PaintMode = "set" | "remove";
+type PaintTool = Exclude<Tool, "move">;
 
 const GRID_RADIUS = 8;
 const PREVIEW_SCALE = 10;
@@ -65,7 +67,11 @@ app.innerHTML = `
             <button class="tool" data-tool="blocked">Blockiert</button>
             <button class="tool" data-tool="entrance">Eingang</button>
           </div>
-          <p class="help">Sprite verschieben erlaubt Drag am Bild. Die anderen Werkzeuge bearbeiten das Raster, ohne dass das Sprite Mausereignisse abfängt.</p>
+          <div class="field overlay-field">
+            <label for="overlay-strength">Overlay-Stärke <span id="overlay-label">100 %</span></label>
+            <input id="overlay-strength" type="range" min="0" max="100" step="1" value="100" />
+          </div>
+          <p class="help">Ein Klick toggelt die Zelle. Klick halten und ziehen überträgt das Ergebnis der ersten Zelle auf alle weiteren überfahrenen Zellen. Shift + Klick oder Shift + Drag setzt Zellen zurück. Sprite verschieben erlaubt Drag am Bild.</p>
         </section>
         <section class="panel">
           <h2>Sprite-Anchor</h2>
@@ -96,6 +102,8 @@ const anchorYInput = document.querySelector<HTMLInputElement>("#anchor-y")!;
 const scaleRange = document.querySelector<HTMLInputElement>("#sprite-scale")!;
 const scaleNumber = document.querySelector<HTMLInputElement>("#scale-number")!;
 const scaleLabel = document.querySelector<HTMLSpanElement>("#scale-label")!;
+const overlayRange = document.querySelector<HTMLInputElement>("#overlay-strength")!;
+const overlayLabel = document.querySelector<HTMLSpanElement>("#overlay-label")!;
 const originMarker = document.querySelector<HTMLDivElement>("#origin-marker")!;
 const status = document.querySelector<HTMLDivElement>("#status")!;
 const downloadButton = document.querySelector<HTMLButtonElement>("#download")!;
@@ -106,8 +114,10 @@ let spriteFile: File | undefined;
 let spriteDataUrl = "";
 let spriteScale = 1;
 let dragStart: { pointerX: number; pointerY: number; anchorX: number; anchorY: number } | undefined;
+let paintDrag: { tool: PaintTool; mode: PaintMode; visited: Set<string> } | undefined;
 const footprint = new Map<string, Hex>();
 const blocked = new Map<string, Hex>();
+const cellElements = new Map<string, SVGPolygonElement>();
 let entrance: Hex | undefined;
 
 const cellKey = (cell: Hex): string => `${cell.q},${cell.r}`;
@@ -172,55 +182,93 @@ function polygonPoints(cell: Hex): string {
     .join(" ");
 }
 
+function syncGridCellClasses(): void {
+  for (const [key, polygon] of cellElements) {
+    polygon.classList.toggle("footprint", footprint.has(key));
+    polygon.classList.toggle("blocked", blocked.has(key));
+    polygon.classList.toggle("entrance", entrance ? cellKey(entrance) === key : false);
+  }
+}
+
 function renderGrid(): void {
   grid.replaceChildren();
+  cellElements.clear();
   grid.setAttribute("viewBox", `0 0 ${canvas.clientWidth} ${canvas.clientHeight}`);
   grid.classList.toggle("moving-sprite", currentTool === "move");
   spritePreview.classList.toggle("movable", currentTool === "move");
   for (let r = -GRID_RADIUS; r <= GRID_RADIUS; r += 1) {
     for (let q = -GRID_RADIUS; q <= GRID_RADIUS; q += 1) {
       const cell = { q, r };
+      const key = cellKey(cell);
       const polygon = document.createElementNS(SVG_NS, "polygon");
       polygon.setAttribute("points", polygonPoints(cell));
       polygon.classList.add("grid-cell");
       if (q === 0 && r === 0) polygon.classList.add("origin");
       if (q === 0 || r === 0) polygon.classList.add("axis-cell");
-      if (hasCell(footprint, cell)) polygon.classList.add("footprint");
-      if (hasCell(blocked, cell)) polygon.classList.add("blocked");
-      if (entrance && cellKey(entrance) === cellKey(cell)) polygon.classList.add("entrance");
-      polygon.addEventListener("pointerdown", () => editCell(cell));
+      polygon.addEventListener("pointerdown", (event) => beginCellPaint(event, cell));
+      polygon.addEventListener("pointerenter", () => continueCellPaint(cell));
+      cellElements.set(key, polygon);
       grid.append(polygon);
     }
   }
+  syncGridCellClasses();
   const origin = projected({ q: 0, r: 0 });
   originMarker.style.left = `${origin.x}px`;
   originMarker.style.top = `${origin.y}px`;
   renderSpritePosition();
 }
 
-function editCell(cell: Hex): void {
-  if (currentTool === "move") return;
+function toolHasCell(tool: PaintTool, cell: Hex): boolean {
   const key = cellKey(cell);
-  if (currentTool === "footprint") {
-    if (footprint.has(key)) {
+  if (tool === "footprint") return footprint.has(key);
+  if (tool === "blocked") return blocked.has(key);
+  return entrance ? cellKey(entrance) === key : false;
+}
+
+function applyCellPaint(tool: PaintTool, cell: Hex, mode: PaintMode): void {
+  const key = cellKey(cell);
+  if (tool === "footprint") {
+    if (mode === "set") footprint.set(key, cell);
+    else {
       footprint.delete(key);
       blocked.delete(key);
       if (entrance && cellKey(entrance) === key) entrance = undefined;
-    } else footprint.set(key, cell);
-  } else if (currentTool === "blocked") {
-    if (!footprint.has(key)) footprint.set(key, cell);
-    if (blocked.has(key)) blocked.delete(key);
-    else {
+    }
+  } else if (tool === "blocked") {
+    if (mode === "set") {
+      footprint.set(key, cell);
       blocked.set(key, cell);
       if (entrance && cellKey(entrance) === key) entrance = undefined;
-    }
-  } else {
-    if (!footprint.has(key)) footprint.set(key, cell);
+    } else blocked.delete(key);
+  } else if (mode === "set") {
+    footprint.set(key, cell);
     blocked.delete(key);
     entrance = cell;
-  }
-  renderGrid();
+  } else if (entrance && cellKey(entrance) === key) entrance = undefined;
+
+  syncGridCellClasses();
   refreshStatus();
+}
+
+function beginCellPaint(event: PointerEvent, cell: Hex): void {
+  if (currentTool === "move" || event.button !== 0) return;
+  event.preventDefault();
+  const tool = currentTool as PaintTool;
+  const mode: PaintMode = event.shiftKey ? "remove" : toolHasCell(tool, cell) ? "remove" : "set";
+  paintDrag = { tool, mode, visited: new Set([cellKey(cell)]) };
+  applyCellPaint(tool, cell, mode);
+}
+
+function continueCellPaint(cell: Hex): void {
+  if (!paintDrag) return;
+  const key = cellKey(cell);
+  if (paintDrag.visited.has(key)) return;
+  paintDrag.visited.add(key);
+  applyCellPaint(paintDrag.tool, cell, paintDrag.mode);
+}
+
+function finishCellPaint(): void {
+  paintDrag = undefined;
 }
 
 function runtimeScalePercent(): number {
@@ -247,6 +295,18 @@ function setScale(nextScale: number): void {
   scaleLabel.textContent = `${percent} %`;
   renderSpritePosition();
   refreshStatus();
+}
+
+function setOverlayStrength(percent: number): void {
+  const clamped = Math.max(0, Math.min(100, percent));
+  const strength = clamped / 100;
+  overlayRange.value = String(clamped);
+  overlayLabel.textContent = `${Math.round(clamped)} %`;
+  grid.style.setProperty("--footprint-fill-alpha", String(0.05 + 0.39 * strength));
+  grid.style.setProperty("--blocked-fill-alpha", String(0.06 + 0.5 * strength));
+  grid.style.setProperty("--entrance-fill-alpha", String(0.08 + 0.64 * strength));
+  grid.style.setProperty("--overlay-stroke-alpha", String(0.25 + 0.75 * strength));
+  grid.style.setProperty("--overlay-glow-alpha", String(0.8 * strength));
 }
 
 function definition(): BuildingVisualDefinition {
@@ -381,6 +441,7 @@ saveProjectButton.addEventListener("click", async () => {
 });
 
 function selectTool(tool: Tool): void {
+  finishCellPaint();
   currentTool = tool;
   document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((candidate) => {
     candidate.classList.toggle("active", candidate.dataset.tool === tool);
@@ -397,6 +458,7 @@ scaleNumber.addEventListener("input", () => {
   const percent = Number(scaleNumber.value);
   if (Number.isFinite(percent) && percent > 0) setScale(percent / 100);
 });
+overlayRange.addEventListener("input", () => setOverlayStrength(Number(overlayRange.value)));
 
 spritePreview.addEventListener("pointerdown", (event) => {
   if (!spriteFile || currentTool !== "move") return;
@@ -427,6 +489,9 @@ const finishSpriteDrag = () => {
 };
 spritePreview.addEventListener("pointerup", finishSpriteDrag);
 spritePreview.addEventListener("pointercancel", finishSpriteDrag);
+window.addEventListener("pointerup", finishCellPaint);
+window.addEventListener("pointercancel", finishCellPaint);
+window.addEventListener("blur", finishCellPaint);
 
 importButton.addEventListener("click", () => importInput.click());
 importInput.addEventListener("change", () => {
@@ -461,5 +526,6 @@ anchorXInput.addEventListener("input", renderSpritePosition);
 anchorYInput.addEventListener("input", renderSpritePosition);
 window.addEventListener("resize", renderGrid);
 
+setOverlayStrength(Number(overlayRange.value));
 renderGrid();
 refreshStatus();
