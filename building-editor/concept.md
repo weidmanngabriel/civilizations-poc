@@ -34,6 +34,8 @@ Die Arbeitsfläche ist eine WYSIWYG-Vorschau der Spielprojektion: Rasterzentren 
 
 Große Sprites werden beim Laden zunächst durch Anpassen von `spriteScale` passend in den Arbeitsbereich eingepasst. Danach lässt sich die Runtime-Skalierung per Slider oder Prozentfeld ändern. Das Sprite kann mit **Sprite verschieben** direkt über dem Raster positioniert werden; dadurch wird der Anchor automatisch angepasst.
 
+Während Grundriss, blockierte Zellen oder Eingang bearbeitet werden, werden markierte Zellen bewusst kontrastreich über dem Sprite dargestellt: kräftige Füllung, deutliche Kontur und Glow. Der Eingang ist am stärksten hervorgehoben. Das Sprite wird in diesen Rasterwerkzeugen leicht abgedunkelt; im Werkzeug **Sprite verschieben** bleibt es unverändert hell.
+
 Ein Export kann über **Export importieren** geladen werden. Dabei werden `building.json` und das darin referenzierte PNG/WebP gemeinsam ausgewählt. Alternativ können beide Dateien zusammen auf die Sprite-Fläche gezogen werden. Der aktuelle Editorzustand wird nur ersetzt, wenn Schema, Rasterdaten und Sprite vollständig zusammenpassen.
 
 Aktuell wird **keine Rückwärtskompatibilität** gepflegt. Nur der aktuelle Editor-/Building-Visual-Schemastand muss funktionieren; ältere Exporte dürfen bei Schemaänderungen abgelehnt werden. Rückwärtskompatibilität wird erst ergänzt, wenn sie ausdrücklich angefordert wird.

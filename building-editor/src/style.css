@@ -18,17 +18,21 @@ button { cursor: pointer; }
 .editor-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: 0; }
 .workspace { position: relative; overflow: auto; min-height: 680px; background: radial-gradient(circle at center, #203527 0, #16251c 70%); }
 .canvas { position: relative; width: 100%; min-width: 820px; height: 100%; min-height: 680px; user-select: none; overflow: hidden; }
-.sprite { position: absolute; max-width: none; pointer-events: none; touch-action: none; image-rendering: auto; opacity: .92; z-index: 2; }
-.sprite.movable { pointer-events: auto; cursor: grab; }
+.sprite { position: absolute; max-width: none; pointer-events: none; touch-action: none; image-rendering: auto; opacity: .92; z-index: 2; transition: opacity 120ms ease; }
+.canvas:has(.grid-svg:not(.moving-sprite)) .sprite { opacity: .7; }
+.sprite.movable { pointer-events: auto; cursor: grab; opacity: .92; }
 .sprite.dragging { cursor: grabbing; opacity: .82; }
 .grid-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; overflow: visible; pointer-events: none; }
-.grid-cell { fill: rgba(230, 242, 233, .035); stroke: rgba(217, 234, 221, .22); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: auto; }
+.grid-cell { fill: rgba(230, 242, 233, .035); stroke: rgba(217, 234, 221, .25); stroke-width: 1.25; vector-effect: non-scaling-stroke; pointer-events: auto; transition: fill 80ms ease, stroke 80ms ease, filter 80ms ease; }
 .grid-svg.moving-sprite .grid-cell { pointer-events: none; }
-.grid-cell:hover { stroke: rgba(255,255,255,.7); fill: rgba(255,255,255,.08); }
-.grid-cell.axis-cell { stroke: rgba(214, 232, 218, .36); }
-.grid-cell.footprint { fill: rgba(70, 150, 92, .26); stroke: rgba(128, 210, 147, .9); }
-.grid-cell.blocked { fill: rgba(190, 70, 60, .38); stroke: rgba(255, 128, 115, .95); }
-.grid-cell.entrance { fill: rgba(62, 132, 225, .5); stroke: rgba(143, 192, 255, 1); stroke-width: 2; }
+.grid-cell:hover { stroke: rgba(255,255,255,.95); stroke-width: 2.5; fill: rgba(255,255,255,.18); filter: drop-shadow(0 0 4px rgba(255,255,255,.65)); }
+.grid-cell.axis-cell { stroke: rgba(214, 232, 218, .4); }
+.grid-cell.footprint { fill: rgba(42, 190, 83, .44); stroke: rgba(134, 255, 166, 1); stroke-width: 2.5; filter: drop-shadow(0 0 4px rgba(74, 255, 120, .75)); }
+.grid-cell.blocked { fill: rgba(230, 55, 43, .56); stroke: rgba(255, 154, 143, 1); stroke-width: 2.5; filter: drop-shadow(0 0 5px rgba(255, 74, 61, .78)); }
+.grid-cell.entrance { fill: rgba(35, 112, 255, .72); stroke: rgba(181, 217, 255, 1); stroke-width: 3.5; filter: drop-shadow(0 0 7px rgba(55, 142, 255, .95)); }
+.grid-cell.footprint:hover { fill: rgba(66, 228, 110, .58); stroke: #ffffff; }
+.grid-cell.blocked:hover { fill: rgba(255, 78, 62, .68); stroke: #ffffff; }
+.grid-cell.entrance:hover { fill: rgba(67, 143, 255, .82); stroke: #ffffff; }
 .grid-cell.origin { stroke-dasharray: 4 3; stroke-width: 2; }
 .origin-marker { position: absolute; z-index: 4; width: 12px; height: 12px; border: 2px solid #fff1a8; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 0 0 3px rgba(18, 32, 24, .55); }
 .origin-marker::before, .origin-marker::after { content: ""; position: absolute; background: #fff1a8; }
