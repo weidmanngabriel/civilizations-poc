@@ -1,5 +1,6 @@
 import type { Building, Hex, NaturalResource, Person, Tile, World } from "./model";
 import {
+  buildingDefinition,
   buildingInteractionAt,
   definitionBlockedForBuilding,
   definitionFootprintAt,
@@ -161,10 +162,11 @@ const nearestCoarseCell = (position: Hex): CoarseCell => {
 
 function createScenario({ population, suppliedStart }: ScenarioOptions): World {
   const hqVisualAnchor = scaledAt(6, 20);
+  const hqDefinition = buildingDefinition("hq");
   const authoredHqFootprint = suppliedStart
     ? definitionFootprintAt("hq", hqVisualAnchor)
     : undefined;
-  if (suppliedStart && !authoredHqFootprint)
+  if (suppliedStart && (!hqDefinition || !authoredHqFootprint))
     throw new Error("Die räumliche HQ-Definition fehlt.");
   const hqPosition = suppliedStart
     ? buildingInteractionAt("hq", hqVisualAnchor)
@@ -175,6 +177,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
       kind: "hq",
       name: "Hauptquartier",
       position: hqPosition,
+      ...(suppliedStart ? { visualDefinitionId: hqDefinition!.visual.id } : {}),
       footprint: authoredHqFootprint ?? compactFootprint(hqVisualAnchor),
       workers: 0,
       carriers: 2,
