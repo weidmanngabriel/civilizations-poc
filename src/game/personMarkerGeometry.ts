@@ -23,9 +23,9 @@ export function personMarkerPositions(world: World): PersonMarkerPosition[] {
     groups.set(positionKey, groupIndex + 1);
 
     const position = pixel(personWorldPosition(world, person));
-    const x = position.x + (moving
-      ? ((person.id % 3) - 1) * 1.5
-      : ((groupIndex % 4) - 1.5) * 5);
+    const x = moving
+      ? position.x
+      : position.x + ((groupIndex % 4) - 1.5) * 5;
     const groundY = position.y + (moving ? 0 : Math.floor(groupIndex / 4) * 5);
 
     return {
