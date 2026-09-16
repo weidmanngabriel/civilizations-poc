@@ -36,7 +36,7 @@ function loadTexture(scene: MainScene): Promise<void> {
   if (scene.textures.exists(HQ_TEXTURE_KEY)) return Promise.resolve();
   return new Promise((resolve, reject) => {
     scene.load.once(Phaser.Loader.Events.COMPLETE, () => resolve());
-    scene.load.once(Phaser.Loader.Events.LOAD_ERROR, () => reject(new Error("HQ-Sprite konnte nicht geladen werden.")));
+    scene.load.once(Phaser.Loader.Events.FILE_LOAD_ERROR, () => reject(new Error("HQ-Sprite konnte nicht geladen werden.")));
     scene.load.image(HQ_TEXTURE_KEY, HQ_SPRITE_URL);
     scene.load.start();
   });
@@ -68,8 +68,8 @@ export function installBuildingSprites(scene: MainScene, world: World): void {
 
       sprite = scene.add.image(0, 0, HQ_TEXTURE_KEY)
         .setOrigin(
-          definition.spriteAnchor.x / source.naturalWidth,
-          definition.spriteAnchor.y / source.naturalHeight,
+          definition.spriteAnchor.x / source.width,
+          definition.spriteAnchor.y / source.height,
         )
         .setScale(definition.spriteScale)
         .setDepth(1);
