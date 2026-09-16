@@ -7,6 +7,7 @@ import type {
   World,
 } from "./model";
 import {
+  bindBuildingDefinition,
   buildingInteractionAt,
   definitionBlockedAt,
   definitionFootprintAt,
@@ -228,6 +229,7 @@ export function buildWithFootprint(
     kind as BuildableBuildingKind,
   );
   if (!created) return;
+  bindBuildingDefinition(created);
   if (kind === "house") {
     created.kind = "house";
     created.name = "Wohnhaus";
