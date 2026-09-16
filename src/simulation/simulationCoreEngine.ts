@@ -1280,6 +1280,7 @@ export function tick(w: World): void {
     if (!immediateDecision && !retryDecision) continue;
     if (immediateDecision) clearWorkRetry(p);
     if (
+      !needDueBeforeNewTask(p) &&
       p.assignment &&
       !p.active &&
       !p.path.length &&

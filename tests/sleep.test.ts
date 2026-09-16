@@ -26,6 +26,7 @@ const removeNatureSleepTargets = (world: World): void => {
   world.naturalResources = [];
   for (const tile of world.tiles) {
     if (tile.terrain === "forest") tile.terrain = "grass";
+    tile.resourceBlocking = undefined;
     tile.bush = undefined;
     tile.bushAvailable = undefined;
   }
@@ -249,4 +250,83 @@ test("hunger has priority when hunger and sleep are both due", () => {
   advanceSleepTick(world);
 
   assert.equal(person.sleepState, undefined);
+});
+
+const addSleepRegressionWorkplace = (world: World): Building => {
+  const person = world.people[0]!;
+  const workplace: Building = {
+    id: "sleep-arrival-workplace",
+    kind: "sawmill",
+    name: "Schlaf-Test-Arbeitsstätte",
+    position: { ...person.position },
+    workers: 1,
+    carriers: 0,
+    input: 2,
+    output: 0,
+    recipe: { input: "wood", amount: 2, output: "plank", duration: CONFIG.duration },
+  };
+  world.buildings.push(workplace);
+  person.assignment = { building: workplace.id, role: "worker" };
+  person.active = true;
+  person.progress = 0;
+  person.sleep = 20;
+  return workplace;
+};
+
+const nearbyGrassTile = (world: World) => {
+  const person = world.people[0]!;
+  return world.tiles.find(
+    (tile) =>
+      tile.terrain === "grass" &&
+      Math.abs(tile.q - person.position.q) <= 6 &&
+      Math.abs(tile.r - person.position.r) <= 6 &&
+      (tile.q !== person.position.q || tile.r !== person.position.r),
+  )!;
+};
+
+const waitForSleepProgress = (world: World): void => {
+  const person = world.people[0]!;
+  for (let i = 0; i < 600 && (person.sleepState?.progress ?? 0) === 0; i += 1) tick(world);
+  assert.ok((person.sleepState?.progress ?? 0) > 0, "person should begin sleeping after reaching the nature target");
+  assert.equal(person.path.length, 0, "active sleep must not be replaced by a route back to work");
+};
+
+test("assigned worker reaches a bush and starts sleeping instead of returning to work", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  removeNatureSleepTargets(world);
+  addSleepRegressionWorkplace(world);
+  const bush = nearbyGrassTile(world);
+  bush.bush = true;
+  bush.bushAvailable = true;
+
+  advanceSleepTick(world);
+  assert.equal(person.sleepState?.kind, "nature");
+  assert.deepEqual(person.sleepState?.target, { q: bush.q, r: bush.r });
+  assert.ok(person.path.length > 0);
+
+  waitForSleepProgress(world);
+});
+
+test("assigned worker reaches a blocking tree and starts sleeping instead of returning to work", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  removeNatureSleepTargets(world);
+  addSleepRegressionWorkplace(world);
+  const treeTile = nearbyGrassTile(world);
+  treeTile.resourceBlocking = true;
+  world.naturalResources.push({
+    id: "sleep-arrival-tree",
+    kind: "forest",
+    position: { q: treeTile.q, r: treeTile.r },
+    remaining: 3,
+    output: 0,
+  });
+
+  advanceSleepTick(world);
+  assert.equal(person.sleepState?.kind, "nature");
+  assert.deepEqual(person.sleepState?.target, { q: treeTile.q, r: treeTile.r });
+  assert.ok(person.path.length > 0);
+
+  waitForSleepProgress(world);
 });
