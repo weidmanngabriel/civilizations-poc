@@ -9,8 +9,6 @@ import type {
   Role,
   World,
 } from "./model";
-import { CONFIG } from "./scenario";
-import { extractionSpeedMultiplier } from "./experience";
 import { hexDistance } from "./spatial";
 import {
   assigned,
@@ -271,87 +269,11 @@ export function status(world: World, target: Building): string {
   return statusNow(world, target);
 }
 
-function legacyResourcePlanningGuard(world: World): Set<number> {
-  const guarded = new Set<number>();
-  for (const person of world.people) {
-    if (!person.workArea || (!person.woodcutter && !person.extractor)) continue;
-    if (!person.resourceTarget) {
-      guarded.add(person.id);
-      continue;
-    }
-    if (
-      !person.active ||
-      person.path.length ||
-      person.trip ||
-      person.farmTask ||
-      person.hungerState ||
-      person.sleepState ||
-      person.progress <= 0
-    ) continue;
-    const resource = world.naturalResources.find(
-      (candidate) => candidate.id === person.resourceTarget,
-    );
-    if (
-      !resource ||
-      resource.depleted ||
-      resource.remaining !== 1 ||
-      !samePosition(person.position, resource.position)
-    ) continue;
-    const profession =
-      resource.kind === "forest"
-        ? "woodcutter"
-        : resource.kind === "clay"
-          ? "clayDigger"
-          : "stonecutter";
-    if (person.progress + extractionSpeedMultiplier(person, profession) >= CONFIG.duration)
-      guarded.add(person.id);
-  }
-  return guarded;
-}
-
-/**
- * The historical engine still tries global extractor planning during resource cleanup
- * and one-second idle retries. Local work areas own that decision now. The adapter
- * suppresses only those legacy decisions after the needs check has run, then restores
- * the real hunger values before local work-area planning.
- */
-function tickWithoutLegacyGlobalResourcePlanning(world: World): void {
-  const guardedIds = legacyResourcePlanningGuard(world);
-  if (!guardedIds.size) {
-    tickNow(world);
-    return;
-  }
-
-  const originalHunger = new Map<number, number | undefined>();
-  const tickWorld = new Proxy(world, {
-    set(target, property, value, receiver) {
-      const changed = Reflect.set(target, property, value, receiver);
-      if (!changed || property !== "round" || typeof value !== "number") return changed;
-      for (const id of guardedIds) {
-        const person = world.people.find((candidate) => candidate.id === id);
-        if (!person || person.hungerState || (person.hunger ?? 100) <= 40) continue;
-        if (!originalHunger.has(id)) originalHunger.set(id, person.hunger);
-        person.hunger = 40;
-      }
-      return changed;
-    },
-  });
-
-  try {
-    tickNow(tickWorld);
-  } finally {
-    for (const [id, hunger] of originalHunger) {
-      const person = world.people.find((candidate) => candidate.id === id);
-      if (person) person.hunger = hunger;
-    }
-  }
-}
-
 /** Flushes UI-triggered autonomous profession planning inside the simulation step. */
 export function tick(world: World): void {
   flushPendingPlans(world);
   syncWorkAreas(world);
-  tickWithoutLegacyGlobalResourcePlanning(world);
+  tickNow(world);
   syncWorkAreas(world);
 }
 

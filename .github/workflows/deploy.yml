@@ -1,106 +1,38 @@
-name: Agent resource cleanup test
+name: Test, build and deploy PoC
 on:
   push:
-    branches: [perf/resource-cleanup-local-planning]
+    branches: [main]
+  workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
 jobs:
-  patch-test-commit:
-    if: github.actor != 'github-actions[bot]'
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: npm
-      - name: Apply resource cleanup refactor
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          engine = Path('src/simulation/simulationCoreEngine.ts')
-          text = engine.read_text()
-          old = '''function retireDepletedResources(
-            w: World,
-            resources: readonly NaturalResource[],
-          ): void {
-            for (const resource of resources) {
-              if (resource.depleted || resource.remaining !== 0) continue;
-              resource.depleted = true;
-              const tile = tileAt(w, resource.position);
-              if (resource.kind === "forest") tile.terrain = "grass";
-              tile.trafficTicks = undefined;
-              for (const person of resourceWorkers(w, resource.id)) {
-                person.resourceTarget = undefined;
-                person.active = false;
-                person.progress = 0;
-                person.movement = 0;
-                person.path = [];
-                if (person.woodcutter) assignNaturalWorker(w, person, "forest");
-                else if (person.extractor) assignNaturalWorker(w, person, person.extractor);
-                else route(w, person, building(w, "hq"), "reroute");
-              }
-            }
-          }'''
-          new = '''function retireDepletedResources(
-            w: World,
-            resources: readonly NaturalResource[],
-          ): void {
-            for (const resource of resources) {
-              if (resource.depleted || resource.remaining !== 0) continue;
-              resource.depleted = true;
-              const tile = tileAt(w, resource.position);
-              if (resource.kind === "forest") tile.terrain = "grass";
-              tile.trafficTicks = undefined;
-              for (const person of resourceWorkers(w, resource.id)) {
-                person.resourceTarget = undefined;
-                person.active = false;
-                person.progress = 0;
-                person.movement = 0;
-                person.path = [];
-                if (!person.woodcutter && !person.extractor)
-                  route(w, person, building(w, "hq"), "reroute");
-              }
-            }
-          }'''
-          if old not in text:
-              raise SystemExit('retireDepletedResources anchor not found')
-          engine.write_text(text.replace(old, new, 1))
-
-          core = Path('src/simulation/simulationCore.ts')
-          text = core.read_text()
-          text = text.replace('import { CONFIG } from "./scenario";\n', '', 1)
-          text = text.replace('import { extractionSpeedMultiplier } from "./experience";\n', '', 1)
-          start = text.index('function legacyResourcePlanningGuard(')
-          end = text.index('/** Flushes UI-triggered autonomous profession planning inside the simulation step. */')
-          text = text[:start] + text[end:]
-          text = text.replace('  tickWithoutLegacyGlobalResourcePlanning(world);', '  tickNow(world);', 1)
-          core.write_text(text)
-
-          architecture = Path('architecture.md')
-          text = architecture.read_text()
-          old = '`simulationCore.ts` still suppresses the historical whole-map extractor replanning paths during depletion/idle retry; `syncWorkAreas()` owns the authoritative local retry.'
-          new = '`syncWorkAreas()` owns authoritative extractor/resource replanning after depletion and during idle retry. The historical core now limits depletion handling to retirement/reset cleanup and no longer performs a competing whole-map extractor replan.'
-          if old not in text:
-              raise SystemExit('architecture work-area anchor not found')
-          text = text.replace(old, new, 1)
-          old = 'Natural-resource depletion retirement is event-driven; there is no periodic full resource-list cleanup scan.'
-          new = 'Natural-resource depletion retirement is event-driven and limited to retirement/reset bookkeeping; subsequent extractor target selection is handled once by local work-area planning after the core tick. There is no periodic full resource-list cleanup scan or depletion-time whole-map extractor replan.'
-          if old not in text:
-              raise SystemExit('architecture performance anchor not found')
-          architecture.write_text(text.replace(old, new, 1))
-          PY
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - name: Commit tested refactor
-        run: |
-          git checkout origin/main -- .github/workflows/deploy.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "perf: remove legacy depletion replanning"
-          git push origin HEAD:perf/resource-cleanup-local-planning
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
