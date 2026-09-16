@@ -75,11 +75,15 @@ Beim Abriss wird die komplette belegte Fläche wieder freigegeben, nicht nur der
 
 Unter `/building-editor/` steht ein internes Authoring-Werkzeug als eigene Unterseite zur Verfügung. Die Seite ist grundsätzlich auch auf kleinen Geräten erreichbar, wird aber ausschließlich für Desktop-Bedienung optimiert.
 
-Der Editor definiert nur das **Aussehen und räumliche Verhalten** eines Gebäudes: Sprite, Sprite-Anchor, Gebäudegrundriss, blockierte Zellen und genau eine begehbare Eingangszelle. Begehbare Gebäudezellen ergeben sich automatisch aus Grundriss minus blockierten Zellen.
+Der Editor definiert nur das **Aussehen und räumliche Verhalten** eines Gebäudes: Sprite, Sprite-Anchor, Runtime-Skalierung, Gebäudegrundriss, blockierte Zellen und genau eine begehbare Eingangszelle. Begehbare Gebäudezellen ergeben sich automatisch aus Grundriss minus blockierten Zellen.
+
+Die Arbeitsfläche soll die spätere Spielansicht räumlich zuverlässig vorwegnehmen. Rasterzentren und sichtbare Hex-Geometrie verwenden dieselbe Projektion wie das Spiel. Der Editor vergrößert Raster und Sprite nur gemeinsam für die Bearbeitung; dadurch bleibt ihre Größenrelation identisch zur späteren Runtime.
 
 Produktionsregeln, Waren, Arbeiter, Lagerkapazitäten, Baukosten, Technologie und andere Gameplay-Funktionen sind ausdrücklich nicht Teil des Editors.
 
-Im veröffentlichten Editor werden `building.json` und Sprite heruntergeladen. Dieses Dateipaar kann anschließend gemeinsam wieder importiert und vollständig weiterbearbeitet werden; ungültige oder unvollständige Imports überschreiben den aktuellen Editorzustand nicht. Bei lokaler Entwicklung kann derselbe Stand direkt nach `src/assets/buildings/<id>/` gespeichert werden. Bestehende Gebäude werden nicht automatisch auf dieses Format migriert; neue Runtime-Integration kann schrittweise erfolgen.
+Im veröffentlichten Editor werden `building.json` und Sprite heruntergeladen. Dieses Dateipaar kann anschließend gemeinsam wieder importiert und vollständig weiterbearbeitet werden, sofern es dem **aktuellen** Building-Visual-Schema entspricht; ungültige oder unvollständige Imports überschreiben den aktuellen Editorzustand nicht. Bei lokaler Entwicklung kann derselbe Stand direkt nach `src/assets/buildings/<id>/` gespeichert werden. Bestehende Gebäude werden nicht automatisch auf dieses Format migriert; neue Runtime-Integration kann schrittweise erfolgen.
+
+Aktuell gibt es bewusst **keine Rückwärtskompatibilität** für ältere Editor-/Building-Visual-Schemata. Alte Exporte dürfen bei Schemaänderungen abgelehnt werden. Rückwärtskompatibilität wird erst ergänzt, wenn sie ausdrücklich angefordert wird.
 
 ## Wege
 
