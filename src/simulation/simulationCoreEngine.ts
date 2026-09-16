@@ -21,6 +21,7 @@ import {
   movementCost,
   pathTravelCost,
   same,
+  tileIndex,
 } from "./hex";
 import { CONFIG } from "./scenario";
 import {
@@ -160,7 +161,7 @@ const route = (
   reason: PathReason = routeReason(p),
 ) => routeToPosition(w, p, b.position, reason);
 const tileAt = (w: World, position: Hex): Tile =>
-  w.tiles.find((tile) => same(tile, position))!;
+  tileIndex(w.tiles).get(key(position))!;
 
 const measureFeature = <T>(keyName: PerformanceFeature, run: () => T): T =>
   performanceProfiler.profileFeature(keyName, run);
@@ -1034,6 +1035,7 @@ function recordTraffic(w: World, tile: Tile, resourceCells: Set<string>): boolea
 function movePeople(w: World): boolean {
   let roadCreated = false;
   const resourceCells = activeResourceCells(w);
+  const tiles = tileIndex(w.tiles);
   for (const p of w.people) {
     if (!p.path.length) {
       p.movement = 0;
@@ -1052,7 +1054,7 @@ function movePeople(w: World): boolean {
     let moves = 0;
     while (p.path.length && moves < 4) {
       const next = p.path[0]!;
-      const tile = tileAt(w, next);
+      const tile = tiles.get(key(next))!;
       const cost = movementCost(tile, CONFIG.roadSpeedMultiplier);
       if (p.movement + 1e-9 < cost) break;
       p.movement = Math.max(0, p.movement - cost);
@@ -1141,8 +1143,9 @@ export function tick(w: World): void {
     w.people.filter((p) => p.path.length > 0).map((p) => p.id),
   );
 
-  measureFeature("movement", () => {
-    if (movePeople(w)) {
+  const roadCreated = measureFeature("movement", () => movePeople(w));
+  measureFeature("movementArrival", () => {
+    if (roadCreated) {
       for (const p of w.people) rerouteCurrentTask(w, p);
     }
     for (const p of w.people) {

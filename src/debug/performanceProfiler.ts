@@ -7,6 +7,7 @@ export type PerformanceFeature =
   | "hunger"
   | "sleep"
   | "movement"
+  | "movementArrival"
   | "transport"
   | "construction"
   | "farm"
@@ -85,6 +86,7 @@ export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
   "hunger",
   "sleep",
   "movement",
+  "movementArrival",
   "transport",
   "construction",
   "farm",
@@ -113,6 +115,7 @@ const SIMULATION_FEATURES = new Set<PerformanceFeature>([
   "hunger",
   "sleep",
   "movement",
+  "movementArrival",
   "transport",
   "construction",
   "farm",
