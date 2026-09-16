@@ -47,8 +47,12 @@ test("HQ bread is a valid food source", () => {
   person.hunger = 20;
 
   advanceHungerTick(world);
+  assert.ok(person.hungerState?.eatingUntilTick !== undefined);
+  assert.equal(hq.inventory?.bread, 10);
 
-  assert.equal(person.hunger, 120);
+  for (let i = 0; i < CONFIG.simulationHz * 5; i++) tick(world);
+
+  assert.equal(person.hunger, 119);
   assert.equal(hq.inventory?.bread, 9);
   assert.equal(person.hungerState, undefined);
 });
@@ -62,12 +66,16 @@ test("berries restore forty hunger and regrow after two to three minutes", () =>
 
   world.buildings.find((building) => building.id === "hq")!.inventory!.bread = 0;
   advanceHungerTick(world);
+  assert.ok(person.hungerState?.eatingUntilTick !== undefined);
+  assert.equal(bush.bushAvailable, true);
 
-  assert.equal(person.hunger, 60);
+  for (let i = 0; i < CONFIG.simulationHz * 5; i++) tick(world);
+
+  assert.equal(person.hunger, 59);
   assert.equal(bush.bushAvailable, false);
   assert.ok(bush.bushRegrowTick !== undefined);
-  assert.ok(bush.bushRegrowTick! >= CONFIG.bushRegrowMinTicks);
-  assert.ok(bush.bushRegrowTick! <= CONFIG.bushRegrowMaxTicks);
+  assert.ok(bush.bushRegrowTick! >= world.round + CONFIG.bushRegrowMinTicks - 1);
+  assert.ok(bush.bushRegrowTick! <= world.round + CONFIG.bushRegrowMaxTicks);
 
   world.round = bush.bushRegrowTick!;
   advanceHungerTick(world);
