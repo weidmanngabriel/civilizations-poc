@@ -5,7 +5,7 @@ import { validateBuildingVisualDefinition } from "../src/buildings/buildingVisua
 test("building visual definition accepts a walkable entrance inside its footprint", () => {
   const errors = validateBuildingVisualDefinition({
     schema: "civilizations-building-visual",
-    version: 1,
+    version: 2,
     id: "bakery",
     sprite: "sprite.png",
     spriteAnchor: { x: 64, y: 96 },
@@ -20,7 +20,7 @@ test("building visual definition accepts a walkable entrance inside its footprin
 test("building visual definition accepts a positive sprite scale", () => {
   const errors = validateBuildingVisualDefinition({
     schema: "civilizations-building-visual",
-    version: 1,
+    version: 2,
     id: "hq",
     sprite: "sprite.webp",
     spriteAnchor: { x: 512, y: 800 },
@@ -35,7 +35,7 @@ test("building visual definition accepts a positive sprite scale", () => {
 test("building visual definition rejects a non-positive sprite scale", () => {
   const errors = validateBuildingVisualDefinition({
     schema: "civilizations-building-visual",
-    version: 1,
+    version: 2,
     id: "hq",
     sprite: "sprite.png",
     spriteAnchor: { x: 64, y: 96 },
@@ -50,7 +50,7 @@ test("building visual definition rejects a non-positive sprite scale", () => {
 test("building visual definition rejects a blocked entrance", () => {
   const errors = validateBuildingVisualDefinition({
     schema: "civilizations-building-visual",
-    version: 1,
+    version: 2,
     id: "bakery",
     sprite: "sprite.png",
     spriteAnchor: { x: 64, y: 96 },
