@@ -3,6 +3,7 @@ import { createDefaultGameWorld } from "../simulation/scenario";
 import { deserializeSaveGame, replaceWorldState, serializeSaveGame } from "../simulation/saveGame";
 
 const WORLD_REPLACED_EVENT = "poc-world-replaced";
+const SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 
@@ -73,13 +74,17 @@ export function mountGameMenu(world: World, renderMap: () => void): void {
   const close = panel.querySelector<HTMLButtonElement>("#game-menu-close")!;
 
   const setOpen = (open: boolean): void => {
-    if (open) document.querySelector<HTMLButtonElement>("#build-menu-close")?.click();
+    if (open) {
+      document.querySelector<HTMLButtonElement>("#build-menu-close")?.click();
+      document.querySelector<HTMLButtonElement>("#handbook-close")?.click();
+    }
     panel.hidden = !open;
     toggle.setAttribute("aria-expanded", String(open));
     toggle.classList.toggle("active", open);
   };
 
   const worldReplaced = (reason: "new" | "load"): void => {
+    window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
     window.dispatchEvent(new CustomEvent(WORLD_REPLACED_EVENT, { detail: { reason } }));
     renderMap();
     setOpen(false);
