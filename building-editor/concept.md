@@ -38,4 +38,4 @@ Ein Export kann über **Export importieren** geladen werden. Dabei werden `build
 
 Aktuell wird **keine Rückwärtskompatibilität** gepflegt. Nur der aktuelle Editor-/Building-Visual-Schemastand muss funktionieren; ältere Exporte dürfen bei Schemaänderungen abgelehnt werden. Rückwärtskompatibilität wird erst ergänzt, wenn sie ausdrücklich angefordert wird.
 
-Version 1 soll bewusst klein bleiben: Sprite-Import, Skalierung und Positionierung, Export-Reimport, Rasterbearbeitung, Anchor, Eingang, Validierung und Export. Gameplay-Editor, Animationen, mehrere Eingänge und komplexe Polygon-Hitboxen sind spätere Entscheidungen.
+Version 2 soll bewusst klein bleiben: Sprite-Import, Skalierung und Positionierung, Export-Reimport, Rasterbearbeitung, Anchor, Eingang, Validierung und Export. Gameplay-Editor, Animationen, mehrere Eingänge und komplexe Polygon-Hitboxen sind spätere Entscheidungen.
