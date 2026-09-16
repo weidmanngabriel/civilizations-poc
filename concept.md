@@ -71,6 +71,16 @@ Lose Waren dürfen im freien Ring liegen bleiben, aber nicht unter dem eigentlic
 
 Beim Abriss wird die komplette belegte Fläche wieder freigegeben, nicht nur der Ankerpunkt. Eine zuvor überbaute Straße kehrt nicht automatisch zurück; die Fläche wird wie bisher zu Gras.
 
+## Gebäudeeditor
+
+Unter `/building-editor/` steht ein internes Authoring-Werkzeug als eigene Unterseite zur Verfügung. Die Seite ist grundsätzlich auch auf kleinen Geräten erreichbar, wird aber ausschließlich für Desktop-Bedienung optimiert.
+
+Der Editor definiert nur das **Aussehen und räumliche Verhalten** eines Gebäudes: Sprite, Sprite-Anchor, Gebäudegrundriss, blockierte Zellen und genau eine begehbare Eingangszelle. Begehbare Gebäudezellen ergeben sich automatisch aus Grundriss minus blockierten Zellen.
+
+Produktionsregeln, Waren, Arbeiter, Lagerkapazitäten, Baukosten, Technologie und andere Gameplay-Funktionen sind ausdrücklich nicht Teil des Editors.
+
+Im veröffentlichten Editor werden `building.json` und Sprite heruntergeladen. Bei lokaler Entwicklung kann derselbe Stand direkt nach `src/assets/buildings/<id>/` gespeichert werden. Bestehende Gebäude werden nicht automatisch auf dieses Format migriert; neue Runtime-Integration kann schrittweise erfolgen.
+
 ## Wege
 
 Die bestehende Regel bleibt: **8 Überquerungen innerhalb von 32 simulierten Sekunden** erzeugen einen dauerhaften Weg. Auf Wegen bewegen sich Bewohner mit dem bestehenden Faktor **1,3×**.
@@ -123,7 +133,8 @@ Nicht Teil des abgeschlossenen Raster-/Ressourcenumbaus sind:
 - Arbeitsflaggen für Produktions-Träger,
 - gemeinsam genutzte Flaggen,
 - Wegweiser/High-Level-Navigation,
-- Ressourcen-Regeneration und neue prozedurale Clusterregeln.
+- Ressourcen-Regeneration und neue prozedurale Clusterregeln,
+- mehrere Gebäudeeingänge, Animationen oder komplexere Editor-Hitboxen.
 
 ## Unveränderte Produktbereiche
 
