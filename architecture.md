@@ -2,7 +2,7 @@
 
 This file is the current architectural entry point. Detailed unchanged subsystems remain documented in [`architecture-detail.md`](./architecture-detail.md). If the two files conflict, this file describes the newer state.
 
-The completed fine-grid/resource migration is recorded in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md). It remains a reference for changes to map scale, terrain, resources, loose goods, movement, placement, roads or logistics.
+The completed fine-grid/resource migration is recorded in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md). It remains the reference for changes to map scale, terrain, resources, loose goods, movement, placement, roads or logistics.
 
 ## Technology and boundaries
 
@@ -12,7 +12,8 @@ The prototype is a browser-first TypeScript application using TypeScript, Vite a
 src/
   simulation/   deterministic authoritative world state and rules
   game/         Phaser rendering and map input
-  buildings/    shared building visual data contracts
+  buildings/    shared building visual/spatial contracts and registry
+  assets/       runtime-ready building exports and other assets
   ui/           DOM overlays and controls
   handbook/     player-facing Markdown help
   debug/        performance diagnostics
@@ -20,19 +21,17 @@ src/
 building-editor/   desktop-first building authoring subpage
 ```
 
-The deterministic simulation remains independent from Phaser. Presentation reads simulation state and never owns authoritative game state. The fixed simulation runs at 60 ticks/s at displayed 1×; rendering stays independent on `requestAnimationFrame`.
+The deterministic simulation stays independent from Phaser. Presentation reads simulation state and never owns authoritative game state. The simulation runs at 60 ticks/s at displayed 1×; rendering is decoupled and driven by `requestAnimationFrame`.
 
 ## Simulation entry point
 
-`src/simulation/simulationCore.ts` is a scheduling/work-area facade around the historical core implementation in `simulationCoreEngine.ts`. UI-triggered autonomous profession changes can update cheap role state immediately while deferring expensive target/path planning until the next simulation tick.
+`src/simulation/simulation.ts` is the public simulation entry point and wraps/re-exports core behavior. `simulationCore.ts` is a scheduling/work-area facade around the historical core implementation in `simulationCoreEngine.ts`.
 
-`src/simulation/simulation.ts` is the public simulation entry point and wraps/re-exports core behavior, including resource-collision synchronization, conversion of completed extraction output into physical ground stacks, profession-experience bookkeeping and technology progression. New callers should import from `simulation.ts`.
-
-There is no longer a fake `hq-storage-proxy` building and no fake natural-resource mirror for loose goods.
+Autonomous target selection is event-driven where possible. Hunger, missing work and related fallback decisions use the existing one-second cadence instead of replanning every simulation tick.
 
 ## Fine-grid spatial model
 
-The authoritative spatial grid uses a linear refinement factor of 5:
+The authoritative spatial grid is a 5× linear refinement of the former coarse map:
 
 ```text
 old logical world       41 × 25 coarse cells
@@ -40,139 +39,131 @@ refinement              5× per linear axis
 current simulation      205 × 125 micro-cells
 ```
 
-`src/simulation/spatial.ts` owns scale conversions. Buildings and fields preserve approximately their former world-space size by expanding to many micro-cells. `src/simulation/hex.ts` uses cached coordinate lookup and heap-backed A*. `src/game/mapProjection.ts` owns the shared affine projection constants, `pixel()` transform and visible hex-corner geometry; `mapGeometry.ts` adds runtime tile lookup around that projection. The building editor consumes the same projection geometry and applies only an editor preview zoom.
+`src/simulation/spatial.ts` owns scale conversions. `src/simulation/hex.ts` owns cached coordinate lookup, movement legality and heap-backed A*. `src/game/mapProjection.ts` owns the shared affine projection and visible hex geometry; the building editor consumes the same projection.
+
+Buildings and fields occupy many micro-cells while preserving their intended world-space size. The fine grid is a simulation mechanism and should not visually dominate the game.
 
 ## Terrain, resources and physical goods
 
-Terrain describes only the underlying ground. Trees, clay deposits, stone deposits and future natural resources are independent world objects. Resource footprint and movement blocking are separate properties.
+Terrain describes only underlying ground. Trees, clay and stone are independent natural-resource objects with their own footprints and movement blocking. Blocking resources are interacted with from reachable neighboring cells rather than entered.
 
-Blocking resource cells are never entered just because they are explicit route targets. Routing resolves a blocking target to the quickest reachable walkable neighboring micro-cell while retaining logical target identity for interaction checks.
+`World.looseGoods` is authoritative for physical raw goods. Loose stacks contain one good type, 1–3 units plus reservations, never block movement, and survive the disappearance of their source.
 
-`World.looseGoods` is authoritative for migrated physical raw goods. Loose stacks contain one good type, 1–3 units plus reservations, never block movement, and avoid blocked terrain, buildings and active resource footprints when created.
-
-Wood, clay and rubble use:
+The physical raw-resource chain is:
 
 ```text
 natural source -> extractor -> loose ground stack -> pickup -> consumer/storage
 ```
 
-The extractor's `NaturalResource.output` is only short-lived staging within a simulation step if physical placement cannot happen immediately. Real ground stock is `World.looseGoods`.
+There is no fake natural-resource mirror for loose goods and no hidden HQ storage proxy.
 
-`Trip` can directly reference three source categories:
+## Generic editor-authored building definitions
+
+`src/buildings/buildingVisualDefinition.ts` defines version 2 of the shared editor/runtime spatial schema:
 
 ```text
-building      default source kind
-resource      explicit natural-resource source where legacy/internal flows still need it
-looseGood     physical LooseGoodStack with stable sourcePosition
+sprite
+spriteAnchor
+spriteScale
+footprint
+blocked
+entrance
 ```
 
-Loose-good reservations remain on the concrete stack from planning through pickup. Cancellation releases an unpicked reservation; cancellation after pickup returns the carried unit to a valid nearby ground position. Hunger and sleep preserve `sourcePosition`, so interrupted physical pickups can resume without compatibility entities.
+Gameplay properties such as recipes, workers, inventory, costs and technology stay outside this schema.
 
-Trees are one-cell blocking resources with three wood. Clay and stone have finite ten-unit yields and four-cell footprints; clay is walkable, stone blocking.
+`src/buildings/buildingDefinitionRegistry.ts` is the runtime registry. It maps a gameplay `BuildingKind` to a validated visual/spatial definition and sprite URL. Registry availability and runtime use are deliberately separate:
+
+- a kind may have a registered editor definition;
+- a concrete `Building` uses that definition only when its `visualDefinitionId` is bound to the registered definition;
+- this allows buildings to be migrated gradually without changing unrelated legacy fixtures or buildings.
+
+The player-facing HQ is the first fully bound building. The neutral `createWorld()` test/sandbox world intentionally keeps its historical simplified HQ geometry, while `createDefaultGameWorld()` binds the player HQ to the editor export.
+
+For a bound building, the editor placement coordinate is the **visual/spatial anchor**. The simulation stores `Building.position` as the gameplay **interaction coordinate**, which is the authored `entrance`. The visual anchor is recovered deterministically as `position - entrance`. This preserves the existing simulation convention that workers, carriers and other systems route to `Building.position`, while the sprite and footprint remain aligned exactly as authored.
+
+The authoritative footprint and collision semantics for bound buildings are therefore:
+
+- `footprint` comes from the registered `building.json` translated by the visual anchor;
+- `blocked` becomes the derived `Tile.buildingBlocking` overlay;
+- footprint cells not in `blocked` remain walkable;
+- the authored `entrance` must be inside the footprint and not blocked;
+- legacy/unbound buildings keep their existing hard-coded footprint fallback.
+
+`src/game/buildingSprites.ts` is the generic Phaser renderer for bound definitions. It loads registered sprites once, creates one sprite per bound completed building instance, derives the visual anchor from the building interaction coordinate, and applies the authored sprite anchor and scale. The renderer does not own placement or collision state.
+
+Adding another editor-authored runtime building therefore consists primarily of adding its validated asset export under `src/assets/buildings/<id>/`, registering it for the corresponding gameplay kind, and binding new runtime instances. Existing gameplay rules remain separate.
+
+## Placement, clearance and demolition
+
+`src/simulation/buildingPlacement.ts` remains authoritative for placement legality. For registered kinds it uses the editor footprint; otherwise it uses the legacy shape table. The existing one-coarse-tile clearance ring is computed around whichever footprint is authoritative.
+
+Active natural-resource footprints reserve both the building footprint and clearance ring. Loose goods block only the actual footprint because they remain walkable and may stay in the surrounding clearance area.
+
+For future registered placeable buildings, construction stores the interaction position at the authored entrance, binds the visual definition, writes the authored footprint and `buildingBlocking` overlay, and otherwise preserves the existing construction/gameplay semantics.
+
+Demolition restores the complete footprint, clears the building collision overlay and stale traffic state, and preserves the existing rule that a road covered by construction returns as grass rather than reappearing.
 
 ## Storage and transport
 
-HQ and warehouse inventories now use the same first-class storage semantics in the transport core. Production workers/building carriers may fetch required goods from either storage type, while storage carriers deliver directly into the assigned warehouse/HQ inventory.
+HQ and warehouses use the same first-class storage semantics. Production workers/building carriers may fetch required goods from either storage type. Storage carriers deliver directly into their assigned warehouse/HQ inventory.
 
-Automatic storage-to-storage collection remains forbidden. Warehouse merchants retain their explicit warehouse-to-warehouse route semantics. Builders retain long-distance material sourcing and production-building carriers retain demand-driven sourcing.
+Automatic storage-to-storage collection remains forbidden. Warehouse merchants retain explicit warehouse-to-warehouse routes. Builders and production-building carriers retain their separate long-distance/demand-driven sourcing rules.
 
-## Arbeitsflaggen und lokale Arbeitsbereiche
+## Work areas
 
-`src/simulation/workAreas.ts` owns the authoritative local work-area rule. Eligible people carry a per-person `WorkArea { center, radius, retryAfterTick? }` in simulation state.
+Woodcutters, clay diggers, stonecutters, warehouse carriers and HQ carriers use per-person `WorkArea` state. The shared radius remains 2.5 coarse world tiles / 12.5 micro-cells.
 
-It applies to **woodcutters, clay diggers, stonecutters, warehouse carriers and HQ carriers**. Production-building carriers deliberately keep demand-driven sourcing behavior.
+Extractor flags start at the first selected resource. Storage-carrier flags start at their storage workplace. Moving a flag invalidates an unpicked source outside the new area but does not discard already carried cargo. Production carriers are deliberately outside this system.
 
-The shared radius is **2.5 coarse world tiles = 12.5 micro-cells**, measured from the flag center. Target eligibility uses `hexDistance <= radius`; exact pathfinding is performed only for eligible candidates.
+## Hunger, sleep, farms, roads and progression
 
-- A newly planned natural-resource worker receives the initial flag at the first reachable resource selected by the existing planner.
-- A warehouse/HQ carrier receives the initial flag at its storage workplace.
-- Subsequent extractor/resource selection is restricted to matching unclaimed resources inside that person's area.
-- Warehouse/HQ pickup selection is restricted to non-storage building outputs and physical loose-good stacks inside that person's area.
-- A carried item may finish delivery after the flag moves; an unpicked outside source is cancelled and any physical reservation released.
-- If no valid local target exists, only that person retries at the existing one-second fallback cadence. The flag never migrates automatically.
+Hunger and sleep retain their documented behavior and event-driven target planning. Hunger is sampled once per simulated second while movement and production continue at 60 Hz.
 
-`syncWorkAreas()` owns authoritative extractor/resource replanning after depletion and during idle retry. The historical core now limits depletion handling to retirement/reset cleanup and no longer performs a competing whole-map extractor replan.
+Farm balance is unchanged. Field footprints must remain valid grass and cannot overwrite natural resources, loose goods, reservations or occupied cells.
 
-`setWorkAreaCenter()` is the simulation command. `src/game/workAreaInteraction.ts` maps short click/tap to a new center while drag pans and pinch zooms. Presentation never owns work-area state.
+Organic roads still require eight qualifying crossings within 32 simulated seconds and retain the 1.3× movement multiplier. Roads cannot cover active natural-resource footprints.
 
-Wayposts are separate and not implemented.
-
-## Hunger cadence and food planning
-
-The world advances at 60 simulation ticks/s, but hunger decay, threshold checks and food-target planning are intentionally sampled once per simulated second. Movement, production and transport remain 60 Hz.
-
-`src/simulation/needs.ts` orders food candidates by a cheap spatial lower bound and evaluates A* only while a candidate can still beat the best reachable route. Selected destinations stay stable while travelling.
-
-## Farms and fields
-
-Farm balance is unchanged. `farm.ts` expands each logical field to a refined physical footprint. Sow planning and final creation require every footprint cell to remain valid grass and reject active natural-resource cells, loose-good stacks, conflicting sow reservations and occupied cells.
-
-Farm demolition removes active fields and restores their cells to grass. Field/terrain role changes clear stale traffic counters.
-
-## Buildings, clearance and demolition
-
-Building legality is authoritative in `buildingPlacement.ts`. Fine-grid footprints and the existing one-coarse-tile clearance ring must fit valid terrain. Active natural-resource footprints reserve both footprint and clearance even when the resource itself is walkable.
-
-Loose goods block the actual building footprint so construction cannot delete physical stock. They are allowed in the clearance ring because they remain walkable.
-
-Demolition restores the complete multi-cell footprint, not only the anchor, clears stale traffic state and reroutes people whose current route crossed the removed footprint. A road covered by construction is restored as grass after demolition, preserving existing product behavior.
-
-## Roads and traffic
-
-Organic-road balance remains unchanged: eight qualifying crossings within 32 simulated seconds create a permanent road; roads use the existing 1.3× movement-speed multiplier.
-
-Manual and organic road creation reject every cell covered by an active natural-resource footprint, not only resource anchors. The movement pass builds the active-resource cell set once per tick and shares it across all crossing checks.
-
-## Profession experience and technologies
-
-Experience is persistent per person and profession from 0–100. One successfully completed professional action gives exactly +1 XP; aborted or partial actions give none. Permanent unlock rules remain authoritative in `src/simulation/technology.ts`; placement enforcement remains in `buildingPlacement.ts`.
-
-## Event-driven planning and performance
-
-Expensive autonomous target selection is event-driven. A person retains selected hunger, sleep or work destinations while travelling and normally re-evaluates at task boundaries. Missing work receives a per-person one-second retry deadline rather than a global re-plan.
-
-Natural-resource depletion retirement is event-driven and limited to retirement/reset bookkeeping; subsequent extractor target selection is handled once by local work-area planning after the core tick. There is no periodic full resource-list cleanup scan or depletion-time whole-map extractor replan. Farm physical-obstacle state is built once per farm-system tick, and road resource footprints once per movement tick. The movement hot path reuses the cached tile index instead of linearly scanning the full fine-grid tile array for every traversed micro-cell; arrival/reroute bookkeeping is profiled separately from traversal. Sleep-target planning reuses lazily built house/nature target lists within one simulation tick, rejects candidates outside the theoretical eight-world-tile radius geometrically, orders the remaining candidates by an admissible travel-cost lower bound and only performs exact reachability/routing while a candidate can still beat the best route. The exact sleep-radius rule and road-aware target selection remain unchanged. Placement anchor enumeration reuses indexed lookups. Further optimization should be driven by `src/debug/performanceProfiler.ts`, not speculative cache layers.
+Profession experience remains persistent from 0–100, with +1 XP per completed professional action. Technology unlocks remain permanent and placement enforcement remains in the simulation layer.
 
 ## Rendering and interaction
 
-Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map/person state; natural resources, loose goods and work-area flags are presentation layers over authoritative state. Camera zoom is 0.7×–10× for mouse-wheel and pinch. Desktop and touch remain first-class input adapters. The iPhone 13 Mini remains the mobile baseline.
+Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map/person presentation state; natural resources, loose goods, work-area flags and registered building sprites are presentation layers over authoritative simulation state.
+
+Camera zoom remains 0.7×–10× for mouse-wheel and pinch. Desktop and touch remain first-class input adapters, with the iPhone 13 Mini as the mobile baseline.
 
 ## Building editor
 
-`building-editor/` is a separate Vite multi-page entry published at `/civilizations-poc/building-editor/`. It is an internal desktop-first authoring tool and does not start Phaser or own simulation state. Its local rules and boundaries are documented in `building-editor/agents.md`, `building-editor/architecture.md` and `building-editor/concept.md`.
+`building-editor/` is a separate Vite multi-page entry published at `/civilizations-poc/building-editor/`. It is an internal desktop-first authoring tool and does not start Phaser or own simulation state.
 
-The editor is a WYSIWYG authoring view of the game projection: cell centers and visible hex-corner geometry come from `src/game/mapProjection.ts`. A fixed editor-only preview zoom enlarges both the grid and building sprite by the same factor, so the authored sprite-to-grid size relation matches the later runtime.
+The editor is WYSIWYG against the runtime projection. A fixed editor-only preview zoom enlarges both grid and sprite together, so their size relationship matches the game. Runtime-ready exports live under `src/assets/buildings/<id>/`.
 
-`src/buildings/buildingVisualDefinition.ts` defines version 2 of the shared visual schema: sprite filename, original-pixel anchor, required positive `spriteScale`, relative fine-grid footprint, blocked footprint subset and one walkable entrance cell. Gameplay properties stay outside this schema. Runtime-ready exports live under `src/assets/buildings/<id>/`.
-
-The editor currently provides no backward-compatibility or migration layer for older visual-definition versions. The current schema is authoritative; old exports may be rejected until backward compatibility is explicitly requested.
-
-The published static editor can download `building.json` plus the sprite. During `vite` development only, `vite.config.ts` exposes a local middleware endpoint that writes the same validated export directly into `src/assets/buildings/<id>/`; no repository credentials are exposed to the browser or production build.
+The current schema is authoritative and intentionally has no backward-compatibility layer for older visual-definition versions. During local development the editor can write validated exports directly into the runtime asset folder; the published editor downloads the JSON and sprite instead.
 
 ## Save/load persistence
 
-`src/simulation/saveGame.ts` owns the versioned, human-readable JSON persistence format. Save files preserve all non-derived simulation state required to continue at the exact saved tick: round/tick, RNG and ID counters, technology unlocks, profession experience, inventories, construction and production progress, people, paths, work areas, needs, farm tasks, merchant routes, trips, natural-resource state, loose goods and reservations.
+`src/simulation/saveGame.ts` owns the versioned JSON save format. Saves remain anchor/interaction-point based rather than snapshotting derived geometry: `tiles`, entity footprints and underlying building terrain are not persisted.
 
-Spatial persistence follows an **anchor-only rule**. Every building, field, natural resource and loose-good stack stores exactly one logical position. Building footprints, field footprints, `baseTerrain` / `baseTerrains`, resource footprint cells, `resourceBlocking`, `building`/`field` terrain overlays and a full copy of `World.tiles` are not persisted. On load, the runtime world begins from the deterministic static base map and reconstructs all derived footprints and collision/terrain overlays from entity type plus anchor position.
+For a bound editor-authored building, the save stores:
 
-Only map state that cannot be derived from entity anchors is persisted sparsely: road positions, per-cell traffic histories that still affect organic-road creation, and bushes with their availability/regrow state. Each of these records also carries only one position. Static grass/river/mountain terrain is regenerated from the built-in scenario instead of being duplicated in every save file.
+- the building's gameplay interaction position (`Building.position`, i.e. its entrance),
+- `visualDefinitionId`,
+- ordinary gameplay state.
 
-The save schema retains readable person IDs such as `person-17` and an explicit human-readable current `activity`. The activity label is informational; authoritative continuation uses the stored simulation state.
+On load, the registry reconstructs the visual anchor, footprint and blocked collision overlay from the bound definition. Unbound buildings reconstruct from their existing legacy shape rules. Static terrain is regenerated from the deterministic base map; roads, traffic history and bushes remain sparse persisted map state.
 
-Loading and starting a new game replace the contents of the existing shared `World` object instead of swapping its identity. Phaser, UI modules and simulation systems therefore continue to hold the same authoritative world reference. Presentation caches may rebuild after replacement but do not become save-state owners.
+Because the meaning of registered building spatial state changed, the save format is now `civilizations-save` **version 3**. Version 2 and older saves are rejected rather than guessed or migrated.
 
-The current format is `civilizations-save` version 2. Version 1 and all other versions are rejected. There is deliberately no migration or backward-compatibility layer: spatial schema changes create a new save version rather than guessing how an older snapshot should be interpreted. Browser persistence remains file-based: save downloads JSON, load uses the platform file picker on desktop and mobile.
+Loading and starting a new game still replace the contents of the existing shared `World` object instead of swapping its identity, so Phaser and UI modules keep valid references.
 
 ## Existing architecture
 
-All other architecture remains as documented in [`architecture-detail.md`](./architecture-detail.md), including sleep, beeren/food behavior, production/inventories, construction, merchants, person selection, handbook/PWA and performance diagnostics.
-
-Where `architecture-detail.md` still describes old grid/resource semantics, fake HQ storage, loose-good resource proxies, directly entering blocking targets, globally roaming extractors, tick-wise hunger planning or a building-centered storage-carrier collection radius as current behavior, this file supersedes it.
+All other unchanged systems remain documented in [`architecture-detail.md`](./architecture-detail.md), including production, inventories, merchants, person selection, handbook/PWA behavior and performance diagnostics. Where older detail text conflicts with this file, this file is authoritative.
 
 ## Testing and deployment
 
-`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Regressions cover physical loose-good pickup/reservation, HQ direct storage collection, shared work areas, storage-to-storage restrictions, placement/demolition, existing farm/road behavior, building-visual schema validation, shared projection geometry and anchor-only save/load reconstruction. Save tests explicitly verify that `tiles`, entity footprints and stored underlying terrain do not appear in the JSON and that old save versions are rejected.
+`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Coverage includes building-visual schema validation, bound HQ entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas and save/load reconstruction.
 
-Vite builds both the game root and `building-editor/index.html`; GitHub Pages publishes both from the same `dist` artifact.
+Vite builds both the game root and `building-editor/index.html`. GitHub Pages publishes both from the same `dist` artifact.
 
-Per `agents.md`, work is performed on a temporary branch and transferred to `main` as one final squash commit. The GitHub Pages workflow runs tests before the production build and deploys only after both succeed.
+Per `agents.md`, implementation work happens on a temporary branch and is transferred to `main` as one final squash commit. The main deployment workflow runs tests before the production build and deploys only after both succeed.
