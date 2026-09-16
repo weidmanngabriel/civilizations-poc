@@ -6,7 +6,7 @@ import {
 import { HEX_X, HEX_Y } from "../../src/game/mapProjection";
 import type { Hex } from "../../src/simulation/model";
 
-type Tool = "footprint" | "blocked" | "entrance";
+type Tool = "move" | "footprint" | "blocked" | "entrance";
 
 const GRID_RADIUS = 8;
 const PREVIEW_SCALE = 10;
@@ -57,16 +57,17 @@ app.innerHTML = `
             <input id="sprite-scale" type="range" min="5" max="200" step="1" value="100" />
           </div>
           <div class="field"><label for="scale-number">Skalierung (%)</label><input id="scale-number" type="number" min="1" max="1000" step="1" value="100" /></div>
-          <p class="help">Sprite direkt mit der Maus ziehen, um es relativ zum Raster auszurichten. Die Skalierung verändert nur die Darstellung, nicht die Originaldatei.</p>
+          <p class="help">Die Skalierung verändert nur die Darstellung, nicht die Originaldatei.</p>
         </section>
         <section class="panel">
           <h2>Werkzeug</h2>
           <div class="tool-row">
+            <button class="tool" data-tool="move">Sprite verschieben</button>
             <button class="tool active" data-tool="footprint">Grundriss</button>
             <button class="tool" data-tool="blocked">Blockiert</button>
             <button class="tool" data-tool="entrance">Eingang</button>
           </div>
-          <p class="help">Grundriss markiert Zellen des Gebäudes. Blockiert schaltet Kollision innerhalb des Grundrisses. Eingang setzt genau eine begehbare Zielzelle.</p>
+          <p class="help">Sprite verschieben erlaubt Drag am Bild. Die anderen Werkzeuge bearbeiten das Raster, ohne dass das Sprite Mausereignisse abfängt.</p>
         </section>
         <section class="panel">
           <h2>Sprite-Anchor</h2>
@@ -183,6 +184,8 @@ function polygonPoints(cell: Hex): string {
 function renderGrid(): void {
   grid.replaceChildren();
   grid.setAttribute("viewBox", `0 0 ${canvas.clientWidth} ${canvas.clientHeight}`);
+  grid.classList.toggle("moving-sprite", currentTool === "move");
+  spritePreview.classList.toggle("movable", currentTool === "move");
   for (let r = -GRID_RADIUS; r <= GRID_RADIUS; r += 1) {
     for (let q = -GRID_RADIUS; q <= GRID_RADIUS; q += 1) {
       const cell = { q, r };
@@ -205,6 +208,7 @@ function renderGrid(): void {
 }
 
 function editCell(cell: Hex): void {
+  if (currentTool === "move") return;
   const key = cellKey(cell);
   if (currentTool === "footprint") {
     if (footprint.has(key)) {
@@ -376,12 +380,16 @@ saveProjectButton.addEventListener("click", async () => {
   }
 });
 
-document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((button) => {
-  button.addEventListener("click", () => {
-    currentTool = button.dataset.tool as Tool;
-    document.querySelectorAll("[data-tool]").forEach((candidate) => candidate.classList.remove("active"));
-    button.classList.add("active");
+function selectTool(tool: Tool): void {
+  currentTool = tool;
+  document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((candidate) => {
+    candidate.classList.toggle("active", candidate.dataset.tool === tool);
   });
+  renderGrid();
+}
+
+document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((button) => {
+  button.addEventListener("click", () => selectTool(button.dataset.tool as Tool));
 });
 
 scaleRange.addEventListener("input", () => setScale(Number(scaleRange.value) / 100));
@@ -391,7 +399,7 @@ scaleNumber.addEventListener("input", () => {
 });
 
 spritePreview.addEventListener("pointerdown", (event) => {
-  if (!spriteFile) return;
+  if (!spriteFile || currentTool !== "move") return;
   event.preventDefault();
   spritePreview.setPointerCapture(event.pointerId);
   dragStart = {
