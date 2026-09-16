@@ -1,16 +1,15 @@
 import Phaser from "phaser";
 import { MainScene } from "./MainScene";
 import type { Building, Good, Person, Tile, World } from "../simulation/model";
-import { key } from "../simulation/hex";
-import { personWorldPosition } from "../simulation/movement";
 import { CONFIG } from "../simulation/scenario";
 import { GOOD_ICONS } from "../icons";
-import { HEX_Y, pixel } from "./mapGeometry";
+import { pixel } from "./mapGeometry";
+import {
+  PERSON_MARKER_RADIUS,
+  personMarkerPositions,
+} from "./personMarkerGeometry";
 
 const TEXT_RESOLUTION = 3;
-const PERSON_MARKER_RADIUS = HEX_Y / 2;
-const PERSON_FEET_OFFSET_Y = HEX_Y * 0.15;
-const PERSON_MARKER_CENTER_OFFSET_Y = PERSON_FEET_OFFSET_Y - PERSON_MARKER_RADIUS;
 
 const terrainCodes: Record<Tile["terrain"], number> = {
   grass: 1,
@@ -249,18 +248,8 @@ export class IncrementalMainScene extends MainScene {
       this.personMarkers.delete(id);
     }
 
-    const groups = new Map<string, number>();
-    for (const person of this.worldRef.people) {
-      const moving = person.path.length > 0;
-      const positionKey = key(person.position);
-      const groupIndex = groups.get(positionKey) ?? 0;
-      groups.set(positionKey, groupIndex + 1);
-      const position = pixel(personWorldPosition(this.worldRef, person));
-      const x = position.x + (moving
-        ? ((person.id % 3) - 1) * 1.5
-        : ((groupIndex % 4) - 1.5) * 5);
-      const groundY = position.y + (moving ? 0 : Math.floor(groupIndex / 4) * 5);
-      const y = groundY + PERSON_MARKER_CENTER_OFFSET_Y;
+    for (const markerPosition of personMarkerPositions(this.worldRef)) {
+      const { person, x, y, groundY } = markerPosition;
       const color = !person.assignment && !person.woodcutter && !person.extractor && !person.builder
         ? 0xdde5db
         : person.assignment?.role === "worker" || person.woodcutter
