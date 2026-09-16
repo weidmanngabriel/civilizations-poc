@@ -123,6 +123,8 @@ export interface HungerState {
   foodSource?: BuildingId;
   foodBush?: Hex;
   retryAfterTick?: number;
+  /** Exact simulation tick when the five-second eating phase completes. */
+  eatingUntilTick?: number;
   resumeActive: boolean;
 }
 export type SleepLocationKind = "house" | "nature" | "ground";
