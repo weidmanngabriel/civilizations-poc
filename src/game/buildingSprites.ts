@@ -48,6 +48,7 @@ function loadTexture(scene: MainScene): Promise<void> {
  */
 export function installBuildingSprites(scene: MainScene, world: World): void {
   let sprite: Phaser.GameObjects.Image | undefined;
+  let installed = false;
 
   const sync = () => {
     if (!sprite) return;
@@ -61,6 +62,8 @@ export function installBuildingSprites(scene: MainScene, world: World): void {
   };
 
   const install = async () => {
+    if (installed) return;
+    installed = true;
     try {
       const definition = await loadDefinition();
       await loadTexture(scene);
@@ -81,14 +84,18 @@ export function installBuildingSprites(scene: MainScene, world: World): void {
       sync();
       scene.events.on(Phaser.Scenes.Events.POST_UPDATE, sync);
     } catch (error) {
+      installed = false;
       console.error("HQ-Visual konnte nicht initialisiert werden.", error);
     }
   };
 
-  scene.events.once(Phaser.Scenes.Events.CREATE, () => void install());
+  if (scene.sys.isActive()) void install();
+  else scene.events.once(Phaser.Scenes.Events.CREATE, () => void install());
+
   scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
     scene.events.off(Phaser.Scenes.Events.POST_UPDATE, sync);
     sprite?.destroy();
     sprite = undefined;
+    installed = false;
   });
 }
