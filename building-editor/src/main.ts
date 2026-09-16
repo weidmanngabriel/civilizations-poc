@@ -3,7 +3,7 @@ import {
   validateBuildingVisualDefinition,
   type BuildingVisualDefinition,
 } from "../../src/buildings/buildingVisualDefinition";
-import { HEX_X, HEX_Y } from "../../src/game/mapProjection";
+import { HEX_X, HEX_Y, hexCornerOffsets } from "../../src/game/mapProjection";
 import type { Hex } from "../../src/simulation/model";
 
 type Tool = "move" | "footprint" | "blocked" | "entrance";
@@ -12,9 +12,6 @@ const GRID_RADIUS = 8;
 const PREVIEW_SCALE = 10;
 const CELL_X = HEX_X * PREVIEW_SCALE;
 const CELL_Y = HEX_Y * PREVIEW_SCALE;
-const CELL_HALF_X = CELL_X / 2;
-const CELL_TOP_Y = CELL_Y / 2 + (CELL_X * CELL_X) / (8 * CELL_Y);
-const CELL_SIDE_Y = CELL_Y / 2 - (CELL_X * CELL_X) / (8 * CELL_Y);
 const SVG_NS = "http://www.w3.org/2000/svg";
 const SUPPORTED_IMAGE_TYPES = new Set(["image/png", "image/webp"]);
 
@@ -27,7 +24,7 @@ app.innerHTML = `
     <header class="editor-header">
       <div>
         <h1>Gebäudeeditor</h1>
-        <p>Sprite, Grundriss, Kollision und Eingang · feines Spielraster</p>
+        <p>Sprite, Grundriss, Kollision und Eingang · Spielprojektion 1:1</p>
       </div>
       <a href="${import.meta.env.BASE_URL}">Zum Spiel</a>
     </header>
@@ -55,10 +52,10 @@ app.innerHTML = `
           <h2>Sprite</h2>
           <div class="field">
             <label for="sprite-scale">Skalierung <span id="scale-label">100 %</span></label>
-            <input id="sprite-scale" type="range" min="5" max="200" step="1" value="100" />
+            <input id="sprite-scale" type="range" min="0.1" max="200" step="0.1" value="100" />
           </div>
-          <div class="field"><label for="scale-number">Skalierung (%)</label><input id="scale-number" type="number" min="1" max="1000" step="1" value="100" /></div>
-          <p class="help">Die Skalierung verändert nur die Darstellung, nicht die Originaldatei.</p>
+          <div class="field"><label for="scale-number">Skalierung (%)</label><input id="scale-number" type="number" min="0.1" max="1000" step="0.1" value="100" /></div>
+          <p class="help">Das Raster und das Sprite werden in der Vorschau mit demselben Zoom vergrößert. Die Prozentzahl ist deshalb direkt die spätere Runtime-Skalierung.</p>
         </section>
         <section class="panel">
           <h2>Werkzeug</h2>
@@ -125,12 +122,14 @@ function parseHex(value: unknown): Hex | undefined {
 
 function parseDefinition(value: unknown): BuildingVisualDefinition {
   if (!isRecord(value)) throw new Error("building.json enthält kein gültiges Objekt.");
-  if (value.schema !== "civilizations-building-visual" || value.version !== 1)
+  if (value.schema !== "civilizations-building-visual" || value.version !== 2)
     throw new Error("building.json hat ein unbekanntes Schema oder eine nicht unterstützte Version.");
   if (typeof value.id !== "string" || typeof value.sprite !== "string")
     throw new Error("building.json enthält keine gültige ID oder Sprite-Datei.");
   if (!isRecord(value.spriteAnchor) || typeof value.spriteAnchor.x !== "number" || typeof value.spriteAnchor.y !== "number")
     throw new Error("building.json enthält keinen gültigen Sprite-Anchor.");
+  if (typeof value.spriteScale !== "number" || !Number.isFinite(value.spriteScale) || value.spriteScale <= 0)
+    throw new Error("building.json enthält keine gültige Sprite-Skalierung für das aktuelle Schema.");
   if (!Array.isArray(value.footprint) || !Array.isArray(value.blocked))
     throw new Error("building.json enthält keinen gültigen Grundriss.");
 
@@ -140,17 +139,13 @@ function parseDefinition(value: unknown): BuildingVisualDefinition {
   if (footprintCells.some((cell) => !cell) || blockedCells.some((cell) => !cell) || !entranceCell)
     throw new Error("building.json enthält ungültige Rasterkoordinaten.");
 
-  const scale = value.spriteScale === undefined ? 1 : value.spriteScale;
-  if (typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0)
-    throw new Error("building.json enthält keine gültige Sprite-Skalierung.");
-
   const parsed: BuildingVisualDefinition = {
     schema: "civilizations-building-visual",
-    version: 1,
+    version: 2,
     id: value.id,
     sprite: value.sprite,
     spriteAnchor: { x: value.spriteAnchor.x, y: value.spriteAnchor.y },
-    spriteScale: scale,
+    spriteScale: value.spriteScale,
     footprint: footprintCells as Hex[],
     blocked: blockedCells as Hex[],
     entrance: entranceCell,
@@ -172,14 +167,9 @@ function projected(cell: Hex): { x: number; y: number } {
 
 function polygonPoints(cell: Hex): string {
   const point = projected(cell);
-  return [
-    [point.x - CELL_HALF_X, point.y - CELL_SIDE_Y],
-    [point.x, point.y - CELL_TOP_Y],
-    [point.x + CELL_HALF_X, point.y - CELL_SIDE_Y],
-    [point.x + CELL_HALF_X, point.y + CELL_SIDE_Y],
-    [point.x, point.y + CELL_TOP_Y],
-    [point.x - CELL_HALF_X, point.y + CELL_SIDE_Y],
-  ].map(([x, y]) => `${x},${y}`).join(" ");
+  return hexCornerOffsets(PREVIEW_SCALE)
+    .map((offset) => `${point.x + offset.x},${point.y + offset.y}`)
+    .join(" ");
 }
 
 function renderGrid(): void {
@@ -233,20 +223,25 @@ function editCell(cell: Hex): void {
   refreshStatus();
 }
 
+function runtimeScalePercent(): number {
+  return Math.round(spriteScale * 1000) / 10;
+}
+
 function renderSpritePosition(): void {
   if (!spriteDataUrl || !spritePreview.naturalWidth) return;
   const origin = projected({ q: 0, r: 0 });
   const anchorX = Number(anchorXInput.value) || 0;
   const anchorY = Number(anchorYInput.value) || 0;
-  spritePreview.style.width = `${spritePreview.naturalWidth * spriteScale}px`;
-  spritePreview.style.height = `${spritePreview.naturalHeight * spriteScale}px`;
-  spritePreview.style.left = `${origin.x - anchorX * spriteScale}px`;
-  spritePreview.style.top = `${origin.y - anchorY * spriteScale}px`;
+  const previewSpriteScale = spriteScale * PREVIEW_SCALE;
+  spritePreview.style.width = `${spritePreview.naturalWidth * previewSpriteScale}px`;
+  spritePreview.style.height = `${spritePreview.naturalHeight * previewSpriteScale}px`;
+  spritePreview.style.left = `${origin.x - anchorX * previewSpriteScale}px`;
+  spritePreview.style.top = `${origin.y - anchorY * previewSpriteScale}px`;
 }
 
 function setScale(nextScale: number): void {
-  spriteScale = Math.max(0.01, Math.min(10, nextScale));
-  const percent = Math.round(spriteScale * 100);
+  spriteScale = Math.max(0.001, Math.min(10, nextScale));
+  const percent = runtimeScalePercent();
   scaleNumber.value = String(percent);
   scaleRange.value = String(Math.max(Number(scaleRange.min), Math.min(Number(scaleRange.max), percent)));
   scaleLabel.textContent = `${percent} %`;
@@ -258,7 +253,7 @@ function definition(): BuildingVisualDefinition {
   const extension = spriteFile?.type === "image/webp" ? "webp" : "png";
   return {
     schema: "civilizations-building-visual",
-    version: 1,
+    version: 2,
     id: idInput.value.trim(),
     sprite: `sprite.${extension}`,
     spriteAnchor: { x: Number(anchorXInput.value) || 0, y: Number(anchorYInput.value) || 0 },
@@ -278,7 +273,7 @@ function errors(): string[] {
 function refreshStatus(message?: string): boolean {
   const currentErrors = errors();
   status.classList.toggle("error", currentErrors.length > 0);
-  status.textContent = message ?? (currentErrors.length ? currentErrors.join("\n") : `Bereit · ${footprint.size} Grundrisszellen, ${blocked.size} blockiert · ${Math.round(spriteScale * 100)} % Sprite.`);
+  status.textContent = message ?? (currentErrors.length ? currentErrors.join("\n") : `Bereit · ${footprint.size} Grundrisszellen, ${blocked.size} blockiert · ${runtimeScalePercent()} % Sprite.`);
   return currentErrors.length === 0;
 }
 
@@ -307,7 +302,11 @@ async function loadSprite(file: File, preserveTransform = false): Promise<void> 
     if (!preserveTransform) {
       anchorXInput.value = String(Math.round(spritePreview.naturalWidth / 2));
       anchorYInput.value = String(Math.round(spritePreview.naturalHeight * 0.82));
-      const fitScale = Math.min(1, 720 / spritePreview.naturalWidth, 520 / spritePreview.naturalHeight);
+      const fitScale = Math.min(
+        1,
+        720 / (spritePreview.naturalWidth * PREVIEW_SCALE),
+        520 / (spritePreview.naturalHeight * PREVIEW_SCALE),
+      );
       setScale(fitScale);
     } else renderSpritePosition();
   };
@@ -329,7 +328,7 @@ async function importFiles(files: File[]): Promise<void> {
     idInput.value = parsed.id;
     anchorXInput.value = String(parsed.spriteAnchor.x);
     anchorYInput.value = String(parsed.spriteAnchor.y);
-    setScale(parsed.spriteScale ?? 1);
+    setScale(parsed.spriteScale);
     footprint.clear();
     blocked.clear();
     for (const cell of parsed.footprint) footprint.set(cellKey(cell), cell);
@@ -415,8 +414,9 @@ spritePreview.addEventListener("pointermove", (event) => {
   if (!dragStart) return;
   const dx = event.clientX - dragStart.pointerX;
   const dy = event.clientY - dragStart.pointerY;
-  anchorXInput.value = String(Math.round((dragStart.anchorX - dx / spriteScale) * 10) / 10);
-  anchorYInput.value = String(Math.round((dragStart.anchorY - dy / spriteScale) * 10) / 10);
+  const previewSpriteScale = spriteScale * PREVIEW_SCALE;
+  anchorXInput.value = String(Math.round((dragStart.anchorX - dx / previewSpriteScale) * 10) / 10);
+  anchorYInput.value = String(Math.round((dragStart.anchorY - dy / previewSpriteScale) * 10) / 10);
   renderSpritePosition();
 });
 const finishSpriteDrag = () => {

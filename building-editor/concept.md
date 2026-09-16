@@ -13,7 +13,7 @@ Ein neues Gebäude soll ohne Codeänderung räumlich beschrieben werden können:
 5. Zellen innerhalb des Grundrisses als blockiert markieren.
 6. Genau eine begehbare Eingangszelle wählen.
 7. Definition exportieren oder lokal direkt ins Projekt speichern.
-8. Einen früheren Export aus `building.json` plus zugehörigem Sprite wieder vollständig importieren und weiterbearbeiten.
+8. Einen aktuellen Export aus `building.json` plus zugehörigem Sprite wieder vollständig importieren und weiterbearbeiten.
 
 Der Editor definiert **nicht**, was ein Gebäude im Spiel tut. Produktion, Waren, Arbeiter, Baukosten, Technologie und andere Funktionalität bleiben im Hauptspiel.
 
@@ -24,14 +24,18 @@ Der Editor definiert **nicht**, was ein Gebäude im Spiel tut. Produktion, Waren
 - begehbar: automatisch `footprint - blocked`.
 - `entrance`: genau eine begehbare Footprint-Zelle als Navigations-/Interaktionsziel.
 - `spriteAnchor`: Ausrichtung des Bildes gegenüber dem Raster, gespeichert in Original-Sprite-Pixeln.
-- `spriteScale`: positive Darstellungs-Skalierung des unveränderten Original-Sprites.
+- `spriteScale`: positive Darstellungs-Skalierung des unveränderten Original-Sprites in der späteren Runtime.
 
-## Bedienung
+## Bedienung und Vorschau
 
 Desktop ist der Zielmodus. Die Seite darf auf Mobilgeräten geöffnet werden und zeigt dort einen Hinweis, wird aber nicht künstlich gesperrt.
 
-Große Sprites werden beim Laden zunächst passend in den Arbeitsbereich eingepasst. Danach lässt sich die Skalierung per Slider oder Prozentfeld ändern. Das Sprite kann direkt mit der Maus über dem Raster verschoben werden; dadurch wird der Anchor automatisch angepasst. Das Raster selbst bleibt in der exakt gleichen Projektion wie das Spiel. Ursprung sowie q-/r-Achsen werden nur deutlicher dargestellt, damit die Ausrichtung besser nachvollziehbar ist.
+Die Arbeitsfläche ist eine WYSIWYG-Vorschau der Spielprojektion: Rasterzentren und sichtbare Hex-Geometrie stammen aus derselben gemeinsamen Projektion wie im Spiel. Der Editor vergrößert diese Weltansicht nur mit einem festen Vorschau-Zoom. Sprite und Raster erhalten denselben Vorschau-Zoom, sodass ihre Größenrelation der späteren Runtime entspricht.
 
-Ein Export kann über **Export importieren** geladen werden. Dabei werden `building.json` und das darin referenzierte PNG/WebP gemeinsam ausgewählt. Alternativ können beide Dateien zusammen auf die Sprite-Fläche gezogen werden. Der aktuelle Editorzustand wird nur ersetzt, wenn Schema, Rasterdaten und Sprite vollständig zusammenpassen. Ältere Version-1-Exporte ohne `spriteScale` werden weiterhin mit 100 % geladen.
+Große Sprites werden beim Laden zunächst durch Anpassen von `spriteScale` passend in den Arbeitsbereich eingepasst. Danach lässt sich die Runtime-Skalierung per Slider oder Prozentfeld ändern. Das Sprite kann mit **Sprite verschieben** direkt über dem Raster positioniert werden; dadurch wird der Anchor automatisch angepasst.
 
-Version 1 soll bewusst klein bleiben: Sprite-Import, Skalierung und Positionierung, Export-Reimport, Rasterbearbeitung, Anchor, Eingang, Validierung und Export. Gameplay-Editor, Animationen, mehrere Eingänge und komplexe Polygon-Hitboxen sind spätere Entscheidungen.
+Ein Export kann über **Export importieren** geladen werden. Dabei werden `building.json` und das darin referenzierte PNG/WebP gemeinsam ausgewählt. Alternativ können beide Dateien zusammen auf die Sprite-Fläche gezogen werden. Der aktuelle Editorzustand wird nur ersetzt, wenn Schema, Rasterdaten und Sprite vollständig zusammenpassen.
+
+Aktuell wird **keine Rückwärtskompatibilität** gepflegt. Nur der aktuelle Editor-/Building-Visual-Schemastand muss funktionieren; ältere Exporte dürfen bei Schemaänderungen abgelehnt werden. Rückwärtskompatibilität wird erst ergänzt, wenn sie ausdrücklich angefordert wird.
+
+Version 2 soll bewusst klein bleiben: Sprite-Import, Skalierung und Positionierung, Export-Reimport, Rasterbearbeitung, Anchor, Eingang, Validierung und Export. Gameplay-Editor, Animationen, mehrere Eingänge und komplexe Polygon-Hitboxen sind spätere Entscheidungen.

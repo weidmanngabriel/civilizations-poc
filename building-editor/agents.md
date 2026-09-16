@@ -10,3 +10,4 @@ Die Root-`agents.md` gilt weiterhin vollständig. Diese Datei ergänzt Regeln nu
 - Exportierte Runtime-Daten liegen unter `src/assets/buildings/<id>/`, nicht im Editor-Verzeichnis.
 - Lokal darf der Vite-Entwicklungsserver Dateien in diesen Asset-Ordner schreiben. Der veröffentlichte statische Editor bietet nur Datei-Downloads an und benötigt keine GitHub-Zugangsdaten.
 - Änderungen am Building-Visual-Schema müssen mit Root-`architecture.md` und Root-`concept.md` abgeglichen werden.
+- **Aktuell ist keine Rückwärtskompatibilität erforderlich.** Der jeweils aktuelle Editor-/Building-Visual-Schemastand ist verbindlich. Alte Exporte dürfen bei Schemaänderungen abgelehnt werden; keine stillen Defaults, Migrationen oder Kompatibilitätsschichten ergänzen. Rückwärtskompatibilität erst implementieren, wenn der Nutzer sie ausdrücklich anfordert.
