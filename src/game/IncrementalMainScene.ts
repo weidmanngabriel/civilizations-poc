@@ -2,6 +2,8 @@ import Phaser from "phaser";
 import { MainScene } from "./MainScene";
 import type { Building, Good, Person, Tile, World } from "../simulation/model";
 import { CONFIG } from "../simulation/scenario";
+import { personName } from "../simulation/personIdentity";
+import { personActivityLabel, personProfessionLabel } from "../personPresentation";
 import { GOOD_ICONS } from "../icons";
 import { pixel } from "./mapGeometry";
 import {
@@ -48,7 +50,8 @@ type MainSceneInternals = {
 type PersonMarkerObjects = {
   dot: Phaser.GameObjects.Arc;
   label: Phaser.GameObjects.Text;
-  idLabel: Phaser.GameObjects.Text;
+  nameLabel: Phaser.GameObjects.Text;
+  detailLabel: Phaser.GameObjects.Text;
   cargo: Phaser.GameObjects.Text;
 };
 
@@ -219,12 +222,26 @@ export class IncrementalMainScene extends MainScene {
       fontSize: "4px",
       color: "#ffffff",
     }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
-    const idLabel = this.add.text(0, 0, String(person.id), {
+    const nameLabel = this.add.text(0, 0, personName(person.id), {
       fontFamily: "system-ui",
-      fontSize: "4px",
+      fontSize: "5px",
+      fontStyle: "bold",
       color: "#ffffff",
       backgroundColor: "#263c2d",
-    }).setResolution(TEXT_RESOLUTION).setOrigin(0, 0.5);
+      padding: { x: 1, y: 0 },
+    }).setResolution(TEXT_RESOLUTION).setOrigin(0.5, 0);
+    const detailLabel = this.add.text(
+      0,
+      0,
+      `${personProfessionLabel(this.worldRef, person)} (${personActivityLabel(person)})`,
+      {
+        fontFamily: "system-ui",
+        fontSize: "3px",
+        color: "#dce6dd",
+        backgroundColor: "#263c2d",
+        padding: { x: 1, y: 0 },
+      },
+    ).setResolution(TEXT_RESOLUTION).setOrigin(0.5, 0);
     const cargo = this.add.text(0, 0, "", {
       fontFamily: "system-ui",
       fontSize: "5px",
@@ -232,8 +249,8 @@ export class IncrementalMainScene extends MainScene {
       backgroundColor: "#263c2d",
     }).setResolution(TEXT_RESOLUTION).setVisible(false);
 
-    this.personLayer?.add([dot, label, idLabel, cargo]);
-    return { dot, label, idLabel, cargo };
+    this.personLayer?.add([dot, label, nameLabel, detailLabel, cargo]);
+    return { dot, label, nameLabel, detailLabel, cargo };
   }
 
   private syncPersonMarkers(): void {
@@ -243,7 +260,8 @@ export class IncrementalMainScene extends MainScene {
       if (activeIds.has(id)) continue;
       marker.dot.destroy();
       marker.label.destroy();
-      marker.idLabel.destroy();
+      marker.nameLabel.destroy();
+      marker.detailLabel.destroy();
       marker.cargo.destroy();
       this.personMarkers.delete(id);
     }
@@ -262,7 +280,14 @@ export class IncrementalMainScene extends MainScene {
       marker.label.setPosition(x, y);
       const personLabel = this.internals().personMarker(person);
       if (marker.label.text !== personLabel) marker.label.setText(personLabel);
-      marker.idLabel.setPosition(x + PERSON_MARKER_RADIUS, groundY + 2);
+
+      const displayName = personName(person.id);
+      if (marker.nameLabel.text !== displayName) marker.nameLabel.setText(displayName);
+      marker.nameLabel.setPosition(x, groundY + 1.5);
+
+      const detail = `${personProfessionLabel(this.worldRef, person)} (${personActivityLabel(person)})`;
+      if (marker.detailLabel.text !== detail) marker.detailLabel.setText(detail);
+      marker.detailLabel.setPosition(x, groundY + 6);
 
       if (person.trip?.picked) {
         marker.cargo.setPosition(x + PERSON_MARKER_RADIUS, y - PERSON_MARKER_RADIUS - 2);
