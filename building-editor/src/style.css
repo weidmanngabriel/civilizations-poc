@@ -23,13 +23,13 @@ button { cursor: pointer; }
 .sprite.movable { pointer-events: auto; cursor: grab; opacity: .92; }
 .sprite.dragging { cursor: grabbing; opacity: .82; }
 .grid-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; overflow: visible; pointer-events: none; }
-.grid-cell { fill: rgba(230, 242, 233, .035); stroke: rgba(217, 234, 221, .25); stroke-width: 1.25; vector-effect: non-scaling-stroke; pointer-events: auto; transition: fill 80ms ease, stroke 80ms ease, filter 80ms ease; }
-.grid-svg.moving-sprite .grid-cell { pointer-events: none; }
+.grid-cell { fill: rgba(230, 242, 233, .035); stroke: rgba(217, 234, 221, .25); stroke-width: 1.25; vector-effect: non-scaling-stroke; pointer-events: auto; touch-action: none; cursor: crosshair; transition: fill 80ms ease, stroke 80ms ease, filter 80ms ease; }
+.grid-svg.moving-sprite .grid-cell { pointer-events: none; cursor: default; }
 .grid-cell:hover { stroke: rgba(255,255,255,.95); stroke-width: 2.5; fill: rgba(255,255,255,.18); filter: drop-shadow(0 0 4px rgba(255,255,255,.65)); }
 .grid-cell.axis-cell { stroke: rgba(214, 232, 218, .4); }
-.grid-cell.footprint { fill: rgba(42, 190, 83, .44); stroke: rgba(134, 255, 166, 1); stroke-width: 2.5; filter: drop-shadow(0 0 4px rgba(74, 255, 120, .75)); }
-.grid-cell.blocked { fill: rgba(230, 55, 43, .56); stroke: rgba(255, 154, 143, 1); stroke-width: 2.5; filter: drop-shadow(0 0 5px rgba(255, 74, 61, .78)); }
-.grid-cell.entrance { fill: rgba(35, 112, 255, .72); stroke: rgba(181, 217, 255, 1); stroke-width: 3.5; filter: drop-shadow(0 0 7px rgba(55, 142, 255, .95)); }
+.grid-cell.footprint { fill: rgba(42, 190, 83, var(--footprint-fill-alpha, .44)); stroke: rgba(134, 255, 166, var(--overlay-stroke-alpha, 1)); stroke-width: 2.5; filter: drop-shadow(0 0 4px rgba(74, 255, 120, var(--overlay-glow-alpha, .8))); }
+.grid-cell.blocked { fill: rgba(230, 55, 43, var(--blocked-fill-alpha, .56)); stroke: rgba(255, 154, 143, var(--overlay-stroke-alpha, 1)); stroke-width: 2.5; filter: drop-shadow(0 0 5px rgba(255, 74, 61, var(--overlay-glow-alpha, .8))); }
+.grid-cell.entrance { fill: rgba(35, 112, 255, var(--entrance-fill-alpha, .72)); stroke: rgba(181, 217, 255, var(--overlay-stroke-alpha, 1)); stroke-width: 3.5; filter: drop-shadow(0 0 7px rgba(55, 142, 255, var(--overlay-glow-alpha, .8))); }
 .grid-cell.footprint:hover { fill: rgba(66, 228, 110, .58); stroke: #ffffff; }
 .grid-cell.blocked:hover { fill: rgba(255, 78, 62, .68); stroke: #ffffff; }
 .grid-cell.entrance:hover { fill: rgba(67, 143, 255, .82); stroke: #ffffff; }
@@ -48,6 +48,7 @@ button { cursor: pointer; }
 .field label { font-size: 12px; color: #becbc1; }
 .field input[type="text"], .field input[type="number"] { width: 100%; padding: 9px 10px; color: #eef5ef; background: #102018; border: 1px solid #3d5547; border-radius: 7px; }
 .field input[type="range"] { width: 100%; }
+.overlay-field { margin-top: 14px; }
 .dropzone { display: grid; place-items: center; min-height: 92px; padding: 14px; text-align: center; border: 1px dashed #63806d; border-radius: 9px; color: #bdcec1; background: #13231a; }
 .dropzone.dragging { border-color: #b9d9c0; background: #1f3427; }
 .tool-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
