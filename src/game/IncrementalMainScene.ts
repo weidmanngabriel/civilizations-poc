@@ -12,6 +12,9 @@ import {
 } from "./personMarkerGeometry";
 
 const TEXT_RESOLUTION = 3;
+const PERSON_TEXT_RESOLUTION = 4;
+const PERSON_NAME_SCALE = 0.34;
+const PERSON_DETAIL_SCALE = 0.28;
 
 const terrainCodes: Record<Tile["terrain"], number> = {
   grass: 1,
@@ -224,24 +227,24 @@ export class IncrementalMainScene extends MainScene {
     }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
     const nameLabel = this.add.text(0, 0, personName(person.id), {
       fontFamily: "system-ui",
-      fontSize: "5px",
+      fontSize: "10px",
       fontStyle: "bold",
       color: "#ffffff",
       backgroundColor: "#263c2d",
-      padding: { x: 1, y: 0 },
-    }).setResolution(TEXT_RESOLUTION).setOrigin(0.5, 0);
+      padding: { x: 2, y: 0 },
+    }).setResolution(PERSON_TEXT_RESOLUTION).setOrigin(0.5, 0).setScale(PERSON_NAME_SCALE);
     const detailLabel = this.add.text(
       0,
       0,
       `${personProfessionLabel(this.worldRef, person)} (${personActivityLabel(person)})`,
       {
         fontFamily: "system-ui",
-        fontSize: "3px",
+        fontSize: "8px",
         color: "#dce6dd",
         backgroundColor: "#263c2d",
-        padding: { x: 1, y: 0 },
+        padding: { x: 2, y: 0 },
       },
-    ).setResolution(TEXT_RESOLUTION).setOrigin(0.5, 0);
+    ).setResolution(PERSON_TEXT_RESOLUTION).setOrigin(0.5, 0).setScale(PERSON_DETAIL_SCALE);
     const cargo = this.add.text(0, 0, "", {
       fontFamily: "system-ui",
       fontSize: "5px",
@@ -283,11 +286,11 @@ export class IncrementalMainScene extends MainScene {
 
       const displayName = personName(person.id);
       if (marker.nameLabel.text !== displayName) marker.nameLabel.setText(displayName);
-      marker.nameLabel.setPosition(x, groundY + 1.5);
+      marker.nameLabel.setPosition(x, groundY + 1.2);
 
       const detail = `${personProfessionLabel(this.worldRef, person)} (${personActivityLabel(person)})`;
       if (marker.detailLabel.text !== detail) marker.detailLabel.setText(detail);
-      marker.detailLabel.setPosition(x, groundY + 6);
+      marker.detailLabel.setPosition(x, groundY + 4.6);
 
       if (person.trip?.picked) {
         marker.cargo.setPosition(x + PERSON_MARKER_RADIUS, y - PERSON_MARKER_RADIUS - 2);
