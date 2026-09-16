@@ -14,7 +14,13 @@ test("save/load roundtrip reconstructs the complete authoritative JSON world sta
   const world = createDefaultGameWorld();
   const person = world.people[0]!;
   const target = world.buildings.find((building) => building.id === "hq")!;
-  const roadTile = world.tiles.find((tile) => tile.terrain === "grass" && !tile.bush && !tile.resourceBlocking)!;
+  const roadTile = world.tiles.find(
+    (tile) =>
+      tile.terrain === "grass" &&
+      !tile.bush &&
+      !tile.resourceBlocking &&
+      !tile.buildingBlocking,
+  )!;
 
   world.round = 48291;
   world.rngState = 123456789;
@@ -38,7 +44,7 @@ test("save/load roundtrip reconstructs the complete authoritative JSON world sta
   assert.deepEqual(loaded, jsonState(world));
 });
 
-test("save format stores entities by anchor without tile or footprint snapshots", () => {
+test("save format stores entities by interaction position without tile or footprint snapshots", () => {
   const world = createDefaultGameWorld();
   const person = world.people[0]!;
   person.path = [{ q: person.position.q + 1, r: person.position.r }];
@@ -48,7 +54,7 @@ test("save format stores entities by anchor without tile or footprint snapshots"
   const serialized = JSON.parse(JSON.stringify(save)) as Record<string, any>;
 
   assert.equal(save.format, "civilizations-save");
-  assert.equal(save.version, 2);
+  assert.equal(save.version, 3);
   assert.equal(save.world.people[0]!.id, `person-${person.id}`);
   assert.equal(save.world.people[0]!.activity, "moving");
   assert.deepEqual(savedHq.position, world.buildings[0]!.position);
@@ -63,11 +69,11 @@ test("save format stores entities by anchor without tile or footprint snapshots"
 test("old save versions are rejected instead of migrated", () => {
   const oldSave = createSaveGame(createDefaultGameWorld());
   const parsed = JSON.parse(JSON.stringify(oldSave));
-  parsed.version = 1;
+  parsed.version = 2;
 
   assert.throws(
     () => deserializeSaveGame(JSON.stringify(parsed)),
-    /Spielstand-Version 1 wird nicht unterstützt/,
+    /Spielstand-Version 2 wird nicht unterstützt/,
   );
 });
 

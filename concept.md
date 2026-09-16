@@ -14,7 +14,7 @@ Die Welt verwendet intern ein **5× feineres Raster pro Raumachse**: aus 41 × 2
 
 ## Untergrund, Ressourcen und Waren
 
-Terrain beschreibt nur den Untergrund. Bäume, Lehm, Stein und spätere natürliche Ressourcen sind eigenständige Weltobjekte. Wald entsteht durch viele einzelne Bäume, nicht durch einen besonderen Bodentyp.
+Terrain beschreibt nur den Untergrund. Bäume, Lehm, Stein und spätere natürliche Ressourcen sind eigenständige Weltobjekte.
 
 Aktueller verbindlicher Stand:
 
@@ -25,123 +25,133 @@ Aktueller verbindlicher Stand:
 - **Stein:** 4 kompakte Mikrozellen, blockierend.
 - **Erz:** Zielrichtung ungefähr 4 Mikrozellen und blockierend.
 
-Blockierende Ressourcen werden von einer begehbaren Nachbarzelle aus benutzt. Lose Warenhaufen enthalten einen Warentyp und 1–3 Einheiten, sind immer begehbar und bleiben nach dem Verschwinden ihrer Quelle erhalten.
+Blockierende Ressourcen werden von einer begehbaren Nachbarzelle aus benutzt. Lose Warenhaufen enthalten einen Warentyp und 1–3 Einheiten, sind begehbar und bleiben nach dem Verschwinden ihrer Quelle erhalten.
 
 Holz, Lehm und Bruchstein folgen dem physischen Grundmodell:
 
 **Ressource → Abbauer → Bodenhaufen → Abholung → Verarbeitung/Lagerung.**
 
-Bodenhaufen sind echte Transportquellen. Sie werden nicht zusätzlich als unsichtbare Rohstoffquelle gespiegelt. Eine reservierte Einheit bleibt sichtbar am Boden, bis sie tatsächlich abgeholt wird.
-
 ## Lager und Hauptquartier
 
 Das Hauptquartier und normale Lager besitzen echte Inventare. Träger liefern direkt in dieses Inventar; es gibt kein verborgenes Hilfslager für das Hauptquartier.
 
-Automatische Lager-zu-Lager-Verteilung bleibt verboten. Händler verbinden weiterhin explizit Lager miteinander. Produktionsgebäude und Bauarbeiter dürfen benötigte Waren nach ihren eigenen Regeln aus Lager/HQ oder von physischen Bodenhaufen beschaffen.
+Automatische Lager-zu-Lager-Verteilung bleibt verboten. Händler verbinden Lager weiterhin explizit miteinander. Produktionsgebäude und Bauarbeiter dürfen benötigte Waren nach ihren eigenen Regeln aus Lager/HQ oder von physischen Bodenhaufen beschaffen.
 
-## Arbeitsflaggen
+## Gebäude und Editor-Definitionen
 
-Holzfäller, Lehmgräber, Steinbrecher sowie **Lager- und HQ-Träger** besitzen einen lokalen Arbeitsbereich, dessen Mittelpunkt durch eine sichtbare persönliche Arbeitsflagge festgelegt wird. Der gemeinsame Radius beträgt **2,5 Weltkacheln**.
+Gebäude besitzen weiterhin getrennte **Gameplay-Regeln** und **räumlich-visuelle Definitionen**.
 
-Die Flagge gehört zur einzelnen Person, nicht zum Gebäude. Zwei Träger desselben Lagers können deshalb unterschiedliche Bereiche abdecken. **Abbauer-Flaggen sind rot.**
+Gameplay-Regeln bleiben im Spielcode und umfassen unter anderem:
 
-- Bei einem neuen Holzfäller oder Abbauer erscheint die erste Flagge am ersten tatsächlich gewählten Rohstoffvorkommen.
-- Bei einem neuen Lager-/HQ-Träger erscheint sie zunächst am zugewiesenen Lagergebäude.
-- Abbauer wählen nur passende freie Rohstoffquellen innerhalb ihrer eigenen Flagge. Ist dort nichts mehr verfügbar, warten sie und wandern nicht automatisch über die Karte zum nächsten Vorkommen.
-- Ein Abbauer verschiebt seine Flagge niemals selbst. Nur der Spieler kann den Mittelpunkt verändern.
-- Lager-/HQ-Träger holen nur Nicht-Lager-Quellen innerhalb ihrer Flagge. Dazu gehören Produktionsausgänge und physische Warenhaufen. Lager-zu-Lager-Verteilung bleibt Händlersache.
-- Wird eine Flagge durch den Spieler verschoben, wird ein noch nicht abgeholtes Ziel außerhalb des neuen Bereichs verworfen und dessen Reservierung freigegeben. Bereits getragene Ware wird noch ausgeliefert.
-- Der Spieler versetzt die Flagge über die ausgewählte Person. Ein kurzer Klick oder Tap setzt den neuen Mittelpunkt; Ziehen verschiebt weiterhin die Karte.
+- Produktionsrezepte,
+- Waren und Lagerkapazitäten,
+- Arbeiter und Träger,
+- Baukosten und Bauzeit,
+- Technologie-Freischaltungen.
 
-Produktions-Träger behalten ihre bestehende bedarfsgetriebene Beschaffung. Eine spätere Ausweitung der Arbeitsflaggen auf weitere Berufe bleibt eine eigene Produktentscheidung.
+Der Gebäudeeditor definiert ausschließlich die räumlich-visuelle Seite:
 
-Die Arbeitsflagge beantwortet **„Wo darf diese Person Ressourcen abbauen oder lokal einsammeln?“**. Langstrecken-Navigation über Wegweiser ist ein separates späteres System.
+- Sprite,
+- Sprite-Anchor,
+- Runtime-Skalierung,
+- Gebäudegrundriss,
+- blockierte Zellen,
+- genau eine begehbare Eingangszelle.
 
-## Farmen und Felder
+Ein Gebäudetyp kann im Runtime-Registry bereits eine Editor-Definition besitzen, ohne dass automatisch jede bestehende Instanz darauf umgestellt wird. Konkrete Gebäudeinstanzen werden ausdrücklich an eine Definition gebunden. Dadurch können die Gebäude schrittweise migriert werden, ohne bestehende Logik oder Testwelten gleichzeitig umzubauen.
 
-Die bestehenden Farmregeln bleiben unverändert. Ein Acker belegt aber vollständig seine feine Rasterfläche und darf beim Säen keine natürliche Ressource oder lose Ware überschreiben. Bereits reservierte Feldflächen und besetzte Zellen bleiben ebenfalls tabu.
+Das **Hauptquartier der Spielerwelt** ist das erste vollständig gebundene Gebäude. Weitere Gebäude sollen denselben generischen Weg verwenden. Nicht migrierte Gebäude behalten vorerst ihre bisherigen Grundrisse und Darstellungen.
 
-Wird eine Farm abgerissen, verschwinden ihre aktiven Felder wie bisher und die belegten Zellen werden wieder zu Gras.
+Für ein gebundenes Gebäude gilt:
 
-## Gebäude, Freiraum und Abriss
+- Der im Editor verwendete Bezugspunkt bleibt der räumliche/visuelle Anker.
+- Die Gameplay-Position des Gebäudes liegt an der im Editor definierten Eingangszelle.
+- Sprite, Grundriss und blockierte Zellen werden gemeinsam relativ zum Editor-Anker ausgerichtet.
+- Nur die explizit als `blocked` markierten Grundrisszellen blockieren Bewohner.
+- Alle anderen Grundrisszellen sind begehbar.
+- Die Eingangszelle muss Teil des Grundrisses und begehbar sein.
 
-Gebäude behalten ihren mehrzelligen Grundriss und den bestehenden freien Ring von einer alten Weltkachel rundherum. Der komplette Grundriss und der Freiraum dürfen keine aktiven natürlichen Ressourcen schneiden.
+Damit können Bewohner ein Gebäude an einer bewusst definierten Stelle erreichen, während Grafik, belegte Fläche und Kollision exakt dieselbe Editor-Geometrie verwenden.
 
-Lose Waren dürfen im freien Ring liegen bleiben, aber nicht unter dem eigentlichen Gebäudegrundriss. Damit kann ein Gebäude keine sichtbare Ware beim Platzieren löschen.
+Der neutrale interne Test-/Sandbox-Weltzustand darf weiterhin vereinfachte Legacy-Geometrie verwenden. Das ist keine Spielerfunktion, sondern hält Low-Level-Simulationstests unabhängig von der schrittweisen Grafikmigration.
 
-Beim Abriss wird die komplette belegte Fläche wieder freigegeben, nicht nur der Ankerpunkt. Eine zuvor überbaute Straße kehrt nicht automatisch zurück; die Fläche wird wie bisher zu Gras.
+## Bauen, Freiraum und Abriss
+
+Gebäude brauchen weiterhin ihren vollständigen Grundriss plus den bestehenden freien Ring von einer alten Weltkachel rundherum. Für migrierte Gebäudetypen kommt der Grundriss aus der Editor-Definition; für noch nicht migrierte Typen gilt die bestehende Legacy-Form.
+
+Natürliche Ressourcen dürfen weder den Grundriss noch den notwendigen Freiraum schneiden. Lose Waren dürfen im Freiraum liegen bleiben, aber nicht unter dem eigentlichen Gebäudegrundriss.
+
+Beim Abriss wird die komplette belegte Fläche wieder frei. Eine zuvor überbaute Straße kehrt nicht zurück; die Fläche wird wie bisher zu Gras.
 
 ## Gebäudeeditor
 
-Unter `/building-editor/` steht ein internes Authoring-Werkzeug als eigene Unterseite zur Verfügung. Die Seite ist grundsätzlich auch auf kleinen Geräten erreichbar, wird aber ausschließlich für Desktop-Bedienung optimiert.
-
-Der Editor definiert nur das **Aussehen und räumliche Verhalten** eines Gebäudes: Sprite, Sprite-Anchor, Runtime-Skalierung, Gebäudegrundriss, blockierte Zellen und genau eine begehbare Eingangszelle. Begehbare Gebäudezellen ergeben sich automatisch aus Grundriss minus blockierten Zellen.
+Unter `/building-editor/` steht das interne Authoring-Werkzeug als eigene Unterseite zur Verfügung. Es wird für Desktop-Bedienung optimiert.
 
 Die Arbeitsfläche soll die spätere Spielansicht räumlich zuverlässig vorwegnehmen. Rasterzentren und sichtbare Hex-Geometrie verwenden dieselbe Projektion wie das Spiel. Der Editor vergrößert Raster und Sprite nur gemeinsam für die Bearbeitung; dadurch bleibt ihre Größenrelation identisch zur späteren Runtime.
 
-Produktionsregeln, Waren, Arbeiter, Lagerkapazitäten, Baukosten, Technologie und andere Gameplay-Funktionen sind ausdrücklich nicht Teil des Editors.
+Im veröffentlichten Editor werden `building.json` und Sprite heruntergeladen. Dieses Dateipaar kann gemeinsam wieder importiert und vollständig weiterbearbeitet werden, sofern es dem aktuellen Schema entspricht. Bei lokaler Entwicklung kann derselbe Stand direkt nach `src/assets/buildings/<id>/` gespeichert werden.
 
-Im veröffentlichten Editor werden `building.json` und Sprite heruntergeladen. Dieses Dateipaar kann anschließend gemeinsam wieder importiert und vollständig weiterbearbeitet werden, sofern es dem **aktuellen** Building-Visual-Schema entspricht; ungültige oder unvollständige Imports überschreiben den aktuellen Editorzustand nicht. Bei lokaler Entwicklung kann derselbe Stand direkt nach `src/assets/buildings/<id>/` gespeichert werden. Bestehende Gebäude werden nicht automatisch auf dieses Format migriert; neue Runtime-Integration kann schrittweise erfolgen.
+Aktuell gibt es bewusst **keine Rückwärtskompatibilität** für ältere Editor-/Building-Visual-Schemata. Alte Exporte dürfen bei Schemaänderungen abgelehnt werden.
 
-Aktuell gibt es bewusst **keine Rückwärtskompatibilität** für ältere Editor-/Building-Visual-Schemata. Alte Exporte dürfen bei Schemaänderungen abgelehnt werden. Rückwärtskompatibilität wird erst ergänzt, wenn sie ausdrücklich angefordert wird.
+## Arbeitsflaggen
+
+Holzfäller, Lehmgräber, Steinbrecher sowie Lager- und HQ-Träger besitzen einen lokalen Arbeitsbereich mit persönlicher Flagge. Der gemeinsame Radius beträgt **2,5 Weltkacheln**.
+
+Abbauer wählen nur passende freie Rohstoffquellen innerhalb ihrer Flagge. Lager-/HQ-Träger holen nur Nicht-Lager-Quellen innerhalb ihrer Flagge. Wird eine Flagge verschoben, wird ein noch nicht abgeholtes Ziel außerhalb des neuen Bereichs verworfen; bereits getragene Ware wird noch ausgeliefert.
+
+Produktions-Träger behalten ihre bedarfsgetriebene Beschaffung. Arbeitsflaggen und spätere Wegweiser bleiben getrennte Systeme.
+
+## Farmen und Felder
+
+Die bestehenden Farmregeln bleiben unverändert. Ein Acker belegt vollständig seine feine Rasterfläche und darf beim Säen keine natürliche Ressource oder lose Ware überschreiben. Bereits reservierte Feldflächen und besetzte Zellen bleiben ebenfalls tabu.
+
+Wird eine Farm abgerissen, verschwinden ihre aktiven Felder und die belegten Zellen werden wieder zu Gras.
 
 ## Wege
 
-Die Grundgeschwindigkeit von Bewohnern beträgt **5/6 Weltkachel pro Sekunde**. Die bestehende Regel bleibt: **8 Überquerungen innerhalb von 32 simulierten Sekunden** erzeugen einen dauerhaften Weg. Auf Wegen bewegen sich Bewohner mit dem bestehenden Faktor **1,3×**.
+Die Grundgeschwindigkeit der Bewohner beträgt **5/6 Weltkachel pro Sekunde**. Die bestehende Regel bleibt: **8 Überquerungen innerhalb von 32 simulierten Sekunden** erzeugen einen dauerhaften Weg. Auf Wegen bewegen sich Bewohner mit Faktor **1,3×**.
 
-Weder manuell gesetzte noch automatisch entstehende Wege dürfen eine aktive natürliche Ressourcenfläche überdecken. Das gilt für den kompletten Ressourcen-Grundriss, nicht nur für dessen Mittelpunkt.
+Weder manuell gesetzte noch automatisch entstehende Wege dürfen eine aktive natürliche Ressourcenfläche überdecken.
 
-## Hunger
+## Hunger und Schlaf
 
-Die eigentliche Simulation und Bewegung laufen weiterhin mit 60 Schritten pro Sekunde. **Hunger wird nur einmal pro simulierter Sekunde aktualisiert und geprüft.** Erst bei diesem Sekundenschritt werden Hungergrenzen bewertet und bei Bedarf ein Essensziel gesucht.
+Simulation und Bewegung laufen mit 60 Schritten pro Sekunde. Hunger wird nur einmal pro simulierter Sekunde aktualisiert und geprüft. Bestehende Ziele bleiben während einer Reise stabil, solange der Auftrag gültig ist.
 
-Hat eine Person bereits ein Essensziel und ist unterwegs, behält sie dieses Ziel und ihre Route bei, solange die Reise läuft. Am Ziel beginnt eine feste **Essensphase von 5 simulierten Sekunden**; währenddessen bleibt die Person dort und nimmt die Nahrung erst am Ende der Phase zu sich. Ein genutzter Beerenbusch wird danach als abgeerntet markiert, verschwindet sichtbar als verfügbare Nahrungsquelle und erscheint nach seinem bestehenden Nachwachs-Timer wieder. Auch eine durch Hunger oder Schlaf unterbrochene Warenabholung kann danach zur selben physischen Abholposition fortgesetzt werden, solange der Auftrag noch gültig ist.
+Essen benötigt weiterhin fünf simulierte Sekunden am Ziel. Schlaf folgt den bestehenden Haus-/Natur-/Bodenregeln und konkurriert wie bisher mit Arbeit und Hunger.
 
 ## Berufserfahrung und Technologien
 
 Erfahrung wird pro Person und Beruf von 0 bis 100 gespeichert und bleibt bei Berufswechsel erhalten. Jede erfolgreich abgeschlossene berufliche Tätigkeit gibt genau 1 Erfahrungspunkt; abgebrochene Tätigkeiten geben keinen Punkt.
 
-Eine Technologie wird dauerhaft freigeschaltet, sobald irgendeine Person erstmals 10 XP im zugeordneten Beruf erreicht. Wohnhaus, Farm und Brunnen sind von Anfang an verfügbar; weitere Gebäude werden über die bestehenden Berufsregeln freigeschaltet.
-
-## Ereignisbasierte Entscheidungen
-
-Autonome Bewohner treffen teure Zielentscheidungen nicht laufend neu. Ein Ziel bleibt während der Reise bestehen und wird an Aufgabenübergängen neu bewertet. Hunger und fehlende Arbeitsziele werden höchstens einmal pro Sekunde erneut geprüft. Für Abbauer findet diese Arbeitssuche ausschließlich innerhalb der bestehenden Arbeitsflagge statt.
+Eine Technologie wird dauerhaft freigeschaltet, sobald irgendeine Person 10 XP im zugeordneten Beruf erreicht. Wohnhaus, Farm und Brunnen sind von Anfang an verfügbar; weitere Gebäude werden über die bestehenden Berufsregeln freigeschaltet.
 
 ## Darstellung, Zoom und Eingabe
 
-Bewohner werden visuell ungefähr so groß wie eine einzelne Mikrozelle dargestellt. Ihr Fußpunkt liegt leicht unterhalb der autoritativen Simulationsposition, damit spätere Personen-Sprites natürlich auf der Weltposition stehen können. Direkt unter jeder Person stehen ihr Name sowie kleiner darunter `Beruf (aktuelle Tätigkeit)`; diese Beschriftung liegt in Weltkoordinaten und skaliert daher beim Zoomen zusammen mit der Karte. Getragene Waren werden als kleines, nah an der Person liegendes Welt-Icon dargestellt und skalieren ebenfalls mit dem Kartenzoom. Die Karte lässt sich per Mausrad und Pinch bis 10× vergrößern.
+Bewohner bleiben ungefähr so groß wie eine Mikrozelle. Namen, Beruf/Tätigkeit und getragene Waren liegen in Weltkoordinaten und skalieren mit der Karte.
 
-Gebäudeplatzierung bleibt für Desktop und Touch getrennt bedienbar, verwendet aber dieselbe autoritative Platzierungslogik. Für Arbeitsflaggen gilt ebenfalls: kurzer Klick/Tap setzt die Flagge, Drag bleibt Kartenbewegung.
+Die Karte lässt sich per Mausrad und Pinch von 0,7× bis 10× zoomen. Desktop und Touch bleiben getrennte Eingabemodelle mit derselben autoritativen Spielregel. Kurzer Tap/Klick und Drag dürfen sich nicht gegenseitig verschlechtern.
 
 ## Neues Spiel, Speichern und Laden
 
-Über ein eigenes **Spiel**-Menü kann der Spieler jederzeit ein neues Spiel starten, speichern oder laden. Das Menü ist auf Desktop und Touch identisch erreichbar.
+Über das Spielmenü kann ein neues Spiel gestartet, gespeichert oder geladen werden. Der vollständige autoritative Simulationszustand wird als menschenlesbare JSON-Datei gespeichert.
 
-**Spiel speichern** friert den vollständigen autoritativen Zustand des aktuellen Simulationsticks als menschenlesbare JSON-Datei ein und lädt diese Datei auf das Gerät herunter. Dazu gehören laufende Arbeit und Transporte, Hunger und Schlaf, Arbeitsflaggen, Inventare, Berufs-XP, dauerhaft freigeschaltete Technologien, Zufallszustand und laufende ID-Zähler.
+Räumliche Objekte werden weiterhin kompakt über ihre logische Position gespeichert; abgeleitete Tile- und Footprint-Snapshots werden nicht persistiert. Bei an eine Editor-Definition gebundenen Gebäuden werden die Definition-ID und die Gameplay-Interaktionsposition gespeichert. Grundriss, visueller Anker und blockierte Zellen werden beim Laden deterministisch aus der Registry rekonstruiert.
 
-Räumliche Objekte werden im Spielstand **immer nur über genau einen Ankerpunkt** gespeichert. Gebäude, Äcker, natürliche Ressourcen und lose Waren enthalten keine gespeicherten Footprints oder Listen aller belegten Zellen. Auch der normale statische Untergrund der Welt wird nicht vollständig in die Datei kopiert. Beim Laden werden Gebäude- und Ressourcenformen deterministisch aus Typ und Ankerposition neu aufgebaut.
-
-Dynamische Änderungen der Welt werden nur so weit gespeichert, wie sie nicht aus einem Anker ableitbar sind: bestehende Wege, relevante Verkehrshistorie und Büsche werden als sparsame Einträge mit jeweils genau einer Position abgelegt. Gebäude- und Feld-Terrain sowie Ressourcen-Kollisionen werden beim Laden neu erzeugt und sind nicht Teil der gespeicherten Weltzellen.
-
-Jede gespeicherte Person erhält eine lesbare String-ID; laufende Personentätigkeiten werden zusätzlich als Klartext-Zustand wie `moving`, `transporting-good` oder `sleeping` ausgewiesen. Diese Klartextangabe dient der Lesbarkeit; geladen wird der vollständige zugrunde liegende Simulationszustand.
-
-**Spiel laden** öffnet die lokale Dateiauswahl des Geräts und akzeptiert nur die aktuell unterstützte Save-Version. Nach dem Laden muss die Simulation am gespeicherten Zustand weiterlaufen, als wäre sie nicht unterbrochen worden. Alte Save-Versionen werden ausdrücklich **nicht migriert oder rückwärtskompatibel geladen**.
-
-**Neues Spiel** erzeugt wieder denselben initialen Weltzustand wie beim Start der Anwendung. Vor dem Zurücksetzen wird bestätigt, dass ein ungespeicherter Spielstand verloren geht.
+Die aktuelle Save-Version ist **3**. Ältere Versionen werden bewusst nicht migriert oder rückwärtskompatibel geladen.
 
 ## Noch offene spätere Produktentscheidungen
 
-Nicht Teil des abgeschlossenen Raster-/Ressourcenumbaus sind:
+Nicht Teil dieses Schritts sind unter anderem:
 
+- Migration aller bestehenden Gebäude auf Editor-Definitionen,
+- mehrere Gebäudeeingänge,
+- Gebäudeanimationen oder komplexere Hitboxen,
 - unterschiedliche Arbeitsradien nach Beruf oder Upgrade,
 - Arbeitsflaggen für Produktions-Träger,
 - gemeinsam genutzte Flaggen,
 - Wegweiser/High-Level-Navigation,
-- Ressourcen-Regeneration und neue prozedurale Clusterregeln,
-- mehrere Gebäudeeingänge, Animationen oder komplexere Editor-Hitboxen.
+- Ressourcen-Regeneration und neue prozedurale Clusterregeln.
 
 ## Unveränderte Produktbereiche
 
-Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`concept-detail.md`](./concept-detail.md), insbesondere Startzustand, Schlaf, Beeren, 60-Hz-Simulation, Produktionsketten, Händler, Personenansicht, Technologiebaum und Handbuch.
-
-Alte Aussagen in `concept-detail.md` über das grobe Raster, Wald als Terrain, alte Rohstofflagerung, versteckte HQ-Lagerlogik, physische Waren als Rohstoff-Proxies, direktes Betreten blockierender Ressourcen, global wandernde Abbauer, tickweise Hungerplanung oder einen festen gebäudezentrierten Lagerträger-Sammelradius sind durch diese Datei überholt.
+Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`concept-detail.md`](./concept-detail.md), insbesondere Produktionsketten, Händler, Personenansicht, Technologiebaum und Handbuch. Wo ältere Detailtexte dem hier beschriebenen feinen Raster, den physischen Waren, lokalen Arbeitsbereichen oder der neuen gebundenen Gebäude-Definition widersprechen, ist diese Datei maßgeblich.

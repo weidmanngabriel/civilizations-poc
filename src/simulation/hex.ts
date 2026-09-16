@@ -39,7 +39,8 @@ const terrainWalkable = (t: Tile): boolean =>
   t.terrain === "field" ||
   t.terrain === "building";
 
-export const walkable = (t: Tile): boolean => terrainWalkable(t) && !t.resourceBlocking;
+export const walkable = (t: Tile): boolean =>
+  terrainWalkable(t) && !t.resourceBlocking && !t.buildingBlocking;
 
 export const movementCost = (t: Tile, roadSpeedMultiplier = 1.3): number =>
   t.terrain === "road" ? 1 / roadSpeedMultiplier : 1;
@@ -126,7 +127,7 @@ class MinHeap {
 const pathTargets = (index: Map<string, Tile>, end: Hex): Hex[] | null => {
   const endTile = index.get(key(end));
   if (!endTile || !terrainWalkable(endTile)) return null;
-  if (!endTile.resourceBlocking) return [end];
+  if (!endTile.resourceBlocking && !endTile.buildingBlocking) return [end];
   return neighbors(end).filter((position) => {
     const tile = index.get(key(position));
     return Boolean(tile && walkable(tile));
@@ -162,7 +163,9 @@ export function findPath(
     const targets = pathTargets(index, end);
     if (!startTile || !terrainWalkable(startTile) || !targets?.length) return null;
 
-    const interactionTarget = Boolean(index.get(key(end))?.resourceBlocking);
+    const interactionTarget = Boolean(
+      index.get(key(end))?.resourceBlocking || index.get(key(end))?.buildingBlocking,
+    );
     const targetKeys = new Set(targets.map(key));
     const startKey = key(start);
     if (targetKeys.has(startKey)) {
@@ -219,7 +222,9 @@ export function findPathBySteps(tiles: Tile[], start: Hex, end: Hex): Hex[] | nu
     const targets = pathTargets(index, end);
     if (!startTile || !terrainWalkable(startTile) || !targets?.length) return null;
 
-    const interactionTarget = Boolean(index.get(key(end))?.resourceBlocking);
+    const interactionTarget = Boolean(
+      index.get(key(end))?.resourceBlocking || index.get(key(end))?.buildingBlocking,
+    );
     const targetKeys = new Set(targets.map(key));
     const startKey = key(start);
     if (targetKeys.has(startKey)) {

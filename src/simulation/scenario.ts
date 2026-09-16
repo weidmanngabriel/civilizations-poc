@@ -1,4 +1,10 @@
 import type { Building, Hex, NaturalResource, Person, Tile, World } from "./model";
+import {
+  buildingDefinition,
+  buildingInteractionAt,
+  definitionBlockedForBuilding,
+  definitionFootprintAt,
+} from "../buildings/buildingDefinitionRegistry";
 import { attachNeeds } from "./needs";
 import { attachSleep } from "./sleep";
 import { STARTING_TECHNOLOGIES } from "./technology";
@@ -155,14 +161,24 @@ const nearestCoarseCell = (position: Hex): CoarseCell => {
 };
 
 function createScenario({ population, suppliedStart }: ScenarioOptions): World {
-  const hqPosition = scaledAt(6, 20);
+  const hqVisualAnchor = scaledAt(6, 20);
+  const hqDefinition = buildingDefinition("hq");
+  const authoredHqFootprint = suppliedStart
+    ? definitionFootprintAt("hq", hqVisualAnchor)
+    : undefined;
+  if (suppliedStart && (!hqDefinition || !authoredHqFootprint))
+    throw new Error("Die räumliche HQ-Definition fehlt.");
+  const hqPosition = suppliedStart
+    ? buildingInteractionAt("hq", hqVisualAnchor)
+    : hqVisualAnchor;
   const buildings: Building[] = [
     {
       id: "hq",
       kind: "hq",
       name: "Hauptquartier",
       position: hqPosition,
-      footprint: compactFootprint(hqPosition),
+      ...(suppliedStart ? { visualDefinitionId: hqDefinition!.visual.id } : {}),
+      footprint: authoredHqFootprint ?? compactFootprint(hqVisualAnchor),
       workers: 0,
       carriers: 2,
       merchants: 0,
@@ -223,7 +239,14 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
   const riverSet = coordinateSet(river);
   const mountainSet = coordinateSet(mountains);
   const buildingCells = new Set(
-    buildings.flatMap((building) => building.footprint ?? [building.position]).map((position) => `${position.q},${position.r}`),
+    buildings
+      .flatMap((building) => building.footprint ?? [building.position])
+      .map((position) => key(position)),
+  );
+  const blockedBuildingCells = new Set(
+    suppliedStart
+      ? buildings.flatMap((building) => definitionBlockedForBuilding(building) ?? []).map(key)
+      : [],
   );
   const bushPositions = new Set(bushTiles.map(([col, row]) => {
     const position = scaledAt(col!, row!);
@@ -248,6 +271,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
       tiles.push({
         ...position,
         terrain,
+        ...(blockedBuildingCells.has(positionKey) ? { buildingBlocking: true } : {}),
         ...(bush ? { bush: true, bushAvailable: true } : {}),
       });
     }

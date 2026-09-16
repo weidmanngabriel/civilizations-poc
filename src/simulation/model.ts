@@ -35,6 +35,8 @@ export interface Tile extends Hex {
   terrain: "grass" | "road" | "forest" | "field" | "mountain" | "river" | "building";
   /** Derived collision overlay. Natural resources never change the underlying terrain type. */
   resourceBlocking?: boolean;
+  /** Derived collision overlay for editor-authored building cells. */
+  buildingBlocking?: boolean;
   trafficTicks?: number[];
   bush?: boolean;
   bushAvailable?: boolean;
@@ -63,6 +65,8 @@ export interface Building {
   kind: BuildingKind;
   name: string;
   position: Hex;
+  /** Runtime binding to a validated editor-authored visual/spatial definition. */
+  visualDefinitionId?: string;
   footprint?: Hex[];
   workers: number;
   carriers: number;

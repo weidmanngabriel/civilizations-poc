@@ -8,6 +8,10 @@ import type {
   Tile,
   World,
 } from "./model";
+import {
+  definitionBlockedForBuilding,
+  definitionFootprintForBuilding,
+} from "../buildings/buildingDefinitionRegistry";
 import { footprintAt } from "./buildingPlacement";
 import { key, tileIndex } from "./hex";
 import {
@@ -18,7 +22,7 @@ import { createDefaultGameWorld } from "./scenario";
 import { refinedCellCluster } from "./spatial";
 
 export const SAVE_FORMAT = "civilizations-save";
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export type SavedActivity =
   | "idle"
@@ -160,7 +164,9 @@ const personRuntimeId = (value: unknown): number => {
   return Number(match[1]);
 };
 
-const buildingFootprintFromAnchor = (building: SavedBuilding): Hex[] => {
+const buildingFootprintFromPosition = (building: SavedBuilding): Hex[] => {
+  const registered = definitionFootprintForBuilding(building as Building);
+  if (registered) return registered;
   if (building.kind === "field")
     return refinedCellCluster({ q: 0, r: 0 }).map((offset) => ({
       q: building.position.q + offset.q,
@@ -172,7 +178,7 @@ const buildingFootprintFromAnchor = (building: SavedBuilding): Hex[] => {
 
 const restoreBuilding = (saved: SavedBuilding): Building => {
   const building = cloneJson(saved) as Building;
-  const footprint = buildingFootprintFromAnchor(saved);
+  const footprint = buildingFootprintFromPosition(saved);
   building.footprint = footprint;
   if (building.kind === "hq") building.baseTerrain = "grass";
   else if (building.kind !== "field")
@@ -253,10 +259,12 @@ const reconstructTiles = (
 
   for (const building of buildings) {
     if (building.retired) continue;
+    const blocked = new Set((definitionBlockedForBuilding(building) ?? []).map(key));
     for (const position of building.footprint ?? [building.position]) {
       const tile = indexed.get(key(position));
       if (!tile) throw new Error(`Gebäude ${building.id} liegt außerhalb der Welt.`);
       tile.terrain = building.kind === "field" ? "field" : "building";
+      tile.buildingBlocking = blocked.has(key(position)) || undefined;
       tile.trafficTicks = undefined;
       tile.bush = undefined;
       tile.bushAvailable = undefined;
