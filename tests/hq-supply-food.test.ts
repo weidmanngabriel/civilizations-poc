@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { attachNeeds, advanceHungerTick } from "../src/simulation/needs";
-import { createWorld } from "../src/simulation/scenario";
+import { CONFIG, createWorld } from "../src/simulation/scenario";
 import {
   assigned,
   buildAt,
@@ -9,6 +9,8 @@ import {
   tick,
 } from "../src/simulation/simulation";
 import type { BuildingKind, Good } from "../src/simulation/model";
+
+const movementSlowdownFactor = 2.5 / CONFIG.baseMovementTilesPerSecond;
 
 const activateWorker = (
   world: ReturnType<typeof createWorld>,
@@ -45,7 +47,7 @@ for (const { kind, good } of supplyCases) {
     assert.equal(changeAssignment(world, workplace.id, "worker", 1), true);
     activateWorker(world, workplace.id);
 
-    for (let i = 0; i < 1800; i++) {
+    for (let i = 0; i < Math.ceil(1800 * movementSlowdownFactor); i++) {
       tick(world);
       const localStock = workplace.recipe?.inputs
         ? (workplace.inputInventory?.[good] ?? 0)
