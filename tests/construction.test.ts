@@ -16,6 +16,8 @@ import {
   tick,
 } from "../src/simulation/simulation";
 
+const movementSlowdownFactor = 2.5 / CONFIG.baseMovementTilesPerSecond;
+
 test("builder pool automatically assigns builders and completes construction", () => {
   const world = createWorld();
   const origin = world.tiles.find((tile) => canPlaceBuilding(world, tile, "warehouse"));
@@ -47,7 +49,11 @@ test("builder pool automatically assigns builders and completes construction", (
     inventory: { wood: 4 },
   });
 
-  for (let i = 0; i < 3000 && isUnderConstruction(site!); i++) tick(world);
+  for (
+    let i = 0;
+    i < Math.ceil(3000 * movementSlowdownFactor) && isUnderConstruction(site!);
+    i++
+  ) tick(world);
 
   assert.equal(site!.construction?.delivered.wood, 4);
   assert.equal(isUnderConstruction(site!), false);
