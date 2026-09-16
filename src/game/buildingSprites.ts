@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import {
-  buildingDefinition,
   buildingVisualAnchor,
+  definitionForBuilding,
   registeredBuildingDefinitions,
 } from "../buildings/buildingDefinitionRegistry";
 import type { Building, World } from "../simulation/model";
@@ -52,7 +52,7 @@ function loadTextures(scene: MainScene): Promise<void> {
 
 /**
  * Generic runtime renderer for editor-authored building definitions. Gameplay
- * semantics remain in simulation code; this layer only reads registered visual
+ * semantics remain in simulation code; this layer only reads bound visual
  * definitions and follows authoritative building instances.
  */
 export function installBuildingSprites(scene: MainScene, world: World): void {
@@ -66,7 +66,7 @@ export function installBuildingSprites(scene: MainScene, world: World): void {
   };
 
   const createSprite = (building: Building): Phaser.GameObjects.Image | undefined => {
-    const registered = buildingDefinition(building.kind);
+    const registered = definitionForBuilding(building);
     if (!registered) return;
     const key = textureKey(registered.visual.id);
     const source = scene.textures.get(key).getSourceImage() as HTMLImageElement;
@@ -81,7 +81,7 @@ export function installBuildingSprites(scene: MainScene, world: World): void {
 
   const sync = () => {
     const active = world.buildings.filter(
-      (building) => displayable(building) && buildingDefinition(building.kind),
+      (building) => displayable(building) && definitionForBuilding(building),
     );
     const activeIds = new Set(active.map((building) => building.id));
     for (const id of sprites.keys())
