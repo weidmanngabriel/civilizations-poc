@@ -22,7 +22,7 @@ Der Editor importiert die gemeinsame Kartenprojektion und Hex-Geometrie aus `src
 
 ## Datenmodell
 
-`BuildingVisualDefinition` Version 1 enthält ausschließlich:
+`BuildingVisualDefinition` Version 2 enthält ausschließlich:
 
 - stabile `id`,
 - Sprite-Dateiname,
