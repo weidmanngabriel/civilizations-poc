@@ -17,6 +17,7 @@ import {
 } from "../debug/performanceProfiler";
 
 const SIMULATION_HZ = 60;
+const EATING_DURATION_TICKS = 5 * SIMULATION_HZ;
 const ROAD_SPEED_MULTIPLIER = 1.3;
 const WANTS_TO_EAT_THRESHOLD = 40;
 const CRITICAL_HUNGER_THRESHOLD = 20;
@@ -176,13 +177,21 @@ const consumeBush = (world: World, person: Person, tile: Tile): void => {
   finishEating(world, person);
 };
 
+const beginEating = (world: World, person: Person): void => {
+  const state = person.hungerState!;
+  person.path = [];
+  person.movement = 0;
+  person.active = false;
+  state.eatingUntilTick ??= world.round + EATING_DURATION_TICKS;
+};
+
 const useCandidate = (world: World, person: Person, candidate: FoodCandidate): void => {
   if (candidate.kind === "bread") {
-    if (same(person.position, candidate.source.position)) { person.path = []; consumeBread(world, person, candidate.source); }
+    if (same(person.position, candidate.source.position)) beginEating(world, person);
     else person.path = candidate.path;
     return;
   }
-  if (same(person.position, candidate.tile)) { person.path = []; consumeBush(world, person, candidate.tile); }
+  if (same(person.position, candidate.tile)) beginEating(world, person);
   else person.path = candidate.path;
 };
 
@@ -190,6 +199,7 @@ const assignFoodCandidate = (world: World, person: Person, state: HungerState, c
   state.foodSource = candidate?.kind === "bread" ? candidate.source.id : undefined;
   state.foodBush = candidate?.kind === "bush" ? { q: candidate.tile.q, r: candidate.tile.r } : undefined;
   state.retryAfterTick = candidate ? undefined : world.round + CONFIG.decisionIntervalTicks;
+  state.eatingUntilTick = undefined;
   person.movement = 0;
   if (!candidate) { person.path = []; person.active = false; return false; }
   useCandidate(world, person, candidate);
@@ -232,23 +242,33 @@ const ensureFoodRoute = (world: World, person: Person): void => {
   const target = selectedFoodTarget(world, person);
   if (target) {
     const targetPosition = selectedTargetPosition(target);
-    if (same(person.position, targetPosition)) { consumeSelectedTarget(world, person, target); return; }
+    if (same(person.position, targetPosition)) { beginEating(world, person); return; }
+    state.eatingUntilTick = undefined;
     const path = routeTo(world, person, targetPosition);
     if (path) { person.path = path; person.movement = 0; person.active = false; return; }
     state.foodSource = undefined;
     state.foodBush = undefined;
   }
+  state.eatingUntilTick = undefined;
   if (state.retryAfterTick !== undefined && world.round < state.retryAfterTick) { person.active = false; return; }
   assignFoodCandidate(world, person, state, foodCandidate(world, person));
 };
 
-/** Completes eating on the exact movement tick that a selected food source is reached. */
+/** Starts or completes the timed eating phase on the exact movement tick a food source is reached. */
 export function resolveFoodArrivals(world: World): void {
   for (const person of world.people) {
     if (!person.hungerState) continue;
+    const state = person.hungerState;
     const target = selectedFoodTarget(world, person);
-    if (!target || !same(person.position, selectedTargetPosition(target))) continue;
-    consumeSelectedTarget(world, person, target);
+    if (!target || !same(person.position, selectedTargetPosition(target))) {
+      if (state.eatingUntilTick !== undefined) state.eatingUntilTick = undefined;
+      continue;
+    }
+    if (state.eatingUntilTick === undefined) {
+      beginEating(world, person);
+      continue;
+    }
+    if (world.round >= state.eatingUntilTick) consumeSelectedTarget(world, person, target);
   }
 }
 

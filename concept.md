@@ -91,7 +91,7 @@ Weder manuell gesetzte noch automatisch entstehende Wege dürfen eine aktive nat
 
 Die eigentliche Simulation und Bewegung laufen weiterhin mit 60 Schritten pro Sekunde. **Hunger wird nur einmal pro simulierter Sekunde aktualisiert und geprüft.** Erst bei diesem Sekundenschritt werden Hungergrenzen bewertet und bei Bedarf ein Essensziel gesucht.
 
-Hat eine Person bereits ein Essensziel und ist unterwegs, behält sie dieses Ziel und ihre Route bei, solange die Reise läuft. Auch eine durch Hunger oder Schlaf unterbrochene Warenabholung kann danach zur selben physischen Abholposition fortgesetzt werden, solange der Auftrag noch gültig ist.
+Hat eine Person bereits ein Essensziel und ist unterwegs, behält sie dieses Ziel und ihre Route bei, solange die Reise läuft. Am Ziel beginnt eine feste **Essensphase von 5 simulierten Sekunden**; währenddessen bleibt die Person dort und nimmt die Nahrung erst am Ende der Phase zu sich. Ein genutzter Beerenbusch wird danach als abgeerntet markiert, verschwindet sichtbar als verfügbare Nahrungsquelle und erscheint nach seinem bestehenden Nachwachs-Timer wieder. Auch eine durch Hunger oder Schlaf unterbrochene Warenabholung kann danach zur selben physischen Abholposition fortgesetzt werden, solange der Auftrag noch gültig ist.
 
 ## Berufserfahrung und Technologien
 
@@ -105,7 +105,7 @@ Autonome Bewohner treffen teure Zielentscheidungen nicht laufend neu. Ein Ziel b
 
 ## Darstellung, Zoom und Eingabe
 
-Bewohner werden visuell ungefähr so groß wie eine einzelne Mikrozelle dargestellt. Ihr Fußpunkt liegt leicht unterhalb der autoritativen Simulationsposition, damit spätere Personen-Sprites natürlich auf der Weltposition stehen können. Direkt unter jeder Person stehen ihr Name sowie kleiner darunter `Beruf (aktuelle Tätigkeit)`; diese Beschriftung liegt in Weltkoordinaten und skaliert daher beim Zoomen zusammen mit der Karte. Die Karte lässt sich per Mausrad und Pinch bis 10× vergrößern.
+Bewohner werden visuell ungefähr so groß wie eine einzelne Mikrozelle dargestellt. Ihr Fußpunkt liegt leicht unterhalb der autoritativen Simulationsposition, damit spätere Personen-Sprites natürlich auf der Weltposition stehen können. Direkt unter jeder Person stehen ihr Name sowie kleiner darunter `Beruf (aktuelle Tätigkeit)`; diese Beschriftung liegt in Weltkoordinaten und skaliert daher beim Zoomen zusammen mit der Karte. Getragene Waren werden als kleines, nah an der Person liegendes Welt-Icon dargestellt und skalieren ebenfalls mit dem Kartenzoom. Die Karte lässt sich per Mausrad und Pinch bis 10× vergrößern.
 
 Gebäudeplatzierung bleibt für Desktop und Touch getrennt bedienbar, verwendet aber dieselbe autoritative Platzierungslogik. Für Arbeitsflaggen gilt ebenfalls: kurzer Klick/Tap setzt die Flagge, Drag bleibt Kartenbewegung.
 
