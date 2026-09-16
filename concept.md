@@ -103,11 +103,15 @@ Gebäudeplatzierung bleibt für Desktop und Touch getrennt bedienbar, verwendet 
 
 Über ein eigenes **Spiel**-Menü kann der Spieler jederzeit ein neues Spiel starten, speichern oder laden. Das Menü ist auf Desktop und Touch identisch erreichbar.
 
-**Spiel speichern** friert den vollständigen autoritativen Zustand des aktuellen Simulationsticks als menschenlesbare JSON-Datei ein und lädt diese Datei auf das Gerät herunter. Dazu gehören insbesondere Weltzellen und Wege, Gebäude und Baustände, Ressourcen und lose Waren samt Reservierungen, Personenpositionen und Pfade, laufende Arbeit und Transporte, Hunger und Schlaf, Arbeitsflaggen, Inventare, Berufs-XP, dauerhaft freigeschaltete Technologien, Zufallszustand und laufende ID-Zähler.
+**Spiel speichern** friert den vollständigen autoritativen Zustand des aktuellen Simulationsticks als menschenlesbare JSON-Datei ein und lädt diese Datei auf das Gerät herunter. Dazu gehören laufende Arbeit und Transporte, Hunger und Schlaf, Arbeitsflaggen, Inventare, Berufs-XP, dauerhaft freigeschaltete Technologien, Zufallszustand und laufende ID-Zähler.
 
-Jede gespeicherte Person und Zelle erhält eine lesbare String-ID; laufende Personentätigkeiten werden zusätzlich als Klartext-Zustand wie `moving`, `transporting-good` oder `sleeping` ausgewiesen. Diese Klartextangabe dient der Lesbarkeit; geladen wird der vollständige zugrunde liegende Simulationszustand.
+Räumliche Objekte werden im Spielstand **immer nur über genau einen Ankerpunkt** gespeichert. Gebäude, Äcker, natürliche Ressourcen und lose Waren enthalten keine gespeicherten Footprints oder Listen aller belegten Zellen. Auch der normale statische Untergrund der Welt wird nicht vollständig in die Datei kopiert. Beim Laden werden Gebäude- und Ressourcenformen deterministisch aus Typ und Ankerposition neu aufgebaut.
 
-**Spiel laden** öffnet die lokale Dateiauswahl des Geräts und akzeptiert einen kompatiblen JSON-Spielstand. Nach dem Laden muss die Simulation am gespeicherten Zustand weiterlaufen, als wäre sie nicht unterbrochen worden. Ungültige oder nicht unterstützte Save-Versionen werden nicht teilweise geraten oder geladen.
+Dynamische Änderungen der Welt werden nur so weit gespeichert, wie sie nicht aus einem Anker ableitbar sind: bestehende Wege, relevante Verkehrshistorie und Büsche werden als sparsame Einträge mit jeweils genau einer Position abgelegt. Gebäude- und Feld-Terrain sowie Ressourcen-Kollisionen werden beim Laden neu erzeugt und sind nicht Teil der gespeicherten Weltzellen.
+
+Jede gespeicherte Person erhält eine lesbare String-ID; laufende Personentätigkeiten werden zusätzlich als Klartext-Zustand wie `moving`, `transporting-good` oder `sleeping` ausgewiesen. Diese Klartextangabe dient der Lesbarkeit; geladen wird der vollständige zugrunde liegende Simulationszustand.
+
+**Spiel laden** öffnet die lokale Dateiauswahl des Geräts und akzeptiert nur die aktuell unterstützte Save-Version. Nach dem Laden muss die Simulation am gespeicherten Zustand weiterlaufen, als wäre sie nicht unterbrochen worden. Alte Save-Versionen werden ausdrücklich **nicht migriert oder rückwärtskompatibel geladen**.
 
 **Neues Spiel** erzeugt wieder denselben initialen Weltzustand wie beim Start der Anwendung. Vor dem Zurücksetzen wird bestätigt, dass ein ungespeicherter Spielstand verloren geht.
 

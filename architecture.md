@@ -136,13 +136,17 @@ Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches m
 
 ## Save/load persistence
 
-`src/simulation/saveGame.ts` serializes a versioned, human-readable JSON snapshot of the complete authoritative `World`. The snapshot includes simulation tick/round, RNG state, ID counters, technologies, profession experience, buildings and construction state, terrain/traffic history, natural resources, loose goods and reservations, people, paths, movement/progress, work areas, needs, sleep state, farm tasks, merchant routes and trips.
+`src/simulation/saveGame.ts` owns the versioned, human-readable JSON persistence format. Save files preserve all non-derived simulation state required to continue at the exact saved tick: round/tick, RNG and ID counters, technology unlocks, profession experience, inventories, construction and production progress, people, paths, work areas, needs, farm tasks, merchant routes, trips, natural-resource state, loose goods and reservations.
 
-The save schema adds readable external identifiers such as `person-17` and `tile-q-r` plus an explicit human-readable current `activity` for each person. Runtime identifiers and simulation structures are restored exactly on load; the descriptive activity is informational and not used to reconstruct logic.
+Spatial persistence follows an **anchor-only rule**. Every building, field, natural resource and loose-good stack stores exactly one logical position. Building footprints, field footprints, `baseTerrain` / `baseTerrains`, resource footprint cells, `resourceBlocking`, `building`/`field` terrain overlays and a full copy of `World.tiles` are not persisted. On load, the runtime world begins from the deterministic static base map and reconstructs all derived footprints and collision/terrain overlays from entity type plus anchor position.
 
-Loading and starting a new game replace the contents of the existing shared `World` object instead of swapping its object identity. Phaser, UI modules and simulation systems therefore continue to hold the same authoritative world reference. Presentation caches may rebuild after replacement but do not become save-state owners.
+Only map state that cannot be derived from entity anchors is persisted sparsely: road positions, per-cell traffic histories that still affect organic-road creation, and bushes with their availability/regrow state. Each of these records also carries only one position. Static grass/river/mountain terrain is regenerated from the built-in scenario instead of being duplicated in every save file.
 
-The first save format is `civilizations-save` version 1. Unsupported versions and structurally invalid JSON are rejected instead of being guessed or partially loaded. Browser persistence is intentionally file-based for now: save downloads JSON, load uses the platform file picker on desktop and mobile.
+The save schema retains readable person IDs such as `person-17` and an explicit human-readable current `activity`. The activity label is informational; authoritative continuation uses the stored simulation state.
+
+Loading and starting a new game replace the contents of the existing shared `World` object instead of swapping its identity. Phaser, UI modules and simulation systems therefore continue to hold the same authoritative world reference. Presentation caches may rebuild after replacement but do not become save-state owners.
+
+The current format is `civilizations-save` version 2. Version 1 and all other versions are rejected. There is deliberately no migration or backward-compatibility layer: spatial schema changes create a new save version rather than guessing how an older snapshot should be interpreted. Browser persistence remains file-based: save downloads JSON, load uses the platform file picker on desktop and mobile.
 
 ## Existing architecture
 
@@ -152,6 +156,6 @@ Where `architecture-detail.md` still describes old grid/resource semantics, fake
 
 ## Testing and deployment
 
-`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Regressions cover physical loose-good pickup/reservation, HQ direct storage collection, shared work areas, storage-to-storage restrictions, placement/demolition, existing farm/road behavior and exact save/load world-state roundtrips.
+`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Regressions cover physical loose-good pickup/reservation, HQ direct storage collection, shared work areas, storage-to-storage restrictions, placement/demolition, existing farm/road behavior and anchor-only save/load reconstruction. Save tests explicitly verify that `tiles`, entity footprints and stored underlying terrain do not appear in the JSON and that old save versions are rejected.
 
 Per `agents.md`, work is performed on a temporary branch and transferred to `main` as one final squash commit. The GitHub Pages workflow runs tests before the production build and deploys only after both succeed.

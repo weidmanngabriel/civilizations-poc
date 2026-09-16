@@ -10,14 +10,17 @@ import {
 
 const jsonState = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-test("save/load roundtrip preserves the complete authoritative JSON world state", () => {
+test("save/load roundtrip reconstructs the complete authoritative JSON world state", () => {
   const world = createDefaultGameWorld();
   const person = world.people[0]!;
   const target = world.buildings.find((building) => building.id === "hq")!;
+  const roadTile = world.tiles.find((tile) => tile.terrain === "grass" && !tile.bush && !tile.resourceBlocking)!;
 
   world.round = 48291;
   world.rngState = 123456789;
   world.unlockedTechnologies = ["farm", "sawmill", "carpenter"];
+  roadTile.terrain = "road";
+  roadTile.trafficTicks = [48280, 48290];
   person.experience = { woodcutter: 13, carpenter: 7 };
   person.experienceActionProgress = { woodcutter: 0.5 };
   person.path = [{ q: person.position.q + 1, r: person.position.r }];
@@ -35,18 +38,37 @@ test("save/load roundtrip preserves the complete authoritative JSON world state"
   assert.deepEqual(loaded, jsonState(world));
 });
 
-test("save format exposes readable string ids and current activities", () => {
+test("save format stores entities by anchor without tile or footprint snapshots", () => {
   const world = createDefaultGameWorld();
   const person = world.people[0]!;
   person.path = [{ q: person.position.q + 1, r: person.position.r }];
 
   const save = createSaveGame(world, new Date("2026-09-16T04:46:00.000Z"));
+  const savedHq = save.world.buildings.find((building) => building.id === "hq")!;
+  const serialized = JSON.parse(JSON.stringify(save)) as Record<string, any>;
 
   assert.equal(save.format, "civilizations-save");
-  assert.equal(save.version, 1);
+  assert.equal(save.version, 2);
   assert.equal(save.world.people[0]!.id, `person-${person.id}`);
   assert.equal(save.world.people[0]!.activity, "moving");
-  assert.match(save.world.tiles[0]!.id, /^tile--?\d+--?\d+$/);
+  assert.deepEqual(savedHq.position, world.buildings[0]!.position);
+  assert.equal("footprint" in savedHq, false);
+  assert.equal("baseTerrain" in savedHq, false);
+  assert.equal("baseTerrains" in savedHq, false);
+  assert.equal("tiles" in serialized.world, false);
+  assert.ok(Array.isArray(serialized.world.map.roads));
+  assert.ok(Array.isArray(serialized.world.map.bushes));
+});
+
+test("old save versions are rejected instead of migrated", () => {
+  const oldSave = createSaveGame(createDefaultGameWorld());
+  const parsed = JSON.parse(JSON.stringify(oldSave));
+  parsed.version = 1;
+
+  assert.throws(
+    () => deserializeSaveGame(JSON.stringify(parsed)),
+    /Spielstand-Version 1 wird nicht unterstützt/,
+  );
 });
 
 test("replaceWorldState keeps the shared world object but replaces its JSON snapshot", () => {

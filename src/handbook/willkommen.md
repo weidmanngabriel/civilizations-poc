@@ -13,3 +13,5 @@ Tippe oder klicke Gebäude und Kacheln an, um ihre Details zu sehen. Die Karte k
 Über **Spiel** kannst du ein neues Spiel starten, den aktuellen Spielstand speichern oder einen Spielstand laden.
 
 **Spiel speichern** lädt den aktuellen Zustand als JSON-Datei auf dein Gerät. **Spiel laden** lässt dich eine zuvor gespeicherte JSON-Datei vom Handy oder Rechner auswählen. Geladen wird der vollständige Spielzustand einschließlich laufender Aufgaben und bereits freigeschalteter Technologien.
+
+Spielstände älterer Save-Versionen werden nicht automatisch umgewandelt und können mit der aktuellen Version nicht geladen werden.
