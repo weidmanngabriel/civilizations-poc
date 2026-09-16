@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CONFIG, createWorld } from "../src/simulation/scenario";
-import { advanceHungerTick } from "../src/simulation/needs";
+import { advanceHungerTick, resolveFoodArrivals } from "../src/simulation/needs";
 import { tick } from "../src/simulation/simulation";
-import type { Building, NaturalResource, World } from "../src/simulation/model";
+import type { Building, NaturalResource, Person, World } from "../src/simulation/model";
 
 const addBreadWarehouse = (world: World, bread = 1): Building => {
   const hq = world.buildings.find((building) => building.id === "hq")!;
@@ -21,6 +21,11 @@ const addBreadWarehouse = (world: World, bread = 1): Building => {
   };
   world.buildings.push(warehouse);
   return warehouse;
+};
+
+const finishTimedEating = (world: World, person: Person): void => {
+  for (let i = 0; i < CONFIG.simulationHz * 6 && person.hungerState; i += 1) tick(world);
+  assert.equal(person.hungerState, undefined, "eating should finish within five simulated seconds after starting");
 };
 
 test("hunger decays at idle, walking and active-work rates in one-second steps", () => {
@@ -72,13 +77,42 @@ test("a hungry person finishes current work before eating at 40", () => {
 
   person.position = { ...warehouse.position };
   person.path = [];
-  advanceHungerTick(world);
-  assert.equal(person.hunger, 139);
-  assert.equal(person.hungerState, undefined);
+  resolveFoodArrivals(world);
+  assert.ok(person.hungerState?.eatingUntilTick !== undefined);
+  assert.equal(warehouse.inventory?.bread, 1);
+
+  finishTimedEating(world, person);
+  assert.ok((person.hunger ?? 0) > 100);
   assert.equal(warehouse.inventory?.bread, 0);
 });
 
-test("food recovery is not capped at 100", () => {
+test("eating occupies exactly five simulated seconds before food is consumed", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const warehouse = addBreadWarehouse(world);
+  person.position = { ...warehouse.position };
+  person.path = [];
+  person.hunger = 20;
+  person.hungerState = { resumeActive: false, foodSource: warehouse.id };
+
+  resolveFoodArrivals(world);
+  const eatingUntilTick = person.hungerState?.eatingUntilTick;
+  assert.equal(eatingUntilTick, world.round + CONFIG.simulationHz * 5);
+  assert.equal(warehouse.inventory?.bread, 1);
+
+  world.round = eatingUntilTick! - 1;
+  resolveFoodArrivals(world);
+  assert.ok(person.hungerState);
+  assert.equal(warehouse.inventory?.bread, 1);
+
+  world.round = eatingUntilTick!;
+  resolveFoodArrivals(world);
+  assert.equal(person.hungerState, undefined);
+  assert.equal(warehouse.inventory?.bread, 0);
+  assert.equal(person.hunger, 120);
+});
+
+test("food recovery is not capped at 100 and harvesting marks a bush unavailable", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
   const bush = world.tiles.find((tile) => tile.terrain === "grass")!;
@@ -92,11 +126,14 @@ test("food recovery is not capped at 100", () => {
   bush.bush = true;
   bush.bushAvailable = true;
 
-  advanceHungerTick(world);
+  resolveFoodArrivals(world);
+  assert.ok(person.hungerState?.eatingUntilTick !== undefined);
+  assert.equal(bush.bushAvailable, true);
 
-  assert.equal(person.hunger, 130);
-  assert.equal(person.hungerState, undefined);
+  finishTimedEating(world, person);
+  assert.ok((person.hunger ?? 0) > 100);
   assert.equal(bush.bushAvailable, false);
+  assert.ok(bush.bushRegrowTick !== undefined);
 });
 
 test("a hungry person keeps the selected route without revalidating food while travelling", () => {
@@ -202,8 +239,12 @@ test("critical hunger pauses at the next one-second check and keeps work progres
 
   person.position = { ...warehouse.position };
   person.path = [];
-  advanceHungerTick(world);
-  assert.equal(person.hunger, 119);
+  resolveFoodArrivals(world);
+  assert.ok(person.hungerState?.eatingUntilTick !== undefined);
+  assert.equal(person.progress, 72);
+
+  finishTimedEating(world, person);
+  assert.ok((person.hunger ?? 0) > 100);
   assert.equal(person.progress, 72);
 });
 
@@ -225,7 +266,7 @@ test("critical hunger blocks work while no food is reachable", () => {
   assert.ok((person.hungerState?.retryAfterTick ?? 0) >= CONFIG.decisionIntervalTicks);
 });
 
-test("worker eats immediately on HQ arrival before returning to work", () => {
+test("worker spends five seconds eating at HQ before returning to work", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
   const hq = world.buildings.find((building) => building.id === "hq")!;
@@ -255,17 +296,21 @@ test("worker eats immediately on HQ arrival before returning to work", () => {
   assert.equal(person.hungerState?.foodSource, hq.id);
   assert.ok(person.path.length > 0);
 
-  let arrivalTick = -1;
-  for (let i = 0; i < 300; i += 1) {
+  let eatingStartedAt = -1;
+  let eatingFinishedAt = -1;
+  for (let i = 0; i < 900; i += 1) {
     tick(world);
-    if (person.hungerState === undefined) {
-      arrivalTick = i;
+    if (eatingStartedAt < 0 && person.hungerState?.eatingUntilTick !== undefined)
+      eatingStartedAt = world.round;
+    if (eatingStartedAt >= 0 && person.hungerState === undefined) {
+      eatingFinishedAt = world.round;
       break;
     }
   }
 
-  assert.ok(arrivalTick >= 0, "person should eat after reaching the HQ");
+  assert.ok(eatingStartedAt >= 0, "person should start eating after reaching the HQ");
+  assert.equal(eatingFinishedAt - eatingStartedAt, CONFIG.simulationHz * 5);
   assert.equal(hq.inventory.bread, 0);
-  assert.equal(person.hunger, 120);
+  assert.ok((person.hunger ?? 0) > 100);
   assert.ok(person.path.length > 0, "person should resume the route to the workplace after eating");
 });
