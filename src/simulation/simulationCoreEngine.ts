@@ -798,9 +798,8 @@ function retireDepletedResources(
       person.progress = 0;
       person.movement = 0;
       person.path = [];
-      if (person.woodcutter) assignNaturalWorker(w, person, "forest");
-      else if (person.extractor) assignNaturalWorker(w, person, person.extractor);
-      else route(w, person, building(w, "hq"), "reroute");
+      if (!person.woodcutter && !person.extractor)
+        route(w, person, building(w, "hq"), "reroute");
     }
   }
 }
