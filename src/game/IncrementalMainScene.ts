@@ -33,6 +33,7 @@ const underConstruction = (building: Building): boolean =>
 
 type MainSceneInternals = {
   markers?: Phaser.GameObjects.Container;
+  mapLabels?: Phaser.GameObjects.Container;
   selectedBuildingId?: string;
   selectedTile?: { q: number; r: number };
   merchantTargetSourceId?: string;
@@ -84,8 +85,10 @@ export class IncrementalMainScene extends MainScene {
   }
 
   private ensureLayers(): boolean {
-    const markers = this.internals().markers;
+    const internals = this.internals();
+    const markers = internals.markers;
     if (!markers) return false;
+    internals.mapLabels?.setVisible(false);
     if (this.inventoryGraphics) return true;
 
     this.bushGraphics = this.add.graphics();
@@ -138,20 +141,9 @@ export class IncrementalMainScene extends MainScene {
   }
 
   private inventorySignature(): string {
-    const buildings = this.worldRef.buildings
-      .filter(
-        (building) =>
-          (!building.retired || building.output > 0) &&
-          !underConstruction(building),
-      )
-      .map((building) =>
-        `${building.id}:${building.input}:${building.output}:${building.recipe?.input ?? ""}`,
-      )
-      .join("|");
-    const resources = this.worldRef.naturalResources
+    return this.worldRef.naturalResources
       .map((resource) => `${resource.id}:${resource.output}`)
       .join("|");
-    return `${buildings}#${resources}`;
   }
 
   private modalSignature(mapSignature: string): string {
@@ -187,53 +179,6 @@ export class IncrementalMainScene extends MainScene {
     const slots = this.inventoryGraphics;
     slots.clear();
     this.inventoryLabels.removeAll(true);
-
-    for (const building of this.worldRef.buildings.filter(
-      (candidate) =>
-        (!candidate.retired || candidate.output > 0) &&
-        !underConstruction(candidate),
-    )) {
-      const outputGood = building.kind === "farm" ? "wheat" : building.recipe?.output;
-      if (!outputGood) continue;
-      const { x, y } = pixel(building.position);
-
-      if (building.recipe?.input) {
-        internals.drawSlots(
-          slots,
-          x + 5,
-          y - 4,
-          building.input,
-          CONFIG.inputCapacity,
-          building.recipe.input,
-          5,
-        );
-        this.inventoryLabels.add(this.add.text(x + 5, y - 9, "IN", {
-          fontFamily: "system-ui",
-          fontSize: "5px",
-          color: "#21372a",
-        }).setResolution(TEXT_RESOLUTION));
-      }
-
-      internals.drawSlots(
-        slots,
-        x + 5,
-        building.recipe?.input ? y + 3 : y - 1,
-        building.output,
-        CONFIG.outputCapacity,
-        outputGood,
-        3,
-      );
-      this.inventoryLabels.add(this.add.text(
-        x + 5,
-        building.recipe?.input ? y + 7 : y + 3,
-        "OUT",
-        {
-          fontFamily: "system-ui",
-          fontSize: "5px",
-          color: "#21372a",
-        },
-      ).setResolution(TEXT_RESOLUTION));
-    }
 
     for (const resource of this.worldRef.naturalResources.filter((candidate) => candidate.output > 0)) {
       const { x, y } = pixel(resource.position);
