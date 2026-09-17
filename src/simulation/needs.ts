@@ -231,6 +231,30 @@ const selectedFoodTarget = (world: World, person: Person): SelectedFoodTarget | 
 };
 
 const selectedTargetPosition = (target: SelectedFoodTarget): Hex => target.kind === "bread" ? target.source.position : target.tile;
+const plannedFoodTargetPosition = (world: World, person: Person): Hex | undefined => {
+  const state = person.hungerState;
+  if (!state) return undefined;
+  if (state.foodSource)
+    return world.buildings.find((building) => building.id === state.foodSource)?.position;
+  return state.foodBush;
+};
+const restoreFoodRouteIfHijacked = (world: World, person: Person): void => {
+  const target = plannedFoodTargetPosition(world, person);
+  if (!target) return;
+  if (same(person.position, target)) {
+    person.path = [];
+    person.movement = 0;
+    person.active = false;
+    return;
+  }
+  const routeTarget = person.path.at(-1);
+  if (routeTarget && same(routeTarget, target)) return;
+  const path = routeTo(world, person, target);
+  if (!path) return;
+  person.path = path;
+  person.movement = 0;
+  person.active = false;
+};
 const consumeSelectedTarget = (world: World, person: Person, target: SelectedFoodTarget): void => {
   if (target.kind === "bread") consumeBread(world, person, target.source);
   else consumeBush(world, person, target.tile);
@@ -258,6 +282,7 @@ const ensureFoodRoute = (world: World, person: Person): void => {
 export function resolveFoodArrivals(world: World): void {
   for (const person of world.people) {
     if (!person.hungerState) continue;
+    restoreFoodRouteIfHijacked(world, person);
     const state = person.hungerState;
     const target = performanceProfiler.profileFeature(
       "foodArrivalTargetLookup",
