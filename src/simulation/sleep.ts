@@ -134,6 +134,7 @@ const natureSleepTargetOccupied = (world: World, person: Person, target: Hex): b
   world.people.some((other) =>
     other.id !== person.id &&
     other.sleepState?.kind === "nature" &&
+    other.sleepState.progress > 0 &&
     same(other.sleepState.target, target) &&
     same(other.position, target) &&
     other.path.length === 0,
