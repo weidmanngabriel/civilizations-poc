@@ -24,6 +24,7 @@ import { mountHandbook } from "./ui/handbook";
 import { installHqStoragePanel } from "./ui/hqStoragePanel";
 import { mountPersonPanel } from "./ui/personPanel";
 import { installPerformanceDebugPanel } from "./ui/performanceDebug";
+import { installPerformanceRecordingControls } from "./ui/performanceRecordingControls";
 import { installResourcePerformanceDebugPanel } from "./ui/resourcePerformanceDebug";
 import { mountTechnologyTree } from "./ui/technologyTree";
 import { applyTechnologyTreeLayout } from "./ui/technologyTreeLayout";
@@ -35,6 +36,7 @@ import "./build-menu.css";
 import "./handbook.css";
 import "./person-panel.css";
 import "./performance-debug.css";
+import "./performance-recording.css";
 import "./technology-tree.css";
 
 const preventPageZoom = (): void => {
@@ -112,6 +114,7 @@ installWorkAreaInteraction(scene, world);
 installTileSelectionGuard();
 mountControls(world, () => scene.renderWorld());
 installPerformanceDebugPanel(world);
+installPerformanceRecordingControls(world);
 installResourcePerformanceDebugPanel();
 installHqStoragePanel(world);
 mountBuildMenu(world);

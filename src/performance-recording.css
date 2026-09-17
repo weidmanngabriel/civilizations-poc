@@ -1,0 +1,46 @@
+.perf-recorder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 9px 10px;
+  border: 1px solid #daddd0;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.perf-recorder > div {
+  min-width: 0;
+}
+
+.perf-recorder strong,
+.perf-recorder span {
+  display: block;
+}
+
+.perf-recorder strong {
+  font-size: 11px;
+}
+
+.perf-recorder span {
+  margin-top: 2px;
+  font-size: 9px;
+  color: #65715f;
+  font-variant-numeric: tabular-nums;
+}
+
+.perf-recorder button {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 620px) {
+  .perf-recorder {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .perf-recorder button {
+    width: 100%;
+  }
+}

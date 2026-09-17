@@ -164,6 +164,10 @@ The save format remains `civilizations-save` **version 3**. The visual-definitio
 
 Loading and starting a new game still replace the contents of the existing shared `World` object instead of swapping its identity, so Phaser and UI modules keep valid references.
 
+## Performance diagnostics
+
+The debug profiler keeps short rolling in-memory timing windows for live inspection. `src/debug/performanceRecording.ts` adds an explicit user-started recording layer without changing simulation behavior: while active, it samples the existing profiler once per real second, adds compact world-size counters, and stores the samples only in browser memory. Stopping the recording produces a versioned `civilizations-performance-recording` JSON export with metadata, a per-second time series, and an automatically calculated summary of FPS, frame/tick costs, feature costs and pathfinding causes. The recorder deliberately does not emit per-tick logs or add new simulation scans.
+
 ## Existing architecture
 
 All other unchanged systems remain documented in [`architecture-detail.md`](./architecture-detail.md), including production, inventories, merchants, person selection, handbook/PWA behavior and performance diagnostics. Where older detail text conflicts with this file, this file is authoritative.
