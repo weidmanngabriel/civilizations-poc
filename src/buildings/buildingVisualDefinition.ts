@@ -23,6 +23,8 @@ export interface BuildingVisualDefinition {
 const sameHex = (a: Hex, b: Hex): boolean => a.q === b.q && a.r === b.r;
 const normalized = (value: number): boolean =>
   Number.isFinite(value) && value >= 0 && value <= 1;
+const validSpriteFilename = (value: string): boolean =>
+  /^[a-z0-9][a-z0-9._-]*\.(?:png|webp)$/i.test(value);
 
 export function validateBuildingVisualDefinition(
   definition: BuildingVisualDefinition,
@@ -30,6 +32,8 @@ export function validateBuildingVisualDefinition(
   const errors: string[] = [];
   if (!/^[a-z0-9][a-z0-9-]*$/.test(definition.id))
     errors.push("Die ID darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten.");
+  if (!validSpriteFilename(definition.sprite))
+    errors.push("Der Sprite-Dateiname muss eine lokale PNG- oder WebP-Datei sein.");
   if (!normalized(definition.spriteAnchor.x) || !normalized(definition.spriteAnchor.y))
     errors.push("Der Sprite-Anchor muss normalisiert zwischen 0 und 1 liegen.");
   if (!Number.isFinite(definition.spriteWorldWidth) || definition.spriteWorldWidth <= 0)
