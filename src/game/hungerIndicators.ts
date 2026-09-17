@@ -1,17 +1,15 @@
 import Phaser from "phaser";
-import type { Hex, World } from "../simulation/model";
+import type { World } from "../simulation/model";
 import { personWorldPosition } from "../simulation/movement";
 import { hungerStatus } from "../simulation/needs";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
+import { pixel } from "./mapGeometry";
+import { PERSON_MARKER_RADIUS } from "./personMarkerGeometry";
 
-const HEX_X = 24;
-const HEX_Y = 21;
 const TEXT_RESOLUTION = 3;
-
-const pixel = (h: Hex) => ({
-  x: 34 + HEX_X * (h.q + h.r / 2),
-  y: 34 + h.r * HEX_Y,
-});
+const BUBBLE_RADIUS = 6;
+const INDICATOR_GAP = 4;
+const ICON_Y_OFFSET = PERSON_MARKER_RADIUS + BUBBLE_RADIUS + INDICATOR_GAP;
 
 type HungerIndicator = {
   bubble: Phaser.GameObjects.Arc;
@@ -64,9 +62,9 @@ export function installHungerIndicators(scene: Phaser.Scene, world: World): void
         const visualStarted = performanceNow();
 
         if (!indicator) {
-          const bubble = scene.add.circle(position.x, position.y - 13, 6, fill, 0.96)
+          const bubble = scene.add.circle(position.x, position.y - ICON_Y_OFFSET, BUBBLE_RADIUS, fill, 0.96)
             .setStrokeStyle(1, 0x263c2d, 0.9);
-          const icon = scene.add.text(position.x, position.y - 13.5, "🍴", {
+          const icon = scene.add.text(position.x, position.y - ICON_Y_OFFSET - 0.5, "🍴", {
             fontFamily: "system-ui",
             fontSize: "7px",
             color: "#ffffff",
@@ -78,8 +76,8 @@ export function installHungerIndicators(scene: Phaser.Scene, world: World): void
         } else {
           if (indicator.status !== status) indicator.bubble.setFillStyle(fill, 0.96);
           indicator.status = status;
-          indicator.bubble.setPosition(position.x, position.y - 13).setVisible(true);
-          indicator.icon.setPosition(position.x, position.y - 13.5).setVisible(true);
+          indicator.bubble.setPosition(position.x, position.y - ICON_Y_OFFSET).setVisible(true);
+          indicator.icon.setPosition(position.x, position.y - ICON_Y_OFFSET - 0.5).setVisible(true);
         }
         visualMs += performanceNow() - visualStarted;
         visualObjects += 2;
