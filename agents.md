@@ -8,6 +8,8 @@ Treffe sinnvolle technische Entscheidungen selbstständig, solange sie die oben 
 
 Wenn eine konkrete Produktfunktion noch nicht definiert ist, erfinde keine umfangreiche Fachlogik. Schaffe stattdessen eine saubere Grundlage, auf der die eigentlichen Funktionen später aufgebaut werden können.
 
+**Bis Version 1 wird keine Rückwärtskompatibilität gepflegt, wenn sie besondere Maßnahmen erfordern würde.** Alte Saves, Schemata, Zwischenstände oder frühere Datenformen dürfen bei Änderungen brechen. Keine Migrationen, Kompatibilitäts-Defaults, parallelen Altpfade oder zusätzlichen `if`-Verzweigungen nur zum Erhalt früherer Entwicklungsstände einbauen. Der jeweils aktuelle Produkt- und Architekturstand ist verbindlich. Normale Fallbacks, die Teil des aktuellen Produktzustands sind, fallen nicht unter diese Regel.
+
 Interaktionen müssen immer für **Desktop und Touch gemeinsam** betrachtet werden. Wenn eine mobile Bedienung ergänzt oder geändert wird, muss geprüft werden, dass dieselbe Funktion am Desktop sinnvoll bedienbar bleibt; bei Desktop-Änderungen gilt das umgekehrt genauso. Eine Optimierung für eine Eingabeart darf die andere nicht stillschweigend verschlechtern. Unterschiede zwischen Maus/Tastatur und Touch sind ausdrücklich erlaubt, wenn sie zum jeweiligen Eingabemodell passen, müssen aber bewusst gestaltet und getestet werden.
 
 `concept.md` und `architecture.md` sind bei jeder relevanten Änderung verbindlich zu beachten. Vor einer Implementierung muss geprüft werden, ob die geplante Änderung mit dem dort dokumentierten Produktkonzept und der bestehenden Architektur übereinstimmt.
