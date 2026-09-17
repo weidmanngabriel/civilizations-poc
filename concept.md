@@ -52,11 +52,13 @@ Gameplay-Regeln bleiben im Spielcode und umfassen unter anderem:
 Der Gebäudeeditor definiert ausschließlich die räumlich-visuelle Seite:
 
 - Sprite,
-- Sprite-Anchor,
-- Runtime-Skalierung,
+- relativen Sprite-Anchor,
+- sichtbare Breite in der Spielwelt,
 - Gebäudegrundriss,
 - blockierte Zellen,
 - genau eine begehbare Eingangszelle.
+
+Die Pixelauflösung des Sprites ist kein Teil der Gebäudegröße. Der Editor speichert die sichtbare Breite in Weltkoordinaten und den Anchor relativ zur Bildgröße. Ein identisches Sprite kann dadurch durch eine höher aufgelöste Datei ersetzt werden, ohne dass Größe oder Ausrichtung neu eingestellt werden müssen. Beim Export wird die ausgewählte PNG-/WebP-Datei nicht heruntergerechnet; hohe Quellauflösung bleibt für starken Kartenzoom erhalten.
 
 Ein Gebäudetyp kann im Runtime-Registry bereits eine Editor-Definition besitzen, ohne dass automatisch jede bestehende Instanz darauf umgestellt wird. Konkrete Gebäudeinstanzen werden ausdrücklich an eine Definition gebunden. Dadurch können die Gebäude schrittweise migriert werden, ohne bestehende Logik oder Testwelten gleichzeitig umzubauen.
 
@@ -89,7 +91,9 @@ Unter `/building-editor/` steht das interne Authoring-Werkzeug als eigene Unters
 
 Die Arbeitsfläche soll die spätere Spielansicht räumlich zuverlässig vorwegnehmen. Rasterzentren und sichtbare Hex-Geometrie verwenden dieselbe Projektion wie das Spiel. Der Editor vergrößert Raster und Sprite nur gemeinsam für die Bearbeitung; dadurch bleibt ihre Größenrelation identisch zur späteren Runtime.
 
-Im veröffentlichten Editor werden `building.json` und Sprite heruntergeladen. Dieses Dateipaar kann gemeinsam wieder importiert und vollständig weiterbearbeitet werden, sofern es dem aktuellen Schema entspricht. Bei lokaler Entwicklung kann derselbe Stand direkt nach `src/assets/buildings/<id>/` gespeichert werden.
+Die Sprite-Größe wird als Breite in der Spielwelt eingestellt, nicht mehr als Multiplikator der Bildpixel. Der Sprite-Anchor wird relativ zur Bildgröße gespeichert. So bleiben WYSIWYG-Ausrichtung und Größe auch dann identisch, wenn dieselbe Grafik später in einer anderen Auflösung vorliegt.
+
+Im veröffentlichten Editor werden `building.json` und das **unveränderte** Sprite heruntergeladen. Der Export verkleinert oder recomprimiert die gewählte Bilddatei nicht. Dieses Dateipaar kann gemeinsam wieder importiert und vollständig weiterbearbeitet werden, sofern es dem aktuellen Schema entspricht. Bei lokaler Entwicklung kann derselbe Stand direkt nach `src/assets/buildings/<id>/` gespeichert werden.
 
 Aktuell gibt es bewusst **keine Rückwärtskompatibilität** für ältere Editor-/Building-Visual-Schemata. Alte Exporte dürfen bei Schemaänderungen abgelehnt werden.
 
@@ -129,7 +133,7 @@ Eine Technologie wird dauerhaft freigeschaltet, sobald irgendeine Person 10 XP i
 
 Bewohner bleiben ungefähr so groß wie eine Mikrozelle. Namen, Beruf/Tätigkeit und getragene Waren liegen in Weltkoordinaten und skalieren mit der Karte.
 
-Die Karte lässt sich per Mausrad und Pinch von 0,7× bis 10× zoomen. Desktop und Touch bleiben getrennte Eingabemodelle mit derselben autoritativen Spielregel. Kurzer Tap/Klick und Drag dürfen sich nicht gegenseitig verschlechtern.
+Die Karte lässt sich per Mausrad und Pinch von 0,7× bis 10× zoomen. Gebäude-Sprites sollen deshalb genügend Quellauflösung für starken Zoom behalten; die Runtime skaliert sie auf ihre definierte Weltgröße, ohne den Master im Editor herunterzurechnen. Desktop und Touch bleiben getrennte Eingabemodelle mit derselben autoritativen Spielregel. Kurzer Tap/Klick und Drag dürfen sich nicht gegenseitig verschlechtern.
 
 ## Neues Spiel, Speichern und Laden
 
@@ -137,7 +141,7 @@ Die Karte lässt sich per Mausrad und Pinch von 0,7× bis 10× zoomen. Desktop u
 
 Räumliche Objekte werden weiterhin kompakt über ihre logische Position gespeichert; abgeleitete Tile- und Footprint-Snapshots werden nicht persistiert. Bei an eine Editor-Definition gebundenen Gebäuden werden die Definition-ID und die Gameplay-Interaktionsposition gespeichert. Grundriss, visueller Anker und blockierte Zellen werden beim Laden deterministisch aus der Registry rekonstruiert.
 
-Die aktuelle Save-Version ist **3**. Ältere Versionen werden bewusst nicht migriert oder rückwärtskompatibel geladen.
+Die aktuelle Save-Version ist **3**. Die Version des visuellen Building-Schemas ist davon unabhängig. Ältere Save-Versionen werden bewusst nicht migriert oder rückwärtskompatibel geladen.
 
 ## Noch offene spätere Produktentscheidungen
 
