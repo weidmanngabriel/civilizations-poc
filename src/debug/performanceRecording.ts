@@ -120,7 +120,7 @@ const worldSnapshot = (world: World): PerformanceRecordingWorld => {
     activeForests: world.naturalResources.filter(
       (resource) => resource.kind === "forest" && !resource.depleted,
     ).length,
-    looseGoods: world.looseGoods.length,
+    looseGoods: world.looseGoods?.length ?? 0,
     movingPeople: world.people.filter((person) => person.path.length > 0).length,
     activeTrips: world.people.filter((person) => person.trip).length,
   };
