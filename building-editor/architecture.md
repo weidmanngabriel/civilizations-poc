@@ -22,37 +22,39 @@ Der Editor importiert die gemeinsame Kartenprojektion und Hex-Geometrie aus `src
 
 ## Datenmodell
 
-`BuildingVisualDefinition` Version 2 enthält ausschließlich:
+`BuildingVisualDefinition` Version 3 enthält ausschließlich:
 
 - stabile `id`,
 - Sprite-Dateiname,
-- Sprite-Anchor in **Original-Sprite-Pixeln**,
-- positive `spriteScale` als spätere Runtime-Skalierung,
+- `spriteAnchor` als normalisierte x/y-Position relativ zur Bildgröße,
+- positive `spriteWorldWidth` als sichtbare Breite in Weltpixeln,
 - `footprint` als relative Hex-Zellen,
 - `blocked` als Teilmenge des Footprints,
 - genau eine nicht blockierte `entrance`-Zelle.
 
-Der Anchor bleibt unabhängig von der Skalierung in Originalpixeln gespeichert. Begehbare Gebäudezellen ergeben sich aus `footprint - blocked`; sie werden nicht redundant gespeichert.
+Sprite-Ausrichtung und Weltgröße sind dadurch unabhängig von der Quellauflösung. Begehbare Gebäudezellen ergeben sich aus `footprint - blocked`; sie werden nicht redundant gespeichert.
 
 ## Editor-Interaktion
 
-Große Sprites werden beim ersten Laden passend in die Vorschau eingepasst. Dabei wird nur `spriteScale` gesetzt; die Originaldatei bleibt unverändert. Die Skalierung kann per Slider oder Zahlenfeld geändert werden.
+Große Sprites werden beim ersten Laden passend in die Vorschau eingepasst. Dabei wird nur `spriteWorldWidth` gesetzt; die Originaldatei bleibt unverändert. Die Weltbreite kann per Slider oder Zahlenfeld geändert werden.
 
-Das Sprite kann über das Werkzeug **Sprite verschieben** direkt über dem Raster verschoben werden. Diese Drag-Bewegung verändert den `spriteAnchor`; das Raster selbst bleibt unverändert. q-/r-Achsen und Ursprung werden zusätzlich hervorgehoben.
+Das Sprite kann über das Werkzeug **Sprite verschieben** direkt über dem Raster verschoben werden. Diese Drag-Bewegung verändert den relativen `spriteAnchor`; das Raster selbst bleibt unverändert. q-/r-Achsen und Ursprung werden zusätzlich hervorgehoben.
 
 Rasterwerkzeuge arbeiten als Paint-Interaktion. Ein einzelner Klick toggelt die erste Zelle. Bei gehaltenem Pointer wird daraus für den gesamten Drag ein fester Setz- oder Löschmodus; jede danach erstmals überfahrene Zelle erhält dasselbe Ergebnis. `Shift` erzwingt für Klick und Drag den Löschmodus. Eine Zelle wird innerhalb desselben Drags nur einmal verarbeitet, damit wiederholte Pointer-Events das Ergebnis nicht zurücktoggeln.
+
+Beim Werkzeug **Blockierte Zellen** erzeugt das Setzen zugleich die dafür notwendige Footprint-Zelle. Wird dieselbe blockierte Zelle wieder entfernt – per Toggle oder `Shift` – werden Blockierung und diese Footprint-Zelle gemeinsam zurückgesetzt, sodass die Zelle wieder unmarkiert ist.
 
 Die Overlay-Stärke der markierten Rasterzellen ist eine reine Editor-Vorschau-Einstellung. Sie beeinflusst weder `BuildingVisualDefinition` noch exportierte Dateien.
 
 ## Export und Reimport
 
-Im Produktionsbuild/GitHub Pages lädt **Export herunterladen** `building.json` und das unveränderte Sprite als lokale Dateien herunter.
+Im Produktionsbuild/GitHub Pages lädt **Dateien herunterladen** `building.json` und das unveränderte Sprite als lokale Dateien herunter.
 
 Der Editor kann ein Exportpaar wieder importieren. `building.json` wird strukturell und über die gemeinsame Schema-Validierung geprüft. Anschließend muss unter den gleichzeitig ausgewählten Dateien genau das vom JSON referenzierte PNG/WebP vorhanden sein. Erst nach erfolgreicher Prüfung werden Editorzustand und Sprite ersetzt. Dasselbe funktioniert per gemeinsamer Dateiauswahl oder Drag & Drop beider Dateien.
 
 Aktuell gibt es bewusst **keine Rückwärtskompatibilität** für ältere Editor-/Building-Visual-Schemata. Der aktuelle Schemastand ist verbindlich; alte Exporte dürfen abgelehnt werden. Migrationen oder Defaults werden erst ergänzt, wenn dies ausdrücklich als Produktanforderung festgelegt wird.
 
-Im Vite-Entwicklungsserver ist zusätzlich **Ins Projekt speichern** verfügbar. Ein Development-only-Middleware-Endpunkt validiert ID und Bildtyp und schreibt nach `src/assets/buildings/<id>/`. Dieser Endpunkt existiert im statischen Produktionsbuild nicht und benötigt keine GitHub-Anmeldedaten.
+Im Vite-Entwicklungsserver ist zusätzlich **Direkt ins Projekt speichern** verfügbar. Ein Development-only-Middleware-Endpunkt validiert ID und Bildtyp und schreibt nach `src/assets/buildings/<id>/`. Dieser Endpunkt existiert im statischen Produktionsbuild nicht und benötigt keine GitHub-Anmeldedaten.
 
 ## Build
 
