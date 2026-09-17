@@ -1,8 +1,9 @@
 import type { World } from "../simulation/model";
-import type {
-  PerformanceFeature,
-  PerformanceSnapshot,
-  PathReason,
+import {
+  PERFORMANCE_DETAIL_FEATURES,
+  type PerformanceFeature,
+  type PerformanceSnapshot,
+  type PathReason,
 } from "./performanceProfiler";
 
 export type PerformanceRecordingFeature = {
@@ -197,15 +198,18 @@ export function capturePerformanceRecordingSample(
 const summarizeFeatures = (samples: PerformanceRecordingSample[]): FeatureSummary[] => {
   const first = samples[0];
   if (!first) return [];
-  return (Object.keys(first.features) as PerformanceFeature[]).map((key) => {
-    const values = samples.map((sample) => sample.features[key]);
-    return {
-      key,
-      averageMsPerSecond: average(values.map((value) => value.msPerSecond)),
-      maxMsPerSecond: Math.max(0, ...values.map((value) => value.msPerSecond)),
-      maxP95Ms: Math.max(0, ...values.map((value) => value.p95)),
-    };
-  }).sort((a, b) => b.averageMsPerSecond - a.averageMsPerSecond);
+  return (Object.keys(first.features) as PerformanceFeature[])
+    .filter((key) => !PERFORMANCE_DETAIL_FEATURES.has(key))
+    .map((key) => {
+      const values = samples.map((sample) => sample.features[key]);
+      return {
+        key,
+        averageMsPerSecond: average(values.map((value) => value.msPerSecond)),
+        maxMsPerSecond: Math.max(0, ...values.map((value) => value.msPerSecond)),
+        maxP95Ms: Math.max(0, ...values.map((value) => value.p95)),
+      };
+    })
+    .sort((a, b) => b.averageMsPerSecond - a.averageMsPerSecond);
 };
 
 const summarizePaths = (samples: PerformanceRecordingSample[]): PathSummary[] => {
