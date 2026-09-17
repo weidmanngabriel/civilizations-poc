@@ -70,12 +70,14 @@ export function installBuildingSprites(scene: MainScene, world: World): void {
     if (!registered) return;
     const key = textureKey(registered.visual.id);
     const source = scene.textures.get(key).getSourceImage() as HTMLImageElement;
+    const worldWidth = registered.visual.spriteWorldWidth;
+    const worldHeight = worldWidth * (source.height / source.width);
     return scene.add.image(0, 0, key)
       .setOrigin(
-        registered.visual.spriteAnchor.x / source.width,
-        registered.visual.spriteAnchor.y / source.height,
+        registered.visual.spriteAnchor.x,
+        registered.visual.spriteAnchor.y,
       )
-      .setScale(registered.visual.spriteScale)
+      .setDisplaySize(worldWidth, worldHeight)
       .setDepth(1);
   };
 
