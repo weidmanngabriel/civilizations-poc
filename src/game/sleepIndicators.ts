@@ -6,10 +6,11 @@ import { pixel } from "./mapGeometry";
 import { PERSON_MARKER_RADIUS } from "./personMarkerGeometry";
 
 const TEXT_RESOLUTION = 3;
-const BUBBLE_RADIUS = 6;
-const INDICATOR_GAP = 4;
+const BUBBLE_RADIUS = 2.5;
+const INDICATOR_GAP = 1.5;
+const ICON_FONT_SIZE = 4;
 const ICON_Y_OFFSET = PERSON_MARKER_RADIUS + BUBBLE_RADIUS + INDICATOR_GAP;
-const ICON_X_OFFSET = BUBBLE_RADIUS * 2 + 2;
+const ICON_X_OFFSET = BUBBLE_RADIUS * 2 + 1;
 
 type SleepIndicator = {
   bubble: Phaser.GameObjects.Arc;
@@ -46,10 +47,10 @@ export function installSleepIndicators(scene: Phaser.Scene, world: World): void 
 
         if (!indicator) {
           const bubble = scene.add.circle(position.x + ICON_X_OFFSET, position.y - ICON_Y_OFFSET, BUBBLE_RADIUS, fill, 0.96)
-            .setStrokeStyle(1, 0x263c2d, 0.9);
-          const icon = scene.add.text(position.x + ICON_X_OFFSET, position.y - ICON_Y_OFFSET - 0.5, "💤", {
+            .setStrokeStyle(0.75, 0x263c2d, 0.9);
+          const icon = scene.add.text(position.x + ICON_X_OFFSET, position.y - ICON_Y_OFFSET - 0.25, "💤", {
             fontFamily: "system-ui",
-            fontSize: "7px",
+            fontSize: `${ICON_FONT_SIZE}px`,
             color: "#ffffff",
           }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
           indicator = { bubble, icon, status };
@@ -59,7 +60,7 @@ export function installSleepIndicators(scene: Phaser.Scene, world: World): void 
           if (indicator.status !== status) indicator.bubble.setFillStyle(fill, 0.96);
           indicator.status = status;
           indicator.bubble.setPosition(position.x + ICON_X_OFFSET, position.y - ICON_Y_OFFSET).setVisible(true);
-          indicator.icon.setPosition(position.x + ICON_X_OFFSET, position.y - ICON_Y_OFFSET - 0.5).setVisible(true);
+          indicator.icon.setPosition(position.x + ICON_X_OFFSET, position.y - ICON_Y_OFFSET - 0.25).setVisible(true);
         }
       }
     };
