@@ -19,6 +19,12 @@ const validateRegisteredDefinition = (
   return definition;
 };
 
+const spriteUrlFor = (definition: BuildingVisualDefinition): string =>
+  new URL(
+    `../assets/buildings/${definition.id}/${definition.sprite}`,
+    import.meta.url,
+  ).href;
+
 const HEADQUARTER = validateRegisteredDefinition(
   "hq",
   headquarterJson as BuildingVisualDefinition,
@@ -30,10 +36,7 @@ const DEFINITIONS = new Map<BuildingKind, RegisteredBuildingDefinition>([
     {
       kind: "hq",
       visual: HEADQUARTER,
-      spriteUrl: new URL(
-        "../assets/buildings/headquarter/sprite.webp",
-        import.meta.url,
-      ).href,
+      spriteUrl: spriteUrlFor(HEADQUARTER),
     },
   ],
 ]);
