@@ -2,9 +2,11 @@
 
 Gebäude werden über das Baumenü ausgewählt und anschließend direkt auf der Karte platziert.
 
-Einige Gebäude werden erst durch Berufserfahrung freigeschaltet. Sobald ein Bewohner im passenden Beruf 10 Erfahrungspunkte erreicht, bleibt die zugehörige Technologie dauerhaft verfügbar. Im Baumenü erscheinen nur Gebäude, die bereits freigeschaltet sind. Im Technologiebaum siehst du zusätzlich gesperrte Gebäude, ihren aktuellen Fortschritt und Zweige, die noch nicht im Prototyp enthalten sind.
+Einige Produktionsgebäude werden erst durch Berufserfahrung freigeschaltet. Sobald ein Bewohner im passenden Beruf 10 Erfahrungspunkte erreicht, bleibt die zugehörige Technologie dauerhaft verfügbar. Die Rohstoffberufe **Abbauer Holz**, **Abbauer Lehm** und **Abbauer Stein** schalten so die jeweils passende Verarbeitung frei.
 
-Die Rohstoffberufe heißen einheitlich **Abbauer Holz**, **Abbauer Lehm** und **Abbauer Stein**. Ihre Erfahrung schaltet die jeweils passende Verarbeitung frei.
+Weitere Gebäude werden erst verfügbar, wenn ihre verarbeiteten Bauwaren grundsätzlich hergestellt werden können. Dafür muss mindestens eine fertige Produktionsstätte für jede benötigte verarbeitete Bauware existieren. Ein Brunnen benötigt zum Beispiel Quader und wird deshalb erst freigeschaltet, nachdem eine Steinmetzhütte fertig gebaut wurde. Eine Baustelle reicht dafür noch nicht aus. Einmal erreichte Freischaltungen bleiben auch nach einem späteren Abriss erhalten.
+
+Im Baumenü erscheinen nur Gebäude, die bereits freigeschaltet sind. Im Technologiebaum siehst du zusätzlich gesperrte Gebäude und ihren Fortschritt.
 
 Am Desktop folgt der Bau-Ghost direkt der Maus. Ein Linksklick auf eine gültige Position platziert das Gebäude; mit Escape wird der Baumodus abgebrochen. Auf Touch-Geräten wählt ein kurzes Tippen die Ghost-Position, Ziehen verschiebt weiterhin die Karte und der Bauen-Button bestätigt die Platzierung.
 

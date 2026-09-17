@@ -106,6 +106,8 @@ For future registered placeable buildings, construction stores the interaction p
 
 Demolition restores the complete footprint, clears the building collision overlay and stale traffic state, and preserves the existing rule that a road covered by construction returns as grass rather than reappearing.
 
+Construction requirements are centralized in `src/simulation/constructionRules.ts`. `buildingPlacement.ts` derives construction plans and durations from these shared requirements instead of owning a second cost table. The same module maps processed construction goods to the building type that produces them, so progression can derive prerequisites from actual construction costs.
+
 ## Storage and transport
 
 HQ and warehouses use the same first-class storage semantics. Production workers/building carriers may fetch required goods from either storage type. Storage carriers deliver directly into their assigned warehouse/HQ inventory.
@@ -127,6 +129,10 @@ Farm balance is unchanged. Field footprints must remain valid grass and cannot o
 Organic roads still require eight qualifying crossings within 32 simulated seconds and retain the 1.3× movement multiplier. Roads cannot cover active natural-resource footprints.
 
 Profession experience remains persistent from 0–100, with +1 XP per completed professional action. Technology unlocks remain permanent and placement enforcement remains in the simulation layer.
+
+`src/simulation/technology.ts` evaluates two independent prerequisite classes. Profession rules unlock the corresponding production building at the configured XP threshold. Separately, every building derives the producers required for its processed construction goods from `constructionRules.ts`. Such a building unlocks only after every required producer has at least one completed, non-retired building instance. An unfinished construction site does not count. For technologies that have both a profession rule and processed-material prerequisites, both conditions must be satisfied. Once added to `World.unlockedTechnologies`, the unlock is never revoked if the qualifying person disappears or the producer building is later demolished.
+
+Player-facing worlds start with only the explicitly declared `STARTING_TECHNOLOGIES`; neutral test/sandbox worlds that omit `World.unlockedTechnologies` stay permissive. The simulation wrapper calls `updateTechnologyUnlocks` after each authoritative tick, so completion of a production building can unlock dependent construction immediately on that tick.
 
 ## Rendering and interaction
 
@@ -164,7 +170,7 @@ All other unchanged systems remain documented in [`architecture-detail.md`](./ar
 
 ## Testing and deployment
 
-`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Coverage includes building-visual schema validation, resolution-independent sprite metadata, bound HQ entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas and save/load reconstruction.
+`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Coverage includes building-visual schema validation, resolution-independent sprite metadata, bound HQ entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas, technology progression and save/load reconstruction.
 
 Vite builds both the game root and `building-editor/index.html`. GitHub Pages publishes both from the same `dist` artifact.
 

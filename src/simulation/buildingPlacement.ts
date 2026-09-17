@@ -20,6 +20,7 @@ import { isBuildingUnlocked } from "./technology";
 import { GRID_REFINEMENT, refinedCellCluster } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
 import { looseGoodStacks } from "./looseGoods";
+import { BUILDING_CONSTRUCTION_REQUIREMENTS } from "./constructionRules";
 
 export type BuildingPlacementShape = {
   cells: Hex[];
@@ -40,18 +41,11 @@ const constructionPlan = (required: GoodAmounts): ConstructionPlan => ({
   duration: constructionDuration(required),
 });
 
-export const CONSTRUCTION_PLANS: Record<PlaceableBuildingKind, ConstructionPlan> = {
-  warehouse: constructionPlan({ wood: 4 }),
-  house: constructionPlan({ wood: 4 }),
-  farm: constructionPlan({ wood: 4 }),
-  sawmill: constructionPlan({ wood: 6 }),
-  carpenter: constructionPlan({ plank: 4 }),
-  mill: constructionPlan({ wood: 4 }),
-  bakery: constructionPlan({ plank: 2, brick: 2 }),
-  well: constructionPlan({ wood: 2, stoneBlock: 2 }),
-  pottery: constructionPlan({ wood: 4 }),
-  stonemason: constructionPlan({ wood: 4 }),
-};
+export const CONSTRUCTION_PLANS: Record<PlaceableBuildingKind, ConstructionPlan> = Object.fromEntries(
+  (Object.entries(BUILDING_CONSTRUCTION_REQUIREMENTS) as [PlaceableBuildingKind, GoodAmounts][]).map(
+    ([kind, required]) => [kind, constructionPlan(required)],
+  ),
+) as Record<PlaceableBuildingKind, ConstructionPlan>;
 
 const refineCoarseShape = (coarseCells: Hex[]): Hex[] => {
   const cells = new Map<string, Hex>();

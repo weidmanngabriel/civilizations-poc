@@ -30,7 +30,7 @@ const NODES: TechNode[] = [
   { id: "barracks", label: "Kaserne", subtitle: "noch nicht im Prototyp", x: 70, y: 530, kind: "building" },
   { id: "house", label: "Wohnhaus", subtitle: "von Anfang an verfügbar", x: 70, y: 1040, kind: "building" },
   { id: "farmBuilding", label: "Farm", subtitle: "von Anfang an verfügbar", x: 70, y: 1130, kind: "building" },
-  { id: "well", label: "Brunnen", subtitle: "von Anfang an verfügbar", x: 70, y: 1220, kind: "building" },
+  { id: "well", label: "Brunnen", subtitle: "nach fertiger Steinmetzhütte", x: 70, y: 1220, kind: "building" },
   { id: "school", label: "🏫 Schule", subtitle: "noch nicht im Prototyp", x: 70, y: 1410, kind: "special" },
 
   { id: "wood", label: "⛏ Abbauer Holz", x: 350, y: 40, kind: "base" },
@@ -214,13 +214,20 @@ const nodeStatus = (world: World, nodeId: string): NodeStatus => {
   if (building) {
     const progress = technologyProgress(world, building);
     if (progress.unlocked) return { state: "unlocked", text: "✓ Freigeschaltet" };
-    if (progress.profession) {
-      return {
-        state: "locked",
-        text: `🔒 ${PROFESSION_LABELS[progress.profession]} ${progress.current}/${progress.required} XP`,
-      };
-    }
-    return { state: "locked", text: "🔒 Gesperrt" };
+
+    const missingProducers = progress.missingBuildings.map((kind) => BUILDING_LABELS[kind]);
+    const missingProfession = progress.profession && progress.current < progress.required
+      ? `${PROFESSION_LABELS[progress.profession]} ${progress.current}/${progress.required} XP`
+      : undefined;
+    const requirements = [
+      missingProfession,
+      missingProducers.length > 0 ? `${missingProducers.join(" + ")} fertig bauen` : undefined,
+    ].filter((value): value is string => Boolean(value));
+
+    return {
+      state: "locked",
+      text: requirements.length > 0 ? `🔒 ${requirements.join(" · ")}` : "🔒 Gesperrt",
+    };
   }
 
   if (nodeId === "civil" || nodeId === "builder")
