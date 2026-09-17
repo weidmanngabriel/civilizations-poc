@@ -1,4 +1,8 @@
+import bakeryJson from "../assets/buildings/bakery/building.json";
+import farmJson from "../assets/buildings/farm/building.json";
 import headquarterJson from "../assets/buildings/headquarter/building.json";
+import wellJson from "../assets/buildings/well/building.json";
+import windmillJson from "../assets/buildings/windmill/building.json";
 import type { Building, BuildingKind, Hex } from "../simulation/model";
 import type { BuildingVisualDefinition } from "./buildingVisualDefinition";
 import { validateBuildingVisualDefinition } from "./buildingVisualDefinition";
@@ -29,16 +33,29 @@ const HEADQUARTER = validateRegisteredDefinition(
   "hq",
   headquarterJson as BuildingVisualDefinition,
 );
+const BAKERY = validateRegisteredDefinition(
+  "bakery",
+  bakeryJson as BuildingVisualDefinition,
+);
+const FARM = validateRegisteredDefinition(
+  "farm",
+  farmJson as BuildingVisualDefinition,
+);
+const WELL = validateRegisteredDefinition(
+  "well",
+  wellJson as BuildingVisualDefinition,
+);
+const WINDMILL = validateRegisteredDefinition(
+  "mill",
+  windmillJson as BuildingVisualDefinition,
+);
 
 const DEFINITIONS = new Map<BuildingKind, RegisteredBuildingDefinition>([
-  [
-    "hq",
-    {
-      kind: "hq",
-      visual: HEADQUARTER,
-      spriteUrl: spriteUrlFor(HEADQUARTER),
-    },
-  ],
+  ["hq", { kind: "hq", visual: HEADQUARTER, spriteUrl: spriteUrlFor(HEADQUARTER) }],
+  ["bakery", { kind: "bakery", visual: BAKERY, spriteUrl: spriteUrlFor(BAKERY) }],
+  ["farm", { kind: "farm", visual: FARM, spriteUrl: spriteUrlFor(FARM) }],
+  ["well", { kind: "well", visual: WELL, spriteUrl: spriteUrlFor(WELL) }],
+  ["mill", { kind: "mill", visual: WINDMILL, spriteUrl: spriteUrlFor(WINDMILL) }],
 ]);
 
 export const registeredBuildingDefinitions = (): RegisteredBuildingDefinition[] =>
@@ -51,14 +68,10 @@ export const buildingDefinition = (
 export const hasBuildingDefinition = (kind: BuildingKind): boolean =>
   DEFINITIONS.has(kind);
 
+/** Registered definitions are authoritative for their building kind. */
 export const definitionForBuilding = (
   building: Building,
-): RegisteredBuildingDefinition | undefined => {
-  const definition = buildingDefinition(building.kind);
-  return definition && building.visualDefinitionId === definition.visual.id
-    ? definition
-    : undefined;
-};
+): RegisteredBuildingDefinition | undefined => buildingDefinition(building.kind);
 
 export const bindBuildingDefinition = (building: Building): void => {
   const definition = buildingDefinition(building.kind);
@@ -70,7 +83,7 @@ const subtract = (a: Hex, b: Hex): Hex => ({ q: a.q - b.q, r: a.r - b.r });
 
 /**
  * Placement/editor coordinates use the definition's visual anchor. Runtime
- * Building.position remains the gameplay interaction coordinate; for bound
+ * Building.position remains the gameplay interaction coordinate; for
  * editor-authored buildings that is the authored entrance cell.
  */
 export const buildingInteractionAt = (kind: BuildingKind, visualAnchor: Hex): Hex => {
