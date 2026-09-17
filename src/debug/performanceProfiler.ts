@@ -15,6 +15,14 @@ export type PerformanceFeature =
   | "planningResourceCleanup"
   | "planningIdlePools"
   | "planningDecisions"
+  | "resourceBlockingSync"
+  | "resourceOutputMigration"
+  | "tickSnapshots"
+  | "resourceDepletion"
+  | "foodArrivals"
+  | "xpResolution"
+  | "technologyUnlocks"
+  | "workAreaSync"
   | "renderWorld"
   | "overlayHunger"
   | "overlayBush";
@@ -94,6 +102,14 @@ export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
   "planningResourceCleanup",
   "planningIdlePools",
   "planningDecisions",
+  "resourceBlockingSync",
+  "resourceOutputMigration",
+  "tickSnapshots",
+  "resourceDepletion",
+  "foodArrivals",
+  "xpResolution",
+  "technologyUnlocks",
+  "workAreaSync",
   "renderWorld",
   "overlayHunger",
   "overlayBush",
@@ -123,6 +139,14 @@ const SIMULATION_FEATURES = new Set<PerformanceFeature>([
   "planningResourceCleanup",
   "planningIdlePools",
   "planningDecisions",
+  "resourceBlockingSync",
+  "resourceOutputMigration",
+  "tickSnapshots",
+  "resourceDepletion",
+  "foodArrivals",
+  "xpResolution",
+  "technologyUnlocks",
+  "workAreaSync",
 ]);
 
 const HISTORY_MS = 30_000;
