@@ -74,7 +74,7 @@ Gameplay properties such as recipes, workers, inventory, costs and technology st
 
 Sprite placement is intentionally independent from source-image resolution. `spriteAnchor` is stored as a relative position in the image and `spriteWorldWidth` is the authoritative rendered width in world pixels. Replacing a sprite with the same artwork at a higher pixel resolution therefore does not require recalculating its world size or anchor. The editor exports the selected PNG/WebP bytes without dimensional downscaling; runtime quality is determined by the supplied source asset rather than by a generated low-resolution copy.
 
-`src/buildings/buildingDefinitionRegistry.ts` is the runtime registry. It maps a gameplay `BuildingKind` to a validated visual/spatial definition and sprite URL. Registry availability and runtime use are deliberately separate:
+`src/buildings/buildingDefinitionRegistry.ts` is the runtime registry. It maps a gameplay `BuildingKind` to a validated visual/spatial definition and deliberately stays free of Vite/Phaser-specific asset loading. `src/game/buildingSprites.ts` resolves the authored `sprite` filename against Vite’s build-time asset map, so PNG/WebP filenames come from `building.json` without coupling deterministic simulation tests to Vite. Registry availability and runtime use are deliberately separate:
 
 - a kind may have a registered editor definition;
 - a concrete `Building` uses that definition only when its `visualDefinitionId` is bound to the registered definition;
@@ -92,7 +92,7 @@ The authoritative footprint and collision semantics for bound buildings are ther
 - the authored `entrance` must be inside the footprint and not blocked;
 - legacy/unbound buildings keep their existing hard-coded footprint fallback.
 
-`src/game/buildingSprites.ts` is the generic Phaser renderer for bound definitions. It loads registered sprites once, creates one sprite per bound completed building instance, derives the visual anchor from the building interaction coordinate, applies the normalized Phaser origin, and sets the display size from `spriteWorldWidth` plus the source aspect ratio. The renderer does not own placement or collision state.
+`src/game/buildingSprites.ts` is the generic Phaser renderer for bound definitions. It resolves each definition’s authored sprite filename through Vite, loads registered sprites once, creates one sprite per bound completed building instance, derives the visual anchor from the building interaction coordinate, applies the normalized Phaser origin, and sets the display size from `spriteWorldWidth` plus the source aspect ratio. The renderer does not own placement or collision state.
 
 Adding another editor-authored runtime building therefore consists primarily of adding its validated asset export under `src/assets/buildings/<id>/`, registering it for the corresponding gameplay kind, and binding new runtime instances. Existing gameplay rules remain separate.
 
@@ -164,7 +164,7 @@ All other unchanged systems remain documented in [`architecture-detail.md`](./ar
 
 ## Testing and deployment
 
-`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Coverage includes building-visual schema validation, resolution-independent sprite metadata, bound HQ entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas and save/load reconstruction.
+`npm test` is the deterministic Node suite. `npm run build` first validates every editor-authored building sprite reference and the structural completeness of PNG/WebP containers, then performs TypeScript checking and the Vite production build. Missing or truncated building sprites therefore fail CI before deployment. Coverage includes building-visual schema validation, resolution-independent sprite metadata, bound HQ entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas and save/load reconstruction.
 
 Vite builds both the game root and `building-editor/index.html`. GitHub Pages publishes both from the same `dist` artifact.
 
