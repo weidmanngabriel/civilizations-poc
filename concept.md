@@ -4,6 +4,8 @@ Diese Datei ist der aktuelle Einstieg in das Produktkonzept. Ausführliche unver
 
 Der abgeschlossene Umbau auf das feine Raster und physische Ressourcen ist in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md) dokumentiert.
 
+Bis Version 1 wird bewusst keine Rückwärtskompatibilität gepflegt, wenn dafür Sonderlogik nötig wäre. Alte Saves, Schemata, Zwischenstände oder Datenformen dürfen bei Änderungen brechen; der jeweils aktuelle Produktstand ist verbindlich.
+
 ## PoC 1: personenbasierte Produktionslogistik
 
 Ziel bleibt eine personenbasierte Produktions- und Logistiksimulation auf einem Hex-Grid. Waren liegen physisch an Orten, Personen bewegen sie sichtbar über die Karte und räumliche Planung wirkt direkt auf Produktion, Versorgung und Transport. Hunger und Schlaf konkurrieren mit Arbeit um die Zeit einzelner Personen.
@@ -60,11 +62,11 @@ Der Gebäudeeditor definiert ausschließlich die räumlich-visuelle Seite:
 
 Die Pixelauflösung des Sprites ist kein Teil der Gebäudegröße. Der Editor speichert die sichtbare Breite in Weltkoordinaten und den Anchor relativ zur Bildgröße. Ein identisches Sprite kann dadurch durch eine höher aufgelöste Datei ersetzt werden, ohne dass Größe oder Ausrichtung neu eingestellt werden müssen. Beim Export wird die ausgewählte PNG-/WebP-Datei nicht heruntergerechnet; hohe Quellauflösung bleibt für starken Kartenzoom erhalten.
 
-Ein Gebäudetyp kann im Runtime-Registry bereits eine Editor-Definition besitzen, ohne dass automatisch jede bestehende Instanz darauf umgestellt wird. Konkrete Gebäudeinstanzen werden ausdrücklich an eine Definition gebunden. Dadurch können die Gebäude schrittweise migriert werden, ohne bestehende Logik oder Testwelten gleichzeitig umzubauen.
+Sobald ein `BuildingKind` im Runtime-Registry eine Editor-Definition besitzt, ist diese Definition für **alle aktuellen Instanzen dieses Gebäudetyps autoritativ**. Es gibt keinen per-Instanz-Migrationsschalter und keinen Kompatibilitätspfad zu älteren Definitionen. Gebäudetypen, für die noch keine Editor-Definition existiert, verwenden weiterhin ihre aktuell im Code definierten Formen; das ist Teil des gegenwärtigen Produktzustands und keine Rückwärtskompatibilität.
 
-Das **Hauptquartier der Spielerwelt** ist das erste vollständig gebundene Gebäude. Weitere Gebäude sollen denselben generischen Weg verwenden. Nicht migrierte Gebäude behalten vorerst ihre bisherigen Grundrisse und Darstellungen.
+Aktuell verwenden Hauptquartier, Bäckerei, Farm, Brunnen und Mühle den generischen Editor-/Runtime-Pfad.
 
-Für ein gebundenes Gebäude gilt:
+Für ein registriertes Gebäude gilt:
 
 - Der im Editor verwendete Bezugspunkt bleibt der räumliche/visuelle Anker.
 - Die Gameplay-Position des Gebäudes liegt an der im Editor definierten Eingangszelle.
@@ -75,11 +77,9 @@ Für ein gebundenes Gebäude gilt:
 
 Damit können Bewohner ein Gebäude an einer bewusst definierten Stelle erreichen, während Grafik, belegte Fläche und Kollision exakt dieselbe Editor-Geometrie verwenden.
 
-Der neutrale interne Test-/Sandbox-Weltzustand darf weiterhin vereinfachte Legacy-Geometrie verwenden. Das ist keine Spielerfunktion, sondern hält Low-Level-Simulationstests unabhängig von der schrittweisen Grafikmigration.
-
 ## Bauen, Freiraum und Abriss
 
-Gebäude brauchen weiterhin ihren vollständigen Grundriss plus den bestehenden freien Ring von einer alten Weltkachel rundherum. Für migrierte Gebäudetypen kommt der Grundriss aus der Editor-Definition; für noch nicht migrierte Typen gilt die bestehende Legacy-Form.
+Gebäude brauchen weiterhin ihren vollständigen Grundriss plus den bestehenden freien Ring von einer alten Weltkachel rundherum. Für registrierte Gebäudetypen kommt der Grundriss aus der aktuellen Editor-Definition; für noch nicht registrierte Typen gilt die derzeitige codebasierte Form.
 
 Natürliche Ressourcen dürfen weder den Grundriss noch den notwendigen Freiraum schneiden. Lose Waren dürfen im Freiraum liegen bleiben, aber nicht unter dem eigentlichen Gebäudegrundriss.
 
@@ -95,7 +95,7 @@ Die Sprite-Größe wird als Breite in der Spielwelt eingestellt, nicht mehr als 
 
 Im veröffentlichten Editor werden `building.json` und das **unveränderte** Sprite heruntergeladen. Der Export verkleinert oder recomprimiert die gewählte Bilddatei nicht. Dieses Dateipaar kann gemeinsam wieder importiert und vollständig weiterbearbeitet werden, sofern es dem aktuellen Schema entspricht. Bei lokaler Entwicklung kann derselbe Stand direkt nach `src/assets/buildings/<id>/` gespeichert werden.
 
-Aktuell gibt es bewusst **keine Rückwärtskompatibilität** für ältere Editor-/Building-Visual-Schemata. Alte Exporte dürfen bei Schemaänderungen abgelehnt werden.
+Ältere Editor-/Building-Visual-Schemata werden nicht unterstützt oder migriert. Nur der aktuelle Schemastand ist verbindlich.
 
 ## Arbeitsflaggen
 
@@ -143,15 +143,15 @@ Die Karte lässt sich per Mausrad und Pinch von 0,7× bis 10× zoomen. Gebäude-
 
 Über das Spielmenü kann ein neues Spiel gestartet, gespeichert oder geladen werden. Der vollständige autoritative Simulationszustand wird als menschenlesbare JSON-Datei gespeichert.
 
-Räumliche Objekte werden weiterhin kompakt über ihre logische Position gespeichert; abgeleitete Tile- und Footprint-Snapshots werden nicht persistiert. Bei an eine Editor-Definition gebundenen Gebäuden werden die Definition-ID und die Gameplay-Interaktionsposition gespeichert. Grundriss, visueller Anker und blockierte Zellen werden beim Laden deterministisch aus der Registry rekonstruiert.
+Räumliche Objekte werden weiterhin kompakt über ihre logische Position gespeichert; abgeleitete Tile- und Footprint-Snapshots werden nicht persistiert. Für registrierte Gebäudetypen werden Grundriss, visueller Anker und blockierte Zellen beim Laden aus der **aktuellen** Registry-Definition rekonstruiert.
 
-Die aktuelle Save-Version ist **3**. Die Version des visuellen Building-Schemas ist davon unabhängig. Ältere Save-Versionen werden bewusst nicht migriert oder rückwärtskompatibel geladen.
+Die aktuelle Save-Version ist **3**. Die Version des visuellen Building-Schemas ist davon unabhängig. Frühere Save-Versionen oder ältere Datenformen werden bis v1 nicht migriert oder durch besondere Kompatibilitätslogik unterstützt.
 
 ## Noch offene spätere Produktentscheidungen
 
 Nicht Teil dieses Schritts sind unter anderem:
 
-- Migration aller bestehenden Gebäude auf Editor-Definitionen,
+- Umstellung der übrigen Gebäudetypen auf Editor-Definitionen,
 - mehrere Gebäudeeingänge,
 - Gebäudeanimationen oder komplexere Hitboxen,
 - unterschiedliche Arbeitsradien nach Beruf oder Upgrade,
@@ -162,4 +162,4 @@ Nicht Teil dieses Schritts sind unter anderem:
 
 ## Unveränderte Produktbereiche
 
-Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`concept-detail.md`](./concept-detail.md), insbesondere Produktionsketten, Händler, Personenansicht, Technologiebaum und Handbuch. Wo ältere Detailtexte dem hier beschriebenen feinen Raster, den physischen Waren, lokalen Arbeitsbereichen, der neuen gebundenen Gebäude-Definition oder den hier beschriebenen Freischaltregeln widersprechen, ist diese Datei maßgeblich.
+Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`concept-detail.md`](./concept-detail.md), insbesondere Produktionsketten, Händler, Personenansicht, Technologiebaum und Handbuch. Wo ältere Detailtexte dem hier beschriebenen feinen Raster, den physischen Waren, lokalen Arbeitsbereichen, den aktuellen Gebäude-Definitionen oder den hier beschriebenen Freischaltregeln widersprechen, ist diese Datei maßgeblich.
