@@ -59,18 +59,20 @@ There is no fake natural-resource mirror for loose goods and no hidden HQ storag
 
 ## Generic editor-authored building definitions
 
-`src/buildings/buildingVisualDefinition.ts` defines version 2 of the shared editor/runtime spatial schema:
+`src/buildings/buildingVisualDefinition.ts` defines version 3 of the shared editor/runtime spatial schema:
 
 ```text
 sprite
-spriteAnchor
-spriteScale
+spriteAnchor      normalized x/y inside the source image
+spriteWorldWidth  rendered width in world pixels
 footprint
 blocked
 entrance
 ```
 
 Gameplay properties such as recipes, workers, inventory, costs and technology stay outside this schema.
+
+Sprite placement is intentionally independent from source-image resolution. `spriteAnchor` is stored as a relative position in the image and `spriteWorldWidth` is the authoritative rendered width in world pixels. Replacing a sprite with the same artwork at a higher pixel resolution therefore does not require recalculating its world size or anchor. The editor exports the selected PNG/WebP bytes without dimensional downscaling; runtime quality is determined by the supplied source asset rather than by a generated low-resolution copy.
 
 `src/buildings/buildingDefinitionRegistry.ts` is the runtime registry. It maps a gameplay `BuildingKind` to a validated visual/spatial definition and sprite URL. Registry availability and runtime use are deliberately separate:
 
@@ -90,7 +92,7 @@ The authoritative footprint and collision semantics for bound buildings are ther
 - the authored `entrance` must be inside the footprint and not blocked;
 - legacy/unbound buildings keep their existing hard-coded footprint fallback.
 
-`src/game/buildingSprites.ts` is the generic Phaser renderer for bound definitions. It loads registered sprites once, creates one sprite per bound completed building instance, derives the visual anchor from the building interaction coordinate, and applies the authored sprite anchor and scale. The renderer does not own placement or collision state.
+`src/game/buildingSprites.ts` is the generic Phaser renderer for bound definitions. It loads registered sprites once, creates one sprite per bound completed building instance, derives the visual anchor from the building interaction coordinate, applies the normalized Phaser origin, and sets the display size from `spriteWorldWidth` plus the source aspect ratio. The renderer does not own placement or collision state.
 
 Adding another editor-authored runtime building therefore consists primarily of adding its validated asset export under `src/assets/buildings/<id>/`, registering it for the corresponding gameplay kind, and binding new runtime instances. Existing gameplay rules remain separate.
 
@@ -130,15 +132,15 @@ Profession experience remains persistent from 0–100, with +1 XP per completed 
 
 Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map/person presentation state; natural resources, loose goods, work-area flags and registered building sprites are presentation layers over authoritative simulation state.
 
-Camera zoom remains 0.7×–10× for mouse-wheel and pinch. Desktop and touch remain first-class input adapters, with the iPhone 13 Mini as the mobile baseline.
+Camera zoom remains 0.7×–10× for mouse-wheel and pinch. Building assets intended to remain crisp at the upper zoom range should therefore retain substantially more source pixels than their normal world-space display size. Desktop and touch remain first-class input adapters, with the iPhone 13 Mini as the mobile baseline.
 
 ## Building editor
 
 `building-editor/` is a separate Vite multi-page entry published at `/civilizations-poc/building-editor/`. It is an internal desktop-first authoring tool and does not start Phaser or own simulation state.
 
-The editor is WYSIWYG against the runtime projection. A fixed editor-only preview zoom enlarges both grid and sprite together, so their size relationship matches the game. Runtime-ready exports live under `src/assets/buildings/<id>/`.
+The editor is WYSIWYG against the runtime projection. A fixed editor-only preview zoom enlarges both grid and sprite together, so their size relationship matches the game. Sprite size is authored as world-space width rather than as a multiplier of source pixels, and the anchor is authored as a percentage/relative image position. Runtime-ready exports live under `src/assets/buildings/<id>/`.
 
-The current schema is authoritative and intentionally has no backward-compatibility layer for older visual-definition versions. During local development the editor can write validated exports directly into the runtime asset folder; the published editor downloads the JSON and sprite instead.
+The selected sprite file is exported unchanged; the editor does not downscale or recompress it. The current schema is authoritative and intentionally has no backward-compatibility layer for older visual-definition versions. During local development the editor can write validated exports directly into the runtime asset folder; the published editor downloads the JSON and sprite instead.
 
 ## Save/load persistence
 
@@ -152,7 +154,7 @@ For a bound editor-authored building, the save stores:
 
 On load, the registry reconstructs the visual anchor, footprint and blocked collision overlay from the bound definition. Unbound buildings reconstruct from their existing legacy shape rules. Static terrain is regenerated from the deterministic base map; roads, traffic history and bushes remain sparse persisted map state.
 
-Because the meaning of registered building spatial state changed, the save format is now `civilizations-save` **version 3**. Version 2 and older saves are rejected rather than guessed or migrated.
+The save format remains `civilizations-save` **version 3**. The visual-definition schema version is separate from the save version; changing sprite-resolution metadata does not change authoritative saved gameplay state. Version 2 and older saves are rejected rather than guessed or migrated.
 
 Loading and starting a new game still replace the contents of the existing shared `World` object instead of swapping its identity, so Phaser and UI modules keep valid references.
 
@@ -162,7 +164,7 @@ All other unchanged systems remain documented in [`architecture-detail.md`](./ar
 
 ## Testing and deployment
 
-`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Coverage includes building-visual schema validation, bound HQ entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas and save/load reconstruction.
+`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Coverage includes building-visual schema validation, resolution-independent sprite metadata, bound HQ entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas and save/load reconstruction.
 
 Vite builds both the game root and `building-editor/index.html`. GitHub Pages publishes both from the same `dist` artifact.
 
