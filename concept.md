@@ -121,7 +121,7 @@ Weder manuell gesetzte noch automatisch entstehende Wege dürfen eine aktive nat
 
 Simulation und Bewegung laufen mit 60 Schritten pro Sekunde. Hunger wird nur einmal pro simulierter Sekunde aktualisiert und geprüft. Bestehende Ziele bleiben während einer Reise stabil, solange der Auftrag gültig ist.
 
-Essen benötigt weiterhin fünf simulierte Sekunden am Ziel. Schlaf folgt den bestehenden Haus-/Natur-/Bodenregeln und konkurriert wie bisher mit Arbeit und Hunger.
+Essen benötigt weiterhin fünf simulierte Sekunden am Ziel. Schlaf folgt den bestehenden Haus-/Natur-/Bodenregeln und konkurriert wie bisher mit Arbeit und Hunger. Bäume und Büsche sind beim Schlafen jeweils nur für eine Person gleichzeitig nutzbar. Dafür gibt es bewusst keine Reservierung: Mehrere Bewohner dürfen denselben Naturplatz ansteuern. Erst bei der Ankunft prüft ein Bewohner, ob dort bereits jemand schläft; ist der Platz belegt, plant er von dort aus ein anderes Schlafziel. Bodenschlaf hat keine solche Exklusivität.
 
 ## Berufserfahrung und Technologien
 
