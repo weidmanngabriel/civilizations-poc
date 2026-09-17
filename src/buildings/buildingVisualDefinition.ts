@@ -1,5 +1,6 @@
 import type { Hex } from "../simulation/model";
 
+/** Normalized point inside the source sprite. 0/0 is top-left, 1/1 bottom-right. */
 export interface SpriteAnchor {
   x: number;
   y: number;
@@ -7,17 +8,21 @@ export interface SpriteAnchor {
 
 export interface BuildingVisualDefinition {
   schema: "civilizations-building-visual";
-  version: 2;
+  version: 3;
   id: string;
   sprite: string;
+  /** Resolution-independent anchor inside the sprite image. */
   spriteAnchor: SpriteAnchor;
-  spriteScale: number;
+  /** Display width in runtime world pixels, independent from source resolution. */
+  spriteWorldWidth: number;
   footprint: Hex[];
   blocked: Hex[];
   entrance: Hex;
 }
 
 const sameHex = (a: Hex, b: Hex): boolean => a.q === b.q && a.r === b.r;
+const normalized = (value: number): boolean =>
+  Number.isFinite(value) && value >= 0 && value <= 1;
 
 export function validateBuildingVisualDefinition(
   definition: BuildingVisualDefinition,
@@ -25,8 +30,10 @@ export function validateBuildingVisualDefinition(
   const errors: string[] = [];
   if (!/^[a-z0-9][a-z0-9-]*$/.test(definition.id))
     errors.push("Die ID darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten.");
-  if (!Number.isFinite(definition.spriteScale) || definition.spriteScale <= 0)
-    errors.push("Die Sprite-Skalierung muss größer als 0 sein.");
+  if (!normalized(definition.spriteAnchor.x) || !normalized(definition.spriteAnchor.y))
+    errors.push("Der Sprite-Anchor muss normalisiert zwischen 0 und 1 liegen.");
+  if (!Number.isFinite(definition.spriteWorldWidth) || definition.spriteWorldWidth <= 0)
+    errors.push("Die Sprite-Breite in der Spielwelt muss größer als 0 sein.");
   if (definition.footprint.length === 0)
     errors.push("Der Gebäudegrundriss darf nicht leer sein.");
   if (!definition.footprint.some((cell) => sameHex(cell, definition.entrance)))

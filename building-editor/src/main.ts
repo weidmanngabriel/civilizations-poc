@@ -53,11 +53,11 @@ app.innerHTML = `
         <section class="panel">
           <h2>Sprite</h2>
           <div class="field">
-            <label for="sprite-scale">Skalierung <span id="scale-label">100 %</span></label>
-            <input id="sprite-scale" type="range" min="0.1" max="200" step="0.1" value="100" />
+            <label for="sprite-scale">Breite im Spiel <span id="scale-label">60 px</span></label>
+            <input id="sprite-scale" type="range" min="1" max="200" step="0.1" value="60" />
           </div>
-          <div class="field"><label for="scale-number">Skalierung (%)</label><input id="scale-number" type="number" min="0.1" max="1000" step="0.1" value="100" /></div>
-          <p class="help">Das Raster und das Sprite werden in der Vorschau mit demselben Zoom vergrößert. Die Prozentzahl ist deshalb direkt die spätere Runtime-Skalierung.</p>
+          <div class="field"><label for="scale-number">Breite (Welt-px)</label><input id="scale-number" type="number" min="0.1" max="1000" step="0.1" value="60" /></div>
+          <p class="help">Die Originaldatei wird beim Export nicht verkleinert. Hier stellst du nur die spätere Breite in der Spielwelt ein; deshalb bleibt die Darstellung unabhängig von der Bildauflösung.</p>
         </section>
         <section class="panel">
           <h2>Werkzeug</h2>
@@ -75,9 +75,9 @@ app.innerHTML = `
         </section>
         <section class="panel">
           <h2>Sprite-Anchor</h2>
-          <div class="field"><label for="anchor-x">X im Original-Sprite (px)</label><input id="anchor-x" type="number" value="0" step="1" /></div>
-          <div class="field"><label for="anchor-y">Y im Original-Sprite (px)</label><input id="anchor-y" type="number" value="0" step="1" /></div>
-          <p class="help">Der Anchor-Punkt liegt auf q=0 / r=0. Ziehen des Sprites aktualisiert diese Werte automatisch.</p>
+          <div class="field"><label for="anchor-x">X im Sprite (%)</label><input id="anchor-x" type="number" value="50" step="0.1" /></div>
+          <div class="field"><label for="anchor-y">Y im Sprite (%)</label><input id="anchor-y" type="number" value="82" step="0.1" /></div>
+          <p class="help">Der Anchor-Punkt liegt auf q=0 / r=0. Er wird relativ zur Sprite-Größe gespeichert und bleibt deshalb bei einer anderen Quellauflösung an derselben Stelle.</p>
         </section>
         <section class="panel actions">
           <button class="primary" id="download">Export herunterladen</button>
@@ -112,7 +112,7 @@ const saveProjectButton = document.querySelector<HTMLButtonElement>("#save-proje
 let currentTool: Tool = "footprint";
 let spriteFile: File | undefined;
 let spriteDataUrl = "";
-let spriteScale = 1;
+let spriteWorldWidth = 60;
 let dragStart: { pointerX: number; pointerY: number; anchorX: number; anchorY: number } | undefined;
 let paintDrag: { tool: PaintTool; mode: PaintMode; visited: Set<string> } | undefined;
 const footprint = new Map<string, Hex>();
@@ -121,7 +121,6 @@ const cellElements = new Map<string, SVGPolygonElement>();
 let entrance: Hex | undefined;
 
 const cellKey = (cell: Hex): string => `${cell.q},${cell.r}`;
-const hasCell = (map: Map<string, Hex>, cell: Hex): boolean => map.has(cellKey(cell));
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 
 function parseHex(value: unknown): Hex | undefined {
@@ -132,14 +131,14 @@ function parseHex(value: unknown): Hex | undefined {
 
 function parseDefinition(value: unknown): BuildingVisualDefinition {
   if (!isRecord(value)) throw new Error("building.json enthält kein gültiges Objekt.");
-  if (value.schema !== "civilizations-building-visual" || value.version !== 2)
+  if (value.schema !== "civilizations-building-visual" || value.version !== 3)
     throw new Error("building.json hat ein unbekanntes Schema oder eine nicht unterstützte Version.");
   if (typeof value.id !== "string" || typeof value.sprite !== "string")
     throw new Error("building.json enthält keine gültige ID oder Sprite-Datei.");
   if (!isRecord(value.spriteAnchor) || typeof value.spriteAnchor.x !== "number" || typeof value.spriteAnchor.y !== "number")
     throw new Error("building.json enthält keinen gültigen Sprite-Anchor.");
-  if (typeof value.spriteScale !== "number" || !Number.isFinite(value.spriteScale) || value.spriteScale <= 0)
-    throw new Error("building.json enthält keine gültige Sprite-Skalierung für das aktuelle Schema.");
+  if (typeof value.spriteWorldWidth !== "number" || !Number.isFinite(value.spriteWorldWidth) || value.spriteWorldWidth <= 0)
+    throw new Error("building.json enthält keine gültige Sprite-Breite für das aktuelle Schema.");
   if (!Array.isArray(value.footprint) || !Array.isArray(value.blocked))
     throw new Error("building.json enthält keinen gültigen Grundriss.");
 
@@ -151,11 +150,11 @@ function parseDefinition(value: unknown): BuildingVisualDefinition {
 
   const parsed: BuildingVisualDefinition = {
     schema: "civilizations-building-visual",
-    version: 2,
+    version: 3,
     id: value.id,
     sprite: value.sprite,
     spriteAnchor: { x: value.spriteAnchor.x, y: value.spriteAnchor.y },
-    spriteScale: value.spriteScale,
+    spriteWorldWidth: value.spriteWorldWidth,
     footprint: footprintCells as Hex[],
     blocked: blockedCells as Hex[],
     entrance: entranceCell,
@@ -271,28 +270,29 @@ function finishCellPaint(): void {
   paintDrag = undefined;
 }
 
-function runtimeScalePercent(): number {
-  return Math.round(spriteScale * 1000) / 10;
+function roundedWorldWidth(): number {
+  return Math.round(spriteWorldWidth * 10) / 10;
 }
 
 function renderSpritePosition(): void {
   if (!spriteDataUrl || !spritePreview.naturalWidth) return;
   const origin = projected({ q: 0, r: 0 });
-  const anchorX = Number(anchorXInput.value) || 0;
-  const anchorY = Number(anchorYInput.value) || 0;
-  const previewSpriteScale = spriteScale * PREVIEW_SCALE;
-  spritePreview.style.width = `${spritePreview.naturalWidth * previewSpriteScale}px`;
-  spritePreview.style.height = `${spritePreview.naturalHeight * previewSpriteScale}px`;
-  spritePreview.style.left = `${origin.x - anchorX * previewSpriteScale}px`;
-  spritePreview.style.top = `${origin.y - anchorY * previewSpriteScale}px`;
+  const anchorX = (Number(anchorXInput.value) || 0) / 100;
+  const anchorY = (Number(anchorYInput.value) || 0) / 100;
+  const previewWidth = spriteWorldWidth * PREVIEW_SCALE;
+  const previewHeight = previewWidth * (spritePreview.naturalHeight / spritePreview.naturalWidth);
+  spritePreview.style.width = `${previewWidth}px`;
+  spritePreview.style.height = `${previewHeight}px`;
+  spritePreview.style.left = `${origin.x - anchorX * previewWidth}px`;
+  spritePreview.style.top = `${origin.y - anchorY * previewHeight}px`;
 }
 
-function setScale(nextScale: number): void {
-  spriteScale = Math.max(0.001, Math.min(10, nextScale));
-  const percent = runtimeScalePercent();
-  scaleNumber.value = String(percent);
-  scaleRange.value = String(Math.max(Number(scaleRange.min), Math.min(Number(scaleRange.max), percent)));
-  scaleLabel.textContent = `${percent} %`;
+function setWorldWidth(nextWidth: number): void {
+  spriteWorldWidth = Math.max(0.1, Math.min(1000, nextWidth));
+  const width = roundedWorldWidth();
+  scaleNumber.value = String(width);
+  scaleRange.value = String(Math.max(Number(scaleRange.min), Math.min(Number(scaleRange.max), width)));
+  scaleLabel.textContent = `${width} px`;
   renderSpritePosition();
   refreshStatus();
 }
@@ -313,11 +313,14 @@ function definition(): BuildingVisualDefinition {
   const extension = spriteFile?.type === "image/webp" ? "webp" : "png";
   return {
     schema: "civilizations-building-visual",
-    version: 2,
+    version: 3,
     id: idInput.value.trim(),
     sprite: `sprite.${extension}`,
-    spriteAnchor: { x: Number(anchorXInput.value) || 0, y: Number(anchorYInput.value) || 0 },
-    spriteScale,
+    spriteAnchor: {
+      x: (Number(anchorXInput.value) || 0) / 100,
+      y: (Number(anchorYInput.value) || 0) / 100,
+    },
+    spriteWorldWidth,
     footprint: [...footprint.values()],
     blocked: [...blocked.values()],
     entrance: entrance ?? { q: Number.NaN, r: Number.NaN },
@@ -333,7 +336,7 @@ function errors(): string[] {
 function refreshStatus(message?: string): boolean {
   const currentErrors = errors();
   status.classList.toggle("error", currentErrors.length > 0);
-  status.textContent = message ?? (currentErrors.length ? currentErrors.join("\n") : `Bereit · ${footprint.size} Grundrisszellen, ${blocked.size} blockiert · ${runtimeScalePercent()} % Sprite.`);
+  status.textContent = message ?? (currentErrors.length ? currentErrors.join("\n") : `Bereit · ${footprint.size} Grundrisszellen, ${blocked.size} blockiert · ${roundedWorldWidth()} px Sprite-Breite.`);
   return currentErrors.length === 0;
 }
 
@@ -360,19 +363,20 @@ async function loadSprite(file: File, preserveTransform = false): Promise<void> 
   spriteDataUrl = await fileToDataUrl(file);
   spritePreview.onload = () => {
     if (!preserveTransform) {
-      anchorXInput.value = String(Math.round(spritePreview.naturalWidth / 2));
-      anchorYInput.value = String(Math.round(spritePreview.naturalHeight * 0.82));
-      const fitScale = Math.min(
-        1,
-        720 / (spritePreview.naturalWidth * PREVIEW_SCALE),
-        520 / (spritePreview.naturalHeight * PREVIEW_SCALE),
+      anchorXInput.value = "50";
+      anchorYInput.value = "82";
+      const aspect = spritePreview.naturalWidth / spritePreview.naturalHeight;
+      const fitWidth = Math.min(
+        spritePreview.naturalWidth,
+        720 / PREVIEW_SCALE,
+        (520 / PREVIEW_SCALE) * aspect,
       );
-      setScale(fitScale);
+      setWorldWidth(fitWidth);
     } else renderSpritePosition();
   };
   spritePreview.src = spriteDataUrl;
   spritePreview.hidden = false;
-  dropzone.textContent = `${file.name} · ${Math.round(file.size / 1024)} KB`;
+  dropzone.textContent = `${file.name} · ${spritePreview.naturalWidth || "?"}×${spritePreview.naturalHeight || "?"} px · ${Math.round(file.size / 1024)} KB`;
   refreshStatus();
 }
 
@@ -386,9 +390,9 @@ async function importFiles(files: File[]): Promise<void> {
     if (!SUPPORTED_IMAGE_TYPES.has(imageFile.type)) throw new Error("Das Sprite muss PNG oder WebP sein.");
 
     idInput.value = parsed.id;
-    anchorXInput.value = String(parsed.spriteAnchor.x);
-    anchorYInput.value = String(parsed.spriteAnchor.y);
-    setScale(parsed.spriteScale);
+    anchorXInput.value = String(Math.round(parsed.spriteAnchor.x * 1000) / 10);
+    anchorYInput.value = String(Math.round(parsed.spriteAnchor.y * 1000) / 10);
+    setWorldWidth(parsed.spriteWorldWidth);
     footprint.clear();
     blocked.clear();
     for (const cell of parsed.footprint) footprint.set(cellKey(cell), cell);
@@ -418,7 +422,7 @@ downloadButton.addEventListener("click", () => {
   const value = definition();
   downloadBlob(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }), "building.json");
   if (spriteFile) downloadBlob(spriteFile, value.sprite);
-  refreshStatus("Export gestartet: building.json + Sprite.");
+  refreshStatus("Export gestartet: building.json + unverändertes Sprite.");
 });
 
 saveProjectButton.addEventListener("click", async () => {
@@ -434,7 +438,7 @@ saveProjectButton.addEventListener("click", async () => {
     if (!response.ok || !result.ok) throw new Error(result.error ?? "Speichern fehlgeschlagen");
     refreshStatus(`Gespeichert: ${result.path}`);
   } catch (error) {
-    setError(error instanceof Error ? error.message : "Speichern fehlgeschlagen");
+    setError(error instanceof Error ? error.message : "Speichern fehlgeschlagen.");
   } finally {
     saveProjectButton.disabled = false;
   }
@@ -453,10 +457,10 @@ document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((button) => 
   button.addEventListener("click", () => selectTool(button.dataset.tool as Tool));
 });
 
-scaleRange.addEventListener("input", () => setScale(Number(scaleRange.value) / 100));
+scaleRange.addEventListener("input", () => setWorldWidth(Number(scaleRange.value)));
 scaleNumber.addEventListener("input", () => {
-  const percent = Number(scaleNumber.value);
-  if (Number.isFinite(percent) && percent > 0) setScale(percent / 100);
+  const width = Number(scaleNumber.value);
+  if (Number.isFinite(width) && width > 0) setWorldWidth(width);
 });
 overlayRange.addEventListener("input", () => setOverlayStrength(Number(overlayRange.value)));
 
@@ -473,12 +477,13 @@ spritePreview.addEventListener("pointerdown", (event) => {
   spritePreview.classList.add("dragging");
 });
 spritePreview.addEventListener("pointermove", (event) => {
-  if (!dragStart) return;
+  if (!dragStart || !spritePreview.naturalWidth) return;
   const dx = event.clientX - dragStart.pointerX;
   const dy = event.clientY - dragStart.pointerY;
-  const previewSpriteScale = spriteScale * PREVIEW_SCALE;
-  anchorXInput.value = String(Math.round((dragStart.anchorX - dx / previewSpriteScale) * 10) / 10);
-  anchorYInput.value = String(Math.round((dragStart.anchorY - dy / previewSpriteScale) * 10) / 10);
+  const previewWidth = spriteWorldWidth * PREVIEW_SCALE;
+  const previewHeight = previewWidth * (spritePreview.naturalHeight / spritePreview.naturalWidth);
+  anchorXInput.value = String(Math.round((dragStart.anchorX - (dx / previewWidth) * 100) * 10) / 10);
+  anchorYInput.value = String(Math.round((dragStart.anchorY - (dy / previewHeight) * 100) * 10) / 10);
   renderSpritePosition();
 });
 const finishSpriteDrag = () => {
