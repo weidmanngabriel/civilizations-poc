@@ -1,0 +1,44 @@
+name: Update asset pipeline docs
+
+on:
+  push:
+    branches: [tmp/asset-pipeline-hardening]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tmp/asset-pipeline-hardening
+      - name: Update architecture
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('architecture.md')
+          text = path.read_text()
+          text = text.replace(
+              '`src/buildings/buildingDefinitionRegistry.ts` is the runtime registry. It maps a gameplay `BuildingKind` to a validated visual/spatial definition and sprite URL. Registry availability and runtime use are deliberately separate:',
+              '`src/buildings/buildingDefinitionRegistry.ts` is the runtime registry. It maps a gameplay `BuildingKind` to a validated visual/spatial definition and deliberately stays free of Vite/Phaser-specific asset loading. `src/game/buildingSprites.ts` resolves the authored `sprite` filename against Vite’s build-time asset map, so PNG/WebP filenames come from `building.json` without coupling deterministic simulation tests to Vite. Registry availability and runtime use are deliberately separate:',
+          )
+          text = text.replace(
+              '`src/game/buildingSprites.ts` is the generic Phaser renderer for bound definitions. It loads registered sprites once, creates one sprite per bound completed building instance, derives the visual anchor from the building interaction coordinate, applies the normalized Phaser origin, and sets the display size from `spriteWorldWidth` plus the source aspect ratio. The renderer does not own placement or collision state.',
+              '`src/game/buildingSprites.ts` is the generic Phaser renderer for bound definitions. It resolves each definition’s authored sprite filename through Vite, loads registered sprites once, creates one sprite per bound completed building instance, derives the visual anchor from the building interaction coordinate, applies the normalized Phaser origin, and sets the display size from `spriteWorldWidth` plus the source aspect ratio. The renderer does not own placement or collision state.',
+          )
+          text = text.replace(
+              '`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Coverage includes building-visual schema validation, resolution-independent sprite metadata, bound HQ entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas and save/load reconstruction.',
+              '`npm test` is the deterministic Node suite. `npm run build` first validates every editor-authored building sprite reference and the structural completeness of PNG/WebP containers, then performs TypeScript checking and the Vite production build. Missing or truncated building sprites therefore fail CI before deployment. Coverage includes building-visual schema validation, resolution-independent sprite metadata, bound HQ entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas and save/load reconstruction.',
+          )
+          path.write_text(text)
+          PY
+      - name: Commit documentation update
+        run: |
+          rm .github/workflows/update-asset-pipeline-docs.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Document building asset validation"
+          git push origin HEAD:tmp/asset-pipeline-hardening
