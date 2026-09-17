@@ -239,7 +239,10 @@ function applyCellPaint(tool: PaintTool, cell: Hex, mode: PaintMode): void {
       footprint.set(key, cell);
       blocked.set(key, cell);
       if (entrance && cellKey(entrance) === key) entrance = undefined;
-    } else blocked.delete(key);
+    } else {
+      blocked.delete(key);
+      footprint.delete(key);
+    }
   } else if (mode === "set") {
     footprint.set(key, cell);
     blocked.delete(key);

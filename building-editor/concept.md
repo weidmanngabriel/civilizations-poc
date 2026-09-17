@@ -23,8 +23,10 @@ Der Editor definiert **nicht**, was ein Gebäude im Spiel tut. Produktion, Waren
 - `blocked`: Teilmenge des Footprints, die nicht begehbar ist.
 - begehbar: automatisch `footprint - blocked`.
 - `entrance`: genau eine begehbare Footprint-Zelle als Navigations-/Interaktionsziel.
-- `spriteAnchor`: Ausrichtung des Bildes gegenüber dem Raster, gespeichert in Original-Sprite-Pixeln.
-- `spriteScale`: positive Darstellungs-Skalierung des unveränderten Original-Sprites in der späteren Runtime.
+- `spriteAnchor`: Ausrichtung des Bildes gegenüber dem Raster als normalisierte x/y-Position innerhalb des Sprites.
+- `spriteWorldWidth`: positive sichtbare Breite des unveränderten Sprites in Weltpixeln.
+
+Das aktuelle Building-Visual-Schema ist Version 3. Sprite-Größe und Anchor bleiben dadurch unabhängig von der Pixelauflösung der Quelldatei.
 
 ## Bedienung und Vorschau
 
@@ -32,14 +34,16 @@ Desktop ist der Zielmodus. Die Seite darf auf Mobilgeräten geöffnet werden und
 
 Die Arbeitsfläche ist eine WYSIWYG-Vorschau der Spielprojektion: Rasterzentren und sichtbare Hex-Geometrie stammen aus derselben gemeinsamen Projektion wie im Spiel. Der Editor vergrößert diese Weltansicht nur mit einem festen Vorschau-Zoom. Sprite und Raster erhalten denselben Vorschau-Zoom, sodass ihre Größenrelation der späteren Runtime entspricht.
 
-Große Sprites werden beim Laden zunächst durch Anpassen von `spriteScale` passend in den Arbeitsbereich eingepasst. Danach lässt sich die Runtime-Skalierung per Slider oder Prozentfeld ändern. Das Sprite kann mit **Sprite verschieben** direkt über dem Raster positioniert werden; dadurch wird der Anchor automatisch angepasst.
+Große Sprites werden beim Laden zunächst durch Anpassen von `spriteWorldWidth` passend in den Arbeitsbereich eingepasst. Danach lässt sich die Breite in Weltpixeln per Slider oder Zahlenfeld ändern. Das Sprite kann mit **Sprite verschieben** direkt über dem Raster positioniert werden; dadurch wird der relative Anchor automatisch angepasst.
 
 Während Grundriss, blockierte Zellen oder Eingang bearbeitet werden, werden markierte Zellen bewusst kontrastreich über dem Sprite dargestellt: kräftige Füllung, deutliche Kontur und Glow. Der Eingang ist am stärksten hervorgehoben. Das Sprite wird in diesen Rasterwerkzeugen leicht abgedunkelt; im Werkzeug **Sprite verschieben** bleibt es unverändert hell. Die Stärke dieser Markierungs-Overlays kann im Editor per Slider verändert werden; diese reine Vorschau-Einstellung wird nicht exportiert.
 
 Rasterbearbeitung folgt einem Paint-Verhalten: Ein einzelner Klick toggelt die angeklickte Zelle. Wird die Maustaste gehalten und über weitere Zellen gezogen, bestimmt das Ergebnis der ersten Zelle den gesamten Drag: wurde sie gesetzt, werden alle erstmals überfahrenen Zellen gesetzt; wurde sie entfernt, werden alle erstmals überfahrenen Zellen entfernt. `Shift + Klick` beziehungsweise `Shift + Drag` erzwingt das Entfernen unabhängig vom Ausgangszustand. Jede Zelle wird innerhalb eines Drags höchstens einmal verarbeitet.
 
-Ein Export kann über **Export importieren** geladen werden. Dabei werden `building.json` und das darin referenzierte PNG/WebP gemeinsam ausgewählt. Alternativ können beide Dateien zusammen auf die Sprite-Fläche gezogen werden. Der aktuelle Editorzustand wird nur ersetzt, wenn Schema, Rasterdaten und Sprite vollständig zusammenpassen.
+Beim Werkzeug **Blockierte Zellen** wird eine leere Zelle beim Setzen automatisch Teil des Grundrisses. Wird diese rote Zelle erneut getoggelt oder mit `Shift` zurückgesetzt, wird sie vollständig entfernt und nicht als grüne Grundrisszelle stehen gelassen.
+
+Ein Export kann über **Gebäudedefinition öffnen** geladen werden. Dabei werden `building.json` und das darin referenzierte PNG/WebP gemeinsam ausgewählt. Alternativ können beide Dateien zusammen auf die Sprite-Fläche gezogen werden. Der aktuelle Editorzustand wird nur ersetzt, wenn Schema, Rasterdaten und Sprite vollständig zusammenpassen.
 
 Aktuell wird **keine Rückwärtskompatibilität** gepflegt. Nur der aktuelle Editor-/Building-Visual-Schemastand muss funktionieren; ältere Exporte dürfen bei Schemaänderungen abgelehnt werden. Rückwärtskompatibilität wird erst ergänzt, wenn sie ausdrücklich angefordert wird.
 
-Version 2 soll bewusst klein bleiben: Sprite-Import, Skalierung und Positionierung, Export-Reimport, Rasterbearbeitung inklusive Paint-Drag und Overlay-Stärke, Anchor, Eingang, Validierung und Export. Gameplay-Editor, Animationen, mehrere Eingänge und komplexe Polygon-Hitboxen sind spätere Entscheidungen.
+Version 3 soll bewusst klein bleiben: Sprite-Import, Weltbreite und Positionierung, Export-Reimport, Rasterbearbeitung inklusive Paint-Drag und Overlay-Stärke, Anchor, Eingang, Validierung und Export. Gameplay-Editor, Animationen, mehrere Eingänge und komplexe Polygon-Hitboxen sind spätere Entscheidungen.
