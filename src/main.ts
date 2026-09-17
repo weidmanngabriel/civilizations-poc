@@ -36,6 +36,7 @@ import "./build-menu.css";
 import "./handbook.css";
 import "./person-panel.css";
 import "./performance-debug.css";
+import "./performance-recording.css";
 import "./technology-tree.css";
 
 const preventPageZoom = (): void => {
