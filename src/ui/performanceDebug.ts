@@ -38,7 +38,18 @@ const FEATURE_LABELS: Record<PerformanceFeature, string> = {
   technologyUnlocks: "Sim · Tech-Unlocks",
   workAreaSync: "Sim · Arbeitsbereiche synchronisieren",
   renderWorld: "renderWorld",
+  renderMapSignature: "↳ Render · Map-Signatur",
+  renderMapDraw: "↳ Render · Map zeichnen",
+  renderBushSignature: "↳ Render · Busch-Signatur",
+  renderBushDraw: "↳ Render · Büsche zeichnen",
+  renderInventorySignature: "↳ Render · Inventar-Signatur",
+  renderInventoryDraw: "↳ Render · Inventar zeichnen",
+  renderPeople: "↳ Render · Personen",
+  renderModalSync: "↳ Render · Auswahlmodus",
   overlayHunger: "Hunger-Overlay",
+  overlayHungerStatus: "↳ Hunger-Overlay · Status",
+  overlayHungerPosition: "↳ Hunger-Overlay · Position",
+  overlayHungerVisual: "↳ Hunger-Overlay · Phaser-Updates",
   overlayBush: "Busch-Overlay",
 };
 
