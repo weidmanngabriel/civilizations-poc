@@ -25,6 +25,19 @@ test("building visual definition accepts normalized sprite anchor and positive w
   assert.deepEqual(validateBuildingVisualDefinition(definition), []);
 });
 
+test("building visual definition accepts local PNG and WebP sprite filenames", () => {
+  const definition = validDefinition();
+  definition.sprite = "hq-master.webp";
+  assert.deepEqual(validateBuildingVisualDefinition(definition), []);
+});
+
+test("building visual definition rejects paths and unsupported sprite formats", () => {
+  const definition = validDefinition();
+  definition.sprite = "../sprite.jpg";
+  const errors = validateBuildingVisualDefinition(definition);
+  assert.ok(errors.some((error) => error.includes("PNG- oder WebP")));
+});
+
 test("building visual definition rejects an anchor outside the normalized image range", () => {
   const definition = validDefinition();
   definition.spriteAnchor = { x: 1.01, y: 0.5 };
