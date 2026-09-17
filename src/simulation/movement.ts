@@ -1,5 +1,5 @@
 import type { Hex, Person, World } from "./model";
-import { movementCost, same } from "./hex";
+import { key, movementCost, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 
 /**
@@ -11,7 +11,7 @@ export function personWorldPosition(w: World, p: Person): Hex {
   const next = p.path[0];
   if (!next || p.movement <= 0) return { ...p.position };
 
-  const tile = w.tiles.find((candidate) => same(candidate, next));
+  const tile = tileIndex(w.tiles).get(key(next));
   if (!tile) return { ...p.position };
 
   const edgeCost = movementCost(tile, CONFIG.roadSpeedMultiplier);
