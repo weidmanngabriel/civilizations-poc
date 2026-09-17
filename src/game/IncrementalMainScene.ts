@@ -5,6 +5,7 @@ import { CONFIG } from "../simulation/scenario";
 import { personName } from "../simulation/personIdentity";
 import { personActivityLabel, personProfessionLabel } from "../personPresentation";
 import { GOOD_ICONS } from "../icons";
+import { performanceProfiler } from "../debug/performanceProfiler";
 import { pixel } from "./mapGeometry";
 import {
   PERSON_MARKER_RADIUS,
@@ -337,31 +338,42 @@ export class IncrementalMainScene extends MainScene {
     if (!this.ensureLayers()) return;
     const internals = this.internals();
 
-    const mapSignature = this.mapSignature();
+    const mapSignature = performanceProfiler.profileFeature(
+      "renderMapSignature",
+      () => this.mapSignature(),
+    );
     if (mapSignature !== this.lastMapSignature) {
-      internals.drawMap();
+      performanceProfiler.profileFeature("renderMapDraw", () => internals.drawMap());
       this.lastMapSignature = mapSignature;
       this.lastModalSignature = "";
     }
 
-    const bushSignature = this.bushSignature();
+    const bushSignature = performanceProfiler.profileFeature(
+      "renderBushSignature",
+      () => this.bushSignature(),
+    );
     if (bushSignature !== this.lastBushSignature) {
-      this.drawBushMarkers();
+      performanceProfiler.profileFeature("renderBushDraw", () => this.drawBushMarkers());
       this.lastBushSignature = bushSignature;
     }
 
-    const inventorySignature = this.inventorySignature();
+    const inventorySignature = performanceProfiler.profileFeature(
+      "renderInventorySignature",
+      () => this.inventorySignature(),
+    );
     if (inventorySignature !== this.lastInventorySignature) {
-      this.drawInventoryMarkers();
+      performanceProfiler.profileFeature("renderInventoryDraw", () => this.drawInventoryMarkers());
       this.lastInventorySignature = inventorySignature;
     }
 
-    this.syncPersonMarkers();
+    performanceProfiler.profileFeature("renderPeople", () => this.syncPersonMarkers());
 
-    const modalSignature = this.modalSignature(mapSignature);
-    if (modalSignature !== this.lastModalSignature) {
-      internals.drawModalMapMode();
-      this.lastModalSignature = modalSignature;
-    }
+    performanceProfiler.profileFeature("renderModalSync", () => {
+      const modalSignature = this.modalSignature(mapSignature);
+      if (modalSignature !== this.lastModalSignature) {
+        internals.drawModalMapMode();
+        this.lastModalSignature = modalSignature;
+      }
+    });
   }
 }

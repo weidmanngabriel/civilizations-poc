@@ -32,22 +32,36 @@ export function installHungerIndicators(scene: Phaser.Scene, world: World): void
     const render = () => {
       const started = performanceNow();
       let createdObjects = 0;
+      let statusMs = 0;
+      let positionMs = 0;
+      let visualMs = 0;
+      let positionedPeople = 0;
+      let visualObjects = 0;
 
       for (const person of world.people) {
+        const statusStarted = performanceNow();
         const status = hungerStatus(person);
+        statusMs += performanceNow() - statusStarted;
         let indicator = indicators.get(person.id);
 
         if (status === "normal") {
           if (indicator) {
+            const visualStarted = performanceNow();
             indicator.bubble.setVisible(false);
             indicator.icon.setVisible(false);
             indicator.status = status;
+            visualMs += performanceNow() - visualStarted;
+            visualObjects += 2;
           }
           continue;
         }
 
+        const positionStarted = performanceNow();
         const position = pixel(personWorldPosition(world, person));
+        positionMs += performanceNow() - positionStarted;
+        positionedPeople += 1;
         const fill = status === "critical" ? 0xd9483b : 0xf2c94c;
+        const visualStarted = performanceNow();
 
         if (!indicator) {
           const bubble = scene.add.circle(position.x, position.y - 13, 6, fill, 0.96)
@@ -67,12 +81,19 @@ export function installHungerIndicators(scene: Phaser.Scene, world: World): void
           indicator.bubble.setPosition(position.x, position.y - 13).setVisible(true);
           indicator.icon.setPosition(position.x, position.y - 13.5).setVisible(true);
         }
+        visualMs += performanceNow() - visualStarted;
+        visualObjects += 2;
       }
 
+      const finished = performanceNow();
+      performanceProfiler.recordFeature("overlayHungerStatus", statusMs, world.people.length, finished);
+      performanceProfiler.recordFeature("overlayHungerPosition", positionMs, positionedPeople, finished);
+      performanceProfiler.recordFeature("overlayHungerVisual", visualMs, visualObjects, finished);
       performanceProfiler.recordFeature(
         "overlayHunger",
-        performanceNow() - started,
+        finished - started,
         createdObjects,
+        finished,
       );
     };
 

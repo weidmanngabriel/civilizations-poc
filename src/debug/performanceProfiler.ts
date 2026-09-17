@@ -26,7 +26,18 @@ export type PerformanceFeature =
   | "technologyUnlocks"
   | "workAreaSync"
   | "renderWorld"
+  | "renderMapSignature"
+  | "renderMapDraw"
+  | "renderBushSignature"
+  | "renderBushDraw"
+  | "renderInventorySignature"
+  | "renderInventoryDraw"
+  | "renderPeople"
+  | "renderModalSync"
   | "overlayHunger"
+  | "overlayHungerStatus"
+  | "overlayHungerPosition"
+  | "overlayHungerVisual"
   | "overlayBush";
 
 export type PathReason =
@@ -115,13 +126,35 @@ export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
   "technologyUnlocks",
   "workAreaSync",
   "renderWorld",
+  "renderMapSignature",
+  "renderMapDraw",
+  "renderBushSignature",
+  "renderBushDraw",
+  "renderInventorySignature",
+  "renderInventoryDraw",
+  "renderPeople",
+  "renderModalSync",
   "overlayHunger",
+  "overlayHungerStatus",
+  "overlayHungerPosition",
+  "overlayHungerVisual",
   "overlayBush",
 ];
 
 export const PERFORMANCE_DETAIL_FEATURES = new Set<PerformanceFeature>([
   "foodArrivalTargetLookup",
   "foodArrivalConsumption",
+  "renderMapSignature",
+  "renderMapDraw",
+  "renderBushSignature",
+  "renderBushDraw",
+  "renderInventorySignature",
+  "renderInventoryDraw",
+  "renderPeople",
+  "renderModalSync",
+  "overlayHungerStatus",
+  "overlayHungerPosition",
+  "overlayHungerVisual",
 ]);
 
 export const PATH_REASONS: PathReason[] = [
