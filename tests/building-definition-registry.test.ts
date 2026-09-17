@@ -49,6 +49,28 @@ test("registered blocked cells block movement while the authored entrance stays 
   assert.equal(entranceTile ? walkable(entranceTile) : false, true);
 });
 
+test("bakery, farm, well and mill use their editor-authored definitions", () => {
+  const expected = [
+    ["bakery", "bakery"],
+    ["farm", "farm"],
+    ["well", "well"],
+    ["mill", "windmill"],
+  ] as const;
+
+  for (const [kind, id] of expected) {
+    const registered = buildingDefinition(kind);
+    assert.ok(registered);
+    assert.equal(registered.visual.id, id);
+    assert.ok(registered.visual.footprint.length > 0);
+    assert.ok(registered.visual.footprint.some((cell) =>
+      cell.q === registered.visual.entrance.q && cell.r === registered.visual.entrance.r
+    ));
+    assert.ok(!registered.visual.blocked.some((cell) =>
+      cell.q === registered.visual.entrance.q && cell.r === registered.visual.entrance.r
+    ));
+  }
+});
+
 test("unregistered building kinds retain the legacy spatial fallback", () => {
   assert.equal(buildingDefinition("house"), undefined);
   assert.equal(buildingDefinition("warehouse"), undefined);
