@@ -56,7 +56,7 @@ export function installPerformanceRecordingControls(world: World): void {
       return;
     }
 
-    capturePerformanceRecordingSample(world, performanceProfiler.snapshot(), Number.POSITIVE_INFINITY);
+    capturePerformanceRecordingSample(world, performanceProfiler.snapshot());
     const data = finishPerformanceRecording();
     if (data) downloadPerformanceRecording(data);
     refreshState();
