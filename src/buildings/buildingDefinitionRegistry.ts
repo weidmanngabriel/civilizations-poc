@@ -1,8 +1,15 @@
 import bakeryJson from "../assets/buildings/bakery/building.json";
+import carpenterJson from "../assets/buildings/carpenter/building.json";
 import farmJson from "../assets/buildings/farm/building.json";
-import headquarterJson from "../assets/buildings/headquarter/building.json";
+import fieldJson from "../assets/buildings/field/building.json";
+import headquarterJson from "../assets/buildings/hq/building.json";
+import houseJson from "../assets/buildings/house/building.json";
+import millJson from "../assets/buildings/mill/building.json";
+import potteryJson from "../assets/buildings/pottery/building.json";
+import sawmillJson from "../assets/buildings/sawmill/building.json";
+import stonemasonJson from "../assets/buildings/stonemason/building.json";
+import warehouseJson from "../assets/buildings/warehouse/building.json";
 import wellJson from "../assets/buildings/well/building.json";
-import windmillJson from "../assets/buildings/windmill/building.json";
 import type { Building, BuildingKind, Hex } from "../simulation/model";
 import type { BuildingVisualDefinition } from "./buildingVisualDefinition";
 import { validateBuildingVisualDefinition } from "./buildingVisualDefinition";
@@ -12,6 +19,19 @@ export type RegisteredBuildingDefinition = {
   visual: BuildingVisualDefinition;
   spriteUrl: string;
 };
+
+type PlaceholderDefinition = {
+  placeholder: true;
+  id: string;
+  sprite: string;
+};
+
+const isPlaceholderDefinition = (value: unknown): value is PlaceholderDefinition =>
+  Boolean(
+    value &&
+    typeof value === "object" &&
+    (value as { placeholder?: unknown }).placeholder === true,
+  );
 
 const validateRegisteredDefinition = (
   kind: BuildingKind,
@@ -23,40 +43,42 @@ const validateRegisteredDefinition = (
   return definition;
 };
 
-const spriteUrlFor = (definition: BuildingVisualDefinition): string =>
+const spriteUrlFor = (
+  kind: BuildingKind,
+  definition: BuildingVisualDefinition,
+): string =>
   new URL(
-    `../assets/buildings/${definition.id}/${definition.sprite}`,
+    `../assets/buildings/${kind}/${definition.sprite}`,
     import.meta.url,
   ).href;
 
-const HEADQUARTER = validateRegisteredDefinition(
-  "hq",
-  headquarterJson as BuildingVisualDefinition,
-);
-const BAKERY = validateRegisteredDefinition(
-  "bakery",
-  bakeryJson as BuildingVisualDefinition,
-);
-const FARM = validateRegisteredDefinition(
-  "farm",
-  farmJson as BuildingVisualDefinition,
-);
-const WELL = validateRegisteredDefinition(
-  "well",
-  wellJson as BuildingVisualDefinition,
-);
-const WINDMILL = validateRegisteredDefinition(
-  "mill",
-  windmillJson as BuildingVisualDefinition,
-);
+const DEFINITIONS = new Map<BuildingKind, RegisteredBuildingDefinition>();
 
-const DEFINITIONS = new Map<BuildingKind, RegisteredBuildingDefinition>([
-  ["hq", { kind: "hq", visual: HEADQUARTER, spriteUrl: spriteUrlFor(HEADQUARTER) }],
-  ["bakery", { kind: "bakery", visual: BAKERY, spriteUrl: spriteUrlFor(BAKERY) }],
-  ["farm", { kind: "farm", visual: FARM, spriteUrl: spriteUrlFor(FARM) }],
-  ["well", { kind: "well", visual: WELL, spriteUrl: spriteUrlFor(WELL) }],
-  ["mill", { kind: "mill", visual: WINDMILL, spriteUrl: spriteUrlFor(WINDMILL) }],
-]);
+const register = (kind: BuildingKind, raw: unknown): void => {
+  if (isPlaceholderDefinition(raw)) return;
+  const visual = validateRegisteredDefinition(
+    kind,
+    raw as BuildingVisualDefinition,
+  );
+  DEFINITIONS.set(kind, {
+    kind,
+    visual,
+    spriteUrl: spriteUrlFor(kind, visual),
+  });
+};
+
+register("hq", headquarterJson);
+register("field", fieldJson);
+register("farm", farmJson);
+register("sawmill", sawmillJson);
+register("carpenter", carpenterJson);
+register("mill", millJson);
+register("bakery", bakeryJson);
+register("well", wellJson);
+register("pottery", potteryJson);
+register("stonemason", stonemasonJson);
+register("warehouse", warehouseJson);
+register("house", houseJson);
 
 export const registeredBuildingDefinitions = (): RegisteredBuildingDefinition[] =>
   [...DEFINITIONS.values()];
