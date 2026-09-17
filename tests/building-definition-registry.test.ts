@@ -4,6 +4,7 @@ import {
   buildingDefinition,
   buildingVisualAnchor,
   definitionBlockedForBuilding,
+  definitionForBuilding,
   definitionFootprintForBuilding,
 } from "../src/buildings/buildingDefinitionRegistry";
 import { key, walkable } from "../src/simulation/hex";
@@ -71,7 +72,23 @@ test("bakery, farm, well and mill use their editor-authored definitions", () => 
   }
 });
 
-test("unregistered building kinds retain the legacy spatial fallback", () => {
+test("registered building kinds always use the current registry definition", () => {
+  const bakery = {
+    id: "bakery-test",
+    kind: "bakery" as const,
+    name: "Bäckerei",
+    position: { q: 10, r: 10 },
+    visualDefinitionId: "obsolete-definition",
+    workers: 0,
+    carriers: 0,
+    input: 0,
+    output: 0,
+  };
+
+  assert.equal(definitionForBuilding(bakery)?.visual.id, "bakery");
+});
+
+test("building kinds without an editor definition use the current hard-coded placement fallback", () => {
   assert.equal(buildingDefinition("house"), undefined);
   assert.equal(buildingDefinition("warehouse"), undefined);
 });
