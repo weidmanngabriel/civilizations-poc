@@ -9,6 +9,12 @@ export type RegisteredBuildingDefinition = {
   spriteUrl: string;
 };
 
+const SPRITE_URLS = import.meta.glob("../assets/buildings/**/*.{png,webp}", {
+  eager: true,
+  query: "?url",
+  import: "default",
+}) as Record<string, string>;
+
 const validateRegisteredDefinition = (
   kind: BuildingKind,
   definition: BuildingVisualDefinition,
@@ -17,6 +23,14 @@ const validateRegisteredDefinition = (
   if (errors.length)
     throw new Error(`Ungültige Building-Definition für ${kind}: ${errors.join(" ")}`);
   return definition;
+};
+
+const spriteUrlFor = (definition: BuildingVisualDefinition): string => {
+  const assetPath = `../assets/buildings/${definition.id}/${definition.sprite}`;
+  const spriteUrl = SPRITE_URLS[assetPath];
+  if (!spriteUrl)
+    throw new Error(`Sprite für Building-Definition ${definition.id} nicht gefunden: ${definition.sprite}`);
+  return spriteUrl;
 };
 
 const HEADQUARTER = validateRegisteredDefinition(
@@ -30,10 +44,7 @@ const DEFINITIONS = new Map<BuildingKind, RegisteredBuildingDefinition>([
     {
       kind: "hq",
       visual: HEADQUARTER,
-      spriteUrl: new URL(
-        "../assets/buildings/headquarter/sprite.webp",
-        import.meta.url,
-      ).href,
+      spriteUrl: spriteUrlFor(HEADQUARTER),
     },
   ],
 ]);
