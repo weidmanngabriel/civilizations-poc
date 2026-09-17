@@ -78,9 +78,9 @@ Sprite placement is intentionally independent from source-image resolution. `spr
 
 `src/buildings/buildingDefinitionRegistry.ts` is the runtime registry. It maps a gameplay `BuildingKind` to a validated visual/spatial definition and sprite URL. A registered definition is authoritative for every current instance of that building kind; there is no per-instance compatibility or migration gate. `visualDefinitionId` may still be present as runtime/save metadata, but it does not select an older definition or suppress the current registry entry.
 
-Building kinds that do not yet have a registered editor definition continue to use their current code-defined spatial shapes. That fallback is part of the current implementation, not support for an older version.
+Every current `BuildingKind`, including `field`, has a same-key asset slot under `src/assets/buildings/<key>/`. Each slot contains `building.json` plus a sprite file. Types without a finished editor export use an explicit `{"placeholder": true, ...}` JSON and a transparent placeholder image; the registry imports these slots but skips placeholder JSONs, so current gameplay remains unchanged until a real export replaces the two files. Future `BuildingKind`s must receive the same-key slot in the same implementation run. There is intentionally no CI/build failure just for a placeholder slot.
 
-The currently registered building kinds are HQ, bakery, farm, well and mill. For a registered building, the editor placement coordinate is the **visual/spatial anchor**. The simulation stores `Building.position` as the gameplay **interaction coordinate**, which is the authored `entrance`. The visual anchor is recovered deterministically as `position - entrance`. This preserves the existing simulation convention that workers, carriers and other systems route to `Building.position`, while the sprite and footprint remain aligned exactly as authored.
+The currently active editor definitions are HQ, bakery, farm, well and mill. For a registered building, the editor placement coordinate is the **visual/spatial anchor**. The simulation stores `Building.position` as the gameplay **interaction coordinate**, which is the authored `entrance`. The visual anchor is recovered deterministically as `position - entrance`. This preserves the existing simulation convention that workers, carriers and other systems route to `Building.position`, while the sprite and footprint remain aligned exactly as authored.
 
 The authoritative footprint and collision semantics for registered buildings are therefore:
 
@@ -88,11 +88,11 @@ The authoritative footprint and collision semantics for registered buildings are
 - `blocked` becomes the derived `Tile.buildingBlocking` overlay;
 - footprint cells not in `blocked` remain walkable;
 - the authored `entrance` must be inside the footprint and not blocked;
-- building kinds without a registered definition use their current hard-coded spatial fallback.
+- building kinds with placeholder definitions continue to use their current hard-coded spatial fallback.
 
 `src/game/buildingSprites.ts` is the generic Phaser renderer for registered definitions. It loads registered sprites once, creates one sprite per completed building instance of a registered kind, derives the visual anchor from the building interaction coordinate, applies the normalized Phaser origin, and sets the display size from `spriteWorldWidth` plus the source aspect ratio. The renderer does not own placement or collision state.
 
-Adding another editor-authored runtime building consists primarily of adding its validated asset export under `src/assets/buildings/<id>/` and registering it for the corresponding gameplay kind. From that point on, the current registry definition applies to that kind; no migration layer is maintained.
+Activating another editor-authored runtime building now consists only of replacing `building.json` and the sprite inside the existing same-key asset slot. No additional registry edit is required for current kinds because every current kind is already wired through `register(...)`. When a new `BuildingKind` is introduced in code, its same-key asset slot and registry registration are added in that same implementation run.
 
 ## Placement, clearance and demolition
 
@@ -154,7 +154,7 @@ The selected sprite file is exported unchanged; the editor does not downscale or
 
 For a registered editor-authored building, the save stores the building's gameplay interaction position (`Building.position`, i.e. its entrance) plus ordinary gameplay state. `visualDefinitionId` may be serialized as metadata, but load-time spatial behavior is derived from the current registry definition for the building kind rather than from a historical definition snapshot.
 
-On load, registered kinds reconstruct the visual anchor, footprint and blocked collision overlay from the current registry definition. Building kinds without a registered definition reconstruct from their current code-defined shape rules. Static terrain is regenerated from the deterministic base map; roads, traffic history and bushes remain sparse persisted map state.
+On load, registered kinds reconstruct the visual anchor, footprint and blocked collision overlay from the current registry definition. Building kinds with placeholder definitions reconstruct from their current code-defined shape rules. Static terrain is regenerated from the deterministic base map; roads, traffic history and bushes remain sparse persisted map state.
 
 The save format remains `civilizations-save` **version 3**. The visual-definition schema version is separate from the save version. Before v1, older save versions or data shapes are not migrated when compatibility would require special handling; they may be rejected or break as the current model changes.
 
