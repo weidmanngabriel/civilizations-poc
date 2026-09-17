@@ -72,7 +72,23 @@ type ResourceBeforeTick = {
   output: number;
 };
 
+type ResourceBlockingCache = {
+  tiles: World["tiles"];
+  resources: World["naturalResources"];
+  signature: string;
+};
+
+const resourceBlockingCache = new WeakMap<World, ResourceBlockingCache>();
 const sameHex = (a: Hex, b: Hex): boolean => a.q === b.q && a.r === b.r;
+
+function resourceBlockingSignature(world: World): string {
+  let signature = `${world.naturalResources.length}:`;
+  for (const resource of world.naturalResources) {
+    if (resource.depleted || !naturalResourceBlocksMovement(resource)) continue;
+    signature += `${resource.id}|`;
+  }
+  return signature;
+}
 
 function syncResourceBlocking(world: World): void {
   performanceProfiler.profileFeature("resourceBlockingSync", () => {
@@ -87,6 +103,23 @@ function syncResourceBlocking(world: World): void {
         }
       }
     });
+  });
+}
+
+function ensureResourceBlockingCurrent(world: World): void {
+  const signature = resourceBlockingSignature(world);
+  const cached = resourceBlockingCache.get(world);
+  if (
+    cached?.tiles === world.tiles &&
+    cached.resources === world.naturalResources &&
+    cached.signature === signature
+  ) return;
+
+  syncResourceBlocking(world);
+  resourceBlockingCache.set(world, {
+    tiles: world.tiles,
+    resources: world.naturalResources,
+    signature,
   });
 }
 
@@ -108,13 +141,13 @@ function migrateNaturalResourceOutputToGround(world: World): void {
 }
 
 function preparePhysicalResourceTick(world: World): void {
-  syncResourceBlocking(world);
+  ensureResourceBlockingCurrent(world);
   migrateNaturalResourceOutputToGround(world);
 }
 
 function finishPhysicalResourceTick(world: World): void {
   migrateNaturalResourceOutputToGround(world);
-  syncResourceBlocking(world);
+  ensureResourceBlockingCurrent(world);
 }
 
 function advanceBuilderActionProgress(person: Person): void {

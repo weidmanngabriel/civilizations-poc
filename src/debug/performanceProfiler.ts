@@ -20,6 +20,8 @@ export type PerformanceFeature =
   | "tickSnapshots"
   | "resourceDepletion"
   | "foodArrivals"
+  | "foodArrivalTargetLookup"
+  | "foodArrivalConsumption"
   | "xpResolution"
   | "technologyUnlocks"
   | "workAreaSync"
@@ -107,6 +109,8 @@ export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
   "tickSnapshots",
   "resourceDepletion",
   "foodArrivals",
+  "foodArrivalTargetLookup",
+  "foodArrivalConsumption",
   "xpResolution",
   "technologyUnlocks",
   "workAreaSync",
@@ -114,6 +118,11 @@ export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
   "overlayHunger",
   "overlayBush",
 ];
+
+export const PERFORMANCE_DETAIL_FEATURES = new Set<PerformanceFeature>([
+  "foodArrivalTargetLookup",
+  "foodArrivalConsumption",
+]);
 
 export const PATH_REASONS: PathReason[] = [
   "hunger",

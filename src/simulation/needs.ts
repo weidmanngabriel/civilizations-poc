@@ -259,7 +259,10 @@ export function resolveFoodArrivals(world: World): void {
   for (const person of world.people) {
     if (!person.hungerState) continue;
     const state = person.hungerState;
-    const target = selectedFoodTarget(world, person);
+    const target = performanceProfiler.profileFeature(
+      "foodArrivalTargetLookup",
+      () => selectedFoodTarget(world, person),
+    );
     if (!target || !same(person.position, selectedTargetPosition(target))) {
       if (state.eatingUntilTick !== undefined) state.eatingUntilTick = undefined;
       continue;
@@ -268,7 +271,12 @@ export function resolveFoodArrivals(world: World): void {
       beginEating(world, person);
       continue;
     }
-    if (world.round >= state.eatingUntilTick) consumeSelectedTarget(world, person, target);
+    if (world.round >= state.eatingUntilTick) {
+      performanceProfiler.profileFeature(
+        "foodArrivalConsumption",
+        () => consumeSelectedTarget(world, person, target),
+      );
+    }
   }
 }
 

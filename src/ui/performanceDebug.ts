@@ -1,5 +1,6 @@
 import type { World } from "../simulation/model";
 import {
+  PERFORMANCE_DETAIL_FEATURES,
   performanceProfiler,
   type FeatureMetric,
   type PathReasonMetric,
@@ -31,6 +32,8 @@ const FEATURE_LABELS: Record<PerformanceFeature, string> = {
   tickSnapshots: "Sim · Tick-Snapshots",
   resourceDepletion: "Sim · Ressourcen-Depletion",
   foodArrivals: "Sim · Nahrungs-Ankünfte",
+  foodArrivalTargetLookup: "↳ Nahrung · Zielprüfung",
+  foodArrivalConsumption: "↳ Nahrung · Essen + Rückkehr",
   xpResolution: "Sim · XP-Auswertung",
   technologyUnlocks: "Sim · Tech-Unlocks",
   workAreaSync: "Sim · Arbeitsbereiche synchronisieren",
@@ -115,10 +118,12 @@ export function renderPerformanceDebug(container: HTMLElement, world: World): vo
     .sort((a, b) => b.msPerSecond - a.msPerSecond);
 
   const consumers = [
-    ...snapshot.features.map((feature) => ({
-      label: FEATURE_LABELS[feature.key],
-      ms: feature.msPerSecond,
-    })),
+    ...snapshot.features
+      .filter((feature) => !PERFORMANCE_DETAIL_FEATURES.has(feature.key))
+      .map((feature) => ({
+        label: FEATURE_LABELS[feature.key],
+        ms: feature.msPerSecond,
+      })),
     { label: "Sim Sonstiges", ms: snapshot.simulationOtherMsPerSecond },
   ].filter((consumer) => consumer.ms > 0.001).sort((a, b) => b.ms - a.ms);
   const measuredTotal = consumers.reduce((sum, consumer) => sum + consumer.ms, 0);
@@ -158,11 +163,11 @@ export function renderPerformanceDebug(container: HTMLElement, world: World): vo
       <div><small>Pathfinding-Zeit/s · 30 s</small>${sparkline(snapshot.history, (point) => point.pathMs)}</div>
     </div>
     <div class="perf-section">
-      <div class="perf-section-title"><strong>Top-Verbraucher</strong><small>Anteil an der gemessenen App-Zeit · Pathfinding ist bereits in den Features enthalten</small></div>
+      <div class="perf-section-title"><strong>Top-Verbraucher</strong><small>Anteil an der gemessenen App-Zeit · Detailzeilen mit ↳ sind bereits im Eltern-Feature enthalten</small></div>
       <div class="perf-consumers">${consumerSummary || "<span>Noch keine Samples</span>"}</div>
     </div>
     <div class="perf-section">
-      <div class="perf-section-title"><strong>Features · 10-s-Fenster</strong><small>ms/Tick normalisiert Simulationsarbeit über 0,5× bis 3× · Objekte/s zeigt neu erzeugte Phaser-Objekte der Overlays</small></div>
+      <div class="perf-section-title"><strong>Features · 10-s-Fenster</strong><small>ms/Tick normalisiert Simulationsarbeit über 0,5× bis 3× · ↳-Zeilen zerlegen ein Eltern-Feature und werden nicht doppelt summiert</small></div>
       <div class="perf-table-wrap"><table class="perf-table"><thead><tr><th>Feature</th><th>ms/s</th><th>ms/Tick</th><th>Ø ms</th><th>p95</th><th>Aufr./s</th><th>Obj./s</th></tr></thead><tbody>${featuresByCost.map(featureRow).join("")}</tbody></table></div>
     </div>
     <div class="perf-section">
