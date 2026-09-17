@@ -72,6 +72,11 @@ test("bakery, farm, well and mill use their editor-authored definitions", () => 
   }
 });
 
+test("registered asset URLs use BuildingKind-key folders", () => {
+  assert.match(buildingDefinition("hq")!.spriteUrl, /\/buildings\/hq\//);
+  assert.match(buildingDefinition("mill")!.spriteUrl, /\/buildings\/mill\//);
+});
+
 test("registered building kinds always use the current registry definition", () => {
   const bakery = {
     id: "bakery-test",
@@ -88,7 +93,16 @@ test("registered building kinds always use the current registry definition", () 
   assert.equal(definitionForBuilding(bakery)?.visual.id, "bakery");
 });
 
-test("building kinds without an editor definition use the current hard-coded placement fallback", () => {
-  assert.equal(buildingDefinition("house"), undefined);
-  assert.equal(buildingDefinition("warehouse"), undefined);
+test("placeholder asset slots stay inactive until replaced by a real editor export", () => {
+  for (const kind of [
+    "field",
+    "sawmill",
+    "carpenter",
+    "pottery",
+    "stonemason",
+    "warehouse",
+    "house",
+  ] as const) {
+    assert.equal(buildingDefinition(kind), undefined);
+  }
 });
