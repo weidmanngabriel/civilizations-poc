@@ -46,25 +46,25 @@ app.innerHTML = `
           <div class="field"><label for="building-id">ID</label><input id="building-id" type="text" value="new-building" spellcheck="false" /></div>
           <div class="dropzone" id="dropzone">PNG oder WebP hier hineinziehen<br />oder klicken</div>
           <input id="sprite-input" type="file" accept="image/png,image/webp" hidden />
-          <button class="secondary" id="import-building">Export importieren</button>
+          <button class="secondary" id="import-building">Gebäudedefinition öffnen</button>
           <input id="import-input" type="file" accept="application/json,image/png,image/webp,.json,.png,.webp" multiple hidden />
-          <p class="help">Zum Import building.json und das zugehörige Sprite gemeinsam auswählen oder zusammen hier hineinziehen.</p>
+          <p class="help">building.json und das zugehörige Sprite gemeinsam auswählen oder zusammen hier hineinziehen.</p>
         </section>
         <section class="panel">
           <h2>Sprite</h2>
           <div class="field">
-            <label for="sprite-scale">Breite im Spiel <span id="scale-label">60 px</span></label>
+            <label for="sprite-scale">Sprite-Breite im Spiel <span id="scale-label">60 Welt-px</span></label>
             <input id="sprite-scale" type="range" min="1" max="200" step="0.1" value="60" />
           </div>
-          <div class="field"><label for="scale-number">Breite (Welt-px)</label><input id="scale-number" type="number" min="0.1" max="1000" step="0.1" value="60" /></div>
+          <div class="field"><label for="scale-number">Exakter Wert (Welt-px)</label><input id="scale-number" type="number" min="0.1" max="1000" step="0.1" value="60" /></div>
           <p class="help">Die Originaldatei wird beim Export nicht verkleinert. Hier stellst du nur die spätere Breite in der Spielwelt ein; deshalb bleibt die Darstellung unabhängig von der Bildauflösung.</p>
         </section>
         <section class="panel">
           <h2>Werkzeug</h2>
           <div class="tool-row">
             <button class="tool" data-tool="move">Sprite verschieben</button>
-            <button class="tool active" data-tool="footprint">Grundriss</button>
-            <button class="tool" data-tool="blocked">Blockiert</button>
+            <button class="tool active" data-tool="footprint">Grundfläche</button>
+            <button class="tool" data-tool="blocked">Blockierte Zellen</button>
             <button class="tool" data-tool="entrance">Eingang</button>
           </div>
           <div class="field overlay-field">
@@ -74,14 +74,15 @@ app.innerHTML = `
           <p class="help">Ein Klick toggelt die Zelle. Klick halten und ziehen überträgt das Ergebnis der ersten Zelle auf alle weiteren überfahrenen Zellen. Shift + Klick oder Shift + Drag setzt Zellen zurück. Sprite verschieben erlaubt Drag am Bild.</p>
         </section>
         <section class="panel">
-          <h2>Sprite-Anchor</h2>
-          <div class="field"><label for="anchor-x">X im Sprite (%)</label><input id="anchor-x" type="number" value="50" step="0.1" /></div>
-          <div class="field"><label for="anchor-y">Y im Sprite (%)</label><input id="anchor-y" type="number" value="82" step="0.1" /></div>
-          <p class="help">Der Anchor-Punkt liegt auf q=0 / r=0. Er wird relativ zur Sprite-Größe gespeichert und bleibt deshalb bei einer anderen Quellauflösung an derselben Stelle.</p>
+          <h2>Sprite-Ausrichtung</h2>
+          <div class="field"><label for="anchor-x">Ankerpunkt X (%)</label><input id="anchor-x" type="number" value="50" step="0.1" /></div>
+          <div class="field"><label for="anchor-y">Ankerpunkt Y (%)</label><input id="anchor-y" type="number" value="82" step="0.1" /></div>
+          <p class="help">Der Ankerpunkt liegt auf q=0 / r=0. Er wird relativ zur Sprite-Größe gespeichert und bleibt deshalb bei einer anderen Quellauflösung an derselben Stelle.</p>
         </section>
         <section class="panel actions">
-          <button class="primary" id="download">Export herunterladen</button>
-          <button class="secondary" id="save-project" ${import.meta.env.DEV ? "" : "hidden"}>Ins Projekt speichern</button>
+          <button class="${import.meta.env.DEV ? "secondary" : "primary"}" id="download">Dateien herunterladen</button>
+          <button class="primary" id="save-project" ${import.meta.env.DEV ? "" : "hidden"}>Direkt ins Projekt speichern</button>
+          <p class="help" ${import.meta.env.DEV ? "" : "hidden"}>Schreibt building.json und Sprite nach <code>src/assets/buildings/&lt;id&gt;/</code>.</p>
           <div class="status" id="status">Sprite laden und Grundriss markieren.</div>
         </section>
       </aside>
@@ -292,7 +293,7 @@ function setWorldWidth(nextWidth: number): void {
   const width = roundedWorldWidth();
   scaleNumber.value = String(width);
   scaleRange.value = String(Math.max(Number(scaleRange.min), Math.min(Number(scaleRange.max), width)));
-  scaleLabel.textContent = `${width} px`;
+  scaleLabel.textContent = `${width} Welt-px`; 
   renderSpritePosition();
   refreshStatus();
 }
@@ -336,7 +337,7 @@ function errors(): string[] {
 function refreshStatus(message?: string): boolean {
   const currentErrors = errors();
   status.classList.toggle("error", currentErrors.length > 0);
-  status.textContent = message ?? (currentErrors.length ? currentErrors.join("\n") : `Bereit · ${footprint.size} Grundrisszellen, ${blocked.size} blockiert · ${roundedWorldWidth()} px Sprite-Breite.`);
+  status.textContent = message ?? (currentErrors.length ? currentErrors.join("\n") : `Bereit · ${footprint.size} Grundrisszellen, ${blocked.size} blockiert · ${roundedWorldWidth()} Welt-px Sprite-Breite.`);
   return currentErrors.length === 0;
 }
 
@@ -422,7 +423,7 @@ downloadButton.addEventListener("click", () => {
   const value = definition();
   downloadBlob(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }), "building.json");
   if (spriteFile) downloadBlob(spriteFile, value.sprite);
-  refreshStatus("Export gestartet: building.json + unverändertes Sprite.");
+  refreshStatus("Dateien werden heruntergeladen: building.json + unverändertes Sprite.");
 });
 
 saveProjectButton.addEventListener("click", async () => {
