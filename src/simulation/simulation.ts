@@ -35,6 +35,7 @@ import {
 } from "./resourceDepletion";
 import { resolveFoodArrivals } from "./needs";
 import { measureResourcePerformance } from "../debug/resourcePerformance";
+import { performanceProfiler } from "../debug/performanceProfiler";
 
 const RESOURCE_DROP_RADIUS = GRID_REFINEMENT;
 
@@ -74,32 +75,36 @@ type ResourceBeforeTick = {
 const sameHex = (a: Hex, b: Hex): boolean => a.q === b.q && a.r === b.r;
 
 function syncResourceBlocking(world: World): void {
-  measureResourcePerformance("resourceBlockingSync", () => {
-    for (const tile of world.tiles) tile.resourceBlocking = undefined;
-    const tiles = tileIndex(world.tiles);
-    for (const resource of world.naturalResources) {
-      if (resource.depleted || !naturalResourceBlocksMovement(resource)) continue;
-      for (const position of naturalResourceFootprint(resource)) {
-        const tile = tiles.get(key(position));
-        if (tile) tile.resourceBlocking = true;
+  performanceProfiler.profileFeature("resourceBlockingSync", () => {
+    measureResourcePerformance("resourceBlockingSync", () => {
+      for (const tile of world.tiles) tile.resourceBlocking = undefined;
+      const tiles = tileIndex(world.tiles);
+      for (const resource of world.naturalResources) {
+        if (resource.depleted || !naturalResourceBlocksMovement(resource)) continue;
+        for (const position of naturalResourceFootprint(resource)) {
+          const tile = tiles.get(key(position));
+          if (tile) tile.resourceBlocking = true;
+        }
       }
-    }
+    });
   });
 }
 
 function migrateNaturalResourceOutputToGround(world: World): void {
-  for (const resource of world.naturalResources) {
-    const good = naturalResourceGood(resource);
-    let wholeUnits = Math.floor(resource.output + 1e-9);
-    while (wholeUnits > 0) {
-      const drop = findLooseGoodDropPosition(world, resource.position, good, RESOURCE_DROP_RADIUS);
-      if (!drop) break;
-      const stack = placeLooseGood(world, drop, good, 1);
-      if (!stack) break;
-      resource.output = Math.max(0, resource.output - 1);
-      wholeUnits--;
+  performanceProfiler.profileFeature("resourceOutputMigration", () => {
+    for (const resource of world.naturalResources) {
+      const good = naturalResourceGood(resource);
+      let wholeUnits = Math.floor(resource.output + 1e-9);
+      while (wholeUnits > 0) {
+        const drop = findLooseGoodDropPosition(world, resource.position, good, RESOURCE_DROP_RADIUS);
+        if (!drop) break;
+        const stack = placeLooseGood(world, drop, good, 1);
+        if (!stack) break;
+        resource.output = Math.max(0, resource.output - 1);
+        wholeUnits--;
+      }
     }
-  }
+  });
 }
 
 function preparePhysicalResourceTick(world: World): void {
@@ -245,58 +250,73 @@ function awardCompletedActions(
 export function tick(world: World): void {
   preparePhysicalResourceTick(world);
 
-  const peopleBefore: PersonBeforeTick[] = world.people.map((person) => ({
-    person,
-    assignmentBuilding: person.assignment?.building,
-    assignmentRole: person.assignment?.role,
-    tripRef: person.trip,
-    tripPicked: person.trip?.picked ?? false,
-    farmTaskRef: person.farmTask,
-    farmTaskKind: person.farmTask?.kind,
-    farmTaskTarget: person.farmTask ? { ...person.farmTask.target } : undefined,
-    farmTaskFieldId: person.farmTask?.fieldId,
-    progress: person.progress,
-    resourceTarget: person.resourceTarget,
-    active: person.active,
-    pathLength: person.path.length,
-    position: { ...person.position },
-  }));
-
-  const buildingsBefore = new Map<BuildingId, BuildingBeforeTick>(
-    world.buildings.map((building) => [
-      building.id,
-      {
-        kind: building.kind,
-        position: { ...building.position },
-        farmId: building.farmId,
-        fieldStage: building.fieldStage,
-        retired: Boolean(building.retired),
-        recipeDuration: building.recipe?.duration,
-        constructionProgress: building.construction?.progress,
-      },
-    ]),
-  );
-  const resourcesBefore = new Map<NaturalResourceId, ResourceBeforeTick>(
-    world.naturalResources.map((resource) => [
-      resource.id,
-      { kind: resource.kind, remaining: resource.remaining, output: resource.output },
-    ]),
-  );
-  const buildingIdsBefore = new Set(world.buildings.map((building) => building.id));
-
-  const deferredResourceDepletion = deferLocalResourceDepletion(world);
-  coreTick(world);
-  resolveFoodArrivals(world);
-  finishDeferredResourceDepletion(world, deferredResourceDepletion);
-  finishPhysicalResourceTick(world);
-  if (deferredResourceDepletion.length) syncWorkAreas(world);
-
-  awardCompletedActions(
-    world,
+  const {
     peopleBefore,
     buildingsBefore,
     resourcesBefore,
     buildingIdsBefore,
+  } = performanceProfiler.profileFeature("tickSnapshots", () => ({
+    peopleBefore: world.people.map((person): PersonBeforeTick => ({
+      person,
+      assignmentBuilding: person.assignment?.building,
+      assignmentRole: person.assignment?.role,
+      tripRef: person.trip,
+      tripPicked: person.trip?.picked ?? false,
+      farmTaskRef: person.farmTask,
+      farmTaskKind: person.farmTask?.kind,
+      farmTaskTarget: person.farmTask ? { ...person.farmTask.target } : undefined,
+      farmTaskFieldId: person.farmTask?.fieldId,
+      progress: person.progress,
+      resourceTarget: person.resourceTarget,
+      active: person.active,
+      pathLength: person.path.length,
+      position: { ...person.position },
+    })),
+    buildingsBefore: new Map<BuildingId, BuildingBeforeTick>(
+      world.buildings.map((building) => [
+        building.id,
+        {
+          kind: building.kind,
+          position: { ...building.position },
+          farmId: building.farmId,
+          fieldStage: building.fieldStage,
+          retired: Boolean(building.retired),
+          recipeDuration: building.recipe?.duration,
+          constructionProgress: building.construction?.progress,
+        },
+      ]),
+    ),
+    resourcesBefore: new Map<NaturalResourceId, ResourceBeforeTick>(
+      world.naturalResources.map((resource) => [
+        resource.id,
+        { kind: resource.kind, remaining: resource.remaining, output: resource.output },
+      ]),
+    ),
+    buildingIdsBefore: new Set(world.buildings.map((building) => building.id)),
+  }));
+
+  const deferredResourceDepletion = performanceProfiler.profileFeature(
+    "resourceDepletion",
+    () => deferLocalResourceDepletion(world),
   );
-  updateTechnologyUnlocks(world);
+  coreTick(world);
+  performanceProfiler.profileFeature("foodArrivals", () => resolveFoodArrivals(world));
+  performanceProfiler.profileFeature("resourceDepletion", () =>
+    finishDeferredResourceDepletion(world, deferredResourceDepletion),
+  );
+  finishPhysicalResourceTick(world);
+  if (deferredResourceDepletion.length) {
+    performanceProfiler.profileFeature("workAreaSync", () => syncWorkAreas(world));
+  }
+
+  performanceProfiler.profileFeature("xpResolution", () =>
+    awardCompletedActions(
+      world,
+      peopleBefore,
+      buildingsBefore,
+      resourcesBefore,
+      buildingIdsBefore,
+    ),
+  );
+  performanceProfiler.profileFeature("technologyUnlocks", () => updateTechnologyUnlocks(world));
 }
