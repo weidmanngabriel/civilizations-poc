@@ -3,6 +3,7 @@ import {
   buildingVisualAnchor,
   definitionForBuilding,
   registeredBuildingDefinitions,
+  type RegisteredBuildingDefinition,
 } from "../buildings/buildingDefinitionRegistry";
 import type { Building, World } from "../simulation/model";
 import { pixel } from "./mapGeometry";
@@ -18,9 +19,25 @@ type CreatableScene = MainScene & {
   create?: () => void;
 };
 
+const BUILDING_SPRITE_URLS = import.meta.glob("../assets/buildings/**/*.{png,webp}", {
+  eager: true,
+  query: "?url",
+  import: "default",
+}) as Record<string, string>;
+
 const textureKey = (id: string): string => `building-${id}`;
 const displayable = (building: Building): boolean =>
   !building.retired && (!building.construction || building.construction.complete);
+
+const spriteUrlFor = (definition: RegisteredBuildingDefinition): string => {
+  const assetPath = `../assets/buildings/${definition.visual.id}/${definition.visual.sprite}`;
+  const spriteUrl = BUILDING_SPRITE_URLS[assetPath];
+  if (!spriteUrl)
+    throw new Error(
+      `Sprite für Building-Definition ${definition.visual.id} nicht gefunden: ${definition.visual.sprite}`,
+    );
+  return spriteUrl;
+};
 
 function loadTextures(scene: MainScene): Promise<void> {
   const pending = registeredBuildingDefinitions().filter(
@@ -45,7 +62,7 @@ function loadTextures(scene: MainScene): Promise<void> {
     scene.load.once(Phaser.Loader.Events.COMPLETE, complete);
     scene.load.once(Phaser.Loader.Events.FILE_LOAD_ERROR, failed);
     for (const definition of pending)
-      scene.load.image(textureKey(definition.visual.id), definition.spriteUrl);
+      scene.load.image(textureKey(definition.visual.id), spriteUrlFor(definition));
     scene.load.start();
   });
 }
