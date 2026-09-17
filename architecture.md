@@ -124,6 +124,8 @@ Extractor flags start at the first selected resource. Storage-carrier flags star
 
 Hunger and sleep retain their documented behavior and event-driven target planning. Hunger is sampled once per simulated second while movement and production continue at 60 Hz.
 
+Nature sleep targets are intentionally **not reserved** while a person is travelling. Trees and bushes enforce single occupancy only at arrival: if another person is already sleeping on the target, the arriving person replans from that position while excluding only the occupied target that was just reached. Ground sleep has no occupancy restriction.
+
 Farm balance is unchanged. Field footprints must remain valid grass and cannot overwrite natural resources, loose goods, reservations or occupied cells.
 
 Organic roads still require eight qualifying crossings within 32 simulated seconds and retain the 1.3× movement multiplier. Roads cannot cover active natural-resource footprints.

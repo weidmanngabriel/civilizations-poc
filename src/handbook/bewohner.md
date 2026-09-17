@@ -10,6 +10,8 @@ Jeder Bewohner hat einen eigenen Namen. Tippe oder klicke eine Person auf der Ka
 
 Dabei haben Bewohner eigene Bedürfnisse. Hungrige oder müde Bewohner unterbrechen ihre Arbeit und kümmern sich zunächst um sich selbst. Ihre Arbeitsplatz-Zuweisung bleibt dabei bestehen; nach Essen oder Schlafen kehren sie zu ihrer Aufgabe zurück. Wohnhäuser bieten einen guten Schlafplatz; Nahrung finden Bewohner in deiner Siedlung oder teilweise auch in der Natur.
 
+Wer draußen schläft, kann einen Baum oder Busch als Schlafplatz wählen. Mehrere Bewohner dürfen zunächst denselben Naturplatz ansteuern. Liegt bei der Ankunft bereits jemand dort, sucht der nächste Bewohner von dort aus weiter. Auf dem Boden gibt es diese Begrenzung nicht.
+
 Essen dauert fünf simulierte Sekunden. Während dieser Zeit bleibt der Bewohner an der Nahrungsquelle. Wird ein Beerenbusch genutzt, ist er danach sichtbar abgeerntet und steht erst nach seinem Nachwachsen wieder als Nahrungsquelle zur Verfügung.
 
 Beim Essen wird immer die volle Wirkung der gewählten Nahrung gutgeschrieben. Hunger kann dadurch vorübergehend über 100 steigen; dieser Überschuss geht nicht verloren.

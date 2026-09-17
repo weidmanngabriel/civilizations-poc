@@ -79,8 +79,10 @@ const bestCandidate = (
   person: Person,
   kind: "house" | "nature",
   context: SleepSearchContext,
+  excludedTargets: ReadonlySet<string> = new Set(),
 ): SleepCandidate | undefined => {
   const targets = searchTargets(world, context, kind)
+    .filter((target) => !excludedTargets.has(key(target)))
     .map((target) => {
       const distance = hexDistance(person.position, target);
       return {
@@ -114,9 +116,10 @@ const chooseSleepTarget = (
   world: World,
   person: Person,
   context: SleepSearchContext,
+  excludedTargets: ReadonlySet<string> = new Set(),
 ): SleepCandidate | { kind: "ground"; target: Hex; path: Hex[] } =>
-  bestCandidate(world, person, "house", context) ??
-  bestCandidate(world, person, "nature", context) ??
+  bestCandidate(world, person, "house", context, excludedTargets) ??
+  bestCandidate(world, person, "nature", context, excludedTargets) ??
   { kind: "ground", target: { ...person.position }, path: [] };
 
 const targetStillValid = (world: World, state: SleepState): boolean => {
@@ -126,6 +129,16 @@ const targetStillValid = (world: World, state: SleepState): boolean => {
   const tile = tileIndex(world.tiles).get(key(state.target));
   return Boolean(tile?.terrain === "grass" && tile.bush);
 };
+
+const natureSleepTargetOccupied = (world: World, person: Person, target: Hex): boolean =>
+  world.people.some((other) =>
+    other.id !== person.id &&
+    other.sleepState?.kind === "nature" &&
+    other.sleepState.progress > 0 &&
+    same(other.sleepState.target, target) &&
+    same(other.position, target) &&
+    other.path.length === 0,
+  );
 
 const atTaskBoundary = (person: Person): boolean => person.progress === 0 && !person.farmTask && !person.trip && person.path.length === 0;
 
@@ -203,8 +216,14 @@ const startSleeping = (world: World, person: Person, context: SleepSearchContext
   person.path = same(person.position, candidate.target) ? [] : candidate.path;
 };
 
-const applyReplacementTarget = (world: World, person: Person, state: SleepState, context: SleepSearchContext): void => {
-  const replacement = chooseSleepTarget(world, person, context);
+const applyReplacementTarget = (
+  world: World,
+  person: Person,
+  state: SleepState,
+  context: SleepSearchContext,
+  excludedTargets: ReadonlySet<string> = new Set(),
+): void => {
+  const replacement = chooseSleepTarget(world, person, context, excludedTargets);
   state.kind = replacement.kind;
   state.target = { ...replacement.target };
   state.progress = 0;
@@ -234,6 +253,10 @@ const ensureSleepRouteOrProgress = (world: World, person: Person, context: Sleep
   }
   if (state.progress === 0 && state.completedPhases === 0 && !targetStillValid(world, state)) {
     applyReplacementTarget(world, person, state, context);
+    return;
+  }
+  if (state.kind === "nature" && natureSleepTargetOccupied(world, person, state.target)) {
+    applyReplacementTarget(world, person, state, context, new Set([key(state.target)]));
     return;
   }
   person.active = false;
