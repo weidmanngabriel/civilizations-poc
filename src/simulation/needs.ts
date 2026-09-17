@@ -7,7 +7,7 @@ import type {
   Tile,
   World,
 } from "./model";
-import { findPath, pathTravelCost, same } from "./hex";
+import { findPath, key, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 import { hexDistance } from "./spatial";
 import {
@@ -224,7 +224,7 @@ const selectedFoodTarget = (world: World, person: Person): SelectedFoodTarget | 
     if (source && breadStock(source) - reservedBread(world, source.id, person.id) >= 1) return { kind: "bread", source };
   }
   if (state.foodBush) {
-    const tile = world.tiles.find((candidate) => same(candidate, state.foodBush!));
+    const tile = tileIndex(world.tiles).get(key(state.foodBush));
     if (tile?.terrain === "grass" && tile.bush && tile.bushAvailable && !reservedBush(world, tile, person.id)) return { kind: "bush", tile };
   }
   return undefined;
