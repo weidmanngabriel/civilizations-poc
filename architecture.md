@@ -4,6 +4,8 @@ This file is the current architectural entry point. Detailed unchanged subsystem
 
 The completed fine-grid/resource migration is recorded in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md). It remains the reference for changes to map scale, terrain, resources, loose goods, movement, placement, roads or logistics.
 
+Until version 1, backward compatibility is deliberately not maintained when it would require migrations, compatibility defaults, parallel legacy paths or special conditional logic. The current architecture and data formats are authoritative.
+
 ## Technology and boundaries
 
 The prototype is a browser-first TypeScript application using TypeScript, Vite and Phaser 4, deployed statically through GitHub Pages.
@@ -74,35 +76,31 @@ Gameplay properties such as recipes, workers, inventory, costs and technology st
 
 Sprite placement is intentionally independent from source-image resolution. `spriteAnchor` is stored as a relative position in the image and `spriteWorldWidth` is the authoritative rendered width in world pixels. Replacing a sprite with the same artwork at a higher pixel resolution therefore does not require recalculating its world size or anchor. The editor exports the selected PNG/WebP bytes without dimensional downscaling; runtime quality is determined by the supplied source asset rather than by a generated low-resolution copy.
 
-`src/buildings/buildingDefinitionRegistry.ts` is the runtime registry. It maps a gameplay `BuildingKind` to a validated visual/spatial definition and sprite URL. Registry availability and runtime use are deliberately separate:
+`src/buildings/buildingDefinitionRegistry.ts` is the runtime registry. It maps a gameplay `BuildingKind` to a validated visual/spatial definition and sprite URL. A registered definition is authoritative for every current instance of that building kind; there is no per-instance compatibility or migration gate. `visualDefinitionId` may still be present as runtime/save metadata, but it does not select an older definition or suppress the current registry entry.
 
-- a kind may have a registered editor definition;
-- a concrete `Building` uses that definition only when its `visualDefinitionId` is bound to the registered definition;
-- this allows buildings to be migrated gradually without changing unrelated legacy fixtures or buildings.
+Building kinds that do not yet have a registered editor definition continue to use their current code-defined spatial shapes. That fallback is part of the current implementation, not support for an older version.
 
-The player-facing HQ is the first fully bound building. The neutral `createWorld()` test/sandbox world intentionally keeps its historical simplified HQ geometry, while `createDefaultGameWorld()` binds the player HQ to the editor export.
+The currently registered building kinds are HQ, bakery, farm, well and mill. For a registered building, the editor placement coordinate is the **visual/spatial anchor**. The simulation stores `Building.position` as the gameplay **interaction coordinate**, which is the authored `entrance`. The visual anchor is recovered deterministically as `position - entrance`. This preserves the existing simulation convention that workers, carriers and other systems route to `Building.position`, while the sprite and footprint remain aligned exactly as authored.
 
-For a bound building, the editor placement coordinate is the **visual/spatial anchor**. The simulation stores `Building.position` as the gameplay **interaction coordinate**, which is the authored `entrance`. The visual anchor is recovered deterministically as `position - entrance`. This preserves the existing simulation convention that workers, carriers and other systems route to `Building.position`, while the sprite and footprint remain aligned exactly as authored.
+The authoritative footprint and collision semantics for registered buildings are therefore:
 
-The authoritative footprint and collision semantics for bound buildings are therefore:
-
-- `footprint` comes from the registered `building.json` translated by the visual anchor;
+- `footprint` comes from the current registered `building.json` translated by the visual anchor;
 - `blocked` becomes the derived `Tile.buildingBlocking` overlay;
 - footprint cells not in `blocked` remain walkable;
 - the authored `entrance` must be inside the footprint and not blocked;
-- legacy/unbound buildings keep their existing hard-coded footprint fallback.
+- building kinds without a registered definition use their current hard-coded spatial fallback.
 
-`src/game/buildingSprites.ts` is the generic Phaser renderer for bound definitions. It loads registered sprites once, creates one sprite per bound completed building instance, derives the visual anchor from the building interaction coordinate, applies the normalized Phaser origin, and sets the display size from `spriteWorldWidth` plus the source aspect ratio. The renderer does not own placement or collision state.
+`src/game/buildingSprites.ts` is the generic Phaser renderer for registered definitions. It loads registered sprites once, creates one sprite per completed building instance of a registered kind, derives the visual anchor from the building interaction coordinate, applies the normalized Phaser origin, and sets the display size from `spriteWorldWidth` plus the source aspect ratio. The renderer does not own placement or collision state.
 
-Adding another editor-authored runtime building therefore consists primarily of adding its validated asset export under `src/assets/buildings/<id>/`, registering it for the corresponding gameplay kind, and binding new runtime instances. Existing gameplay rules remain separate.
+Adding another editor-authored runtime building consists primarily of adding its validated asset export under `src/assets/buildings/<id>/` and registering it for the corresponding gameplay kind. From that point on, the current registry definition applies to that kind; no migration layer is maintained.
 
 ## Placement, clearance and demolition
 
-`src/simulation/buildingPlacement.ts` remains authoritative for placement legality. For registered kinds it uses the editor footprint; otherwise it uses the legacy shape table. The existing one-coarse-tile clearance ring is computed around whichever footprint is authoritative.
+`src/simulation/buildingPlacement.ts` remains authoritative for placement legality. For registered kinds it uses the editor footprint; otherwise it uses the current hard-coded shape table. The existing one-coarse-tile clearance ring is computed around whichever footprint is authoritative.
 
 Active natural-resource footprints reserve both the building footprint and clearance ring. Loose goods block only the actual footprint because they remain walkable and may stay in the surrounding clearance area.
 
-For future registered placeable buildings, construction stores the interaction position at the authored entrance, binds the visual definition, writes the authored footprint and `buildingBlocking` overlay, and otherwise preserves the existing construction/gameplay semantics.
+For registered placeable buildings, construction stores the interaction position at the authored entrance, writes the authored footprint and `buildingBlocking` overlay, and otherwise preserves the existing construction/gameplay semantics.
 
 Demolition restores the complete footprint, clears the building collision overlay and stale traffic state, and preserves the existing rule that a road covered by construction returns as grass rather than reappearing.
 
@@ -154,15 +152,11 @@ The selected sprite file is exported unchanged; the editor does not downscale or
 
 `src/simulation/saveGame.ts` owns the versioned JSON save format. Saves remain anchor/interaction-point based rather than snapshotting derived geometry: `tiles`, entity footprints and underlying building terrain are not persisted.
 
-For a bound editor-authored building, the save stores:
+For a registered editor-authored building, the save stores the building's gameplay interaction position (`Building.position`, i.e. its entrance) plus ordinary gameplay state. `visualDefinitionId` may be serialized as metadata, but load-time spatial behavior is derived from the current registry definition for the building kind rather than from a historical definition snapshot.
 
-- the building's gameplay interaction position (`Building.position`, i.e. its entrance),
-- `visualDefinitionId`,
-- ordinary gameplay state.
+On load, registered kinds reconstruct the visual anchor, footprint and blocked collision overlay from the current registry definition. Building kinds without a registered definition reconstruct from their current code-defined shape rules. Static terrain is regenerated from the deterministic base map; roads, traffic history and bushes remain sparse persisted map state.
 
-On load, the registry reconstructs the visual anchor, footprint and blocked collision overlay from the bound definition. Unbound buildings reconstruct from their existing legacy shape rules. Static terrain is regenerated from the deterministic base map; roads, traffic history and bushes remain sparse persisted map state.
-
-The save format remains `civilizations-save` **version 3**. The visual-definition schema version is separate from the save version; changing sprite-resolution metadata does not change authoritative saved gameplay state. Version 2 and older saves are rejected rather than guessed or migrated.
+The save format remains `civilizations-save` **version 3**. The visual-definition schema version is separate from the save version. Before v1, older save versions or data shapes are not migrated when compatibility would require special handling; they may be rejected or break as the current model changes.
 
 Loading and starting a new game still replace the contents of the existing shared `World` object instead of swapping its identity, so Phaser and UI modules keep valid references.
 
@@ -176,7 +170,7 @@ All other unchanged systems remain documented in [`architecture-detail.md`](./ar
 
 ## Testing and deployment
 
-`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Coverage includes building-visual schema validation, resolution-independent sprite metadata, bound HQ entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas, technology progression and save/load reconstruction.
+`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Coverage includes building-visual schema validation, resolution-independent sprite metadata, registered-building entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas, technology progression and save/load reconstruction.
 
 Vite builds both the game root and `building-editor/index.html`. GitHub Pages publishes both from the same `dist` artifact.
 
