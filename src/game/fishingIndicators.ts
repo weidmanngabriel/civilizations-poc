@@ -6,6 +6,7 @@ import { personMarkerPositions } from "./personMarkerGeometry";
 
 const CAST_TICKS = Math.round(0.5 * CONFIG.simulationHz);
 const REEL_TICKS = Math.round(0.5 * CONFIG.simulationHz);
+const CAST_DISTANCE_FACTOR = 1.6;
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
 const smooth = (value: number): number => {
@@ -59,8 +60,10 @@ export function installFishingIndicators(scene: Phaser.Scene, world: World): voi
 
         const startX = marker.x;
         const startY = marker.y - 1.5 / zoom;
-        const endX = startX + (target.x - startX) * extension;
-        const endY = startY + (target.y - startY) * extension;
+        const endX =
+          startX + (target.x - startX) * CAST_DISTANCE_FACTOR * extension;
+        const endY =
+          startY + (target.y - startY) * CAST_DISTANCE_FACTOR * extension;
 
         graphics.lineStyle(0.8 / zoom, 0xf5f5ef, 0.95);
         graphics.lineBetween(startX, startY, endX, endY);
