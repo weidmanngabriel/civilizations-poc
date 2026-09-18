@@ -345,6 +345,9 @@ export function mountPersonPanel(world: World): void {
     const handbook = document.querySelector<HTMLElement>("#handbook-overlay");
     if (handbook && !handbook.hidden)
       document.querySelector<HTMLButtonElement>("#handbook-close")?.click();
+    const buildings = document.querySelector<HTMLElement>("#building-browser-panel");
+    if (buildings && !buildings.hidden)
+      document.querySelector<HTMLButtonElement>('[data-building-action="close"]')?.click();
   };
 
   const setBrowserOpen = (open: boolean): void => {
@@ -456,6 +459,7 @@ export function mountPersonPanel(world: World): void {
   window.addEventListener(MERCHANT_TARGET_MODE_EVENT, onModalMode);
   document.querySelector<HTMLButtonElement>("#build-menu-toggle")?.addEventListener("click", () => setBrowserOpen(false));
   document.querySelector<HTMLButtonElement>("#handbook-toggle")?.addEventListener("click", () => setBrowserOpen(false));
+  document.querySelector<HTMLButtonElement>("#building-menu-toggle")?.addEventListener("click", () => setBrowserOpen(false));
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     if (!browser.hidden) setBrowserOpen(false);
