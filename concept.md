@@ -125,7 +125,7 @@ Jeder Wegweiser besitzt einen eigenen **Orientierungsradius von 2,5 Weltkacheln*
 
 Für jede Verbindung trägt ein Wegweiser ein eigenes kleines Richtungsschild, das in der isometrischen Kartenansicht auf den verbundenen Wegweiser zeigt.
 
-Bewohner nutzen ein zusammenhängendes Wegweisernetz, wenn Start und Ziel über dessen Orientierungsbereiche erreichbar sind. Zwischen den Wegweisern bewegen sie sich weiterhin normal über das feine Raster. Ist kein brauchbarer Wegweiserpfad vorhanden, bleibt das globale Pathfinding als Fallback verfügbar.
+Bewohner verwenden das Wegweisernetz verpflichtend für die grobe Navigation. Start → erster Wegweiser, Wegweiser → Wegweiser und letzter Wegweiser → Ziel werden weiterhin lokal über das feine Raster berechnet. Gibt es mehrere Netzrouten, wird die reale Reisezeit inklusive vorhandener Wege verglichen und die günstigste Route gewählt. Es gibt in der Spielerwelt keine globale Direktnavigation mehr. Fehlt ein gültiger Weg, bleibt die Person stehen und erhält einen gelben Hinweis. Derselbe erfolglose Weg wird nicht laufend neu gesucht; erst eine Änderung des Wegweisernetzes erlaubt für dieses Ziel wieder einen neuen Versuch.
 
 ### Fischer
 
