@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createWorld } from "../src/simulation/scenario";
-import { buildAt } from "../src/simulation/simulation";
+import { createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
+import { buildAt, tick } from "../src/simulation/simulation";
 import { buildingFootprint } from "../src/simulation/buildingPlacement";
 import { hexDistance, key } from "../src/simulation/hex";
 import { syncIdleBehavior } from "../src/simulation/idleBehavior";
@@ -56,4 +56,16 @@ test("an idle production worker waits outside the assigned workplace", () => {
   assert.equal(footprint.has(key(person.idleTarget!)), false);
   const distance = hexDistance(workplace.position, person.idleTarget!);
   assert.ok(distance >= 2 && distance <= 4);
+});
+
+
+test("a fresh player game advances immediately and starts visible movement", () => {
+  const world = createDefaultGameWorld();
+  const beforeRound = world.round;
+
+  tick(world);
+
+  assert.equal(world.round, beforeRound + 1);
+  assert.ok(world.people.some((person) => person.path.length > 0));
+  assert.ok(world.people.some((person) => person.idleTarget));
 });

@@ -70,6 +70,42 @@ const hashScore = (personId: number, position: Hex, round: number): number => {
   return value >>> 0;
 };
 
+const localPath = (world: World, start: Hex, target: Hex, maxSteps: number): Hex[] | undefined => {
+  if (same(start, target)) return [];
+  const tiles = tileIndex(world.tiles);
+  const startTile = tiles.get(key(start));
+  const targetTile = tiles.get(key(target));
+  if (!startTile || !targetTile || !walkable(startTile) || !walkable(targetTile)) return undefined;
+
+  const startKey = key(start);
+  const targetKey = key(target);
+  const queue: Array<{ position: Hex; depth: number }> = [{ position: start, depth: 0 }];
+  const previous = new Map<string, Hex | undefined>([[startKey, undefined]]);
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const current = queue[index]!;
+    if (current.depth >= maxSteps) continue;
+    for (const next of neighbors(current.position)) {
+      const nextKey = key(next);
+      if (previous.has(nextKey)) continue;
+      const tile = tiles.get(nextKey);
+      if (!tile || !walkable(tile)) continue;
+      previous.set(nextKey, current.position);
+      if (nextKey === targetKey) {
+        const path: Hex[] = [next];
+        let cursor = current.position;
+        while (key(cursor) !== startKey) {
+          path.unshift(cursor);
+          cursor = previous.get(key(cursor))!;
+        }
+        return path;
+      }
+      queue.push({ position: next, depth: current.depth + 1 });
+    }
+  }
+  return undefined;
+};
+
 const nearbyCells = (world: World, anchor: Hex): Hex[] => {
   const tiles = tileIndex(world.tiles);
   const seen = new Set<string>([key(anchor)]);
@@ -98,19 +134,24 @@ const chooseIdleTarget = (
   anchor: Hex,
   reserved: Set<string>,
   buildingCells: Set<string>,
-): Hex | undefined => {
+): { target: Hex; path: Hex[] } | undefined => {
   const candidates = nearbyCells(world, anchor)
     .filter((candidate) => !reserved.has(key(candidate)) && !buildingCells.has(key(candidate)))
     .map((candidate) => ({
       candidate,
-      path: findPath(world.tiles, person.position, candidate, CONFIG.roadSpeedMultiplier),
       distance: hexDistance(anchor, candidate),
       score: hashScore(person.id, candidate, world.round),
     }))
-    .filter((entry): entry is { candidate: Hex; path: Hex[]; distance: number; score: number } =>
-      Boolean(entry.path))
     .sort((a, b) => a.score - b.score || b.distance - a.distance);
-  return candidates[0]?.candidate;
+
+  for (const { candidate } of candidates) {
+    const localDistance = hexDistance(person.position, candidate);
+    const path = localDistance <= IDLE_MAX_DISTANCE * 2
+      ? localPath(world, person.position, candidate, IDLE_MAX_DISTANCE * 2)
+      : findPath(world.tiles, person.position, candidate, CONFIG.roadSpeedMultiplier);
+    if (path) return { target: candidate, path };
+  }
+  return undefined;
 };
 
 export function wakeIdlePeople(world: World): void {
@@ -174,11 +215,11 @@ export function syncIdleBehavior(world: World): void {
     }
 
     if (person.idleTarget) reserved.delete(key(person.idleTarget));
-    const target = chooseIdleTarget(world, person, anchor, reserved, buildingCells);
-    person.idleTarget = target;
-    if (!target) continue;
-    reserved.add(key(target));
-    person.path = findPath(world.tiles, person.position, target, CONFIG.roadSpeedMultiplier) ?? [];
+    const choice = chooseIdleTarget(world, person, anchor, reserved, buildingCells);
+    person.idleTarget = choice?.target;
+    if (!choice) continue;
+    reserved.add(key(choice.target));
+    person.path = choice.path;
     person.movement = 0;
     person.active = true;
   }
