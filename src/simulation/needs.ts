@@ -63,11 +63,11 @@ const hungerValue = (person: Person): number => {
 };
 
 const secondsPerHungerPoint = (person: Person): number => {
-  if (person.trip?.picked) return 1;
-  if (person.hungerState) return person.path.length > 0 ? 2 : 4;
-  if (person.progress > 0 || (person.farmTask && person.path.length === 0)) return 1;
-  if (person.path.length > 0) return 2;
-  return 4;
+  if (person.trip?.picked) return 2;
+  if (person.hungerState) return person.path.length > 0 ? 4 : 8;
+  if (person.progress > 0 || (person.farmTask && person.path.length === 0)) return 2;
+  if (person.path.length > 0) return 4;
+  return 8;
 };
 
 const decayHunger = (person: Person): void => {
