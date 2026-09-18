@@ -427,7 +427,7 @@ export function changePopulation(w: World, delta: 1 | -1): boolean {
       !p.woodcutter &&
       !p.extractor &&
       !p.builder &&
-      same(p.position, hq.position),
+      (same(p.position, hq.position) || Boolean(p.idleTarget)),
   );
   if (index < 0) return false;
   w.people.splice(index, 1);
@@ -1161,7 +1161,11 @@ export function tick(w: World): void {
       for (const p of w.people) rerouteCurrentTask(w, p);
     }
     for (const p of w.people) {
-      if (movingAtTickStart.has(p.id) && p.path.length === 0)
+      if (
+        movingAtTickStart.has(p.id) &&
+        p.path.length === 0 &&
+        !(p.idleTarget && same(p.position, p.idleTarget))
+      )
         immediateDecisionPeople.add(p.id);
     }
   });
