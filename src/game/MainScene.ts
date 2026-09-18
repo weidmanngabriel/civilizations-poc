@@ -631,6 +631,7 @@ export class MainScene extends Phaser.Scene {
 
     const groups = new Map<string, number>();
     for (const p of this.world.people) {
+      if (personInsideBuilding(this.world, p)) continue;
       const moving = p.path.length > 0;
       const k = key(p.position);
       const i = groups.get(k) ?? 0;
