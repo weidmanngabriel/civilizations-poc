@@ -433,7 +433,7 @@ function enforceResourceWorker(world: World, person: Person): void {
       person.progress = 0;
       area.retryAfterTick = undefined;
     } else if (!person.path.length && !same(person.position, target.position)) {
-      const path = findPath(world.tiles, person.position, target.position, CONFIG.roadSpeedMultiplier);
+      const path = findNavigationPath(world, person.position, target.position, CONFIG.roadSpeedMultiplier);
       if (path) {
         person.path = path;
         person.movement = 0;
