@@ -52,8 +52,7 @@ test("fractional production output enters a warehouse only in whole units", () =
     picked: false,
   };
 
-  tick(world);
-  tick(world);
+  for (let i = 0; i < CONFIG.transferDurationTicks * 2 + 2; i++) tick(world);
 
   almostEqual(source.output, 3.7);
   assert.equal(warehouseStock(warehouse, "plank"), 1);
@@ -91,8 +90,7 @@ test("fractional production output enters production input only in whole units",
     picked: false,
   };
 
-  tick(world);
-  tick(world);
+  for (let i = 0; i < CONFIG.transferDurationTicks * 2 + 2; i++) tick(world);
 
   almostEqual(source.output, 3.7);
   assert.equal(sawmill.input, 1);
