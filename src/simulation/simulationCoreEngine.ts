@@ -330,12 +330,6 @@ function rerouteCurrentTask(w: World, p: Person): void {
     else p.path = [];
     return;
   }
-  if (p.assignment) {
-    const target = w.buildings.find((b) => b.id === p.assignment!.building);
-    if (target) route(w, p, target, "reroute");
-    else p.path = [];
-    return;
-  }
   if (p.idleTarget) {
     if (!same(p.position, p.idleTarget))
       routeToPosition(w, p, p.idleTarget, "reroute");
@@ -343,6 +337,12 @@ function rerouteCurrentTask(w: World, p: Person): void {
       p.path = [];
       p.movement = 0;
     }
+    return;
+  }
+  if (p.assignment) {
+    const target = w.buildings.find((b) => b.id === p.assignment!.building);
+    if (target) route(w, p, target, "reroute");
+    else p.path = [];
     return;
   }
   const hq = w.buildings.find((b) => b.id === "hq");
