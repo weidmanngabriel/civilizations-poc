@@ -128,6 +128,10 @@ export interface FarmTask {
 }
 export interface HungerState {
   foodSource?: BuildingId;
+  /** Food kind reserved at a building source. */
+  foodGood?: "bread" | "fish";
+  /** Reserved loose fish stack used as a direct food source. */
+  foodLooseGood?: LooseGoodStackId;
   foodBush?: Hex;
   retryAfterTick?: number;
   /** Exact simulation tick when the five-second eating phase completes. */
