@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createWorld } from "../src/simulation/scenario";
 import { personInsideBuilding } from "../src/game/personVisibility";
 import { buildAt } from "../src/simulation/simulation";
+import { personActivityLabel } from "../src/personPresentation";
 
 test("timed transfers hide residents only when the interaction happens at a building", () => {
   const world = createWorld(1);
@@ -64,4 +65,18 @@ test("timed transfers hide residents only when the interaction happens at a buil
     transferUntilTick: 180,
   };
   assert.equal(personInsideBuilding(world, person), false, "well pickup should remain visible");
+});
+
+
+test("reached idle target is consistently shown as waiting", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  person.idleTarget = { ...person.position };
+  person.path = [];
+  person.active = true;
+
+  assert.equal(personActivityLabel(person), "Wartet");
+
+  person.path = [{ q: person.position.q + 1, r: person.position.r }];
+  assert.equal(personActivityLabel(person), "Unterwegs");
 });
