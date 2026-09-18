@@ -354,6 +354,7 @@ function rerouteCurrentTask(w: World, p: Person): void {
     return;
   }
   if (p.idleTarget) {
+    clearNavigationBlocked(p);
     if (!same(p.position, p.idleTarget)) {
       p.path = performanceProfiler.withPathReason("reroute", () =>
         findNavigationPath(w, p.position, p.idleTarget!, CONFIG.roadSpeedMultiplier),
