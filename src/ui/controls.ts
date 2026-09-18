@@ -535,7 +535,9 @@ export function mountControls(w: World, renderMap: () => void): void {
     selectedBuildingId = undefined;
     setDebugOpen(false);
     main.classList.add("merchant-target-mode");
-    buildPlacementTitle.textContent = `${BUILDING_NAMES[kind]} platzieren`;
+    buildPlacementTitle.textContent =
+      kind === "waypost" ? "Wegweiser platzieren" : `${BUILDING_NAMES[kind]} platzieren`;
+    buildPlacementConfirm.textContent = kind === "waypost" ? "Platzieren" : "Bauen";
     buildPlacementOverlay.hidden = false;
     updateBuildPlacementConfirm();
     window.dispatchEvent(new CustomEvent(BUILD_MODE_EVENT, {
