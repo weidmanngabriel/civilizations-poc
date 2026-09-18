@@ -71,6 +71,8 @@ export const assigned = (w: World, id: BuildingId, role: Role): Person[] =>
   );
 export const woodcutters = (w: World): Person[] =>
   w.people.filter((p) => p.woodcutter);
+export const fishers = (w: World): Person[] =>
+  w.people.filter((p) => p.fisher);
 export const clayDiggers = (w: World): Person[] =>
   w.people.filter((p) => p.extractor === "clay");
 export const stonecutters = (w: World): Person[] =>
@@ -78,7 +80,7 @@ export const stonecutters = (w: World): Person[] =>
 export const builders = (w: World): Person[] =>
   w.people.filter((p) => p.builder);
 export const freePeople = (w: World): Person[] =>
-  w.people.filter((p) => !p.assignment && !p.woodcutter && !p.extractor && !p.builder);
+  w.people.filter((p) => !p.assignment && !p.woodcutter && !p.fisher && !p.extractor && !p.builder);
 export const isUnderConstruction = (b: Building): boolean =>
   Boolean(b.construction && !b.construction.complete);
 const isStorageBuilding = (b: Building): boolean =>
@@ -187,6 +189,7 @@ export const ALL_GOODS: Good[] = [
   "flour",
   "water",
   "bread",
+  "fish",
   "clay",
   "rubble",
   "brick",
@@ -435,6 +438,7 @@ export function changePopulation(w: World, delta: 1 | -1): boolean {
     (p) =>
       !p.assignment &&
       !p.woodcutter &&
+      !p.fisher &&
       !p.extractor &&
       !p.builder &&
       (same(p.position, hq.position) || Boolean(p.idleTarget)),
@@ -1415,6 +1419,7 @@ export const GOODS: Record<Good, string> = {
   flour: "Mehl",
   water: "Wasser",
   bread: "Brot",
+  fish: "Fisch",
   clay: "Lehm",
   rubble: "Bruchstein",
   brick: "Backstein",
