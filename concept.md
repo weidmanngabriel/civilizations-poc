@@ -113,7 +113,7 @@ Wird ein Gebäude abgerissen, werden davon abhängige Tätigkeiten sofort beende
 
 Holzfäller, Lehmgräber, Steinbrecher, Fischer sowie Lager- und HQ-Träger besitzen einen lokalen Arbeitsbereich mit persönlicher Flagge. Der gemeinsame Radius beträgt **2,5 Weltkacheln**.
 
-Abbauer wählen nur passende freie Rohstoffquellen innerhalb ihrer Flagge. Lager-/HQ-Träger holen nur Nicht-Lager-Quellen innerhalb ihrer Flagge. Wird eine Flagge verschoben, wird ein noch nicht abgeholtes Ziel außerhalb des neuen Bereichs verworfen; bereits getragene Ware wird noch ausgeliefert.
+Abbauer wählen nur passende freie Rohstoffquellen innerhalb ihrer Flagge. **Jede einzelne abgebaute Einheit** wird vom Abbauer persönlich zur eigenen Arbeitsflagge getragen und erst dort als lose Ware gestapelt; erst danach arbeitet er weiter. Bei vollen Stapeln entstehen weitere Stapel möglichst dicht an der Flagge. Lager-/HQ-Träger holen nur Nicht-Lager-Quellen innerhalb ihrer Flagge. Wird eine Flagge verschoben, wird ein noch nicht abgeholtes Ziel außerhalb des neuen Bereichs verworfen; bereits getragene Ware wird noch zur aktuellen persönlichen Flagge gebracht.
 
 Produktions-Träger behalten ihre bedarfsgetriebene Beschaffung. Arbeitsflaggen und spätere Wegweiser bleiben getrennte Systeme.
 
@@ -121,11 +121,11 @@ Produktions-Träger behalten ihre bedarfsgetriebene Beschaffung. Arbeitsflaggen 
 
 Fischer sind Freiluftarbeiter ohne eigenes Gebäude. Ihre persönliche Arbeitsflagge begrenzt das Angelgebiet. Innerhalb dieses Bereichs suchen sie eine erreichbare, begehbare Zelle direkt am Wasser.
 
-Sobald ein Fischer seinen Angelplatz erreicht, erfolgt der Fangwurf **sofort**. Danach wartet er **fünf simulierte Sekunden** und sucht anschließend möglichst einen anderen Angelplatz innerhalb seiner Flagge. Wasser besitzt vorerst keinen erschöpfbaren Fischbestand.
+Sobald ein Fischer seinen Angelplatz erreicht, beginnt ein **fünf Sekunden langer Fangzyklus**: Die Angel wird ungefähr eine halbe Sekunde ausgeworfen, liegt rund vier Sekunden im Wasser und wird ungefähr eine halbe Sekunde eingeholt. Erst beim Einholen wird der Fang ausgewertet. Danach sucht der Fischer möglichst einen anderen Angelplatz innerhalb seiner Flagge. Wasser besitzt vorerst keinen erschöpfbaren Fischbestand.
 
 Die Fangchance beträgt bei null Berufserfahrung **30 %** und steigt linear bis auf **80 %** bei voller Fischererfahrung. Jeder Fangwurf zählt als abgeschlossene Berufsaktion und erhöht die Erfahrung, unabhängig davon, ob ein Fisch gefangen wurde.
 
-Bei Erfolg entsteht genau **ein Fisch als physische lose Ware** beim Angelplatz. Fisch folgt damit der bestehenden Bodenwaren- und Lagerlogistik und kann von geeigneten Trägern eingesammelt werden.
+Bei Erfolg trägt der Fischer genau **einen Fisch** persönlich zu seiner Arbeitsflagge. Erst dort wird der Fisch als physische lose Ware gestapelt und kann anschließend von geeigneten Trägern eingesammelt werden.
 
 ## Farmen und Felder
 
