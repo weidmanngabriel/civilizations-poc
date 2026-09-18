@@ -1,9 +1,13 @@
 import Phaser from "phaser";
 import type { Person, World } from "../simulation/model";
 import {
+  PERSON_MARKER_CENTER_OFFSET_Y,
   PERSON_MARKER_RADIUS,
   personMarkerPositions,
 } from "./personMarkerGeometry";
+import { personWorldPosition } from "../simulation/movement";
+import { pixel } from "./mapGeometry";
+import { personInsideBuilding } from "./personVisibility";
 
 const PERSON_HIT_RADIUS_PX = 30;
 const PERSON_SELECTED_EVENT = "poc-person-selected";
@@ -57,8 +61,21 @@ export function installPersonSelection(scene: Phaser.Scene, world: World): void 
     window.dispatchEvent(new CustomEvent(PERSON_CLEARED_EVENT));
   };
 
-  const focusPerson = (personId: number): void => {
+  const selectionPosition = (personId: number): { x: number; y: number } | undefined => {
     const marker = personMarkerPositions(world).find((candidate) => candidate.person.id === personId);
+    if (marker) return marker;
+
+    const person = world.people.find((candidate) => candidate.id === personId);
+    if (!person || !personInsideBuilding(world, person)) return undefined;
+    const position = pixel(personWorldPosition(world, person));
+    return {
+      x: position.x,
+      y: position.y + PERSON_MARKER_CENTER_OFFSET_Y,
+    };
+  };
+
+  const focusPerson = (personId: number): void => {
+    const marker = selectionPosition(personId);
     if (!marker) return;
     const camera = scene.cameras.main;
     const mobile = window.matchMedia("(max-width: 700px)").matches;
@@ -103,13 +120,13 @@ export function installPersonSelection(scene: Phaser.Scene, world: World): void 
     const renderSelection = (): void => {
       selectionRing.clear();
       if (selectedPersonId === undefined) return;
-      const marker = personMarkerPositions(world).find(
-        (candidate) => candidate.person.id === selectedPersonId,
-      );
-      if (!marker) {
+      const selectedPerson = world.people.find((person) => person.id === selectedPersonId);
+      if (!selectedPerson) {
         clearPerson();
         return;
       }
+      const marker = selectionPosition(selectedPersonId);
+      if (!marker) return;
       const zoom = scene.cameras.main.zoom;
       selectionRing.lineStyle(1.5 / zoom, 0xf3d36a, 1);
       selectionRing.strokeCircle(

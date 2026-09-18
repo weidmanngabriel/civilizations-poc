@@ -101,7 +101,7 @@ Im veröffentlichten Editor werden `building.json` und das **unveränderte** Spr
 
 Bewohner warten sichtbar außerhalb von Gebäuden, wenn gerade keine sinnvolle Tätigkeit ansteht. Freie Bewohner und untätige Bauarbeiter sammeln sich locker beim Hauptquartier. Abbauer warten bei ihrer persönlichen Arbeitsflagge. Zugewiesene Arbeiter und Träger warten bei ihrem Gebäude. Dabei wählen sie freie Standplätze in der näheren Umgebung, statt aufeinander oder starr am Eingang zu stehen. Laufwege dürfen sich weiterhin kreuzen.
 
-Während einer tatsächlichen Tätigkeit im Inneren eines Gebäudes ist ein Bewohner auf der Karte nicht sichtbar. Das gilt für passende Arbeits-, Ess- und Schlafvorgänge, nicht für bloßes Durchqueren begehbarer Gebäudeflächen. Beim Verlassen erscheint die Person wieder am Eingang.
+Während einer tatsächlichen Tätigkeit im Inneren eines Gebäudes ist die komplette normale Bewohnerdarstellung auf der Karte ausgeblendet, einschließlich Name, Tätigkeit und getragener Ware. Das gilt für passende Arbeits-, Ess- und Schlafvorgänge, nicht für bloßes Durchqueren begehbarer Gebäudeflächen. Eine bestehende Auswahl bleibt erhalten; nur der Auswahlmarker bleibt am Eingang sichtbar. Beim Verlassen erscheint die Person wieder am Eingang.
 
 Fertige Gebäude zeigen ihre Zuweisung zusätzlich direkt in der Welt: eine kleine blaue Flagge je Arbeiter und eine rote Flagge je Träger neben dem Eingang. Mehrere Flaggen werden kompakt gestapelt. Die Flaggen sind reine Darstellung und beeinflussen weder Kollision noch Wegfindung.
 

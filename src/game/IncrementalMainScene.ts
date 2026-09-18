@@ -295,7 +295,14 @@ export class IncrementalMainScene extends MainScene {
     if (!this.personLayer) return;
     const activeIds = new Set(this.worldRef.people.map((person) => person.id));
     for (const [id, marker] of this.personMarkers) {
-      if (activeIds.has(id)) continue;
+      if (activeIds.has(id)) {
+        marker.dot.setVisible(false);
+        marker.label.setVisible(false);
+        marker.nameLabel.setVisible(false);
+        marker.detailLabel.setVisible(false);
+        marker.cargo.setVisible(false);
+        continue;
+      }
       marker.dot.destroy();
       marker.label.destroy();
       marker.nameLabel.destroy();
@@ -314,18 +321,18 @@ export class IncrementalMainScene extends MainScene {
 
       const marker = this.personMarkers.get(person.id) ?? this.createPersonMarker(person);
       this.personMarkers.set(person.id, marker);
-      marker.dot.setPosition(x, y).setFillStyle(color);
-      marker.label.setPosition(x, y);
+      marker.dot.setPosition(x, y).setFillStyle(color).setVisible(true);
+      marker.label.setPosition(x, y).setVisible(true);
       const personLabel = this.internals().personMarker(person);
       if (marker.label.text !== personLabel) marker.label.setText(personLabel);
 
       const displayName = personName(person.id);
       if (marker.nameLabel.text !== displayName) marker.nameLabel.setText(displayName);
-      marker.nameLabel.setPosition(x, groundY + 1.2);
+      marker.nameLabel.setPosition(x, groundY + 1.2).setVisible(true);
 
       const detail = `${personProfessionLabel(this.worldRef, person)} (${personActivityLabel(person)})`;
       if (marker.detailLabel.text !== detail) marker.detailLabel.setText(detail);
-      marker.detailLabel.setPosition(x, groundY + 4.6);
+      marker.detailLabel.setPosition(x, groundY + 4.6).setVisible(true);
 
       if (person.trip?.picked) {
         marker.cargo.setPosition(

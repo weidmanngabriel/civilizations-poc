@@ -4,7 +4,7 @@ Bewohner arbeiten weitgehend selbstständig, sobald sie eine Aufgabe haben. Sie 
 
 Hunger und Müdigkeit können Arbeit unterbrechen. Bewohner kümmern sich schon frühzeitig um Essen oder Schlaf, bevor eine Warnung erscheint. Beim Schlafen bleibt ihre Arbeitszuweisung bestehen; danach setzen sie ihre Aufgabe fort.
 
-Wenn Bewohner in einem Gebäude arbeiten, essen oder schlafen, sind sie draußen nicht sichtbar. Beim Verlassen erscheinen sie wieder am Eingang.
+Wenn Bewohner in einem Gebäude arbeiten, essen oder schlafen, sind sie draußen nicht sichtbar. Name und Tätigkeit werden dort ebenfalls ausgeblendet. Hast du die Person bereits ausgewählt, bleibt nur der Auswahlmarker am Eingang sichtbar. Beim Verlassen erscheint die Person wieder am Eingang.
 
 Hat jemand gerade nichts zu tun, wartet er in der Nähe des passenden Ortes: freie Bewohner beim Hauptquartier, Abbauer bei ihrer Arbeitsflagge und zugewiesene Arbeiter bei ihrem Gebäude. Sie verteilen sich dabei auf freie Standplätze.
 
