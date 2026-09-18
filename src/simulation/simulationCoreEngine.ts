@@ -151,6 +151,7 @@ const routeToPosition = (
   reason: PathReason = routeReason(p),
 ) => {
   p.path = performanceProfiler.withPathReason(reason, () =>
+    findPathViaWayposts(w, p.position, position) ??
     findPath(w.tiles, p.position, position, CONFIG.roadSpeedMultiplier),
   ) ?? [];
 };
