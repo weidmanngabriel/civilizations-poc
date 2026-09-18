@@ -35,15 +35,15 @@ test("hunger decays at idle, walking and active-work rates in one-second steps",
   const world = createWorld(1);
   const person = world.people[0]!;
 
-  for (let i = 0; i < 4; i += 1) advanceHungerTick(world);
+  for (let i = 0; i < 8; i += 1) advanceHungerTick(world);
   assert.equal(person.hunger, 99);
 
   person.path = [{ q: person.position.q + 1, r: person.position.r }];
-  for (let i = 0; i < 2; i += 1) advanceHungerTick(world);
+  for (let i = 0; i < 4; i += 1) advanceHungerTick(world);
   assert.equal(person.hunger, 98);
 
   person.trip = { source: "a", target: "b", good: "wood", picked: true };
-  advanceHungerTick(world);
+  for (let i = 0; i < 2; i += 1) advanceHungerTick(world);
   assert.equal(person.hunger, 97);
 });
 
@@ -85,7 +85,7 @@ test("a hungry person finishes current work before eating at 40", () => {
   assert.equal(warehouse.inventory?.bread, 1);
 
   finishTimedEating(world, person);
-  assert.ok((person.hunger ?? 0) > 100);
+  assert.equal(person.hunger, 100);
   assert.equal(warehouse.inventory?.bread, 0);
 });
 
@@ -112,10 +112,10 @@ test("eating occupies exactly five simulated seconds before food is consumed", (
   resolveFoodArrivals(world);
   assert.equal(person.hungerState, undefined);
   assert.equal(warehouse.inventory?.bread, 0);
-  assert.equal(person.hunger, 120);
+  assert.equal(person.hunger, 100);
 });
 
-test("food recovery is not capped at 100 and harvesting marks a bush unavailable", () => {
+test("food recovery is capped at 100 and harvesting marks a bush unavailable", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
   const bush = world.tiles.find((tile) => tile.terrain === "grass")!;
@@ -134,7 +134,7 @@ test("food recovery is not capped at 100 and harvesting marks a bush unavailable
   assert.equal(bush.bushAvailable, true);
 
   finishTimedEating(world, person);
-  assert.ok((person.hunger ?? 0) > 100);
+  assert.equal(person.hunger, 100);
   assert.equal(bush.bushAvailable, false);
   assert.ok(bush.bushRegrowTick !== undefined);
 });
@@ -247,7 +247,7 @@ test("critical hunger pauses at the next one-second check and keeps work progres
   assert.equal(person.progress, 72);
 
   finishTimedEating(world, person);
-  assert.ok((person.hunger ?? 0) > 100);
+  assert.equal(person.hunger, 100);
   assert.equal(person.progress, 72);
 });
 
@@ -314,6 +314,6 @@ test("worker spends five seconds eating at HQ before returning to work", () => {
   assert.ok(eatingStartedAt >= 0, "person should start eating after reaching the HQ");
   assert.equal(eatingFinishedAt - eatingStartedAt, CONFIG.simulationHz * 5);
   assert.equal(hq.inventory.bread, 0);
-  assert.ok((person.hunger ?? 0) > 100);
+  assert.equal(person.hunger, 100);
   assert.ok(person.path.length > 0, "person should resume the route to the workplace after eating");
 });
