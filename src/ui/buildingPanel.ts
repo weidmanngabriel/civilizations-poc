@@ -167,6 +167,12 @@ export function mountBuildingPanel(world: World): void {
     if (!browser.hidden) renderList();
   };
 
+  const resetBrowserFilters = (): void => {
+    activeAlertFilter = "all";
+    for (const button of alertFilterButtons)
+      button.setAttribute("aria-pressed", "false");
+  };
+
   const closeConflictingMenus = (): void => {
     const buildPanel = document.querySelector<HTMLElement>("#build-menu-panel");
     if (buildPanel && !buildPanel.hidden)
@@ -188,6 +194,8 @@ export function mountBuildingPanel(world: World): void {
     if (open) {
       closeConflictingMenus();
       renderList();
+    } else {
+      resetBrowserFilters();
     }
   };
 
