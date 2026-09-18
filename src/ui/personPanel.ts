@@ -7,6 +7,7 @@ import {
 import { GOODS } from "../simulation/simulation";
 import { personName } from "../simulation/personIdentity";
 import { GOOD_ICONS } from "../icons";
+import { personAlertMap, type PersonAlertSeverity } from "./personAlerts";
 
 const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
@@ -19,6 +20,13 @@ const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 
 type PersonSelectedDetail = { id: number };
 type PersonFilter = "all" | "free" | Profession;
+type PersonAlertFilter = "all" | PersonAlertSeverity;
+
+const ALERT_META: Record<PersonAlertSeverity, { icon: string; label: string }> = {
+  critical: { icon: "🔴", label: "Kritisch" },
+  warning: { icon: "🟡", label: "Wichtig" },
+  info: { icon: "🔵", label: "Info" },
+};
 
 const PROFESSION_ICONS: Record<Profession, string> = {
   woodcutter: "🪓",
@@ -107,7 +115,8 @@ export function mountPersonPanel(world: World): void {
   toggle.setAttribute("aria-controls", "person-browser-panel");
   toggle.innerHTML = `
     <span class="person-menu-icon" aria-hidden="true">👥</span>
-    <span class="left-menu-button-label">Personen</span>`;
+    <span class="left-menu-button-label">Personen</span>
+    <span class="person-alert-badge" aria-label="Aktuelle Personenhinweise"></span>`;
   const buildToggle = leftMenu.querySelector("#build-menu-toggle");
   leftMenu.insertBefore(toggle, buildToggle);
 
@@ -121,6 +130,11 @@ export function mountPersonPanel(world: World): void {
       <div><small>BEWOHNER</small><strong>Personen finden</strong></div>
       <button type="button" data-person-action="close-browser" aria-label="Personenübersicht schließen">×</button>
     </header>
+    <div class="person-alert-filters" role="group" aria-label="Nach Hinweisstufe filtern">
+      <button type="button" data-person-alert-filter="critical" aria-pressed="false"><span aria-hidden="true">🔴</span><strong data-person-alert-count="critical">0</strong><small>Kritisch</small></button>
+      <button type="button" data-person-alert-filter="warning" aria-pressed="false"><span aria-hidden="true">🟡</span><strong data-person-alert-count="warning">0</strong><small>Wichtig</small></button>
+      <button type="button" data-person-alert-filter="info" aria-pressed="false"><span aria-hidden="true">🔵</span><strong data-person-alert-count="info">0</strong><small>Info</small></button>
+    </div>
     <label class="person-search-label">
       <span>Suche</span>
       <input id="person-search" type="search" autocomplete="off" placeholder="Name suchen" />
@@ -149,9 +163,15 @@ export function mountPersonPanel(world: World): void {
   const filterButtons = Array.from(
     browser.querySelectorAll<HTMLButtonElement>("[data-person-filter]"),
   );
+  const alertFilterButtons = Array.from(
+    browser.querySelectorAll<HTMLButtonElement>("[data-person-alert-filter]"),
+  );
+  const alertBadge = toggle.querySelector<HTMLElement>(".person-alert-badge")!;
 
   let selectedPersonId: number | undefined;
   let activeFilter: PersonFilter = "all";
+  let activeAlertFilter: PersonAlertFilter = "all";
+  let alerts = personAlertMap(world);
   let searchQuery = "";
   let navigationIds = world.people.map((person) => person.id);
   let inspectorSignature = "";
@@ -162,6 +182,8 @@ export function mountPersonPanel(world: World): void {
     return world.people
       .filter((person) => {
         const profession = professionOf(world, person);
+        const alert = alerts.get(person.id);
+        if (activeAlertFilter !== "all" && alert?.severity !== activeAlertFilter) return false;
         if (activeFilter === "free" && profession) return false;
         if (activeFilter !== "all" && activeFilter !== "free" && profession !== activeFilter)
           return false;
@@ -185,6 +207,7 @@ export function mountPersonPanel(world: World): void {
             <span class="person-list-copy">
               <strong>${escapeHtml(personName(person.id))}</strong>
               <small>${escapeHtml(professionLabel(world, person))}</small>
+              ${alerts.has(person.id) ? `<em class="person-list-alert person-list-alert--${alerts.get(person.id)!.severity}">${escapeHtml(alerts.get(person.id)!.label)}</em>` : ""}
             </span>
             <span class="person-list-needs">
               <span title="Hunger">🍴 <b data-person-hunger="${person.id}">${displayNeed(person.hunger)}</b></span>
@@ -195,10 +218,30 @@ export function mountPersonPanel(world: World): void {
 
     for (const button of filterButtons)
       button.setAttribute("aria-pressed", String(button.dataset.personFilter === activeFilter));
+    for (const button of alertFilterButtons)
+      button.setAttribute("aria-pressed", String(button.dataset.personAlertFilter === activeAlertFilter));
 
     browserProfessionSignature = world.people
       .map((person) => `${person.id}:${professionOf(world, person) ?? "free"}`)
       .join("|");
+  };
+
+  const renderAlertCounts = (): void => {
+    const counts: Record<PersonAlertSeverity, number> = { critical: 0, warning: 0, info: 0 };
+    for (const alert of alerts.values()) counts[alert.severity] += 1;
+    for (const severity of Object.keys(counts) as PersonAlertSeverity[]) {
+      const counter = browser.querySelector<HTMLElement>(`[data-person-alert-count="${severity}"]`);
+      if (counter) counter.textContent = String(counts[severity]);
+    }
+    const visible = (Object.keys(counts) as PersonAlertSeverity[]).filter((severity) => counts[severity] > 0);
+    alertBadge.innerHTML = visible.map((severity) => `<span title="${ALERT_META[severity].label}">${ALERT_META[severity].icon}<b>${counts[severity]}</b></span>`).join("");
+    alertBadge.hidden = visible.length === 0;
+  };
+
+  const refreshAlerts = (): void => {
+    alerts = personAlertMap(world);
+    renderAlertCounts();
+    if (!browser.hidden) renderBrowserList();
   };
 
   const updateBrowserNeeds = (): void => {
@@ -349,6 +392,12 @@ export function mountPersonPanel(world: World): void {
       setBrowserOpen(false);
       return;
     }
+    const alertFilter = target.closest<HTMLButtonElement>("[data-person-alert-filter]")?.dataset.personAlertFilter;
+    if (alertFilter) {
+      activeAlertFilter = activeAlertFilter === alertFilter ? "all" : alertFilter as PersonAlertFilter;
+      renderBrowserList();
+      return;
+    }
     const filter = target.closest<HTMLButtonElement>("[data-person-filter]")?.dataset.personFilter;
     if (filter) {
       activeFilter = filter as PersonFilter;
@@ -414,9 +463,11 @@ export function mountPersonPanel(world: World): void {
   });
 
   window.setInterval(() => {
+    refreshAlerts();
     updateBrowserNeeds();
     renderInspector();
-  }, 500);
+  }, 1000);
 
+  renderAlertCounts();
   renderBrowserList();
 }
