@@ -136,7 +136,7 @@ Demolishing a building immediately cancels activities that depend on that buildi
 
 Woodcutters, clay diggers, stonecutters, fishers, warehouse carriers and HQ carriers use per-person `WorkArea` state. The shared radius remains 2.5 coarse world tiles / 12.5 micro-cells.
 
-Extractor flags start at the first selected resource. Storage-carrier flags start at their storage workplace. Moving a flag invalidates an unpicked source outside the new area but does not discard already carried cargo. While an extractor carries outdoor cargo, the flag delivery route has priority over the retained resource target, including generic reroutes caused by terrain or road changes. Production carriers are deliberately outside this system.
+Extractor flags start at the first selected resource. Storage-carrier flags start at their storage workplace. Moving a flag invalidates an unpicked source outside the new area but does not discard already carried cargo. Movement whose start and destination both belong to the same personal work area is local micro-grid navigation and bypasses the waypost graph. This applies in particular to extractor resource/flag legs, fisher movement inside the fishing area and storage-carrier collection inside the carrier area. While an extractor carries outdoor cargo, the flag delivery route has priority over the retained resource target, including generic reroutes caused by terrain or road changes. Production carriers are deliberately outside this system.
 
 ## Wayposts and high-level navigation
 

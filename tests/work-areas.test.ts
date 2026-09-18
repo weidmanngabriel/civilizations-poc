@@ -149,6 +149,10 @@ test("each extracted unit is carried to the personal work flag before becoming a
     )[0]!;
   assert.equal(setWorkAreaCenter(world, worker.id, flagTile), true);
 
+  // Local work-area movement must not depend on the high-level waypost graph.
+  world.wayposts = [];
+  world.waypostRevision = 0;
+
   let guard = 10_000;
   while (worker.path.length && guard-- > 0) tick(world);
   assert.ok(guard > 0);
