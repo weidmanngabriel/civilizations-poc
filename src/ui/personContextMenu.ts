@@ -262,14 +262,16 @@ export function mountPersonContextMenu(world: World): void {
     if (isEditableTarget(event.target)) return;
     if (event.code === "Space" && selectedPersonId !== undefined && !activeMode) {
       event.preventDefault();
+      event.stopImmediatePropagation();
       setMenuOpen(menu.hidden);
       return;
     }
     if (event.key === "Escape" && !menu.hidden) {
       event.preventDefault();
+      event.stopImmediatePropagation();
       setMenuOpen(false);
     }
-  });
+  }, true);
 
   new MutationObserver(() => queueMicrotask(refreshInspectorButton)).observe(inspector, {
     childList: true,
