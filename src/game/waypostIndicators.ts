@@ -33,7 +33,7 @@ export function installWaypostIndicators(scene: Phaser.Scene, world: World): voi
         graphics.lineStyle(1.2, 0x5b442d, 1);
         graphics.lineBetween(origin.x, origin.y + 2.5, origin.x, origin.y - 12);
 
-        (post.connections ?? []).forEach((id, index) => {
+        (post.connections ?? []).forEach((id) => {
           const target = byId.get(id);
           if (!target) return;
           const projected = pixel(target.position);
@@ -45,12 +45,11 @@ export function installWaypostIndicators(scene: Phaser.Scene, world: World): voi
           const uy = dy / length;
           const px = -uy;
           const py = ux;
-          const yOffset = -8 - index * 3.2;
           const baseX = origin.x;
-          const baseY = origin.y + yOffset;
-          const shaft = 7;
-          const halfWidth = 1.6;
-          const tip = 2.6;
+          const baseY = origin.y - 8;
+          const shaft = 5;
+          const halfWidth = 1.05;
+          const tip = 1.7;
           const endX = baseX + ux * shaft;
           const endY = baseY + uy * shaft;
           const points = [
