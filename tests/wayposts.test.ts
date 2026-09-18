@@ -16,11 +16,11 @@ import {
 import { findPath, hexDistance } from "../src/simulation/hex";
 import { GRID_REFINEMENT } from "../src/simulation/spatial";
 
-test("player world starts with one HQ waypost and independent balance constants", () => {
+test("player world starts with one HQ waypost and coupled balance constants", () => {
   const world = createDefaultGameWorld();
   assert.equal(WAYPOST_ORIENTATION_RADIUS_WORLD_TILES, 3.5);
-  assert.equal(WAYPOST_MIN_DISTANCE_WORLD_TILES, 2.5);
-  assert.equal(WAYPOST_MAX_CONNECTION_DISTANCE_WORLD_TILES, 5);
+  assert.equal(WAYPOST_MIN_DISTANCE_WORLD_TILES, 3.5);
+  assert.equal(WAYPOST_MAX_CONNECTION_DISTANCE_WORLD_TILES, 7);
   assert.equal(wayposts(world).length, 1);
   const hq = world.buildings.find((building) => building.kind === "hq")!;
   assert.ok(
@@ -40,14 +40,14 @@ test("waypost placement rejects positions inside the minimum distance", () => {
   );
 });
 
-test("reachable wayposts connect within five world tiles and support network routing", () => {
+test("reachable wayposts connect between 3.5 and 7 world tiles and support network routing", () => {
   const world = createDefaultGameWorld();
   const first = wayposts(world)[0]!;
   const secondTile = world.tiles
     .filter((tile) => tile.terrain === "grass")
     .filter((tile) => {
       const distance = hexDistance(first.position, tile);
-      return distance >= 4 * GRID_REFINEMENT && distance <= 5 * GRID_REFINEMENT;
+      return distance >= 6 * GRID_REFINEMENT && distance <= 7 * GRID_REFINEMENT;
     })
     .find((tile) => canPlaceWaypost(world, tile));
 

@@ -121,7 +121,7 @@ Produktions-Träger behalten ihre bedarfsgetriebene Beschaffung. Arbeitsflaggen 
 
 Beim Spielstart steht ungefähr eine Weltkachel vor dem Hauptquartier ein erster Wegweiser. Weitere Wegweiser werden über das Baumenü platziert. Bereits beim Öffnen des Platzierungsmodus werden alle aktuell gültigen Positionen hervorgehoben. Auf dem Desktop folgt der Ghost der Maus und Linksklick platziert; Rechtsklick, Escape oder „Abbrechen“ beendet den Modus. Auf Touch wählt ein Tap die Position, Ziehen verschiebt weiter die Karte und „Platzieren“ bestätigt.
 
-Jeder Wegweiser besitzt einen eigenen **Orientierungsradius von 3,5 Weltkacheln**. Dieser Wert ist fachlich unabhängig vom Arbeitsflaggen-Radius. Zwischen zwei Wegweisern müssen weiterhin mindestens **2,5 Weltkacheln** liegen. Liegen zwei erreichbare Wegweiser höchstens **5 Weltkacheln** auseinander, werden sie miteinander verbunden.
+Jeder Wegweiser besitzt einen **Orientierungsradius von 3,5 Weltkacheln**. Der Mindestabstand zwischen zwei Wegweisern entspricht demselben Radius, also **3,5 Weltkacheln**. Die maximale direkte Verbindungsdistanz ist doppelt so groß, also **7 Weltkacheln**. Damit verbinden sich erreichbare Wegweiser bei einem Abstand von 3,5 bis 7 Weltkacheln.
 
 Für jede Verbindung trägt ein Wegweiser ein eigenes kleines Richtungsschild, das in der isometrischen Kartenansicht auf den verbundenen Wegweiser zeigt.
 
