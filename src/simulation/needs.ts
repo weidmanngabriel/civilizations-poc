@@ -20,6 +20,7 @@ const SIMULATION_HZ = 60;
 const EATING_DURATION_TICKS = 5 * SIMULATION_HZ;
 const ROAD_SPEED_MULTIPLIER = 1.3;
 const WANTS_TO_EAT_THRESHOLD = 40;
+const HUNGER_WARNING_THRESHOLD = 30;
 const CRITICAL_HUNGER_THRESHOLD = 20;
 const HUNGER_MAX = 100;
 const BREAD_FOOD_VALUE = 100;
@@ -348,6 +349,6 @@ export function attachNeeds(world: World): World {
 export const hungerStatus = (person: Person): "normal" | "hungry" | "critical" => {
   const hunger = person.hunger ?? HUNGER_MAX;
   if (hunger <= CRITICAL_HUNGER_THRESHOLD) return "critical";
-  if (hunger <= WANTS_TO_EAT_THRESHOLD) return "hungry";
+  if (hunger <= HUNGER_WARNING_THRESHOLD) return "hungry";
   return "normal";
 };

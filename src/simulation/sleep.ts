@@ -6,6 +6,7 @@ import { performanceNow, performanceProfiler } from "../debug/performanceProfile
 
 const SLEEP_MAX = 100;
 const WANTS_TO_SLEEP_THRESHOLD = 40;
+const SLEEP_WARNING_THRESHOLD = 30;
 const CRITICAL_SLEEP_THRESHOLD = 20;
 const SLEEP_RADIUS_WORLD_TILES = 8;
 const SLEEP_RADIUS_STEPS = SLEEP_RADIUS_WORLD_TILES * GRID_REFINEMENT;
@@ -215,10 +216,8 @@ const startSleeping = (world: World, person: Person, context: SleepSearchContext
     resumeExtractor: person.extractor,
     resumeResourceTarget: person.resourceTarget,
   };
-  person.builder = undefined;
-  person.woodcutter = undefined;
-  person.extractor = undefined;
-  person.resourceTarget = undefined;
+  // Sleeping pauses the current activity, but it must not make the person
+  // lose their profession/work assignment or resource workplace.
   person.active = false;
   person.movement = 0;
   person.path = same(person.position, candidate.target) ? [] : candidate.path;
@@ -311,7 +310,7 @@ export function attachSleep(world: World): World {
 export const sleepStatus = (person: Person): "normal" | "tired" | "critical" => {
   const sleep = person.sleep ?? SLEEP_MAX;
   if (sleep <= CRITICAL_SLEEP_THRESHOLD) return "critical";
-  if (sleep <= WANTS_TO_SLEEP_THRESHOLD) return "tired";
+  if (sleep <= SLEEP_WARNING_THRESHOLD) return "tired";
   return "normal";
 };
 

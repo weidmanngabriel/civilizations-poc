@@ -130,7 +130,7 @@ Extractor flags start at the first selected resource. Storage-carrier flags star
 
 ## Hunger, sleep, farms, roads and progression
 
-Hunger and sleep retain their documented behavior and event-driven target planning. Hunger is sampled once per simulated second while movement and production continue at 60 Hz.
+Hunger and sleep retain their event-driven target planning. Both needs begin autonomous planning at 40%, while player-facing warning state is deliberately separate: yellow at 30% and red at 20%. Hunger is sampled once per simulated second while movement and production continue at 60 Hz. Entering sleep pauses activity without clearing profession, workplace, extractor role or current resource assignment.
 
 Nature sleep targets are intentionally **not reserved** while a person is travelling. Trees and bushes enforce single occupancy only at arrival: if another person is already sleeping on the target, the arriving person replans from that position while excluding only the occupied target that was just reached. Ground sleep has no occupancy restriction.
 
@@ -172,7 +172,7 @@ Loading and starting a new game still replace the contents of the existing share
 
 ## Person status overview
 
-`src/ui/personAlerts.ts` derives a single current alert per person from authoritative simulation state. Severity precedence is `critical > warning > info`, so one person contributes to at most one HUD/list count. The first rules cover critical/normal hunger and sleep plus truly free idle people; the classifier deliberately does not infer missing-resource failures from generic inactivity.
+`src/ui/personAlerts.ts` derives a single current alert per person from authoritative simulation state. Severity precedence is `critical > warning > info`, so one person contributes to at most one HUD/list count. The first rules cover critical/normal hunger and sleep plus truly free idle people. Need alerts reuse the same display-status helpers as the world icons, so the list, counters and filters stay aligned at 30% warning / 20% critical while simulation planning may already have started at 40%. The classifier deliberately does not infer missing-resource failures from generic inactivity.
 
 `src/ui/personPanel.ts` caches this derived alert map and refreshes it once per second. The same cached result drives the compact counts on the People menu button, the three severity filters and the per-person reason shown in the browser. This remains presentation-derived state and is not persisted in `World`.
 

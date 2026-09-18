@@ -122,6 +122,23 @@ test("sleep keeps the workplace assignment while pausing production", () => {
   assert.equal(person.progress, preservedProgress);
 });
 
+test("sleep keeps autonomous profession and resource assignment visible", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const resource = world.naturalResources.find((candidate) => candidate.kind === "forest")!;
+
+  person.woodcutter = true;
+  person.resourceTarget = resource.id;
+  person.active = true;
+  person.sleep = 20;
+
+  advanceSleepTick(world);
+
+  assert.ok(person.sleepState);
+  assert.equal(person.woodcutter, true);
+  assert.equal(person.resourceTarget, resource.id);
+});
+
 test("a tired sawmill worker does not start resupply after finishing the current cycle", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
