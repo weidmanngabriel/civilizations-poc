@@ -1,6 +1,7 @@
 import type { Building, Hex, Person, SleepLocationKind, SleepState, World } from "./model";
-import { findPath, findPathBySteps, key, pathTravelCost, same, tileIndex } from "./hex";
+import { findPathBySteps, key, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
+import { findNavigationPath } from "./wayposts";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 
@@ -39,7 +40,7 @@ const decaySleep = (person: Person): void => {
 
 const routeTo = (world: World, person: Person, target: Hex): Hex[] | undefined =>
   performanceProfiler.withPathReason("sleep", () =>
-    findPath(world.tiles, person.position, target, CONFIG.roadSpeedMultiplier),
+    findNavigationPath(world, person.position, target, CONFIG.roadSpeedMultiplier),
   ) ?? undefined;
 
 const isCompletedHouse = (building: Building): boolean =>
