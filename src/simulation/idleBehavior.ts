@@ -1,5 +1,5 @@
 import type { Building, Good, Hex, Person, World } from "./model";
-import { findPath, hexDistance, key, neighbors, same, tileIndex, walkable } from "./hex";
+import { findPath, findPathBySteps, hexDistance, key, neighbors, same, tileIndex, walkable } from "./hex";
 import { CONFIG } from "./scenario";
 import { buildingFootprint } from "./buildingPlacement";
 
@@ -109,7 +109,10 @@ const chooseIdleTarget = (
     .sort((a, b) => a.score - b.score || b.distance - a.distance);
 
   for (const { candidate } of candidates) {
-    const path = findPath(world.tiles, person.position, candidate, CONFIG.roadSpeedMultiplier);
+    const local = hexDistance(person.position, candidate) <= IDLE_MAX_DISTANCE * 2;
+    const path = local
+      ? findPathBySteps(world.tiles, person.position, candidate)
+      : findPath(world.tiles, person.position, candidate, CONFIG.roadSpeedMultiplier);
     if (path) return { target: candidate, path };
   }
   return undefined;
