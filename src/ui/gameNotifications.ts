@@ -39,8 +39,8 @@ export const buildingNotifications = (world: World): GameNotification[] =>
       id: `building:${building.id}:worker-needed`,
       kind: "building" as const,
       severity: "warning" as const,
-      title: `${building.name} fertiggestellt`,
-      label: "Kein Arbeiter zugewiesen",
+      title: building.name,
+      label: "Fertig · kein Arbeiter zugewiesen",
       buildingId: building.id,
     }));
 
