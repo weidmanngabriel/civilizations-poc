@@ -24,7 +24,7 @@ import {
   tileIndex,
 } from "./hex";
 import { CONFIG } from "./scenario";
-import { findRequiredNavigationPath } from "./wayposts";
+import { clearNavigationBlocked, findNavigationPath, findRequiredNavigationPath } from "./wayposts";
 import {
   activeFarmFieldCount,
   advanceFarmSystem,
@@ -303,6 +303,7 @@ function cancel(w: World, p: Person): void {
   p.progress = 0;
   p.movement = 0;
   p.path = [];
+  clearNavigationBlocked(p);
 }
 
 function rerouteCurrentTask(w: World, p: Person): void {
@@ -353,9 +354,12 @@ function rerouteCurrentTask(w: World, p: Person): void {
     return;
   }
   if (p.idleTarget) {
-    if (!same(p.position, p.idleTarget))
-      routeToPosition(w, p, p.idleTarget, "reroute");
-    else {
+    if (!same(p.position, p.idleTarget)) {
+      p.path = performanceProfiler.withPathReason("reroute", () =>
+        findNavigationPath(w, p.position, p.idleTarget!, CONFIG.roadSpeedMultiplier),
+      ) ?? [];
+      if (!p.path.length) p.idleTarget = undefined;
+    } else {
       p.path = [];
       p.movement = 0;
     }
