@@ -275,7 +275,6 @@ export function findRequiredNavigationPath(
   const path = findNavigationPath(world, person.position, end, roadSpeedMultiplier);
   if (path) {
     person.navigationBlocked = undefined;
-    resetNavigationFailures(person);
     return path;
   }
 
