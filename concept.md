@@ -147,7 +147,7 @@ Freischaltungen sind dauerhaft. Wird die auslösende Produktionsstätte später 
 
 ## Gebäudehinweise
 
-Gebäudehinweise sind Teil der Gebäudeübersicht und nicht in einem allgemeinen Benachrichtigungsmenü gesammelt. Analog zur Personenübersicht zeigt der Gebäude-Button kompakte Hinweiszähler und die Gebäudeübersicht kann nach Hinweisstufe filtern. Fertige Gebäude mit mindestens einem Arbeiterplatz zeigen einen wichtigen Hinweis, solange noch kein Arbeiter zugewiesen ist. Auf der Karte erscheint zusätzlich ein Ausrufezeichen am Gebäude. Ein Klick oder Tap auf Eintrag oder Marker zentriert die Kamera und öffnet das Gebäude. Nach einer Arbeiterzuweisung verschwindet der Hinweis; wird später wieder der letzte Arbeiter entfernt, erscheint er erneut.
+Gebäudehinweise sind Teil der Gebäudeübersicht und nicht in einem allgemeinen Benachrichtigungsmenü gesammelt. Analog zur Personenübersicht zeigt der Gebäude-Button kompakte Hinweiszähler und die Gebäudeübersicht kann nach Hinweisstufe filtern. Beim Schließen der Personen- oder Gebäudeübersicht werden Suche und Filter auf den Ausgangszustand zurückgesetzt, sodass jede neue Öffnung ungefiltert startet. Fertige Gebäude mit mindestens einem Arbeiterplatz zeigen einen wichtigen Hinweis, solange noch kein Arbeiter zugewiesen ist. Auf der Karte erscheint zusätzlich ein Ausrufezeichen am Gebäude. Ein Klick oder Tap auf Eintrag oder Marker zentriert die Kamera und öffnet das Gebäude. Nach einer Arbeiterzuweisung verschwindet der Hinweis; wird später wieder der letzte Arbeiter entfernt, erscheint er erneut.
 
 ## Personenhinweise
 
