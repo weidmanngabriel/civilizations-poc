@@ -334,12 +334,13 @@ export class IncrementalMainScene extends MainScene {
       if (marker.detailLabel.text !== detail) marker.detailLabel.setText(detail);
       marker.detailLabel.setPosition(x, groundY + 4.6).setVisible(true);
 
-      if (person.trip?.picked) {
+      const carriedGood = person.outdoorCarry ?? (person.trip?.picked ? person.trip.good : undefined);
+      if (carriedGood) {
         marker.cargo.setPosition(
           x + PERSON_MARKER_RADIUS * 0.72,
           y - PERSON_MARKER_RADIUS * 0.72,
         );
-        const cargoLabel = GOOD_ICONS[person.trip.good];
+        const cargoLabel = GOOD_ICONS[carriedGood];
         if (marker.cargo.text !== cargoLabel) marker.cargo.setText(cargoLabel);
         marker.cargo.setVisible(true);
       } else {
