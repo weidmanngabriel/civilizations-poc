@@ -414,6 +414,7 @@ export class MainScene extends Phaser.Scene {
 
   private personMarker(p: Person): string {
     if (p.woodcutter) return "🪓";
+    if (p.fisher) return "🎣";
     if (p.extractor === "clay") return "🟤";
     if (p.extractor === "stone") return "⛏️";
     if (p.builder) return "🔨";
@@ -643,7 +644,7 @@ export class MainScene extends Phaser.Scene {
       const pos = pixel(personWorldPosition(this.world, p));
       const x = pos.x;
       const y = pos.y;
-      const color = !p.assignment && !p.woodcutter && !p.extractor && !p.builder
+      const color = !p.assignment && !p.woodcutter && !p.fisher && !p.extractor && !p.builder
         ? 0xdde5db
         : p.assignment?.role === "worker" || p.woodcutter
           ? 0x234636
@@ -661,11 +662,12 @@ export class MainScene extends Phaser.Scene {
         backgroundColor: "#263c2d",
       }).setResolution(TEXT_RESOLUTION).setOrigin(0, 0.5);
       this.markers.add([dot, label, idLabel]);
-      if (p.trip?.picked)
+      const carriedGood = p.outdoorCarry ?? (p.trip?.picked ? p.trip.good : undefined);
+      if (carriedGood)
         this.markers.add(this.add.text(
           x + 3,
           y - 5,
-          GOOD_ICONS[p.trip.good],
+          GOOD_ICONS[carriedGood],
           {
             fontFamily: "system-ui",
             fontSize: "5px",
