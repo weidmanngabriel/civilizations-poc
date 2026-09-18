@@ -9,7 +9,7 @@ import type {
   Tile,
   World,
 } from "../simulation/model";
-import { key, same } from "../simulation/hex";
+import { hexDistance, key, same } from "../simulation/hex";
 import { personWorldPosition } from "../simulation/movement";
 import { CONFIG } from "../simulation/scenario";
 import { GOOD_ICONS } from "../icons";
@@ -20,6 +20,12 @@ import {
   footprintRing,
 } from "../simulation/buildingPlacement";
 import { HEX_RADIUS, nearestTileAtWorldPoint, pixel } from "./mapGeometry";
+import {
+  WAYPOST_MIN_DISTANCE,
+  WAYPOST_ORIENTATION_RADIUS,
+  canPlaceWaypost,
+  wayposts,
+} from "../simulation/wayposts";
 
 const TEXT_RESOLUTION = 3;
 const MIN_FOREST_ALPHA = 0.35;
@@ -62,7 +68,7 @@ const goodColors: Record<Good, number> = {
 type PointerPosition = { x: number; y: number };
 type CameraSnapshot = { scrollX: number; scrollY: number; zoom: number };
 type MerchantTargetModeDetail = { active: boolean; sourceId?: BuildingId };
-type BuildModeDetail = { active: boolean; kind?: BuildableBuildingKind };
+type BuildPlacementKind = BuildableBuildingKind | "waypost";\ntype BuildModeDetail = { active: boolean; kind?: BuildPlacementKind };
 type WorldBounds = { minX: number; maxX: number; minY: number; maxY: number };
 
 const underConstruction = (b: Building): boolean =>
@@ -80,7 +86,7 @@ export class MainScene extends Phaser.Scene {
   private selectedTile?: Hex;
   private merchantTargetSourceId?: BuildingId;
   private cameraBeforeMerchantTarget?: CameraSnapshot;
-  private buildKind?: BuildableBuildingKind;
+  private buildKind?: BuildPlacementKind;
   private buildHover?: Hex;
   private buildPositionChosen = false;
   private cachedWorldBounds?: WorldBounds;
@@ -533,6 +539,39 @@ export class MainScene extends Phaser.Scene {
 
     if (this.buildKind) {
       if (!this.buildHover) return;
+      if (this.buildKind === "waypost") {
+        const valid = canPlaceWaypost(this.world, this.buildHover);
+        const orientationRadius = Math.floor(WAYPOST_ORIENTATION_RADIUS);
+        const minDistanceRadius = Math.floor(WAYPOST_MIN_DISTANCE);
+        highlights.fillStyle(valid ? 0xb8e69f : 0xe18b7d, 0.13);
+        for (const position of hexArea(this.buildHover, orientationRadius))
+          highlights.fillPoints(this.hexPoints(position), true);
+
+        highlights.lineStyle(0.85, valid ? 0xf8e8aa : 0xe18b7d, 0.8);
+        for (const position of hexArea(this.buildHover, orientationRadius))
+          if (hexDistance(this.buildHover, position) === orientationRadius)
+            highlights.strokePoints(this.hexPoints(position), true);
+
+        highlights.lineStyle(0.65, 0xd6b24a, 0.55);
+        for (const post of wayposts(this.world))
+          for (const position of hexArea(post.position, minDistanceRadius))
+            if (hexDistance(post.position, position) === minDistanceRadius)
+              highlights.strokePoints(this.hexPoints(position), true);
+
+        const anchor = pixel(this.buildHover);
+        highlights.lineStyle(1.2, 0x5b442d, 0.9);
+        highlights.lineBetween(anchor.x, anchor.y + 2.5, anchor.x, anchor.y - 12);
+        highlights.fillStyle(0xc7964f, 0.95);
+        highlights.fillTriangle(
+          anchor.x,
+          anchor.y - 11,
+          anchor.x + 7,
+          anchor.y - 8,
+          anchor.x,
+          anchor.y - 5,
+        );
+        return;
+      }
       const valid = canPlaceBuilding(this.world, this.buildHover, this.buildKind);
       const footprint = footprintAt(this.buildKind, this.buildHover);
       for (const position of footprint) {
