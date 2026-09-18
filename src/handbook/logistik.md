@@ -24,6 +24,18 @@ Die Person sucht nur innerhalb dieses Bereichs neue Rohstoff- oder Abholziele. *
 
 Zwei Träger desselben Lagers können unterschiedliche Flaggen besitzen und dadurch verschiedene Bereiche abdecken.
 
+
+## Wegweiser
+
+Über das **Baumenü** kannst du Wegweiser platzieren. Beim Start steht bereits ein erster Wegweiser ungefähr zwei Weltkacheln vor dem Hauptquartier.
+
+Ein Wegweiser dient Bewohnern zur Orientierung in einem Bereich von **2,5 Weltkacheln**. Neue Wegweiser brauchen mindestens diesen Abstand voneinander. Sind zwei Wegweiser erreichbar und höchstens **5 Weltkacheln** voneinander entfernt, verbinden sie sich automatisch.
+
+Für jede Verbindung erscheint am Pfosten ein eigenes Richtungsschild zum verbundenen Wegweiser. Dadurch erkennst du direkt, wie das Netz weiterführt.
+
+Auf dem Desktop zeigt die Maus zuerst den Ghost; Linksklick platziert und Rechtsklick oder Escape bricht ab. Auf Touch setzt ein Tap nur die Vorschau, Ziehen verschiebt die Karte und **„Platzieren“** bestätigt.
+
+Bewohner bevorzugen das Wegweisernetz, wenn Start und Ziel sinnvoll daran angeschlossen sind. Fehlt eine passende Verbindung, können sie weiterhin den normalen direkten Weg suchen.
 ## Warenfluss
 
 Waren existieren immer an einem konkreten Ort. Eine Produktionsstätte kann nur weiterarbeiten, wenn die benötigten Waren tatsächlich dort ankommen.
