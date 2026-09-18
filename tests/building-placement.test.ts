@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { BuildableBuildingKind } from "../src/simulation/model";
 import { createWorld } from "../src/simulation/scenario";
-import { same } from "../src/simulation/hex";
+import { hexDistance, same } from "../src/simulation/hex";
 import { placeLooseGood } from "../src/simulation/looseGoods";
 import {
   buildingFootprint,
@@ -55,7 +55,7 @@ test("valid anchor enumeration matches the authoritative placement rule", () => 
   );
 });
 
-test("buildable buildings occupy multiple tiles and keep one free tile around them", () => {
+test("buildable buildings occupy multiple tiles and keep a two-micro-cell clearance", () => {
   const world = createWorld();
   const origin = findValidOrigin(world, "warehouse");
   const footprint = footprintAt("warehouse", origin);
@@ -63,6 +63,12 @@ test("buildable buildings occupy multiple tiles and keep one free tile around th
 
   assert.ok(footprint.length > 1);
   assert.ok(ring.length > 0);
+  assert.equal(
+    Math.max(...ring.map((position) =>
+      Math.min(...footprint.map((occupied) => hexDistance(position, occupied))),
+    )),
+    2,
+  );
   assert.ok(ring.every((position) => {
     const tile = world.tiles.find((candidate) => same(candidate, position));
     return tile?.terrain === "grass" || tile?.terrain === "road";
