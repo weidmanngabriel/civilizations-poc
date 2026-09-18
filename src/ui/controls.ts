@@ -43,6 +43,7 @@ import {
 } from "../simulation/buildingPlacement";
 import { CONFIG } from "../simulation/scenario";
 import { same } from "../simulation/hex";
+import { canPlaceWaypost, placeWaypost } from "../simulation/wayposts";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 import { BUILDING_SVG, GOOD_ICONS, buildingIcon } from "../icons";
 
@@ -55,6 +56,7 @@ const SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const BUILD_POSITION_SELECTED_EVENT = "poc-build-position-selected";
+const WAYPOST_PLACEMENT_REQUESTED_EVENT = "poc-waypost-placement-requested";
 
 type BuildingSelectedDetail = { id: BuildingId };
 type TileSelectedDetail = { position: Hex };
@@ -88,7 +90,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   let selectedTile: Hex | undefined;
   let merchantTargetSelection: number | undefined;
   let merchantSelectionWasRunning = false;
-  let buildPlacementKind: BuildableBuildingKind | undefined;
+  let buildPlacementKind: BuildableBuildingKind | "waypost" | undefined;
   let buildPlacementPosition: Hex | undefined;
 
   const main = app.querySelector<HTMLElement>("main")!;
@@ -155,7 +157,9 @@ export function mountControls(w: World, renderMap: () => void): void {
     buildPlacementConfirm.disabled = !(
       buildPlacementKind &&
       buildPlacementPosition &&
-      canPlaceBuilding(w, buildPlacementPosition, buildPlacementKind)
+      (buildPlacementKind === "waypost"
+        ? canPlaceWaypost(w, buildPlacementPosition)
+        : canPlaceBuilding(w, buildPlacementPosition, buildPlacementKind))
     );
   }
 
@@ -538,14 +542,16 @@ export function mountControls(w: World, renderMap: () => void): void {
     renderSelectionPanel();
   };
 
-  const enterBuildPlacementMode = (kind: BuildableBuildingKind) => {
+  const enterBuildPlacementMode = (kind: BuildableBuildingKind | "waypost") => {
     buildPlacementKind = kind;
     buildPlacementPosition = undefined;
     selectedTile = undefined;
     selectedBuildingId = undefined;
     setDebugOpen(false);
     main.classList.add("merchant-target-mode");
-    buildPlacementTitle.textContent = `${BUILDING_NAMES[kind]} platzieren`;
+    buildPlacementTitle.textContent =
+      kind === "waypost" ? "Wegweiser platzieren" : `${BUILDING_NAMES[kind]} platzieren`;
+    buildPlacementConfirm.textContent = kind === "waypost" ? "Platzieren" : "Bauen";
     buildPlacementOverlay.hidden = false;
     updateBuildPlacementConfirm();
     window.dispatchEvent(new CustomEvent(BUILD_MODE_EVENT, {
@@ -556,6 +562,20 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const confirmBuildPlacement = () => {
     if (!buildPlacementKind || !buildPlacementPosition) return;
+    if (buildPlacementKind === "waypost") {
+      const created = placeWaypost(w, buildPlacementPosition);
+      if (!created) {
+        updateBuildPlacementConfirm();
+        renderMap();
+        return;
+      }
+      leaveBuildPlacementMode();
+      selectedTile = undefined;
+      selectedBuildingId = undefined;
+      refresh();
+      return;
+    }
+
     const created = buildWithFootprint(w, buildPlacementPosition, buildPlacementKind);
     if (!created) {
       updateBuildPlacementConfirm();
@@ -682,6 +702,10 @@ export function mountControls(w: World, renderMap: () => void): void {
         delta,
       );
     refresh();
+  });
+
+  window.addEventListener(WAYPOST_PLACEMENT_REQUESTED_EVENT, () => {
+    enterBuildPlacementMode("waypost");
   });
 
   window.addEventListener(BUILD_POSITION_SELECTED_EVENT, (event) => {

@@ -24,6 +24,7 @@ import {
   tileIndex,
 } from "./hex";
 import { CONFIG } from "./scenario";
+import { findNavigationPath } from "./wayposts";
 import {
   activeFarmFieldCount,
   advanceFarmSystem,
@@ -154,7 +155,7 @@ const routeToPosition = (
   reason: PathReason = routeReason(p),
 ) => {
   p.path = performanceProfiler.withPathReason(reason, () =>
-    findPath(w.tiles, p.position, position, CONFIG.roadSpeedMultiplier),
+    findNavigationPath(w, p.position, position, CONFIG.roadSpeedMultiplier),
   ) ?? [];
 };
 const route = (

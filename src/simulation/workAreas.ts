@@ -1,6 +1,7 @@
 import type { Building, Good, Hex, NaturalResource, NaturalResourceKind, Person, World } from "./model";
-import { findPath, key, neighbors, pathTravelCost, same, tileIndex } from "./hex";
+import { key, neighbors, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
+import { findNavigationPath } from "./wayposts";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { awardProfessionExperience, professionExperience } from "./experience";
 import { startEatingAfterCompletedAction } from "./needs";
@@ -91,7 +92,7 @@ function fishingCandidate(
     );
 
   for (const position of positions) {
-    const path = findPath(world.tiles, person.position, position, CONFIG.roadSpeedMultiplier);
+    const path = findNavigationPath(world, person.position, position, CONFIG.roadSpeedMultiplier);
     if (path) return { position: { q: position.q, r: position.r }, path };
   }
   return undefined;
@@ -177,7 +178,7 @@ function routeOutdoorCarryToFlag(world: World, person: Person): boolean {
   }
 
   if (!same(person.position, area.center)) {
-    const path = findPath(world.tiles, person.position, area.center, CONFIG.roadSpeedMultiplier);
+    const path = findNavigationPath(world, person.position, area.center, CONFIG.roadSpeedMultiplier);
     if (!path) {
       person.active = false;
       area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
@@ -291,7 +292,7 @@ function initializeResourceWorker(world: World, person: Person): boolean {
   const candidates: ResourceCandidate[] = [];
   for (const resource of world.naturalResources) {
     if (resource.kind !== kind || resource.depleted || resource.remaining <= 0 || claimedByOther(world, person, resource)) continue;
-    const path = findPath(world.tiles, person.position, resource.position, CONFIG.roadSpeedMultiplier);
+    const path = findNavigationPath(world, person.position, resource.position, CONFIG.roadSpeedMultiplier);
     if (!path) continue;
     candidates.push({
       resource,
@@ -321,7 +322,7 @@ function planLocalResource(world: World, person: Person): boolean {
   for (const resource of world.naturalResources) {
     if (resource.kind !== kind || resource.depleted || resource.remaining <= 0 ||
       hexDistance(area.center, resource.position) > area.radius || claimedByOther(world, person, resource)) continue;
-    const path = findPath(world.tiles, person.position, resource.position, CONFIG.roadSpeedMultiplier);
+    const path = findNavigationPath(world, person.position, resource.position, CONFIG.roadSpeedMultiplier);
     if (!path) continue;
     candidates.push({ resource, path, cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier) });
   }
@@ -365,7 +366,7 @@ function planLocalStorageCarrier(world: World, person: Person): boolean {
     for (const source of world.buildings) {
       if (source.id === target.id || hexDistance(area.center, source.position) > area.radius) continue;
       if (buildingSourceStock(source, good) - reservedAtBuildingSource(world, source.id, good) + 1e-9 < CONFIG.carryCapacity) continue;
-      const path = findPath(world.tiles, person.position, source.position, CONFIG.roadSpeedMultiplier);
+      const path = findNavigationPath(world, person.position, source.position, CONFIG.roadSpeedMultiplier);
       if (!path) continue;
       candidates.push({ sourceId: source.id, sourceKind: "building", sourcePosition: { ...source.position }, good, path,
         cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier) });
@@ -373,7 +374,7 @@ function planLocalStorageCarrier(world: World, person: Person): boolean {
     for (const source of looseGoodStacks(world)) {
       if (source.good !== good || hexDistance(area.center, source.position) > area.radius ||
         availableLooseGoodAmount(source) + 1e-9 < CONFIG.carryCapacity) continue;
-      const path = findPath(world.tiles, person.position, source.position, CONFIG.roadSpeedMultiplier);
+      const path = findNavigationPath(world, person.position, source.position, CONFIG.roadSpeedMultiplier);
       if (!path) continue;
       candidates.push({ sourceId: source.id, sourceKind: "looseGood", sourcePosition: { ...source.position }, good, path,
         cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier) });
@@ -432,7 +433,7 @@ function enforceResourceWorker(world: World, person: Person): void {
       person.progress = 0;
       area.retryAfterTick = undefined;
     } else if (!person.path.length && !same(person.position, target.position)) {
-      const path = findPath(world.tiles, person.position, target.position, CONFIG.roadSpeedMultiplier);
+      const path = findNavigationPath(world, person.position, target.position, CONFIG.roadSpeedMultiplier);
       if (path) {
         person.path = path;
         person.movement = 0;

@@ -12,4 +12,17 @@ Produktionsarbeiter und Bauarbeiter dürfen benötigte Waren nach ihren eigenen 
 
 Beim Aufheben loser Bodenware bleibt ein Bewohner eine simulierte Sekunde am Warenhaufen. Abholen an anderen Quellen und Abladen dauern drei simulierte Sekunden. Bei normalen Gebäuden befindet sich der Bewohner während des Warenübergangs im Gebäude und ist auf der Karte nicht sichtbar. Am Brunnen bleibt er sichtbar, weil er diesen nicht betritt.
 
+
+## Wegweiser
+
+Über das **Baumenü** kannst du Wegweiser platzieren. Beim Start steht bereits ein erster Wegweiser ungefähr zwei Weltkacheln vor dem Hauptquartier.
+
+Ein Wegweiser dient Bewohnern zur Orientierung in einem Bereich von **2,5 Weltkacheln**. Neue Wegweiser brauchen mindestens diesen Abstand voneinander. Sind zwei Wegweiser erreichbar und höchstens **5 Weltkacheln** voneinander entfernt, verbinden sie sich automatisch.
+
+Für jede Verbindung erscheint am Pfosten ein eigenes Richtungsschild zum verbundenen Wegweiser. Dadurch erkennst du direkt, wie das Netz weiterführt.
+
+Auf dem Desktop zeigt die Maus zuerst den Ghost; Linksklick platziert und Rechtsklick oder Escape bricht ab. Auf Touch setzt ein Tap nur die Vorschau, Ziehen verschiebt die Karte und **„Platzieren“** bestätigt.
+
+Bewohner bevorzugen das Wegweisernetz, wenn Start und Ziel sinnvoll daran angeschlossen sind. Fehlt eine passende Verbindung, können sie weiterhin den normalen direkten Weg suchen.
+
 Wenn eine Produktion stockt, prüfe den tatsächlichen Warenfluss, die Wege und die Arbeitsbereiche der beteiligten Bewohner.

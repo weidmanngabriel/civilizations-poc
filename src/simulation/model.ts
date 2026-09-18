@@ -1,5 +1,6 @@
 export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "clay" | "rubble" | "brick" | "stoneBlock";
 export type BuildingId = string;
+export type WaypostId = string;
 export type BuildingKind = "hq" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "stonemason" | "warehouse" | "house";
 export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "field" | "house">;
 export type NaturalResourceId = string;
@@ -84,6 +85,11 @@ export interface Building {
   fieldStage?: FieldStage;
   fieldGrowthProgress?: number;
   retired?: boolean;
+}
+export interface Waypost {
+  id: WaypostId;
+  position: Hex;
+  connections?: WaypostId[];
 }
 export interface NaturalResource {
   id: NaturalResourceId;
@@ -199,6 +205,7 @@ export interface World {
   nextId: number;
   nextBuildingId: number;
   nextFieldId: number;
+  nextWaypostId?: number;
   /** Loose-good ids are initialized lazily for compatibility with older fixtures. */
   nextLooseGoodId?: number;
   rngState: number;
@@ -208,6 +215,7 @@ export interface World {
   people: Person[];
   buildings: Building[];
   naturalResources: NaturalResource[];
+  wayposts?: Waypost[];
   /** Physical goods lying on map cells. Stacks are always walkable and never affect routing. */
   looseGoods?: LooseGoodStack[];
   tiles: Tile[];
