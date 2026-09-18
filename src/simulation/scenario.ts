@@ -19,6 +19,7 @@ import {
   scaleHex,
 } from "./spatial";
 import { key, tileIndex } from "./hex";
+import { ensureInitialWaypost } from "./wayposts";
 import {
   naturalResourceBlocksMovement,
   naturalResourceFootprint,
@@ -403,14 +404,17 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     nextId: population + 1,
     nextBuildingId: 1,
     nextFieldId: 1,
+    nextWaypostId: 1,
     rngState: 0x1a2b3c4d,
     ...(suppliedStart ? { unlockedTechnologies: [...STARTING_TECHNOLOGIES] } : {}),
     buildings,
     naturalResources,
+    wayposts: [],
     tiles,
     people,
   };
 
+  if (suppliedStart) ensureInitialWaypost(world);
   return attachNeeds(attachSleep(world));
 }
 
