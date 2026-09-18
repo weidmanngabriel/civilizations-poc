@@ -124,6 +124,7 @@ const needDueBeforeNewTask = (p: Person): boolean =>
   foodDueBeforeNewTask(p) || sleepDueBeforeNewTask(p);
 
 const workRetryAfterTick = new WeakMap<Person, number>();
+const observedWaypostRevision = new WeakMap<World, number>();
 const immediateWorkDecisionPeople = new WeakSet<Person>();
 const clearWorkRetry = (p: Person): void => {
   workRetryAfterTick.delete(p);
@@ -1183,6 +1184,20 @@ function advanceConstruction(w: World): void {
 /** One deterministic 1/60-second simulation step. */
 export function tick(w: World): void {
   w.round++;
+
+  const waypostRevision = w.waypostRevision ?? 0;
+  const previousWaypostRevision = observedWaypostRevision.get(w);
+  observedWaypostRevision.set(w, waypostRevision);
+  if (
+    previousWaypostRevision !== undefined &&
+    previousWaypostRevision !== waypostRevision
+  ) {
+    for (const p of w.people) {
+      if (!p.navigationBlocked || p.hungerState || p.sleepState) continue;
+      rerouteCurrentTask(w, p);
+    }
+  }
+
   const regularDecisionTick =
     (w.round - 1) % CONFIG.decisionIntervalTicks === 0;
   const immediateDecisionPeople = new Set<number>();
