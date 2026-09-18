@@ -17,7 +17,7 @@ import { key, neighbors, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 import { buildAt, notifyConstructionSiteAdded, removeBuilding } from "./simulation";
 import { isBuildingUnlocked } from "./technology";
-import { GRID_REFINEMENT, refinedCellCluster } from "./spatial";
+import { refinedCellCluster } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
 import { looseGoodStacks } from "./looseGoods";
 import { BUILDING_CONSTRUCTION_REQUIREMENTS } from "./constructionRules";
@@ -106,7 +106,7 @@ const ringAround = (footprint: Hex[]): Hex[] => {
   const visited = new Map<string, Hex>();
   let frontier = footprint.map((position) => ({ ...position }));
 
-  for (let distance = 0; distance < GRID_REFINEMENT; distance += 1) {
+  for (let distance = 0; distance < 2; distance += 1) {
     const next = new Map<string, Hex>();
     for (const position of frontier)
       for (const neighbor of neighbors(position)) {
@@ -120,7 +120,7 @@ const ringAround = (footprint: Hex[]): Hex[] => {
   return [...visited.values()];
 };
 
-/** Preserve the former one-tile physical clearance at fine-grid scale. */
+/** Buildings keep a compact two-micro-cell clearance around their authored footprint. */
 export const footprintRing = (footprint: Hex[]): Hex[] => ringAround(footprint);
 
 const relativeFootprint = (kind: PlaceableBuildingKind): Hex[] =>
