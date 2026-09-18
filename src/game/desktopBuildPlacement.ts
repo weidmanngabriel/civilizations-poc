@@ -38,7 +38,7 @@ export function installDesktopBuildPlacement(
     const confirm = document.querySelector<HTMLButtonElement>("#build-placement-confirm");
     if (copy) {
       copy.innerHTML = desktop
-        ? "<b>Maus bewegen, um die Position zu wählen.</b> Linksklick baut. Escape bricht ab. Grün ist gültig, rot blockiert."
+        ? "<b>Maus bewegen, um die Position zu wählen.</b> Linksklick platziert. Rechtsklick oder Escape bricht ab. Grün ist gültig, rot blockiert."
         : "<b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.";
     }
     if (confirm) confirm.hidden = desktop;
@@ -74,6 +74,12 @@ export function installDesktopBuildPlacement(
     clickEligible = false;
     updateGhost(screenPosition(event.clientX, event.clientY));
     document.querySelector<HTMLButtonElement>("#build-placement-confirm")?.click();
+  });
+
+  canvas.addEventListener("contextmenu", (event) => {
+    if (!active) return;
+    event.preventDefault();
+    document.querySelector<HTMLButtonElement>("#build-placement-cancel")?.click();
   });
 
   window.addEventListener(BUILD_MODE_EVENT, (event) => {
