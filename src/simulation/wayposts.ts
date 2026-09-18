@@ -1,5 +1,5 @@
-import type { Hex, Tile, Waypost, World } from "./model";
-import { findPath, hexDistance, key, tileIndex, walkable } from "./hex";
+import type { Hex, Person, Tile, Waypost, World } from "./model";
+import { findPath, hexDistance, key, pathTravelCost, same, tileIndex, walkable } from "./hex";
 import { GRID_REFINEMENT } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
 import { CONFIG } from "./scenario";
@@ -124,57 +124,21 @@ export function ensureInitialWaypost(world: World): Waypost | undefined {
   return candidate ? placeWaypost(world, candidate) : undefined;
 }
 
-const waypointGraphRoute = (
+type Segment = { path: Hex[]; cost: number };
+
+const localSegment = (
   world: World,
   start: Hex,
   end: Hex,
-): Waypost[] | undefined => {
-  const posts = wayposts(world);
-  if (posts.length < 2) return undefined;
-  const starts = posts.filter(
-    (post) => hexDistance(start, post.position) <= WAYPOST_ORIENTATION_RADIUS,
-  );
-  const goals = new Set(
-    posts
-      .filter((post) => hexDistance(end, post.position) <= WAYPOST_ORIENTATION_RADIUS)
-      .map((post) => post.id),
-  );
-  if (!starts.length || !goals.size) return undefined;
-  if (starts.some((post) => goals.has(post.id))) return undefined;
-
-  const byId = new Map(posts.map((post) => [post.id, post]));
-  type Entry = { id: string; distance: number; path: string[] };
-  const queue: Entry[] = starts.map((post) => ({
-    id: post.id,
-    distance: hexDistance(start, post.position),
-    path: [post.id],
-  }));
-  const best = new Map<string, number>();
-
-  while (queue.length) {
-    queue.sort((a, b) => a.distance - b.distance);
-    const current = queue.shift()!;
-    if ((best.get(current.id) ?? Number.POSITIVE_INFINITY) <= current.distance) continue;
-    best.set(current.id, current.distance);
-    if (goals.has(current.id)) {
-      return current.path.map((id) => byId.get(id)!).filter(Boolean);
-    }
-    const currentPost = byId.get(current.id);
-    if (!currentPost) continue;
-    for (const nextId of currentPost.connections ?? []) {
-      const next = byId.get(nextId);
-      if (!next) continue;
-      const nextDistance =
-        current.distance + hexDistance(currentPost.position, next.position);
-      if ((best.get(nextId) ?? Number.POSITIVE_INFINITY) <= nextDistance) continue;
-      queue.push({
-        id: nextId,
-        distance: nextDistance,
-        path: [...current.path, nextId],
-      });
-    }
-  }
-  return undefined;
+  roadSpeedMultiplier: number,
+): Segment | undefined => {
+  if (same(start, end)) return { path: [], cost: 0 };
+  const path = findPath(world.tiles, start, end, roadSpeedMultiplier);
+  if (!path) return undefined;
+  return {
+    path,
+    cost: pathTravelCost(world.tiles, path, roadSpeedMultiplier),
+  };
 };
 
 export function findPathViaWayposts(
@@ -183,36 +147,108 @@ export function findPathViaWayposts(
   end: Hex,
   roadSpeedMultiplier = 1.3,
 ): Hex[] | null {
-  const graphRoute = waypointGraphRoute(world, start, end);
-  if (!graphRoute) return null;
+  if (same(start, end)) return [];
 
-  const targets = [...graphRoute.map((post) => post.position), end];
-  let cursor = start;
-  const result: Hex[] = [];
-  for (const target of targets) {
-    const segment = findPath(
-      world.tiles,
-      cursor,
-      target,
-      roadSpeedMultiplier,
-    );
-    if (!segment) return null;
-    result.push(...segment);
-    cursor = segment.at(-1) ?? cursor;
+  const posts = wayposts(world);
+  const startPosts = posts.filter(
+    (post) => hexDistance(start, post.position) <= WAYPOST_ORIENTATION_RADIUS,
+  );
+  const goalPosts = new Set(
+    posts
+      .filter((post) => hexDistance(end, post.position) <= WAYPOST_ORIENTATION_RADIUS)
+      .map((post) => post.id),
+  );
+  if (!startPosts.length || !goalPosts.size) return null;
+
+  const byId = new Map(posts.map((post) => [post.id, post]));
+  const segmentCache = new Map<string, Segment | undefined>();
+  const segmentBetween = (a: Waypost, b: Waypost): Segment | undefined => {
+    const cacheKey = `${a.id}->${b.id}`;
+    if (segmentCache.has(cacheKey)) return segmentCache.get(cacheKey);
+    const segment = localSegment(world, a.position, b.position, roadSpeedMultiplier);
+    segmentCache.set(cacheKey, segment);
+    return segment;
+  };
+
+  type Entry = { id: string; cost: number; path: Hex[] };
+  const queue: Entry[] = [];
+  for (const post of startPosts) {
+    const segment = localSegment(world, start, post.position, roadSpeedMultiplier);
+    if (!segment) continue;
+    queue.push({ id: post.id, cost: segment.cost, path: segment.path });
   }
-  return result;
+  if (!queue.length) return null;
+
+  const best = new Map<string, number>();
+  let bestGoal: { cost: number; path: Hex[] } | undefined;
+
+  while (queue.length) {
+    queue.sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id));
+    const current = queue.shift()!;
+    if ((best.get(current.id) ?? Number.POSITIVE_INFINITY) <= current.cost) continue;
+    best.set(current.id, current.cost);
+
+    if (bestGoal && current.cost >= bestGoal.cost) continue;
+    const currentPost = byId.get(current.id);
+    if (!currentPost) continue;
+
+    if (goalPosts.has(current.id)) {
+      const finalSegment = localSegment(
+        world,
+        currentPost.position,
+        end,
+        roadSpeedMultiplier,
+      );
+      if (finalSegment) {
+        const goalCost = current.cost + finalSegment.cost;
+        if (!bestGoal || goalCost < bestGoal.cost) {
+          bestGoal = {
+            cost: goalCost,
+            path: [...current.path, ...finalSegment.path],
+          };
+        }
+      }
+    }
+
+    for (const nextId of currentPost.connections ?? []) {
+      const next = byId.get(nextId);
+      if (!next) continue;
+      const segment = segmentBetween(currentPost, next);
+      if (!segment) continue;
+      const nextCost = current.cost + segment.cost;
+      if ((best.get(nextId) ?? Number.POSITIVE_INFINITY) <= nextCost) continue;
+      queue.push({
+        id: nextId,
+        cost: nextCost,
+        path: [...current.path, ...segment.path],
+      });
+    }
+  }
+
+  return bestGoal?.path ?? null;
 }
 
-
-/** Prefer the player-authored waypost network when both ends can orient to it. */
 export function findNavigationPath(
   world: World,
   start: Hex,
   end: Hex,
   roadSpeedMultiplier = 1.3,
 ): Hex[] | null {
-  return (
-    findPathViaWayposts(world, start, end, roadSpeedMultiplier) ??
-    findPath(world.tiles, start, end, roadSpeedMultiplier)
-  );
+  return findPathViaWayposts(world, start, end, roadSpeedMultiplier);
 }
+
+export function findRequiredNavigationPath(
+  world: World,
+  person: Person,
+  end: Hex,
+  roadSpeedMultiplier = 1.3,
+): Hex[] | null {
+  const path = findNavigationPath(world, person.position, end, roadSpeedMultiplier);
+  person.navigationBlocked = !path && !same(person.position, end);
+  return path;
+}
+
+export const clearNavigationBlocked = (person: Person): void => {
+  person.navigationBlocked = undefined;
+};
+
