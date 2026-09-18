@@ -1,4 +1,4 @@
-import type { Hex, Waypost, World } from "./model";
+import type { Hex, Tile, Waypost, World } from "./model";
 import { findPath, hexDistance, key, tileIndex, walkable } from "./hex";
 import { GRID_REFINEMENT } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
@@ -17,7 +17,7 @@ export const WAYPOST_MAX_CONNECTION_DISTANCE =
 export const wayposts = (world: World): Waypost[] => world.wayposts ?? [];
 
 type WaypostPlacementContext = {
-  tiles: Map<string, ReturnType<typeof tileIndex> extends Map<string, infer T> ? T : never>;
+  tiles: Map<string, Tile>;
   activeResourceCells: Set<string>;
   looseGoodCells: Set<string>;
 };
