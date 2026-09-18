@@ -7,6 +7,7 @@ import {
 import { GOODS } from "../simulation/simulation";
 import { personName } from "../simulation/personIdentity";
 import { GOOD_ICONS } from "../icons";
+import { personActivityLabel } from "../personPresentation";
 import { personAlertMap, type PersonAlertSeverity } from "./personAlerts";
 
 const PERSON_SELECTED_EVENT = "poc-person-selected";
@@ -80,22 +81,6 @@ const workplaceLabel = (world: World, person: Person): string => {
   if (person.extractor === "stone") return "Steinvorkommen · automatisch";
   if (person.builder) return "Baustellenpool";
   return "—";
-};
-
-export const personActivityLabel = (person: Person): string => {
-  if (person.hungerState) return person.path.length ? "Geht essen" : "Isst";
-  if (person.sleepState) return person.path.length ? "Sucht Schlafplatz" : "Schläft";
-  if (person.trip?.picked) return `Transportiert ${GOODS[person.trip.good]}`;
-  if (person.trip) return `Holt ${GOODS[person.trip.good]}`;
-  if (person.farmTask) {
-    if (person.farmTask.kind === "harvest") return "Erntet";
-    if (person.farmTask.kind === "fertilize") return "Düngt";
-    return "Sät";
-  }
-  if (person.idleTarget) return person.path.length ? "Unterwegs" : "Wartet";
-  if (person.active) return "Arbeitet";
-  if (person.path.length) return "Unterwegs";
-  return "Wartet";
 };
 
 const cargoLabel = (person: Person): string =>
