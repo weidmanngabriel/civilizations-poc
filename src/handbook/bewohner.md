@@ -14,6 +14,16 @@ Bewohner sammeln durch ihre Arbeit Erfahrung und werden in ihrem Beruf besser. F
 
 Die Personenübersicht zeigt zusätzlich aktuelle Hinweise in drei Stufen. **Rot** steht für kritische Bedürfnisse, **Gelb** für wichtige Bedürfnisse und **Blau** für reine Informationen wie eine freie Person ohne Aufgabe. Hunger und Müdigkeit erscheinen erst ab 30 % gelb und ab 20 % rot; vorher kann sich ein Bewohner bereits selbständig um das Bedürfnis kümmern, ohne in diesen Filtern aufzutauchen. Auch ein Abbauer, in dessen Arbeitsbereich kein passendes Vorkommen mehr übrig ist, erscheint gelb mit dem Hinweis **„Nichts mehr abzubauen“**. Jede Person zählt nur einmal in ihrer jeweils wichtigsten Stufe. Tippe oder klicke auf eine Stufe, um die Liste darauf zu filtern. Die kleinen Zähler am Personen-Button zeigen dir solche Hinweise auch dann, wenn die Übersicht geschlossen ist.
 
+## Personen direkt steuern
+
+Tippe oder klicke auf einen Bewohner, um ihn auszuwählen. Die kompakte Personenansicht zeigt seinen aktuellen Zustand. Über **Aktionen** öffnest du das Kontextmenü; am Desktop geht das zusätzlich mit der **Leertaste**.
+
+Im ersten Ausbau kannst du dort den Beruf festlegen, einen passenden Arbeitsplatz oder ein Wohnhaus zuweisen, bei geeigneten Berufen die Arbeitsflagge versetzen und die Person direkt an eine Stelle schicken. Außerdem kannst du Essen oder Schlafen sofort anstoßen, statt auf die automatische Bedürfnisentscheidung zu warten.
+
+Nicht passende Aktionen erscheinen im Kontextmenü gar nicht. Ein Arbeitsbereich wird zum Beispiel nur bei Berufen mit persönlicher Flagge angeboten. Bei Arbeitsplatz und Wohnung wechselst du in einen Auswahlmodus auf der Karte; gültige Gebäude werden hervorgehoben. Ein direkter Bewegungsbefehl gilt bis zum gewählten Ziel, danach arbeitet die Person wieder normal weiter.
+
+Hat ein Bewohner ein Wohnhaus zugewiesen, versucht er beim Schlafen zuerst dieses Haus zu nutzen.
+
 ## Fischer
 
 Fischer arbeiten ohne eigenes Gebäude an der Wasserkante. Jeder Fischer besitzt eine Arbeitsflagge, die sein Angelgebiet und seinen persönlichen Ablagepunkt festlegt. Beim Angeln siehst du die ausgeworfene Schnur am Wasser; nach dem Fangzyklus wird sie wieder eingeholt.

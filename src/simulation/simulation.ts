@@ -34,6 +34,7 @@ import {
   finishDeferredResourceDepletion,
 } from "./resourceDepletion";
 import { resolveFoodArrivals } from "./needs";
+import { syncManualMoveOrders } from "./personCommands";
 import { measureResourcePerformance } from "../debug/resourcePerformance";
 import { performanceProfiler } from "../debug/performanceProfiler";
 
@@ -357,7 +358,9 @@ export function tick(world: World): void {
     "resourceDepletion",
     () => deferLocalResourceDepletion(world),
   );
+  syncManualMoveOrders(world);
   coreTick(world);
+  syncManualMoveOrders(world);
   performanceProfiler.profileFeature("foodArrivals", () => resolveFoodArrivals(world));
   performanceProfiler.profileFeature("resourceDepletion", () =>
     finishDeferredResourceDepletion(world, deferredResourceDepletion),

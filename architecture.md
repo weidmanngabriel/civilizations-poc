@@ -164,6 +164,16 @@ Profession experience remains persistent from 0–100, with +1 XP per completed 
 
 Player-facing worlds start with only the explicitly declared `STARTING_TECHNOLOGIES`; neutral test/sandbox worlds that omit `World.unlockedTechnologies` stay permissive. The simulation wrapper calls `updateTechnologyUnlocks` after each authoritative tick, so completion of a production building can unlock dependent construction immediately on that tick.
 
+## Direct person commands
+
+Direct person control is represented as explicit person state rather than a parallel UI-only worker pool. `Person.profession` stores a player-chosen profession independently of a workplace, `Person.home` stores the personal house assignment, and `Person.manualMoveTarget` marks a temporary player movement override. Existing legacy role flags and assignments remain the execution state for the simulation, while `currentProfession` prefers the explicit profession when present.
+
+`src/simulation/personCommands.ts` owns player-facing person commands: profession change, workplace assignment, home assignment, direct movement, and explicit eat/sleep requests. Workplace validation derives role compatibility and capacity from the selected profession and target building. Personal homes are persisted automatically through the versioned person state and are preferred by the existing sleep planner when valid.
+
+`src/ui/personContextMenu.ts` owns the fixed 16-slot context-menu layout and keyboard/touch entry points. `src/game/personCommandInteraction.ts` owns map target selection for movement, workplace, and home assignment. The command interaction wraps the same scene selection adapter as other modal map interactions, so target picking consumes the tap/click while ordinary camera dragging and zoom remain available. Work-area changes continue to use the existing dedicated work-area interaction.
+
+The first slot mapping is intentionally sparse: 1 profession, 2 workplace, 3 home, 4 work area, 5 move, 6 eat, 7 sleep. Unavailable slots are omitted from rendering instead of being disabled, and future actions must reuse the remaining fixed positions rather than repacking existing actions.
+
 ## Rendering and interaction
 
 Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map/person presentation state; natural resources, loose goods, work-area flags and registered building sprites are presentation layers over authoritative simulation state. The person layer is rendered above natural resources, bushes and loose goods so residents remain visually readable while crossing resource visuals.

@@ -67,8 +67,12 @@ const natureTargets = (world: World): Hex[] => {
   return [...targets.values()];
 };
 
-const searchTargets = (world: World, context: SleepSearchContext, kind: "house" | "nature"): Hex[] => {
+const searchTargets = (world: World, person: Person, context: SleepSearchContext, kind: "house" | "nature"): Hex[] => {
   if (kind === "house") {
+    if (person.home) {
+      const home = world.buildings.find((building) => building.id === person.home && isCompletedHouse(building));
+      if (home) return [home.position];
+    }
     context.houses ??= world.buildings.filter(isCompletedHouse).map((building) => building.position);
     return context.houses;
   }
@@ -83,7 +87,7 @@ const bestCandidate = (
   context: SleepSearchContext,
   excludedTargets: ReadonlySet<string> = new Set(),
 ): SleepCandidate | undefined => {
-  const targets = searchTargets(world, context, kind)
+  const targets = searchTargets(world, person, context, kind)
     .filter((target) => !excludedTargets.has(key(target)))
     .map((target) => {
       const distance = hexDistance(person.position, target);
@@ -235,6 +239,15 @@ const startSleeping = (world: World, person: Person, context: SleepSearchContext
   person.path = same(person.position, candidate.target) ? [] : candidate.path;
 };
 
+export const commandSleep = (world: World, personId: number): boolean => {
+  const person = world.people.find((candidate) => candidate.id === personId);
+  if (!person || (person.sleep ?? SLEEP_MAX) >= SLEEP_MAX) return false;
+  if (person.sleepState) interruptSleep(world, person);
+  person.manualMoveTarget = undefined;
+  startSleeping(world, person, {});
+  return true;
+};
+
 const applyReplacementTarget = (
   world: World,
   person: Person,
@@ -299,6 +312,7 @@ export function advanceSleepTick(world: World): void {
     for (const person of world.people) {
       sleepValue(person);
       if (person.sleepGraceTicks! > 0) person.sleepGraceTicks!--;
+      if (person.manualMoveTarget) continue;
       if (person.sleepState) { ensureSleepRouteOrProgress(world, person, searchContext); continue; }
       decaySleep(person);
       if (person.hungerState || (person.hunger ?? 100) <= 40) continue;

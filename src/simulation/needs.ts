@@ -289,6 +289,20 @@ const startEating = (world: World, person: Person): boolean => {
   return assignFoodCandidate(world, person, person.hungerState, candidate);
 };
 
+export const interruptEating = (world: World, person: Person): void => {
+  if (!person.hungerState) return;
+  clearLooseFoodReservation(world, person.hungerState);
+  person.hungerState = undefined;
+};
+
+export const commandEat = (world: World, personId: number): boolean => {
+  const person = world.people.find((candidate) => candidate.id === personId);
+  if (!person || (person.hunger ?? HUNGER_MAX) >= HUNGER_MAX) return false;
+  interruptEating(world, person);
+  person.manualMoveTarget = undefined;
+  return startEating(world, person);
+};
+
 export const startEatingAfterCompletedAction = (world: World, person: Person): boolean => {
   if (person.hungerState || hungerValue(person) > WANTS_TO_EAT_THRESHOLD) return false;
   return startEating(world, person);
@@ -424,6 +438,7 @@ export function advanceHungerTick(world: World): void {
   cleanupAndRegrowBushes(world);
   for (const person of world.people) {
     decayHunger(person);
+    if (person.manualMoveTarget) continue;
     if (person.hungerState) { ensureFoodRoute(world, person); continue; }
     if (person.hunger! <= CRITICAL_HUNGER_THRESHOLD) { startEating(world, person); continue; }
     if (person.hunger! <= WANTS_TO_EAT_THRESHOLD && atTaskBoundary(person)) startEating(world, person);

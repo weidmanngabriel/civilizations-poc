@@ -162,7 +162,13 @@ export interface SleepState {
 export interface Person {
   id: number;
   position: Hex;
+  /** Explicit profession chosen by the player. Legacy worlds may still derive it from assignment flags. */
+  profession?: Profession;
   assignment?: { building: BuildingId; role: Role };
+  /** Personally assigned home. */
+  home?: BuildingId;
+  /** Temporary direct movement order; normal autonomous work resumes after arrival. */
+  manualMoveTarget?: Hex;
   merchantRoute?: MerchantRoute;
   farmTask?: FarmTask;
   woodcutter?: boolean;
