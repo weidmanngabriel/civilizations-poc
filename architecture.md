@@ -140,7 +140,7 @@ Extractor flags start at the first selected resource. Storage-carrier flags star
 
 ## Hunger, sleep, farms, roads and progression
 
-Hunger and sleep retain their event-driven target planning. Both needs begin autonomous planning at 40%, while player-facing warning state is deliberately separate: yellow at 30% and red at 20%. Hunger is sampled once per simulated second while movement and production continue at 60 Hz. Need decay uses the original seconds-per-point intervals. Food and sleep recovery are capped at 100; bread restores 80 hunger, bushes 40, and the two sleep phases restore 50/15/5 points each for house/nature/ground respectively. Entering sleep pauses activity without clearing profession, workplace, extractor role or current resource assignment.
+Hunger and sleep retain their event-driven target planning. Both needs begin autonomous planning at 40%, while player-facing warning state is deliberately separate: yellow at 30% and red at 20%. Hunger is sampled once per simulated second while movement and production continue at 60 Hz. Need decay uses the original seconds-per-point intervals. Food and sleep recovery are capped at 100; bread restores 80 hunger, fish 60 and bushes 40. Fish can be consumed from HQ/warehouse inventory or directly from a reserved loose fish stack. The two sleep phases restore 50/15/5 points each for house/nature/ground respectively. Entering sleep pauses activity without clearing profession, workplace, extractor role or current resource assignment.
 
 Nature sleep targets are intentionally **not reserved** while a person is travelling. Trees and bushes enforce single occupancy only at arrival: if another person is already sleeping on the target, the arriving person replans from that position while excluding only the occupied target that was just reached. Ground sleep has no occupancy restriction.
 
@@ -156,7 +156,7 @@ Player-facing worlds start with only the explicitly declared `STARTING_TECHNOLOG
 
 ## Rendering and interaction
 
-Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map/person presentation state; natural resources, loose goods, work-area flags and registered building sprites are presentation layers over authoritative simulation state.
+Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map/person presentation state; natural resources, loose goods, work-area flags and registered building sprites are presentation layers over authoritative simulation state. The person layer is rendered above natural resources, bushes and loose goods so residents remain visually readable while crossing resource visuals.
 
 Camera zoom remains 0.7×–10× for mouse-wheel and pinch. Building assets intended to remain crisp at the upper zoom range should therefore retain substantially more source pixels than their normal world-space display size. Desktop and touch remain first-class input adapters, with the iPhone 13 Mini as the mobile baseline. Build placement chooses its presentation mode from the most recently observed Pointer Event: mouse input uses direct left-click placement and hides the confirm button, while touch/pen keeps tap-to-move plus explicit confirmation. The hover/fine-pointer media query is used only before any concrete pointer type has been observed, which keeps hybrid devices from being locked into the wrong interaction model.
 
