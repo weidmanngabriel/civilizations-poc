@@ -115,7 +115,17 @@ Holzfäller, Lehmgräber, Steinbrecher, Fischer sowie Lager- und HQ-Träger besi
 
 Abbauer wählen nur passende freie Rohstoffquellen innerhalb ihrer Flagge. **Jede einzelne abgebaute Einheit** wird vom Abbauer persönlich zur eigenen Arbeitsflagge getragen und erst dort als lose Ware gestapelt; erst danach arbeitet er weiter. Bei vollen Stapeln entstehen weitere Stapel möglichst dicht an der Flagge. Lager-/HQ-Träger holen nur Nicht-Lager-Quellen innerhalb ihrer Flagge. Wird eine Flagge verschoben, wird ein noch nicht abgeholtes Ziel außerhalb des neuen Bereichs verworfen; bereits getragene Ware wird noch zur aktuellen persönlichen Flagge gebracht.
 
-Produktions-Träger behalten ihre bedarfsgetriebene Beschaffung. Arbeitsflaggen und spätere Wegweiser bleiben getrennte Systeme.
+Produktions-Träger behalten ihre bedarfsgetriebene Beschaffung. Arbeitsflaggen und Wegweiser bleiben getrennte Systeme.
+
+## Wegweiser
+
+Beim Spielstart steht ungefähr zwei Weltkacheln vor dem Hauptquartier ein erster Wegweiser. Weitere Wegweiser werden über das Baumenü platziert. Auf dem Desktop folgt der Ghost der Maus und Linksklick platziert; Rechtsklick, Escape oder „Abbrechen“ beendet den Modus. Auf Touch wählt ein Tap die Position, Ziehen verschiebt weiter die Karte und „Platzieren“ bestätigt.
+
+Jeder Wegweiser besitzt einen eigenen **Orientierungsradius von 2,5 Weltkacheln**. Dieser Wert ist fachlich getrennt vom gleich großen Arbeitsflaggen-Radius. Zwischen zwei Wegweisern müssen mindestens **2,5 Weltkacheln** liegen. Liegen zwei erreichbare Wegweiser höchstens **5 Weltkacheln** auseinander, werden sie miteinander verbunden.
+
+Für jede Verbindung trägt ein Wegweiser ein eigenes kleines Richtungsschild, das in der isometrischen Kartenansicht auf den verbundenen Wegweiser zeigt.
+
+Bewohner nutzen ein zusammenhängendes Wegweisernetz, wenn Start und Ziel über dessen Orientierungsbereiche erreichbar sind. Zwischen den Wegweisern bewegen sie sich weiterhin normal über das feine Raster. Ist kein brauchbarer Wegweiserpfad vorhanden, bleibt das globale Pathfinding als Fallback verfügbar.
 
 ### Fischer
 
@@ -189,7 +199,6 @@ Nicht Teil dieses Schritts sind unter anderem:
 - unterschiedliche Arbeitsradien nach Beruf oder Upgrade,
 - Arbeitsflaggen für Produktions-Träger,
 - gemeinsam genutzte Flaggen,
-- Wegweiser/High-Level-Navigation,
 - Ressourcen-Regeneration und neue prozedurale Clusterregeln.
 
 ## Unveränderte Produktbereiche
