@@ -15,6 +15,12 @@ test("person alerts keep only the highest severity per person", () => {
   c!.sleep = 100;
   d!.hunger = 100;
   d!.sleep = 100;
+  d!.active = false;
+  d!.path = [];
+  d!.builder = false;
+  d!.woodcutter = false;
+  d!.extractor = undefined;
+  d!.assignment = undefined;
 
   assert.deepEqual(personAlert(world, a!), {
     severity: "critical",
