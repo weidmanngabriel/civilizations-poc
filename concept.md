@@ -143,6 +143,12 @@ Zusätzlich koppelt die Gebäudeprogression an die tatsächlich aufgebaute Produ
 
 Freischaltungen sind dauerhaft. Wird die auslösende Produktionsstätte später abgerissen, bleibt das bereits bekannte Gebäude verfügbar. Wohnhaus und Farm sind von Anfang an verfügbar; der Brunnen nicht mehr.
 
+## Personenhinweise
+
+Die Personenübersicht bündelt aktuelle Probleme und Hinweise in drei Stufen: **kritisch**, **wichtig** und **Info**. Jede Person wird höchstens einmal gezählt und immer nur in ihrer schwersten aktuell zutreffenden Stufe. Kritischer Hunger oder kritische Müdigkeit stehen über normalen Hunger-/Müdigkeitshinweisen; freie Personen ohne Aufgabe erscheinen als Information.
+
+Die drei Stufen sind direkt in der Personenübersicht filterbar und werden zusätzlich kompakt am Personen-Button angezeigt, damit dringende Probleme auch bei geschlossener Liste sichtbar bleiben. Die Klassifizierung wird höchstens einmal pro Sekunde aktualisiert. Eine Arbeitsblockade wird nur dann als eigener Hinweis gezeigt, wenn ihre Ursache zuverlässig aus dem Simulationszustand feststeht; bloßes Warten wird nicht als Ressourcenmangel interpretiert.
+
 ## Darstellung, Zoom und Eingabe
 
 Bewohner bleiben ungefähr so groß wie eine Mikrozelle. Namen, Beruf/Tätigkeit und getragene Waren liegen in Weltkoordinaten und skalieren mit der Karte.
