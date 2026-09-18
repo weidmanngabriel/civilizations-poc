@@ -4,6 +4,19 @@ import { same } from "../simulation/hex";
 export function personInsideBuilding(world: World, person: Person): boolean {
   if (person.path.length) return false;
 
+  if (person.trip?.transferUntilTick !== undefined) {
+    if (!person.trip.picked && person.trip.sourceKind !== "resource" && person.trip.sourceKind !== "looseGood") {
+      const source = world.buildings.find((building) =>
+        building.id === person.trip!.source && !building.retired);
+      if (source && same(person.position, source.position)) return true;
+    }
+    if (person.trip.picked) {
+      const target = world.buildings.find((building) =>
+        building.id === person.trip!.target && !building.retired);
+      if (target && same(person.position, target.position)) return true;
+    }
+  }
+
   if (person.hungerState?.foodSource && person.hungerState.eatingUntilTick !== undefined) {
     const source = world.buildings.find((building) =>
       building.id === person.hungerState!.foodSource && !building.retired);
