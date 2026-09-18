@@ -313,9 +313,9 @@ export class IncrementalMainScene extends MainScene {
 
     for (const markerPosition of personMarkerPositions(this.worldRef)) {
       const { person, x, y, groundY } = markerPosition;
-      const color = !person.assignment && !person.woodcutter && !person.extractor && !person.builder
+      const color = !person.assignment && !person.woodcutter && !person.fisher && !person.extractor && !person.builder
         ? 0xdde5db
-        : person.assignment?.role === "worker" || person.woodcutter
+        : person.assignment?.role === "worker" || person.woodcutter || person.fisher
           ? 0x234636
           : 0x8b512e;
 
