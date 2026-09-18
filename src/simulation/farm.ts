@@ -1,7 +1,7 @@
 import type { Building, Hex, Person, Tile, World } from "./model";
 import { key, neighbors, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
-import { findNavigationPath } from "./wayposts";
+import { findRequiredNavigationPath } from "./wayposts";
 import { refinedCellCluster } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
 import { looseGoodStacks } from "./looseGoods";
@@ -29,7 +29,7 @@ const fieldFootprintAt = (target: Hex): Hex[] =>
   }));
 
 const routeTo = (w: World, p: Person, target: Hex): Hex[] | null =>
-  findNavigationPath(w, p.position, target, CONFIG.roadSpeedMultiplier);
+  findRequiredNavigationPath(w, p, target, CONFIG.roadSpeedMultiplier);
 
 const tileAt = (w: World, position: Hex): Tile | undefined =>
   tileIndex(w.tiles).get(key(position));
