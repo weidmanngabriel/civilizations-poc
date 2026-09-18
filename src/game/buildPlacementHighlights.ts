@@ -7,7 +7,7 @@ const BUILD_MODE_EVENT = "poc-build-mode";
 const HIGHLIGHT_COLOR = 0xd9f2b4;
 const HIGHLIGHT_ALPHA = 0.32;
 
-type BuildModeDetail = { active: boolean; kind?: BuildableBuildingKind };
+type BuildModeDetail = { active: boolean; kind?: BuildableBuildingKind | "waypost" };
 type MainSceneLayers = {
   targetModeOverlay?: Phaser.GameObjects.Graphics;
   targetModeHighlights?: Phaser.GameObjects.Container;
