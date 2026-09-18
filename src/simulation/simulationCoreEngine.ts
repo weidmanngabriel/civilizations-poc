@@ -15,7 +15,6 @@ import type {
   World,
 } from "./model";
 import {
-  findPath,
   findPathBySteps,
   key,
   movementCost,
