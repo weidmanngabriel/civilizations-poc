@@ -67,13 +67,15 @@ type PersonMarkerObjects = {
  */
 export class IncrementalMainScene extends MainScene {
   private bushGraphics?: Phaser.GameObjects.Graphics;
-  private inventoryGraphics?: Phaser.GameObjects.Graphics;\n  private staffGraphics?: Phaser.GameObjects.Graphics;
+  private inventoryGraphics?: Phaser.GameObjects.Graphics;
+  private staffGraphics?: Phaser.GameObjects.Graphics;
   private inventoryLabels?: Phaser.GameObjects.Container;
   private personLayer?: Phaser.GameObjects.Container;
   private personMarkers = new Map<number, PersonMarkerObjects>();
   private lastMapSignature = "";
   private lastBushSignature = "";
-  private lastInventorySignature = "";\n  private lastStaffSignature = "";
+  private lastInventorySignature = "";
+  private lastStaffSignature = "";
   private lastModalSignature = "";
 
   constructor(private readonly worldRef: World) {
