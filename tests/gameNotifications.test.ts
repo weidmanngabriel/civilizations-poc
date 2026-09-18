@@ -1,11 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import type { Building } from "../src/simulation/model";
 import { createWorld } from "../src/simulation/scenario";
 import { buildingNotifications, buildingNeedsWorker, gameNotifications } from "../src/ui/gameNotifications";
 
 test("completed staffed buildings only request attention while they have no worker", () => {
   const world = createWorld(1);
-  const building = {
+  const building: Building = {
     id: "test-sawmill", kind: "sawmill" as const, name: "Sägewerk", position: { q: 0, r: 0 },
     workers: 1, carriers: 1, input: 0, output: 0,
   };
@@ -44,7 +45,7 @@ test("game notification feed combines person and building attention", () => {
   person.hunger = 10;
   person.sleep = 100;
 
-  const building = {
+  const building: Building = {
     id: "test-sawmill", kind: "sawmill" as const, name: "Sägewerk", position: { q: 0, r: 0 },
     workers: 1, carriers: 1, input: 0, output: 0,
   };
