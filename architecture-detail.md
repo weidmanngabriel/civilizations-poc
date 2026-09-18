@@ -160,7 +160,7 @@ Pottery     4
 Stonemason  4
 ```
 
-Footprint and a complete one-tile clearance ring must fit valid terrain. Grass and road are both valid placement terrain; bushes count as grass. Footprint cells destroy bushes permanently, and any road inside the footprint is consumed by construction. Demolition restores footprint cells as grass rather than recreating covered roads.
+Footprint and a complete two-micro-cell clearance ring must fit valid terrain. Grass and road are both valid placement terrain; bushes count as grass. Footprint cells destroy bushes permanently, and any road inside the footprint is consumed by construction. Demolition restores footprint cells as grass rather than recreating covered roads.
 
 Construction duration is `(3 + 2 × required units) × 60` ticks. Up to two builders may work on one construction site.
 
