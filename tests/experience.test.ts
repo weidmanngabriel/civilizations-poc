@@ -120,7 +120,7 @@ test("carrier XP is awarded on successful delivery, not while merely moving", ()
     picked: true,
   };
 
-  tick(world);
+  for (let i = 0; i <= CONFIG.transferDurationTicks; i++) tick(world);
 
   assert.equal(target.inventory?.wood, 1);
   assert.equal(professionExperience(person, "carrier"), 1);
@@ -225,7 +225,7 @@ test("transport still removes exactly one unit from fractional stock", () => {
   person.active = true;
   person.trip = { source: source.id, target: target.id, good: "plank", picked: false };
 
-  tick(world);
+  for (let i = 0; i <= CONFIG.transferDurationTicks; i++) tick(world);
 
   almostEqual(source.output, 3.7);
   assert.equal(person.trip?.picked, true);
