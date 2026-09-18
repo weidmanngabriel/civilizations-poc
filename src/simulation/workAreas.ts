@@ -178,7 +178,7 @@ function routeOutdoorCarryToFlag(world: World, person: Person): boolean {
   }
 
   if (!same(person.position, area.center)) {
-    const path = findPath(world.tiles, person.position, area.center, CONFIG.roadSpeedMultiplier);
+    const path = findNavigationPath(world, person.position, area.center, CONFIG.roadSpeedMultiplier);
     if (!path) {
       person.active = false;
       area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
