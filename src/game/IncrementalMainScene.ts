@@ -6,7 +6,7 @@ import { personName } from "../simulation/personIdentity";
 import { personActivityLabel, personProfessionLabel } from "../personPresentation";
 import { GOOD_ICONS } from "../icons";
 import { performanceProfiler } from "../debug/performanceProfiler";
-import { pixel } from "./mapGeometry";
+import { HEX_X, HEX_Y, pixel } from "./mapGeometry";
 import {
   PERSON_MARKER_RADIUS,
   personMarkerPositions,
@@ -67,13 +67,13 @@ type PersonMarkerObjects = {
  */
 export class IncrementalMainScene extends MainScene {
   private bushGraphics?: Phaser.GameObjects.Graphics;
-  private inventoryGraphics?: Phaser.GameObjects.Graphics;
+  private inventoryGraphics?: Phaser.GameObjects.Graphics;\n  private staffGraphics?: Phaser.GameObjects.Graphics;
   private inventoryLabels?: Phaser.GameObjects.Container;
   private personLayer?: Phaser.GameObjects.Container;
   private personMarkers = new Map<number, PersonMarkerObjects>();
   private lastMapSignature = "";
   private lastBushSignature = "";
-  private lastInventorySignature = "";
+  private lastInventorySignature = "";\n  private lastStaffSignature = "";
   private lastModalSignature = "";
 
   constructor(private readonly worldRef: World) {
@@ -95,7 +95,7 @@ export class IncrementalMainScene extends MainScene {
     this.inventoryGraphics = this.add.graphics();
     this.inventoryLabels = this.add.container(0, 0);
     this.personLayer = this.add.container(0, 0);
-    markers.add([this.bushGraphics, this.inventoryGraphics, this.inventoryLabels, this.personLayer]);
+    markers.add([this.bushGraphics, this.inventoryGraphics, this.staffGraphics, this.inventoryLabels, this.personLayer]);
     return true;
   }
 
@@ -144,6 +144,65 @@ export class IncrementalMainScene extends MainScene {
     return this.worldRef.naturalResources
       .map((resource) => `${resource.id}:${resource.output}`)
       .join("|");
+  }
+
+  private staffSignature(): string {
+    return this.worldRef.buildings
+      .filter((building) => !building.retired && !underConstruction(building) && building.kind !== "field")
+      .map((building) => {
+        const workerIds = this.worldRef.people
+          .filter((person) => person.assignment?.building === building.id && person.assignment.role === "worker")
+          .map((person) => person.id)
+          .join(",");
+        const carrierIds = this.worldRef.people
+          .filter((person) => person.assignment?.building === building.id && person.assignment.role === "carrier")
+          .map((person) => person.id)
+          .join(",");
+        return `${building.id}:w[${workerIds}]:c[${carrierIds}]`;
+      })
+      .join("|");
+  }
+
+  private drawStaffFlags(): void {
+    if (!this.staffGraphics) return;
+    const g = this.staffGraphics;
+    g.clear();
+    const flagHeight = HEX_Y * 0.9;
+    const flagWidth = Math.max(1.5, HEX_X * 0.65);
+
+    for (const building of this.worldRef.buildings) {
+      if (building.retired || underConstruction(building) || building.kind === "field") continue;
+      const workers = this.worldRef.people.filter(
+        (person) => person.assignment?.building === building.id && person.assignment.role === "worker",
+      ).length;
+      const carriers = this.worldRef.people.filter(
+        (person) => person.assignment?.building === building.id && person.assignment.role === "carrier",
+      ).length;
+      const colors = [
+        ...Array.from({ length: workers }, () => 0x3f7ee8),
+        ...Array.from({ length: carriers }, () => 0xc74a4a),
+      ];
+      if (!colors.length) continue;
+
+      const entrance = pixel(building.position);
+      const x = entrance.x + HEX_X * 0.9;
+      const spacing = flagHeight * 0.9;
+      const startY = entrance.y - ((colors.length - 1) * spacing) / 2;
+      colors.forEach((color, index) => {
+        const y = startY + index * spacing;
+        g.lineStyle(Math.max(0.6, HEX_X * 0.12), 0x594834, 0.95);
+        g.lineBetween(x, y + flagHeight * 0.45, x, y - flagHeight * 0.45);
+        g.fillStyle(color, 0.98);
+        g.fillTriangle(
+          x,
+          y - flagHeight * 0.42,
+          x + flagWidth,
+          y - flagHeight * 0.2,
+          x,
+          y,
+        );
+      });
+    }
   }
 
   private modalSignature(mapSignature: string): string {
@@ -309,6 +368,12 @@ export class IncrementalMainScene extends MainScene {
     if (inventorySignature !== this.lastInventorySignature) {
       performanceProfiler.profileFeature("renderInventoryDraw", () => this.drawInventoryMarkers());
       this.lastInventorySignature = inventorySignature;
+    }
+
+    const staffSignature = this.staffSignature();
+    if (staffSignature !== this.lastStaffSignature) {
+      this.drawStaffFlags();
+      this.lastStaffSignature = staffSignature;
     }
 
     performanceProfiler.profileFeature("renderPeople", () => this.syncPersonMarkers());
