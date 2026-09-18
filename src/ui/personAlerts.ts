@@ -1,5 +1,7 @@
 import type { Person, World } from "../simulation/model";
 import { currentProfession } from "../simulation/experience";
+import { hungerStatus } from "../simulation/needs";
+import { sleepStatus } from "../simulation/sleep";
 
 export type PersonAlertSeverity = "critical" | "warning" | "info";
 
@@ -8,8 +10,6 @@ export interface PersonAlert {
   code: "critical-hunger" | "critical-sleep" | "hunger" | "sleep" | "idle";
   label: string;
 }
-
-const needValue = (value: number | undefined): number => value ?? 100;
 
 const isTrulyIdle = (world: World, person: Person): boolean =>
   !currentProfession(world, person) &&
@@ -25,19 +25,19 @@ const isTrulyIdle = (world: World, person: Person): boolean =>
   person.path.length === 0;
 
 export const personAlert = (world: World, person: Person): PersonAlert | undefined => {
-  const hunger = needValue(person.hunger);
-  const sleep = needValue(person.sleep);
+  const hunger = hungerStatus(person);
+  const sleep = sleepStatus(person);
 
-  if (hunger <= 20) {
+  if (hunger === "critical") {
     return { severity: "critical", code: "critical-hunger", label: "Sehr großer Hunger" };
   }
-  if (sleep <= 20) {
+  if (sleep === "critical") {
     return { severity: "critical", code: "critical-sleep", label: "Totenmüde" };
   }
-  if (hunger <= 40) {
+  if (hunger === "hungry") {
     return { severity: "warning", code: "hunger", label: "Hungrig" };
   }
-  if (sleep <= 40) {
+  if (sleep === "tired") {
     return { severity: "warning", code: "sleep", label: "Müde" };
   }
   if (isTrulyIdle(world, person)) {
