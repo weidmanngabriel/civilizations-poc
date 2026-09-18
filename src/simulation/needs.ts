@@ -288,6 +288,11 @@ const startEating = (world: World, person: Person): boolean => {
   return assignFoodCandidate(world, person, person.hungerState, candidate);
 };
 
+export const startEatingAfterCompletedAction = (world: World, person: Person): boolean => {
+  if (person.hungerState || hungerValue(person) > WANTS_TO_EAT_THRESHOLD) return false;
+  return startEating(world, person);
+};
+
 const atTaskBoundary = (person: Person): boolean =>
   person.progress === 0 &&
   !person.farmTask &&
