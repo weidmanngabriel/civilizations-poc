@@ -55,6 +55,8 @@ export function installBuildingAttentionIndicators(scene: Phaser.Scene, world: W
         const position = pixel(building.position);
         let indicator = indicators.get(buildingId);
         if (!indicator) {
+          const hitArea = scene.add.circle(0, 0, 10, 0xffffff, 0.001)
+            .setInteractive({ useHandCursor: true });
           const bubble = scene.add.circle(0, 0, 4.3, 0xf2c94c, 0.98)
             .setStrokeStyle(0.9, 0x263c2d, 0.95);
           const icon = scene.add.text(0, -0.3, "!", {
@@ -63,10 +65,8 @@ export function installBuildingAttentionIndicators(scene: Phaser.Scene, world: W
             fontStyle: "bold",
             color: "#263c2d",
           }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
-          const container = scene.add.container(position.x, position.y - 13, [bubble, icon])
-            .setSize(20, 20)
-            .setInteractive({ useHandCursor: true });
-          container.on("pointerup", (_pointer: Phaser.Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) =>
+          const container = scene.add.container(position.x, position.y - 13, [hitArea, bubble, icon]);
+          hitArea.on("pointerup", (_pointer: Phaser.Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) =>
             focusBuilding(buildingId, event),
           );
           layer.add(container);
