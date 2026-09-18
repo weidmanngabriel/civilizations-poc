@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { CONFIG, createWorld } from "../src/simulation/scenario";
 import { advanceHungerTick, resolveFoodArrivals } from "../src/simulation/needs";
 import { tick } from "../src/simulation/simulation";
+import { placeLooseGood } from "../src/simulation/looseGoods";
 import type { Building, NaturalResource, Person, World } from "../src/simulation/model";
 
 const addBreadWarehouse = (world: World, bread = 1): Building => {
@@ -113,6 +114,53 @@ test("eating occupies exactly five simulated seconds before food is consumed", (
   assert.equal(person.hungerState, undefined);
   assert.equal(warehouse.inventory?.bread, 0);
   assert.equal(person.hunger, 100);
+});
+
+test("stored fish restores sixty hunger points", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const warehouse = addBreadWarehouse(world, 0);
+  warehouse.inventory!.fish = 1;
+  person.hunger = 20;
+
+  advanceHungerTick(world);
+  assert.equal(person.hungerState?.foodSource, warehouse.id);
+  assert.equal(person.hungerState?.foodGood, "fish");
+
+  person.position = { ...warehouse.position };
+  person.path = [];
+  resolveFoodArrivals(world);
+  const eatingUntilTick = eatingUntilTickOf(person);
+  assert.ok(eatingUntilTick !== undefined);
+
+  world.round = eatingUntilTick!;
+  resolveFoodArrivals(world);
+
+  assert.equal(person.hunger, 80);
+  assert.equal(warehouse.inventory?.fish, 0);
+  assert.equal(person.hungerState, undefined);
+});
+
+test("loose fish can be reserved and eaten directly", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const tile = world.tiles.find((candidate) => candidate.terrain === "grass" && !candidate.resourceBlocking)!;
+  person.position = { q: tile.q, r: tile.r };
+  person.path = [];
+  person.hunger = 20;
+  const stack = placeLooseGood(world, tile, "fish", 1)!;
+
+  advanceHungerTick(world);
+  assert.equal(person.hungerState?.foodLooseGood, stack.id);
+  assert.equal(stack.reserved, 1);
+  assert.ok(eatingUntilTickOf(person) !== undefined);
+
+  world.round = eatingUntilTickOf(person)!;
+  resolveFoodArrivals(world);
+
+  assert.equal(person.hunger, 80);
+  assert.equal(world.looseGoods?.length ?? 0, 0);
+  assert.equal(person.hungerState, undefined);
 });
 
 test("food recovery is capped at 100 and harvesting marks a bush unavailable", () => {

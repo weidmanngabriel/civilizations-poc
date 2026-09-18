@@ -2,7 +2,7 @@
 
 Bewohner arbeiten weitgehend selbstständig, sobald sie eine Aufgabe haben. Sie suchen ihren Arbeitsplatz, holen benötigte Waren und setzen ihre Arbeit fort, sobald die Voraussetzungen passen.
 
-Hunger und Müdigkeit können Arbeit unterbrechen. Bewohner kümmern sich schon frühzeitig um Essen oder Schlaf, bevor eine Warnung erscheint. Brot sättigt stärker als Beeren; beim Schlafen erholt ein Haus deutlich besser als ein Platz unter Baum oder Busch, und Schlafen auf freiem Boden hilft am wenigsten. Hunger und Schlaf können nie über ihren vollen Wert hinaus steigen. Beim Schlafen bleibt ihre Arbeitszuweisung bestehen; danach setzen sie ihre Aufgabe fort.
+Hunger und Müdigkeit können Arbeit unterbrechen. Bewohner kümmern sich schon frühzeitig um Essen oder Schlaf, bevor eine Warnung erscheint. Brot sättigt am stärksten, Fisch liegt dazwischen und Beeren sättigen weniger. Fisch kann aus einem Lager oder direkt von einem Fischstapel gegessen werden. Beim Schlafen erholt ein Haus deutlich besser als ein Platz unter Baum oder Busch, und Schlafen auf freiem Boden hilft am wenigsten. Hunger und Schlaf können nie über ihren vollen Wert hinaus steigen. Beim Schlafen bleibt ihre Arbeitszuweisung bestehen; danach setzen sie ihre Aufgabe fort.
 
 Wenn Bewohner in einem Gebäude arbeiten, essen oder schlafen, sind sie draußen nicht sichtbar. Name und Tätigkeit werden dort ebenfalls ausgeblendet. Hast du die Person bereits ausgewählt, bleibt nur der Auswahlmarker am Eingang sichtbar. Beim Verlassen erscheint die Person wieder am Eingang.
 

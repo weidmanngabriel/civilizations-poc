@@ -11,6 +11,14 @@ import { findPath, key, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 import { hexDistance } from "./spatial";
 import {
+  availableLooseGoodAmount,
+  looseGoodStack,
+  looseGoodStacks,
+  pickupReservedLooseGood,
+  releaseLooseGoodReservation,
+  reserveLooseGood,
+} from "./looseGoods";
+import {
   performanceNow,
   performanceProfiler,
   type PathReason,
@@ -24,16 +32,21 @@ const HUNGER_WARNING_THRESHOLD = 30;
 const CRITICAL_HUNGER_THRESHOLD = 20;
 const HUNGER_MAX = 100;
 const BREAD_FOOD_VALUE = 80;
+const FISH_FOOD_VALUE = 60;
 const ACCUMULATOR_EPSILON = 1e-9;
 
-type BreadCandidate = { kind: "bread"; source: Building; path: Hex[]; cost: number };
+type StoredFoodGood = "bread" | "fish";
+type BuildingFoodCandidate = { kind: "building"; source: Building; good: StoredFoodGood; path: Hex[]; cost: number };
+type LooseFishCandidate = { kind: "looseFish"; stackId: string; target: Hex; path: Hex[]; cost: number };
 type BushCandidate = { kind: "bush"; tile: Tile; path: Hex[]; cost: number };
-type FoodCandidate = BreadCandidate | BushCandidate;
+type FoodCandidate = BuildingFoodCandidate | LooseFishCandidate | BushCandidate;
 type FoodSource =
-  | { kind: "bread"; source: Building; target: Hex; lowerBound: number }
+  | { kind: "building"; source: Building; good: StoredFoodGood; target: Hex; lowerBound: number }
+  | { kind: "looseFish"; stackId: string; target: Hex; lowerBound: number }
   | { kind: "bush"; tile: Tile; target: Hex; lowerBound: number };
 type SelectedFoodTarget =
-  | { kind: "bread"; source: Building }
+  | { kind: "building"; source: Building; good: StoredFoodGood }
+  | { kind: "looseFish"; stackId: string; target: Hex }
   | { kind: "bush"; tile: Tile };
 
 const isStorage = (building: Building): boolean =>
@@ -44,14 +57,23 @@ const isStorage = (building: Building): boolean =>
 const isCompletedBakery = (building: Building): boolean =>
   building.kind === "bakery" && !building.retired && (!building.construction || building.construction.complete);
 
-const breadStock = (building: Building): number => {
-  if (isStorage(building)) return building.inventory?.bread ?? 0;
-  if (isCompletedBakery(building)) return building.output;
+const buildingFoodStock = (building: Building, good: StoredFoodGood): number => {
+  if (isStorage(building)) return building.inventory?.[good] ?? 0;
+  if (good === "bread" && isCompletedBakery(building)) return building.output;
   return 0;
 };
 
-const reservedBread = (world: World, sourceId: BuildingId, exceptPersonId?: number): number =>
-  world.people.filter((person) => person.id !== exceptPersonId && person.hungerState?.foodSource === sourceId).length;
+const reservedBuildingFood = (
+  world: World,
+  sourceId: BuildingId,
+  good: StoredFoodGood,
+  exceptPersonId?: number,
+): number =>
+  world.people.filter((person) =>
+    person.id !== exceptPersonId &&
+    person.hungerState?.foodSource === sourceId &&
+    (person.hungerState.foodGood ?? "bread") === good,
+  ).length;
 
 const reservedBush = (world: World, tile: Hex, exceptPersonId?: number): boolean =>
   world.people.some((person) => person.id !== exceptPersonId && person.hungerState?.foodBush && same(person.hungerState.foodBush, tile));
@@ -82,15 +104,35 @@ const decayHunger = (person: Person): void => {
 const routeTo = (world: World, person: Person, target: Hex, reason: PathReason = "hunger"): Hex[] | undefined =>
   performanceProfiler.withPathReason(reason, () => findPath(world.tiles, person.position, target, ROAD_SPEED_MULTIPLIER)) ?? undefined;
 
-const sourceTie = (source: FoodSource): string => source.kind === "bread"
-  ? `0:${source.source.id}`
-  : `1:${String(source.tile.r).padStart(5, "0")}:${String(source.tile.q).padStart(5, "0")}`;
+const sourceTie = (source: FoodSource): string => {
+  if (source.kind === "building")
+    return `${source.good === "bread" ? 0 : 1}:${source.source.id}`;
+  if (source.kind === "looseFish") return `2:${source.stackId}`;
+  return `3:${String(source.tile.r).padStart(5, "0")}:${String(source.tile.q).padStart(5, "0")}`;
+};
 
 const foodCandidate = (world: World, person: Person): FoodCandidate | undefined => {
   const sources: FoodSource[] = [];
   for (const source of world.buildings) {
-    if (breadStock(source) - reservedBread(world, source.id, person.id) < 1) continue;
-    sources.push({ kind: "bread", source, target: source.position, lowerBound: hexDistance(person.position, source.position) / ROAD_SPEED_MULTIPLIER });
+    for (const good of ["bread", "fish"] as const) {
+      if (buildingFoodStock(source, good) - reservedBuildingFood(world, source.id, good, person.id) < 1) continue;
+      sources.push({
+        kind: "building",
+        source,
+        good,
+        target: source.position,
+        lowerBound: hexDistance(person.position, source.position) / ROAD_SPEED_MULTIPLIER,
+      });
+    }
+  }
+  for (const stack of looseGoodStacks(world)) {
+    if (stack.good !== "fish" || availableLooseGoodAmount(stack) < 1) continue;
+    sources.push({
+      kind: "looseFish",
+      stackId: stack.id,
+      target: stack.position,
+      lowerBound: hexDistance(person.position, stack.position) / ROAD_SPEED_MULTIPLIER,
+    });
   }
   for (const tile of world.tiles) {
     if (tile.terrain !== "grass" || !tile.bush || !tile.bushAvailable || reservedBush(world, tile, person.id)) continue;
@@ -98,24 +140,23 @@ const foodCandidate = (world: World, person: Person): FoodCandidate | undefined 
   }
   sources.sort((a, b) => a.lowerBound - b.lowerBound || sourceTie(a).localeCompare(sourceTie(b)));
   let best: FoodCandidate | undefined;
+  let bestTie = "";
   for (const source of sources) {
     if (best && source.lowerBound > best.cost + ACCUMULATOR_EPSILON) break;
     const path = routeTo(world, person, source.target);
     if (!path) continue;
     const cost = pathTravelCost(world.tiles, path, ROAD_SPEED_MULTIPLIER);
-    const candidate: FoodCandidate = source.kind === "bread"
-      ? { kind: "bread", source: source.source, path, cost }
-      : { kind: "bush", tile: source.tile, path, cost };
-    if (
-      !best ||
-      cost < best.cost - ACCUMULATOR_EPSILON ||
-      (Math.abs(cost - best.cost) <= ACCUMULATOR_EPSILON && candidate.kind === "bread" && best.kind === "bush") ||
-      (Math.abs(cost - best.cost) <= ACCUMULATOR_EPSILON && candidate.kind === best.kind &&
-        (candidate.kind === "bread"
-          ? candidate.source.id.localeCompare((best as BreadCandidate).source.id) < 0
-          : candidate.tile.r < (best as BushCandidate).tile.r ||
-            (candidate.tile.r === (best as BushCandidate).tile.r && candidate.tile.q < (best as BushCandidate).tile.q)))
-    ) best = candidate;
+    const candidate: FoodCandidate = source.kind === "building"
+      ? { kind: "building", source: source.source, good: source.good, path, cost }
+      : source.kind === "looseFish"
+        ? { kind: "looseFish", stackId: source.stackId, target: source.target, path, cost }
+        : { kind: "bush", tile: source.tile, path, cost };
+    const tie = sourceTie(source);
+    if (!best || cost < best.cost - ACCUMULATOR_EPSILON ||
+      (Math.abs(cost - best.cost) <= ACCUMULATOR_EPSILON && tie < bestTie)) {
+      best = candidate;
+      bestTie = tie;
+    }
   }
   return best;
 };
@@ -156,12 +197,26 @@ const finishEating = (world: World, person: Person): void => {
   resumeTask(world, person, completedState);
 };
 
-const consumeBread = (world: World, person: Person, source: Building): void => {
+const consumeBuildingFood = (
+  world: World,
+  person: Person,
+  source: Building,
+  good: StoredFoodGood,
+): void => {
   if (isStorage(source)) {
     source.inventory ??= {};
-    source.inventory.bread = (source.inventory.bread ?? 0) - 1;
-  } else source.output -= 1;
-  person.hunger = Math.min(HUNGER_MAX, (person.hunger ?? HUNGER_MAX) + BREAD_FOOD_VALUE);
+    source.inventory[good] = (source.inventory[good] ?? 0) - 1;
+  } else if (good === "bread") source.output -= 1;
+  person.hunger = Math.min(
+    HUNGER_MAX,
+    (person.hunger ?? HUNGER_MAX) + (good === "bread" ? BREAD_FOOD_VALUE : FISH_FOOD_VALUE),
+  );
+  finishEating(world, person);
+};
+
+const consumeLooseFish = (world: World, person: Person, stackId: string): void => {
+  if (!pickupReservedLooseGood(world, stackId, 1)) return;
+  person.hunger = Math.min(HUNGER_MAX, (person.hunger ?? HUNGER_MAX) + FISH_FOOD_VALUE);
   finishEating(world, person);
 };
 
@@ -188,19 +243,34 @@ const beginEating = (world: World, person: Person): void => {
   state.eatingUntilTick ??= world.round + EATING_DURATION_TICKS;
 };
 
+const candidateTarget = (candidate: FoodCandidate): Hex =>
+  candidate.kind === "building" ? candidate.source.position
+    : candidate.kind === "looseFish" ? candidate.target
+      : candidate.tile;
+
 const useCandidate = (world: World, person: Person, candidate: FoodCandidate): void => {
-  if (candidate.kind === "bread") {
-    if (same(person.position, candidate.source.position)) beginEating(world, person);
-    else person.path = candidate.path;
-    return;
-  }
-  if (same(person.position, candidate.tile)) beginEating(world, person);
+  const target = candidateTarget(candidate);
+  if (same(person.position, target)) beginEating(world, person);
   else person.path = candidate.path;
 };
 
+const clearLooseFoodReservation = (world: World, state: HungerState): void => {
+  if (state.foodLooseGood) releaseLooseGoodReservation(world, state.foodLooseGood, 1);
+  state.foodLooseGood = undefined;
+};
+
 const assignFoodCandidate = (world: World, person: Person, state: HungerState, candidate: FoodCandidate | undefined): boolean => {
-  state.foodSource = candidate?.kind === "bread" ? candidate.source.id : undefined;
+  if (state.foodLooseGood && (candidate?.kind !== "looseFish" || candidate.stackId !== state.foodLooseGood))
+    clearLooseFoodReservation(world, state);
+
+  state.foodSource = candidate?.kind === "building" ? candidate.source.id : undefined;
+  state.foodGood = candidate?.kind === "building" ? candidate.good : undefined;
   state.foodBush = candidate?.kind === "bush" ? { q: candidate.tile.q, r: candidate.tile.r } : undefined;
+  state.foodLooseGood = candidate?.kind === "looseFish" ? candidate.stackId : undefined;
+  if (candidate?.kind === "looseFish" && !reserveLooseGood(world, candidate.stackId, 1)) {
+    state.foodLooseGood = undefined;
+    candidate = undefined;
+  }
   state.retryAfterTick = candidate ? undefined : world.round + CONFIG.decisionIntervalTicks;
   state.eatingUntilTick = undefined;
   person.movement = 0;
@@ -230,7 +300,14 @@ const selectedFoodTarget = (world: World, person: Person): SelectedFoodTarget | 
   const state = person.hungerState!;
   if (state.foodSource) {
     const source = world.buildings.find((building) => building.id === state.foodSource);
-    if (source && breadStock(source) - reservedBread(world, source.id, person.id) >= 1) return { kind: "bread", source };
+    const good = state.foodGood ?? "bread";
+    if (source && buildingFoodStock(source, good) - reservedBuildingFood(world, source.id, good, person.id) >= 1)
+      return { kind: "building", source, good };
+  }
+  if (state.foodLooseGood) {
+    const stack = looseGoodStack(world, state.foodLooseGood);
+    if (stack?.good === "fish" && stack.amount >= 1 && stack.reserved >= 1)
+      return { kind: "looseFish", stackId: stack.id, target: stack.position };
   }
   if (state.foodBush) {
     const tile = tileIndex(world.tiles).get(key(state.foodBush));
@@ -239,12 +316,14 @@ const selectedFoodTarget = (world: World, person: Person): SelectedFoodTarget | 
   return undefined;
 };
 
-const selectedTargetPosition = (target: SelectedFoodTarget): Hex => target.kind === "bread" ? target.source.position : target.tile;
+const selectedTargetPosition = (target: SelectedFoodTarget): Hex =>
+  target.kind === "building" ? target.source.position : target.kind === "looseFish" ? target.target : target.tile;
 const plannedFoodTargetPosition = (world: World, person: Person): Hex | undefined => {
   const state = person.hungerState;
   if (!state) return undefined;
   if (state.foodSource)
     return world.buildings.find((building) => building.id === state.foodSource)?.position;
+  if (state.foodLooseGood) return looseGoodStack(world, state.foodLooseGood)?.position;
   return state.foodBush;
 };
 const restoreFoodRouteIfHijacked = (world: World, person: Person): void => {
@@ -265,7 +344,8 @@ const restoreFoodRouteIfHijacked = (world: World, person: Person): void => {
   person.active = false;
 };
 const consumeSelectedTarget = (world: World, person: Person, target: SelectedFoodTarget): void => {
-  if (target.kind === "bread") consumeBread(world, person, target.source);
+  if (target.kind === "building") consumeBuildingFood(world, person, target.source, target.good);
+  else if (target.kind === "looseFish") consumeLooseFish(world, person, target.stackId);
   else consumeBush(world, person, target.tile);
 };
 
@@ -280,7 +360,9 @@ const ensureFoodRoute = (world: World, person: Person): void => {
     const path = routeTo(world, person, targetPosition);
     if (path) { person.path = path; person.movement = 0; person.active = false; return; }
     state.foodSource = undefined;
+    state.foodGood = undefined;
     state.foodBush = undefined;
+    clearLooseFoodReservation(world, state);
   }
   state.eatingUntilTick = undefined;
   if (state.retryAfterTick !== undefined && world.round < state.retryAfterTick) { person.active = false; return; }
