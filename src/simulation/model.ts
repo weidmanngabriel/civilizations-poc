@@ -198,6 +198,8 @@ export interface Person {
   progress: number;
   movement: number;
   path: Hex[];
+  /** True while a required destination cannot be reached through the waypost network. */
+  navigationBlocked?: boolean;
   trip?: Trip;
 }
 export interface World {
