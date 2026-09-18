@@ -40,16 +40,16 @@ test("sleep decays slower while idle than walking or working", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
 
-  for (let i = 0; i < 8 * 60; i += 1) advanceSleepTick(world);
+  for (let i = 0; i < 16 * 60; i += 1) advanceSleepTick(world);
   assert.equal(person.sleep, 99);
 
   person.path = [{ q: person.position.q + 1, r: person.position.r }];
-  for (let i = 0; i < 4 * 60; i += 1) advanceSleepTick(world);
+  for (let i = 0; i < 8 * 60; i += 1) advanceSleepTick(world);
   assert.equal(person.sleep, 98);
 
   person.path = [];
   person.progress = 1;
-  for (let i = 0; i < 2 * 60; i += 1) advanceSleepTick(world);
+  for (let i = 0; i < 4 * 60; i += 1) advanceSleepTick(world);
   assert.equal(person.sleep, 97);
 });
 
@@ -183,7 +183,7 @@ test("a tired sawmill worker does not start resupply after finishing the current
   assert.equal(person.assignment?.building, sawmill.id);
 });
 
-test("house sleep restores half of the missing sleep after each five-second phase", () => {
+test("house sleep restores 50 sleep points per five-second phase up to 100", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
   const house = addHouse(world);
@@ -195,7 +195,7 @@ test("house sleep restores half of the missing sleep after each five-second phas
   person.path = [];
 
   for (let i = 0; i < SLEEP_RULES.phaseTicks; i += 1) advanceSleepTick(world);
-  assert.equal(person.sleep, 60);
+  assert.equal(person.sleep, 70);
   assert.equal(person.sleepState?.completedPhases, 1);
 
   for (let i = SLEEP_RULES.phaseTicks; i < SLEEP_RULES.durationTicks; i += 1)
@@ -204,7 +204,7 @@ test("house sleep restores half of the missing sleep after each five-second phas
   assert.equal(person.sleep, 100);
 });
 
-test("a tree or bush restores 20 sleep points per five-second phase", () => {
+test("a tree or bush restores 15 sleep points per five-second phase", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
   const natureTile = world.tiles.find((tile) => tile.terrain === "grass" && tile.q !== person.position.q)!;
@@ -218,16 +218,16 @@ test("a tree or bush restores 20 sleep points per five-second phase", () => {
   assert.deepEqual(person.sleepState?.target, person.position);
 
   for (let i = 0; i < SLEEP_RULES.phaseTicks; i += 1) advanceSleepTick(world);
-  assert.equal(person.sleep, 40);
+  assert.equal(person.sleep, 35);
   assert.ok(person.sleepState);
 
   for (let i = SLEEP_RULES.phaseTicks; i < SLEEP_RULES.durationTicks; i += 1)
     advanceSleepTick(world);
   assert.equal(person.sleepState, undefined);
-  assert.equal(person.sleep, 60);
+  assert.equal(person.sleep, 50);
 });
 
-test("ground sleep restores 10 sleep points per five-second phase", () => {
+test("ground sleep restores 5 sleep points per five-second phase", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
   removeNatureSleepTargets(world);
@@ -237,13 +237,13 @@ test("ground sleep restores 10 sleep points per five-second phase", () => {
   assert.equal(person.sleepState?.kind, "ground");
 
   for (let i = 0; i < SLEEP_RULES.phaseTicks; i += 1) advanceSleepTick(world);
-  assert.equal(person.sleep, 30);
+  assert.equal(person.sleep, 25);
   assert.ok(person.sleepState);
 
   for (let i = SLEEP_RULES.phaseTicks; i < SLEEP_RULES.durationTicks; i += 1)
     advanceSleepTick(world);
   assert.equal(person.sleepState, undefined);
-  assert.equal(person.sleep, 40);
+  assert.equal(person.sleep, 30);
 });
 
 test("sleep places outside eight reachable steps are ignored", () => {
