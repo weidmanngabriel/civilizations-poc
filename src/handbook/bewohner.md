@@ -18,6 +18,6 @@ Die Personenübersicht zeigt zusätzlich aktuelle Hinweise in drei Stufen. **Rot
 
 Fischer arbeiten ohne eigenes Gebäude an der Wasserkante. Jeder Fischer besitzt eine Arbeitsflagge, die sein Angelgebiet und seinen persönlichen Ablagepunkt festlegt. Beim Angeln siehst du die ausgeworfene Schnur am Wasser; nach dem Fangzyklus wird sie wieder eingeholt.
 
-Mit zunehmender Berufserfahrung wird ein Fischer zuverlässiger. Einen gefangenen Fisch trägt er selbst zur Arbeitsflagge und legt ihn erst dort als lose Ware ab. Danach kann der Fisch wie andere Bodenware abgeholt und eingelagert werden.
+Mit zunehmender Berufserfahrung wird ein Fischer zuverlässiger. Erfahrung bekommt er nur für einen erfolgreichen Fang. Einen gefangenen Fisch trägt er selbst zur Arbeitsflagge und legt ihn erst dort als lose Ware ab. Danach kann der Fisch wie andere Bodenware abgeholt und eingelagert werden.
 
 Wenn ein Fischer an der falschen Stelle arbeitet oder kein Wasser erreicht, versetze seine Arbeitsflagge näher an eine gut zugängliche Uferzone.
