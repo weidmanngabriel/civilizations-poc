@@ -168,7 +168,7 @@ test("woodcutter experience speeds up felling by up to 50 percent without increa
 });
 
 test("leftover wood remains collectible after the tree has disappeared", () => {
-  const { world, forest } = activeWoodcutter();
+  const { world, forest, worker } = activeWoodcutter();
   forest.remaining = 1;
   forest.output = 0;
   let guard = 10_000;
