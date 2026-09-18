@@ -336,6 +336,15 @@ function rerouteCurrentTask(w: World, p: Person): void {
     else p.path = [];
     return;
   }
+  if (p.idleTarget) {
+    if (!same(p.position, p.idleTarget))
+      routeToPosition(w, p, p.idleTarget, "reroute");
+    else {
+      p.path = [];
+      p.movement = 0;
+    }
+    return;
+  }
   const hq = w.buildings.find((b) => b.id === "hq");
   if (hq && !same(p.position, hq.position)) route(w, p, hq, "reroute");
 }
@@ -1177,10 +1186,22 @@ export function tick(w: World): void {
       const home = building(w, p.assignment.building);
       if (p.trip) {
         if (!p.trip.picked) {
+          let sourcePosition = p.trip.sourcePosition;
+          if (p.trip.sourceKind === "looseGood")
+            sourcePosition = looseGoodStack(w, p.trip.source)?.position ?? sourcePosition;
+          else if (p.trip.sourceKind === "resource")
+            sourcePosition = naturalResource(w, p.trip.source).position;
+          else
+            sourcePosition = building(w, p.trip.source).position;
+          if (!sourcePosition || !same(p.position, sourcePosition)) continue;
+          if (p.trip.transferUntilTick === undefined) {
+            p.trip.transferUntilTick = w.round + CONFIG.transferDurationTicks;
+            p.movement = 0;
+            continue;
+          }
+          if (w.round < p.trip.transferUntilTick) continue;
+
           if (p.trip.sourceKind === "looseGood") {
-            const source = looseGoodStack(w, p.trip.source);
-            const position = source?.position ?? p.trip.sourcePosition;
-            if (!position || !same(p.position, position)) continue;
             if (!pickupReservedLooseGood(w, p.trip.source, CONFIG.carryCapacity)) {
               cancel(w, p);
               immediateDecisionPeople.add(p.id);
@@ -1188,11 +1209,9 @@ export function tick(w: World): void {
             }
           } else if (p.trip.sourceKind === "resource") {
             const source = naturalResource(w, p.trip.source);
-            if (!same(p.position, source.position)) continue;
             source.output -= CONFIG.carryCapacity;
           } else {
             const source = building(w, p.trip.source);
-            if (!same(p.position, source.position)) continue;
             if (isStorageBuilding(source)) {
               source.inventory ??= {};
               source.inventory[p.trip.good] =
@@ -1202,11 +1221,19 @@ export function tick(w: World): void {
             }
           }
           p.trip.picked = true;
+          p.trip.transferUntilTick = undefined;
           p.movement = 0;
           route(w, p, building(w, p.trip.target));
         } else {
           const target = building(w, p.trip.target);
           if (!same(p.position, target.position)) continue;
+          if (p.trip.transferUntilTick === undefined) {
+            p.trip.transferUntilTick = w.round + CONFIG.transferDurationTicks;
+            p.movement = 0;
+            continue;
+          }
+          if (w.round < p.trip.transferUntilTick) continue;
+
           if (isUnderConstruction(target)) {
             const delivered = target.construction!.delivered;
             delivered[p.trip.good] = (delivered[p.trip.good] ?? 0) + CONFIG.carryCapacity;
