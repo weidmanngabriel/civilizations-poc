@@ -39,7 +39,7 @@ const canConnect = (world: World, a: Waypost, b: Waypost): boolean => {
   const distance = hexDistance(a.position, b.position);
   if (distance < WAYPOST_MIN_DISTANCE || distance > WAYPOST_MAX_CONNECTION_DISTANCE)
     return false;
-  return Boolean(findPath(world.tiles, a.position, b.position, CONFIG.roadSpeedMultiplier));
+  return Boolean(findPath(world.tiles, a.position, b.position));
 };
 
 const connectNewWaypost = (world: World, created: Waypost): void => {
