@@ -38,9 +38,9 @@ export function installBuildPlacementHighlights(scene: Phaser.Scene, world: Worl
     const graphics = scene.add.graphics().setDepth(11);
     layers.targetModeHighlights?.setDepth(12);
 
-    const showFor = (kind?: BuildableBuildingKind) => {
+    const showFor = (kind?: BuildableBuildingKind | "waypost") => {
       graphics.clear();
-      if (!kind) return;
+      if (!kind || kind === "waypost") return;
 
       const anchors = validBuildingAnchors(world, kind);
       graphics.fillStyle(HIGHLIGHT_COLOR, HIGHLIGHT_ALPHA);
