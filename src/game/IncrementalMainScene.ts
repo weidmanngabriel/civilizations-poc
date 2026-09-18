@@ -95,6 +95,7 @@ export class IncrementalMainScene extends MainScene {
 
     this.bushGraphics = this.add.graphics();
     this.inventoryGraphics = this.add.graphics();
+    this.staffGraphics = this.add.graphics();
     this.inventoryLabels = this.add.container(0, 0);
     this.personLayer = this.add.container(0, 0);
     markers.add([this.bushGraphics, this.inventoryGraphics, this.staffGraphics, this.inventoryLabels, this.personLayer]);
