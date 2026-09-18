@@ -1,7 +1,7 @@
 import type { Building, Good, Hex, NaturalResource, NaturalResourceKind, Person, World } from "./model";
 import { key, neighbors, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
-import { findRequiredNavigationPath } from "./wayposts";
+import { clearNavigationBlocked, findRequiredNavigationPath } from "./wayposts";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { awardProfessionExperience, professionExperience } from "./experience";
 import { startEatingAfterCompletedAction } from "./needs";
@@ -412,6 +412,7 @@ function resetUnpickedTrip(world: World, person: Person): void {
   person.trip = undefined;
   person.path = [];
   person.movement = 0;
+  clearNavigationBlocked(person);
   const workplace = storageCarrierWorkplace(world, person);
   person.active = Boolean(workplace && same(person.position, workplace.position));
 }
@@ -429,6 +430,7 @@ function enforceResourceWorker(world: World, person: Person): void {
       person.resourceTarget = undefined;
       person.path = [];
       person.movement = 0;
+      clearNavigationBlocked(person);
       person.active = false;
       person.progress = 0;
       area.retryAfterTick = undefined;
