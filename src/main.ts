@@ -35,7 +35,6 @@ import { installPerformanceRecordingControls } from "./ui/performanceRecordingCo
 import { installResourcePerformanceDebugPanel } from "./ui/resourcePerformanceDebug";
 import { mountTechnologyTree } from "./ui/technologyTree";
 import { applyTechnologyTreeLayout } from "./ui/technologyTreeLayout";
-import { installWorkAreaControls } from "./ui/workAreaControls";
 import "./style.css";
 import "./map-interaction.css";
 import "./build-placement.css";
@@ -137,7 +136,6 @@ mountGameMenu(world, () => scene.renderWorld());
 mountPersonPanel(world);
 mountPersonContextMenu(world);
 mountBuildingPanel(world);
-installWorkAreaControls(world);
 mountTechnologyTree(world);
 applyTechnologyTreeLayout();
 showBuildVersion();
