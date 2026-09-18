@@ -114,7 +114,7 @@ Automatic storage-to-storage collection remains forbidden. Warehouse merchants r
 
 ## Idle positions, indoor visibility and staffing markers
 
-Idle positioning is authoritative simulation state through `Person.idleTarget`. Only final waiting positions are reserved; people may still cross the same cells while moving. Free people and idle builders wait outside the HQ, natural-resource workers wait around their personal work-area flag, and assigned building staff wait outside their workplace. A deterministic spread picks a reachable free stand position near the relevant anchor rather than stacking people at the entrance.
+Idle positioning is authoritative simulation state through `Person.idleTarget`. Only final waiting positions are reserved; people may still cross the same cells while moving. Free people and idle builders wait outside the HQ, natural-resource workers wait around their personal work-area flag, and assigned building staff wait outside their workplace. A deterministic spread picks a reachable free stand position near the relevant anchor rather than stacking people at the entrance. Candidate stand positions are ranked cheaply first; pathfinding is evaluated lazily until the first reachable candidate is found so a fresh world cannot fan out into hundreds of A* searches in one tick.
 
 Building activities still use the authored entrance as their interaction coordinate. Presentation hides a person only while an actual building activity is underway there, such as production work, eating from a building or sleeping in a house. Merely crossing a walkable footprint cell does not hide the person.
 
