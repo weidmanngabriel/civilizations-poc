@@ -129,6 +129,7 @@ const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
     const buildingId = person.trip.picked ? person.trip.target : person.trip.source;
     return world.buildings.find((building) => building.id === buildingId)?.position;
   }
+  if (person.outdoorCarry && person.workArea) return person.workArea.center;
   if (person.resourceTarget) return world.naturalResources.find((resource) => resource.id === person.resourceTarget)?.position;
   if (person.fisher && person.fishingSpot) return person.fishingSpot;
   if (person.assignment) return world.buildings.find((building) => building.id === person.assignment!.building)?.position;
