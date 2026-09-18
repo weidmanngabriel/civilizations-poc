@@ -170,6 +170,12 @@ The save format remains `civilizations-save` **version 3**. The visual-definitio
 
 Loading and starting a new game still replace the contents of the existing shared `World` object instead of swapping its identity, so Phaser and UI modules keep valid references.
 
+## Person status overview
+
+`src/ui/personAlerts.ts` derives a single current alert per person from authoritative simulation state. Severity precedence is `critical > warning > info`, so one person contributes to at most one HUD/list count. The first rules cover critical/normal hunger and sleep plus truly free idle people; the classifier deliberately does not infer missing-resource failures from generic inactivity.
+
+`src/ui/personPanel.ts` caches this derived alert map and refreshes it once per second. The same cached result drives the compact counts on the People menu button, the three severity filters and the per-person reason shown in the browser. This remains presentation-derived state and is not persisted in `World`.
+
 ## Performance diagnostics
 
 The debug profiler keeps short rolling in-memory timing windows for live inspection. `src/debug/performanceRecording.ts` adds an explicit user-started recording layer without changing simulation behavior: while active, it samples the existing profiler once per real second, adds compact world-size counters, and stores the samples only in browser memory. Stopping the recording produces a versioned `civilizations-performance-recording` JSON export with metadata, a per-second time series, and an automatically calculated summary of FPS, frame/tick costs, feature costs and pathfinding causes. The recorder deliberately does not emit per-tick logs or add new simulation scans.
