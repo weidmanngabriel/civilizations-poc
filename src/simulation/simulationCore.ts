@@ -164,7 +164,13 @@ export function changeAssignment(
 ): boolean {
   const before = assigned(world, id, role).slice();
   const changed = changeAssignmentNow(world, id, role, delta);
-  if (!changed || role !== "carrier") return changed;
+  if (!changed) return changed;
+  const afterAssignment = assigned(world, id, role);
+  const changedPerson = delta === 1
+    ? afterAssignment.find((candidate) => !before.includes(candidate))
+    : before.find((candidate) => !afterAssignment.includes(candidate));
+  if (changedPerson) changedPerson.idleTarget = undefined;
+  if (role !== "carrier") return changed;
   const target = building(world, id);
   const localStorageCarrier = target.kind === "warehouse" || target.kind === "hq";
   const after = assigned(world, id, role);
@@ -272,9 +278,11 @@ export function status(world: World, target: Building): string {
 /** Flushes UI-triggered autonomous profession planning inside the simulation step. */
 export function tick(world: World): void {
   flushPendingPlans(world);
+  wakeIdlePeople(world);
   syncWorkAreas(world);
   tickNow(world);
   syncWorkAreas(world);
+  syncIdleBehavior(world);
 }
 
 export {
