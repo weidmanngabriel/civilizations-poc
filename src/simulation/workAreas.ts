@@ -99,6 +99,8 @@ function fishingCandidate(
 function useFishingCandidate(person: Person, candidate: FishingCandidate): void {
   person.idleTarget = undefined;
   person.fishingSpot = { ...candidate.position };
+  person.fishingWaterTarget = undefined;
+  person.fishingStartedAtTick = undefined;
   person.fishingWaitUntilTick = undefined;
   person.path = candidate.path;
   person.movement = 0;
@@ -110,6 +112,8 @@ export function initializeFisher(world: World, person: Person): boolean {
   ensureWorkArea(world, person, candidate?.position ?? person.position);
   if (!candidate) {
     person.fishingSpot = undefined;
+    person.fishingWaterTarget = undefined;
+    person.fishingStartedAtTick = undefined;
     person.fishingWaitUntilTick = undefined;
     person.path = [];
     person.active = false;
@@ -138,20 +142,88 @@ function planLocalFishingSpot(world: World, person: Person): boolean {
   return true;
 }
 
-function castFishingLine(world: World, person: Person): void {
-  if (nextRandomFraction(world) < fishingCatchChance(person)) {
-    const drop = findLooseGoodDropPosition(world, person.position, "fish", GRID_REFINEMENT);
-    if (drop) placeLooseGood(world, drop, "fish", 1);
+function waterTargetForFishingSpot(world: World, position: Hex): Hex | undefined {
+  const tiles = tileIndex(world.tiles);
+  return neighbors(position)
+    .filter((neighbor) => tiles.get(key(neighbor))?.terrain === "river")
+    .sort((a, b) => a.q - b.q || a.r - b.r)[0];
+}
+
+function startFishingCycle(world: World, person: Person): void {
+  const waterTarget = person.fishingSpot
+    ? waterTargetForFishingSpot(world, person.fishingSpot)
+    : undefined;
+  if (!waterTarget) {
+    person.fishingSpot = undefined;
+    person.active = false;
+    return;
   }
-  awardProfessionExperience(person, "fisher");
+  person.fishingWaterTarget = { ...waterTarget };
+  person.fishingStartedAtTick = world.round;
   person.fishingWaitUntilTick = world.round + FISHING_WAIT_TICKS;
   person.active = true;
-  if (person.workArea) person.workArea.retryAfterTick = undefined;
+}
+
+function routeOutdoorCarryToFlag(world: World, person: Person): boolean {
+  const area = person.workArea;
+  const good = person.outdoorCarry;
+  if (!area || !good) return true;
+  if (person.hungerState || person.sleepState) return false;
+
+  if (person.path.length) {
+    person.active = false;
+    return false;
+  }
+
+  if (!same(person.position, area.center)) {
+    const path = findPath(world.tiles, person.position, area.center, CONFIG.roadSpeedMultiplier);
+    if (!path) {
+      person.active = false;
+      area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
+      return false;
+    }
+    person.path = path;
+    person.movement = 0;
+    person.active = false;
+    return false;
+  }
+
+  const drop = findLooseGoodDropPosition(world, area.center, good, GRID_REFINEMENT);
+  if (!drop || !placeLooseGood(world, drop, good, 1)) {
+    person.active = false;
+    area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
+    return false;
+  }
+
+  person.outdoorCarry = undefined;
+  person.path = [];
+  person.movement = 0;
+  person.active = false;
+  area.retryAfterTick = undefined;
+  return true;
+}
+
+function finishFishingCycle(world: World, person: Person): void {
+  const caught = nextRandomFraction(world) < fishingCatchChance(person);
+  awardProfessionExperience(person, "fisher");
+  person.fishingWaterTarget = undefined;
+  person.fishingStartedAtTick = undefined;
+  person.fishingWaitUntilTick = undefined;
+  person.active = false;
+  if (caught) person.outdoorCarry = "fish";
 }
 
 function enforceFisher(world: World, person: Person): void {
   const area = person.workArea!;
   if (person.hungerState || person.sleepState) return;
+
+  if (person.outdoorCarry) {
+    if (!routeOutdoorCarryToFlag(world, person)) return;
+    if (!planLocalFishingSpot(world, person))
+      area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
+    return;
+  }
+
   if (person.path.length) {
     person.active = false;
     return;
@@ -162,15 +234,18 @@ function enforceFisher(world: World, person: Person): void {
       person.active = true;
       return;
     }
-    person.fishingWaitUntilTick = undefined;
-    person.active = false;
+    finishFishingCycle(world, person);
+    if (person.outdoorCarry) {
+      routeOutdoorCarryToFlag(world, person);
+      return;
+    }
     if (!planLocalFishingSpot(world, person))
       area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
     return;
   }
 
   if (person.fishingSpot && same(person.position, person.fishingSpot)) {
-    castFishingLine(world, person);
+    startFishingCycle(world, person);
     return;
   }
 
@@ -294,6 +369,11 @@ function resetUnpickedTrip(world: World, person: Person): void {
 
 function enforceResourceWorker(world: World, person: Person): void {
   const area = person.workArea!;
+
+  if (person.outdoorCarry) {
+    if (!routeOutdoorCarryToFlag(world, person)) return;
+  }
+
   if (person.resourceTarget) {
     const target = world.naturalResources.find((resource) => resource.id === person.resourceTarget);
     if (!target || target.depleted || target.remaining <= 0 || hexDistance(area.center, target.position) > area.radius) {
@@ -303,9 +383,17 @@ function enforceResourceWorker(world: World, person: Person): void {
       person.active = false;
       person.progress = 0;
       area.retryAfterTick = undefined;
+    } else if (!person.path.length && !same(person.position, target.position)) {
+      const path = findPath(world.tiles, person.position, target.position, CONFIG.roadSpeedMultiplier);
+      if (path) {
+        person.path = path;
+        person.movement = 0;
+        person.active = false;
+      }
     }
   }
-  if (person.resourceTarget || person.hungerState || person.sleepState || person.trip || person.progress > 0 ||
+
+  if (person.resourceTarget || person.outdoorCarry || person.hungerState || person.sleepState || person.trip || person.progress > 0 ||
     (area.retryAfterTick !== undefined && world.round < area.retryAfterTick)) return;
   if (!planLocalResource(world, person)) area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
 }
@@ -359,6 +447,8 @@ export function setWorkAreaCenter(world: World, personId: number, center: Hex): 
   }
   if (person.fishingSpot && !workAreaContains(person, person.fishingSpot)) {
     person.fishingSpot = undefined;
+    person.fishingWaterTarget = undefined;
+    person.fishingStartedAtTick = undefined;
     person.fishingWaitUntilTick = undefined;
     person.path = [];
     person.movement = 0;
