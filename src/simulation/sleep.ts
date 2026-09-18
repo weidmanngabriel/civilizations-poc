@@ -22,10 +22,10 @@ const sleepValue = (person: Person): number => {
 };
 
 const secondsPerSleepPoint = (person: Person): number => {
-  if (person.trip?.picked) return 2;
-  if (person.progress > 0 || (person.farmTask && person.path.length === 0)) return 2;
-  if (person.path.length > 0) return 4;
-  return 8;
+  if (person.trip?.picked) return 4;
+  if (person.progress > 0 || (person.farmTask && person.path.length === 0)) return 4;
+  if (person.path.length > 0) return 8;
+  return 16;
 };
 
 const decaySleep = (person: Person): void => {
@@ -196,9 +196,9 @@ export const interruptSleep = (world: World, person: Person): void => {
 };
 
 const recoveryPerPhase = (person: Person, kind: SleepLocationKind): number => {
-  if (kind === "house") return Math.max(0, (SLEEP_MAX - (person.sleep ?? SLEEP_MAX)) / 2);
-  if (kind === "nature") return 20;
-  return 10;
+  if (kind === "house") return 50;
+  if (kind === "nature") return 15;
+  return 5;
 };
 
 const startSleeping = (world: World, person: Person, context: SleepSearchContext): void => {
@@ -319,6 +319,7 @@ export const SLEEP_RULES = {
   radiusSteps: SLEEP_RADIUS_STEPS,
   phaseTicks: SLEEP_PHASE_TICKS,
   durationTicks: SLEEP_DURATION_TICKS,
-  natureRecovery: 40,
-  groundRecovery: 20,
+  houseRecovery: 100,
+  natureRecovery: 30,
+  groundRecovery: 10,
 } as const;
