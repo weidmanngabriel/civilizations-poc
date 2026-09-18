@@ -8,6 +8,7 @@ export const GOOD_ICONS: Record<Good, string> = {
   flour: "🥣",
   water: "💧",
   bread: "🍞",
+  fish: "🐟",
   clay: "🟤",
   rubble: "🪨",
   brick: "🧱",
