@@ -172,6 +172,10 @@ The save format remains `civilizations-save` **version 3**. The visual-definitio
 
 Loading and starting a new game still replace the contents of the existing shared `World` object instead of swapping its identity, so Phaser and UI modules keep valid references.
 
+## Game notifications
+
+`src/ui/gameNotifications.ts` is the shared presentation-derived notification layer. It combines existing person alerts with actionable building state without persisting notification history in `World`. A completed, non-retired building with worker slots contributes a warning while it has no assigned worker. `src/ui/gameNotifications.ts` renders the compact HUD feed, while `src/game/buildingAttentionIndicators.ts` renders the matching clickable/touchable world marker. Both navigate through the existing building selection events, so notification handling does not create a second authoritative selection model.
+
 ## Person status overview
 
 `src/ui/personAlerts.ts` derives a single current alert per person from authoritative simulation state. Severity precedence is `critical > warning > info`, so one person contributes to at most one HUD/list count. The first rules cover critical/normal hunger and sleep plus truly free idle people. Need alerts reuse the same display-status helpers as the world icons, so the list, counters and filters stay aligned at 30% warning / 20% critical while simulation planning may already have started at 40%. The classifier deliberately does not infer missing-resource failures from generic inactivity.
