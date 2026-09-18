@@ -637,16 +637,11 @@ export class MainScene extends Phaser.Scene {
       }).setResolution(TEXT_RESOLUTION));
     }
 
-    const groups = new Map<string, number>();
     for (const p of this.world.people) {
       if (personInsideBuilding(this.world, p)) continue;
-      const moving = p.path.length > 0;
-      const k = key(p.position);
-      const i = groups.get(k) ?? 0;
-      groups.set(k, i + 1);
       const pos = pixel(personWorldPosition(this.world, p));
-      const x = pos.x + (moving ? ((p.id % 3) - 1) * 1.5 : ((i % 4) - 1.5) * 5);
-      const y = pos.y + (moving ? 1 : 1 + Math.floor(i / 4) * 5);
+      const x = pos.x;
+      const y = pos.y;
       const color = !p.assignment && !p.woodcutter && !p.extractor && !p.builder
         ? 0xdde5db
         : p.assignment?.role === "worker" || p.woodcutter
