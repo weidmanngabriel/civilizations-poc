@@ -138,6 +138,16 @@ Woodcutters, clay diggers, stonecutters, fishers, warehouse carriers and HQ carr
 
 Extractor flags start at the first selected resource. Storage-carrier flags start at their storage workplace. Moving a flag invalidates an unpicked source outside the new area but does not discard already carried cargo. While an extractor carries outdoor cargo, the flag delivery route has priority over the retained resource target, including generic reroutes caused by terrain or road changes. Production carriers are deliberately outside this system.
 
+## Wayposts and high-level navigation
+
+Wayposts are first-class navigation objects in `World.wayposts`; they are not buildings and remain independent from per-person work flags. Player-facing worlds start with one waypost on valid terrain roughly two coarse world tiles in front of the HQ entrance.
+
+Waypost balance is intentionally owned by separate constants even where current values match work-area balance. A waypost has a **2.5 coarse-world-tile orientation radius**. New wayposts require at least **2.5 coarse world tiles** center-to-center distance. Two reachable wayposts connect bidirectionally when their distance is at most **5 coarse world tiles**. Each stored connection is rendered as its own directional sign using the shared isometric projection.
+
+Placement reuses the building-placement interaction model without treating a waypost as a `Building`: desktop uses a hover ghost plus left-click placement and right-click/Escape cancellation; touch uses tap-to-position plus an explicit confirmation button. The placement preview shows the orientation area and spacing constraint.
+
+Navigation uses the waypost graph when both route endpoints can orient to connected wayposts. The graph chooses the high-level sequence, while every segment remains an ordinary micro-cell A* route and therefore still respects terrain, blocking and road speed. If no usable graph route exists, normal global A* remains the fallback. Hunger, sleep, farm work, local work areas and ordinary transport use the same navigation helper so this rule stays consistent.
+
 ## Hunger, sleep, farms, roads and progression
 
 Hunger and sleep retain their event-driven target planning. Both needs begin autonomous planning at 40%, while player-facing warning state is deliberately separate: yellow at 30% and red at 20%. Hunger is sampled once per simulated second while movement and production continue at 60 Hz. Need decay uses the original seconds-per-point intervals. Food and sleep recovery are capped at 100; bread restores 80 hunger, fish 60 and bushes 40. Fish can be consumed from HQ/warehouse inventory or directly from a reserved loose fish stack. The two sleep phases restore 50/15/5 points each for house/nature/ground respectively. Entering sleep pauses activity without clearing profession, workplace, extractor role or current resource assignment.
@@ -200,7 +210,7 @@ All other unchanged systems remain documented in [`architecture-detail.md`](./ar
 
 ## Testing and deployment
 
-`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Coverage includes building-visual schema validation, resolution-independent sprite metadata, registered-building entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas, technology progression and save/load reconstruction.
+`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Coverage includes building-visual schema validation, resolution-independent sprite metadata, registered-building entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas, waypost spacing/connections/navigation, technology progression and save/load reconstruction.
 
 Vite builds both the game root and `building-editor/index.html`. GitHub Pages publishes both from the same `dist` artifact.
 
