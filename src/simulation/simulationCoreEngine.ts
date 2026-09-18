@@ -47,6 +47,7 @@ import {
 } from "../debug/performanceProfiler";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
+import { interruptSleep } from "./sleep";
 import {
   availableLooseGoodAmount,
   findLooseGoodDropPosition,
@@ -963,7 +964,7 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
       p.active = false;
     }
     if (p.sleepState?.kind === "house" && same(p.sleepState.target, removed.position)) {
-      p.sleepState = undefined;
+      interruptSleep(w, p);
       p.path = [];
       p.movement = 0;
       p.active = false;
