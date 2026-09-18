@@ -111,6 +111,8 @@ export interface Trip {
   target: BuildingId;
   good: Good;
   picked: boolean;
+  /** Exact simulation tick when the current pickup/dropoff interaction completes. */
+  transferUntilTick?: number;
 }
 export interface MerchantRoute {
   target?: BuildingId;

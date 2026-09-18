@@ -82,7 +82,7 @@ const workplaceLabel = (world: World, person: Person): string => {
   return "—";
 };
 
-const activityLabel = (person: Person): string => {
+export const personActivityLabel = (person: Person): string => {
   if (person.hungerState) return person.path.length ? "Geht essen" : "Isst";
   if (person.sleepState) return person.path.length ? "Sucht Schlafplatz" : "Schläft";
   if (person.trip?.picked) return `Transportiert ${GOODS[person.trip.good]}`;
@@ -92,6 +92,7 @@ const activityLabel = (person: Person): string => {
     if (person.farmTask.kind === "fertilize") return "Düngt";
     return "Sät";
   }
+  if (person.idleTarget) return person.path.length ? "Unterwegs" : "Wartet";
   if (person.active) return "Arbeitet";
   if (person.path.length) return "Unterwegs";
   return "Wartet";
@@ -287,7 +288,7 @@ export function mountPersonPanel(world: World): void {
     const hunger = displayNeed(person.hunger);
     const sleep = displayNeed(person.sleep);
     const workplace = workplaceLabel(world, person);
-    const activity = activityLabel(person);
+    const activity = personActivityLabel(person);
     const cargo = cargoLabel(person);
     const ids = currentNavigation();
     const index = Math.max(0, ids.indexOf(person.id));

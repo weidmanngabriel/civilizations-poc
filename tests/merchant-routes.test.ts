@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createWorld } from "../src/simulation/scenario";
+import { CONFIG, createWorld } from "../src/simulation/scenario";
 import { findPathBySteps } from "../src/simulation/hex";
 import { canPlaceBuilding } from "../src/simulation/buildingPlacement";
 import {
@@ -28,7 +28,7 @@ function reachableBuildableTile(w: World, origin: Hex): Hex {
   assert.fail("expected reachable warehouse position");
 }
 
-function runUntil(w: World, predicate: () => boolean, limit = 1000): void {
+function runUntil(w: World, predicate: () => boolean, limit = 2000): void {
   for (let i = 0; i < limit && !predicate(); i++) tick(w);
   assert.ok(predicate(), "condition was not reached within tick limit");
 }
@@ -56,7 +56,7 @@ test("merchant moves one configured good between two warehouses and returns empt
     picked: false,
   });
 
-  tick(w);
+  runUntil(w, () => merchant.trip?.picked === true, CONFIG.transferDurationTicks + 5);
   assert.equal(merchant.trip?.picked, true);
   assert.equal(source.inventory!.wood, 1);
   assert.equal(target.inventory!.wood, 0);
