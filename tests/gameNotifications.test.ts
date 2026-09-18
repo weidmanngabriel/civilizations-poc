@@ -5,8 +5,11 @@ import { buildingNotifications, buildingNeedsWorker, gameNotifications } from ".
 
 test("completed staffed buildings only request attention while they have no worker", () => {
   const world = createWorld(1);
-  const building = world.buildings.find((candidate) => candidate.kind === "sawmill");
-  assert.ok(building);
+  const building = {
+    id: "test-sawmill", kind: "sawmill" as const, name: "Sägewerk", position: { q: 0, r: 0 },
+    workers: 1, carriers: 1, input: 0, output: 0,
+  };
+  world.buildings.push(building);
 
   building.construction = {
     required: {},
@@ -41,9 +44,11 @@ test("game notification feed combines person and building attention", () => {
   person.hunger = 10;
   person.sleep = 100;
 
-  const building = world.buildings.find((candidate) => candidate.kind === "sawmill");
-  assert.ok(building);
-  building.construction = undefined;
+  const building = {
+    id: "test-sawmill", kind: "sawmill" as const, name: "Sägewerk", position: { q: 0, r: 0 },
+    workers: 1, carriers: 1, input: 0, output: 0,
+  };
+  world.buildings.push(building);
 
   const notifications = gameNotifications(world);
   assert.equal(notifications.some((notification) => notification.kind === "person"), true);
