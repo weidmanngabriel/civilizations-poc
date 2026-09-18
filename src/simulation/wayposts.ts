@@ -83,6 +83,7 @@ export function placeWaypost(world: World, position: Hex): Waypost | undefined {
   };
   world.wayposts.push(created);
   connectNewWaypost(world, created);
+  world.waypostRevision = (world.waypostRevision ?? 0) + 1;
   return created;
 }
 
@@ -240,18 +241,53 @@ export function findNavigationPath(
   return findPathViaWayposts(world, start, end, roadSpeedMultiplier);
 }
 
+const navigationTargetKey = (target: Hex): string => key(target);
+
+const resetNavigationFailures = (person: Person): void => {
+  person.navigationFailureRevision = undefined;
+  person.navigationFailedTargets = undefined;
+};
+
 export function findRequiredNavigationPath(
   world: World,
   person: Person,
   end: Hex,
   roadSpeedMultiplier = 1.3,
 ): Hex[] | null {
+  if (same(person.position, end)) {
+    person.navigationBlocked = undefined;
+    resetNavigationFailures(person);
+    return [];
+  }
+
+  const revision = world.waypostRevision ?? 0;
+  if (person.navigationFailureRevision !== revision) {
+    person.navigationFailureRevision = revision;
+    person.navigationFailedTargets = [];
+  }
+
+  const targetKey = navigationTargetKey(end);
+  if (person.navigationFailedTargets?.includes(targetKey)) {
+    person.navigationBlocked = true;
+    return null;
+  }
+
   const path = findNavigationPath(world, person.position, end, roadSpeedMultiplier);
-  person.navigationBlocked = !path && !same(person.position, end) ? true : undefined;
-  return path;
+  if (path) {
+    person.navigationBlocked = undefined;
+    resetNavigationFailures(person);
+    return path;
+  }
+
+  person.navigationBlocked = true;
+  person.navigationFailedTargets ??= [];
+  if (!person.navigationFailedTargets.includes(targetKey))
+    person.navigationFailedTargets.push(targetKey);
+  return null;
 }
 
 export const clearNavigationBlocked = (person: Person): void => {
   person.navigationBlocked = undefined;
+  resetNavigationFailures(person);
 };
 
