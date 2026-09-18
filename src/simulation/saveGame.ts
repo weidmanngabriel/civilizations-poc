@@ -77,6 +77,7 @@ export const currentActivity = (person: Person): SavedActivity => {
   if (person.sleepState) return "sleeping";
   if (person.hungerState?.foodSource || person.hungerState?.foodBush) return "seeking-food";
   if (person.trip) return person.trip.picked ? "transporting-good" : "picking-up-good";
+  if (person.outdoorCarry) return "transporting-good";
   if (person.farmTask?.kind === "sow") return "sowing";
   if (person.farmTask?.kind === "fertilize") return "fertilizing";
   if (person.farmTask?.kind === "harvest") return "harvesting";
