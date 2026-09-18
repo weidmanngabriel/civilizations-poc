@@ -65,7 +65,7 @@ Production-building carriers, merchants and builders keep their separate sourcin
 
 ### Wayposts
 
-High-level navigation is implemented as a separate `World.wayposts` graph. Player-facing worlds start with one valid waypost roughly one coarse tile in front of HQ. Orientation radius and minimum spacing are each 2.5 coarse world tiles; the maximum direct connection distance is 5 coarse world tiles. These are separate waypost constants and are not derived from work-area balance.
+High-level navigation is implemented as a separate `World.wayposts` graph. Player-facing worlds start with one valid waypost roughly one coarse tile in front of HQ. Orientation radius is 3.5 coarse world tiles; minimum spacing remains 2.5 coarse world tiles and the maximum direct connection distance is 5 coarse world tiles. These are separate waypost constants and are not derived from work-area balance.
 
 Entering placement immediately highlights every currently valid waypost anchor. Reachable posts in range receive reciprocal stored connections. Each connection is shown by its own projected directional sign. Player-facing high-level travel now requires a connected waypost sequence. Candidate network routes are weighted by the real micro-grid travel cost of their local A* segments, including road speed. There is no player-world global direct fallback. Failed required targets are cached against a waypost-network revision and are retried only after the network changes; blocked people expose a warning state.
 
