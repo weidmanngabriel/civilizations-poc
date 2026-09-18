@@ -77,7 +77,7 @@ Farm rules and balance remain unchanged. Field placement now obeys the physical 
 
 ### Building clearance and demolition
 
-Building placement keeps the existing refined footprint plus one coarse-world-tile clearance ring. Active natural-resource footprints reserve both placement and clearance space. Loose goods block only the actual building footprint because they are walkable and may remain in the clearance ring.
+Building placement now keeps the authoritative footprint plus a compact two-micro-cell clearance ring; this supersedes the earlier one-coarse-world-tile spacing from the original migration. Active natural-resource footprints reserve both placement and clearance space. Loose goods block only the actual building footprint because they are walkable and may remain in the clearance ring.
 
 Demolition restores every occupied footprint cell and clears stale traffic state across the full former footprint. Roads under a constructed building do not return after demolition; the cleared footprint becomes grass as before.
 

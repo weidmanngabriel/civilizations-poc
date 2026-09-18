@@ -186,6 +186,14 @@ const finishSleeping = (world: World, person: Person): void => {
   resumeTask(world, person, state);
 };
 
+export const interruptSleep = (world: World, person: Person): void => {
+  const state = person.sleepState;
+  if (!state) return;
+  person.sleepState = undefined;
+  person.sleepGraceTicks = 2;
+  resumeTask(world, person, state);
+};
+
 const recoveryPerPhase = (person: Person, kind: SleepLocationKind): number => {
   if (kind === "house") return Math.max(0, (SLEEP_MAX - (person.sleep ?? SLEEP_MAX)) / 2);
   if (kind === "nature") return 20;

@@ -47,6 +47,7 @@ import {
 } from "../debug/performanceProfiler";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
+import { interruptSleep } from "./sleep";
 import {
   availableLooseGoodAmount,
   findLooseGoodDropPosition,
@@ -427,7 +428,7 @@ export function changePopulation(w: World, delta: 1 | -1): boolean {
       !p.woodcutter &&
       !p.extractor &&
       !p.builder &&
-      same(p.position, hq.position),
+      (same(p.position, hq.position) || Boolean(p.idleTarget)),
   );
   if (index < 0) return false;
   w.people.splice(index, 1);
@@ -956,11 +957,24 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
   if (removed.kind === "farm") removeActiveFarmFields(w, removed.id);
 
   for (const p of w.people) {
+    if (p.hungerState?.foodSource === id) {
+      p.hungerState = undefined;
+      p.path = [];
+      p.movement = 0;
+      p.active = false;
+    }
+    if (p.sleepState?.kind === "house" && same(p.sleepState.target, removed.position)) {
+      interruptSleep(w, p);
+      p.path = [];
+      p.movement = 0;
+      p.active = false;
+    }
     const affectedTrip = p.trip?.source === id || p.trip?.target === id;
     if (affectedTrip) cancel(w, p);
     if (p.merchantRoute?.target === id) p.merchantRoute.target = undefined;
     if (p.assignment?.building === id) {
       p.assignment = undefined;
+      p.idleTarget = undefined;
       p.merchantRoute = undefined;
       clearFarmTask(p);
       clearWorkRetry(p);
@@ -1148,7 +1162,11 @@ export function tick(w: World): void {
       for (const p of w.people) rerouteCurrentTask(w, p);
     }
     for (const p of w.people) {
-      if (movingAtTickStart.has(p.id) && p.path.length === 0)
+      if (
+        movingAtTickStart.has(p.id) &&
+        p.path.length === 0 &&
+        !(p.idleTarget && same(p.position, p.idleTarget))
+      )
         immediateDecisionPeople.add(p.id);
     }
   });

@@ -2,6 +2,7 @@ import type { Person, World } from "../simulation/model";
 import { key } from "../simulation/hex";
 import { personWorldPosition } from "../simulation/movement";
 import { HEX_Y, pixel } from "./mapGeometry";
+import { personInsideBuilding } from "./personVisibility";
 
 export const PERSON_MARKER_RADIUS = HEX_Y / 2;
 export const PERSON_FEET_OFFSET_Y = HEX_Y * 0.15;
@@ -16,7 +17,7 @@ export type PersonMarkerPosition = {
 
 export function personMarkerPositions(world: World): PersonMarkerPosition[] {
   const groups = new Map<string, number>();
-  return world.people.map((person) => {
+  return world.people.filter((person) => !personInsideBuilding(world, person)).map((person) => {
     const moving = person.path.length > 0;
     const positionKey = key(person.position);
     const groupIndex = groups.get(positionKey) ?? 0;

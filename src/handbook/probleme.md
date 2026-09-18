@@ -6,16 +6,16 @@ Prüfe, ob ein Arbeiter zugewiesen ist, die benötigten Waren erreichbar sind un
 
 ## Waren bleiben liegen
 
-Prüfe, ob ein Träger in der Nähe zuständig ist. Zwischen verschiedenen Lagern brauchst du eine Handelsroute.
+Prüfe, ob ein zuständiger Träger den Ort mit seiner Arbeitsflagge abdeckt. Zwischen verschiedenen Lagern brauchst du eine Handelsroute.
 
 ## Ein Bewohner arbeitet gerade nicht
 
-Vielleicht ist er unterwegs, holt eine Ware, isst oder schläft. Viele Unterbrechungen lösen sich von selbst.
+Vielleicht kümmert er sich um ein Bedürfnis oder wartet auf Material, ein freies Ziel oder neue Arbeit.
 
 ## Ein Gebäude lässt sich nicht platzieren
 
-Prüfe nicht nur die Baufläche selbst, sondern auch den freien Platz rundherum.
+Prüfe die Baufläche und den freien Platz direkt darum.
 
 ## Alles dauert sehr lange
 
-Schau auf die Wege. Große Entfernungen zwischen Rohstoffen, Lagern und Produktion bremsen die gesamte Siedlung.
+Schau auf die Wege zwischen Rohstoffen, Lagern und Produktion. Große Entfernungen bremsen die gesamte Siedlung.

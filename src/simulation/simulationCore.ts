@@ -10,6 +10,7 @@ import type {
   World,
 } from "./model";
 import { hexDistance } from "./spatial";
+import { syncIdleBehavior, wakeIdlePeople } from "./idleBehavior";
 import {
   assigned,
   building,
@@ -164,7 +165,13 @@ export function changeAssignment(
 ): boolean {
   const before = assigned(world, id, role).slice();
   const changed = changeAssignmentNow(world, id, role, delta);
-  if (!changed || role !== "carrier") return changed;
+  if (!changed) return changed;
+  const afterAssignment = assigned(world, id, role);
+  const changedPerson = delta === 1
+    ? afterAssignment.find((candidate) => !before.includes(candidate))
+    : before.find((candidate) => !afterAssignment.includes(candidate));
+  if (changedPerson) changedPerson.idleTarget = undefined;
+  if (role !== "carrier") return changed;
   const target = building(world, id);
   const localStorageCarrier = target.kind === "warehouse" || target.kind === "hq";
   const after = assigned(world, id, role);
@@ -191,6 +198,7 @@ export function changeWoodcutters(world: World, delta: 1 | -1): boolean {
   const person = freePerson(world);
   if (!person) return false;
 
+  person.idleTarget = undefined;
   person.woodcutter = true;
   const target = nearestUnclaimedResource(world, person, "forest");
   person.resourceTarget = target?.id;
@@ -218,6 +226,7 @@ export function changeExtractors(
   const person = freePerson(world);
   if (!person) return false;
 
+  person.idleTarget = undefined;
   person.extractor = kind;
   const target = nearestUnclaimedResource(world, person, kind);
   person.resourceTarget = target?.id;
@@ -233,6 +242,7 @@ export function changeBuilders(world: World, delta: 1 | -1): boolean {
   const person = freePerson(world);
   if (!person) return false;
 
+  person.idleTarget = undefined;
   person.builder = true;
   const site = nearestOpenConstructionSite(world, person);
   person.assignment = site ? { building: site.id, role: "builder" } : undefined;
@@ -249,6 +259,7 @@ export function notifyConstructionSiteAdded(world: World): void {
     const site = nearestOpenConstructionSite(world, person);
     if (!site) continue;
     person.assignment = { building: site.id, role: "builder" };
+    person.idleTarget = undefined;
     person.active = samePosition(person.position, site.position);
     person.movement = 0;
     person.path = [];
@@ -272,9 +283,11 @@ export function status(world: World, target: Building): string {
 /** Flushes UI-triggered autonomous profession planning inside the simulation step. */
 export function tick(world: World): void {
   flushPendingPlans(world);
+  wakeIdlePeople(world);
   syncWorkAreas(world);
   tickNow(world);
   syncWorkAreas(world);
+  syncIdleBehavior(world);
 }
 
 export {
