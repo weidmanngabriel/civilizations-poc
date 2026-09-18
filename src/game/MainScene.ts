@@ -68,7 +68,8 @@ const goodColors: Record<Good, number> = {
 type PointerPosition = { x: number; y: number };
 type CameraSnapshot = { scrollX: number; scrollY: number; zoom: number };
 type MerchantTargetModeDetail = { active: boolean; sourceId?: BuildingId };
-type BuildPlacementKind = BuildableBuildingKind | "waypost";\ntype BuildModeDetail = { active: boolean; kind?: BuildPlacementKind };
+type BuildPlacementKind = BuildableBuildingKind | "waypost";
+type BuildModeDetail = { active: boolean; kind?: BuildPlacementKind };
 type WorldBounds = { minX: number; maxX: number; minY: number; maxY: number };
 
 const underConstruction = (b: Building): boolean =>
