@@ -956,11 +956,24 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
   if (removed.kind === "farm") removeActiveFarmFields(w, removed.id);
 
   for (const p of w.people) {
+    if (p.hungerState?.foodSource === id) {
+      p.hungerState = undefined;
+      p.path = [];
+      p.movement = 0;
+      p.active = false;
+    }
+    if (p.sleepState?.kind === "house" && same(p.sleepState.target, removed.position)) {
+      p.sleepState = undefined;
+      p.path = [];
+      p.movement = 0;
+      p.active = false;
+    }
     const affectedTrip = p.trip?.source === id || p.trip?.target === id;
     if (affectedTrip) cancel(w, p);
     if (p.merchantRoute?.target === id) p.merchantRoute.target = undefined;
     if (p.assignment?.building === id) {
       p.assignment = undefined;
+      p.idleTarget = undefined;
       p.merchantRoute = undefined;
       clearFarmTask(p);
       clearWorkRetry(p);
