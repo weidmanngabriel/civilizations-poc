@@ -52,6 +52,7 @@ export function workerProfession(building: Building): Profession | undefined {
 }
 
 export function currentProfession(w: World, p: Person): Profession | undefined {
+  if (p.profession) return p.profession;
   if (p.builder) return "builder";
   if (p.woodcutter) return "woodcutter";
   if (p.fisher) return "fisher";
