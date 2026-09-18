@@ -265,6 +265,36 @@ function claimedByOther(world: World, person: Person, resource: NaturalResource)
 
 type ResourceCandidate = { resource: NaturalResource; path: Hex[]; cost: number };
 
+function initializeResourceWorker(world: World, person: Person): boolean {
+  if (person.workArea) return true;
+  const kind = resourceKindFor(person);
+  if (!kind) return false;
+
+  const candidates: ResourceCandidate[] = [];
+  for (const resource of world.naturalResources) {
+    if (resource.kind !== kind || resource.depleted || resource.remaining <= 0 || claimedByOther(world, person, resource)) continue;
+    const path = findPath(world.tiles, person.position, resource.position, CONFIG.roadSpeedMultiplier);
+    if (!path) continue;
+    candidates.push({
+      resource,
+      path,
+      cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier),
+    });
+  }
+  candidates.sort((a, b) => a.cost - b.cost || a.resource.position.q - b.resource.position.q ||
+    a.resource.position.r - b.resource.position.r || a.resource.id.localeCompare(b.resource.id));
+  const candidate = candidates[0];
+  if (!candidate) return false;
+
+  person.resourceTarget = candidate.resource.id;
+  person.assignment = undefined;
+  person.path = candidate.path;
+  person.movement = 0;
+  person.active = same(person.position, candidate.resource.position);
+  ensureWorkArea(world, person, candidate.resource.position);
+  return true;
+}
+
 function planLocalResource(world: World, person: Person): boolean {
   const area = person.workArea;
   const kind = resourceKindFor(person);
@@ -421,6 +451,7 @@ export function syncWorkAreas(world: World): void {
     const fisher = Boolean(person.fisher);
     const storageCarrier = Boolean(storageCarrierWorkplace(world, person));
     if (!resourceWorker && !fisher && !storageCarrier) { clearWorkArea(person); continue; }
+    if (resourceWorker && !person.workArea && !initializeResourceWorker(world, person)) continue;
     ensureWorkArea(world, person);
     if (resourceWorker) enforceResourceWorker(world, person);
     else if (fisher) enforceFisher(world, person);
