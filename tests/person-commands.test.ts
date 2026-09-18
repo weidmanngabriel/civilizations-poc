@@ -51,7 +51,7 @@ test("a person can receive profession, workplace and home independently", () => 
   assert.deepEqual(validHomes(world).map((building) => building.id), [house.id]);
   assert.equal(setPersonHome(world, person.id, house.id), true);
   assert.equal(person.home, house.id);
-  assert.equal(person.assignment?.building, sawmill.id);
+  assert.equal(world.people[0]!.assignment?.building, sawmill.id);
 });
 
 test("direct movement overrides normal behavior only until the chosen target is reached", () => {

@@ -159,7 +159,7 @@ export function mountPersonContextMenu(world: World): void {
     if (!person) return;
     activeMode = mode;
     setMenuOpen(false);
-    const copy = mode === "move"
+    const copy: [string, string] = mode === "move"
       ? ["Ziel wählen", "Tippe oder klicke auf die Stelle, zu der die Person gehen soll."]
       : mode === "workplace"
         ? ["Arbeitsplatz wählen", "Hervorgehobene Gebäude sind gültige Arbeitsplätze."]
