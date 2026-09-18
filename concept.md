@@ -129,9 +129,9 @@ Weder manuell gesetzte noch automatisch entstehende Wege dürfen eine aktive nat
 
 ## Hunger und Schlaf
 
-Simulation und Bewegung laufen mit 60 Schritten pro Sekunde. Hunger wird nur einmal pro simulierter Sekunde aktualisiert und geprüft. Bestehende Ziele bleiben während einer Reise stabil, solange der Auftrag gültig ist.
+Simulation und Bewegung laufen mit 60 Schritten pro Sekunde. Hunger wird nur einmal pro simulierter Sekunde aktualisiert und geprüft. Bestehende Ziele bleiben während einer Reise stabil, solange der Auftrag gültig ist. Bei **40 %** Hunger beziehungsweise Schlaf beginnt eine Person, an einer passenden Aufgabengrenze nach Essen oder Schlaf zu suchen. Diese Suchschwelle ist bewusst von der Warnanzeige getrennt.
 
-Essen benötigt weiterhin fünf simulierte Sekunden am Ziel. Schlaf folgt den bestehenden Haus-/Natur-/Bodenregeln und konkurriert wie bisher mit Arbeit und Hunger. Bäume und Büsche sind beim Schlafen jeweils nur für eine Person gleichzeitig nutzbar. Dafür gibt es bewusst keine Reservierung: Mehrere Bewohner dürfen denselben Naturplatz ansteuern. Erst bei der Ankunft prüft ein Bewohner, ob dort bereits jemand schläft; ist der Platz belegt, plant er von dort aus ein anderes Schlafziel. Bodenschlaf hat keine solche Exklusivität.
+Essen benötigt weiterhin fünf simulierte Sekunden am Ziel. Schlaf folgt den bestehenden Haus-/Natur-/Bodenregeln und konkurriert wie bisher mit Arbeit und Hunger. Schlaf pausiert die aktuelle Tätigkeit, entfernt aber weder Beruf noch Arbeitsplatz-/Ressourcenzuweisung; nach dem Aufwachen wird die vorhandene Aufgabe fortgesetzt. Bäume und Büsche sind beim Schlafen jeweils nur für eine Person gleichzeitig nutzbar. Dafür gibt es bewusst keine Reservierung: Mehrere Bewohner dürfen denselben Naturplatz ansteuern. Erst bei der Ankunft prüft ein Bewohner, ob dort bereits jemand schläft; ist der Platz belegt, plant er von dort aus ein anderes Schlafziel. Bodenschlaf hat keine solche Exklusivität.
 
 ## Berufserfahrung und Technologien
 
@@ -145,7 +145,7 @@ Freischaltungen sind dauerhaft. Wird die auslösende Produktionsstätte später 
 
 ## Personenhinweise
 
-Die Personenübersicht bündelt aktuelle Probleme und Hinweise in drei Stufen: **kritisch**, **wichtig** und **Info**. Jede Person wird höchstens einmal gezählt und immer nur in ihrer schwersten aktuell zutreffenden Stufe. Kritischer Hunger oder kritische Müdigkeit stehen über normalen Hunger-/Müdigkeitshinweisen; freie Personen ohne Aufgabe erscheinen als Information.
+Die Personenübersicht bündelt aktuelle Probleme und Hinweise in drei Stufen: **kritisch**, **wichtig** und **Info**. Jede Person wird höchstens einmal gezählt und immer nur in ihrer schwersten aktuell zutreffenden Stufe. Hunger oder Müdigkeit erscheinen erst ab **30 %** als gelber wichtiger Hinweis und ab **20 %** als roter kritischer Hinweis. Personen zwischen 31 und 40 % können bereits selbständig nach Versorgung suchen, erscheinen aber noch nicht in diesen Warnfiltern. Freie Personen ohne Aufgabe erscheinen als Information.
 
 Die drei Stufen sind direkt in der Personenübersicht filterbar und werden zusätzlich kompakt am Personen-Button angezeigt, damit dringende Probleme auch bei geschlossener Liste sichtbar bleiben. Die Klassifizierung wird höchstens einmal pro Sekunde aktualisiert. Eine Arbeitsblockade wird nur dann als eigener Hinweis gezeigt, wenn ihre Ursache zuverlässig aus dem Simulationszustand feststeht; bloßes Warten wird nicht als Ressourcenmangel interpretiert.
 
