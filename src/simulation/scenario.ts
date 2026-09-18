@@ -18,7 +18,7 @@ import {
   refinedCellCluster,
   scaleHex,
 } from "./spatial";
-import { key, tileIndex } from "./hex";
+import { key, tileIndex } from "./hex";\nimport { ensureInitialWaypost } from "./wayposts";
 import {
   naturalResourceBlocksMovement,
   naturalResourceFootprint,
@@ -400,7 +400,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     round: 0,
     nextId: population + 1,
     nextBuildingId: 1,
-    nextFieldId: 1,
+    nextFieldId: 1,\n    nextWaypostId: 1,
     rngState: 0x1a2b3c4d,
     ...(suppliedStart ? { unlockedTechnologies: [...STARTING_TECHNOLOGIES] } : {}),
     buildings,
@@ -409,7 +409,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     people,
   };
 
-  return attachNeeds(attachSleep(world));
+  if (suppliedStart) ensureInitialWaypost(world);\n  return attachNeeds(attachSleep(world));
 }
 
 /** Neutral deterministic world used by simulation tests and low-level scenarios. */
