@@ -121,7 +121,11 @@ export function setPersonWorkplace(world: World, personId: number, buildingId: B
   const target = world.buildings.find((building) => building.id === buildingId);
   if (!person || !profession || !target || !compatibleWorkplace(profession, target)) return false;
   const role = roleForProfession(profession);
-  if (!role || assignmentCount(world, target.id, role) >= roleLimit(target, role)) return false;
+  const alreadyAssignedHere =
+    person.assignment?.building === target.id && person.assignment.role === role;
+  if (!role || (!alreadyAssignedHere && assignmentCount(world, target.id, role) >= roleLimit(target, role)))
+    return false;
+  if (alreadyAssignedHere) return true;
   if (person.trip?.picked || person.outdoorCarry) return false;
 
   if (person.sleepState) interruptSleep(world, person);
