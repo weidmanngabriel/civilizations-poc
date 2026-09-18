@@ -98,7 +98,7 @@ const chooseIdleTarget = (
   anchor: Hex,
   reserved: Set<string>,
   buildingCells: Set<string>,
-): Hex | undefined => {
+): { target: Hex; path: Hex[] } | undefined => {
   const candidates = nearbyCells(world, anchor)
     .filter((candidate) => !reserved.has(key(candidate)) && !buildingCells.has(key(candidate)))
     .map((candidate) => ({
@@ -109,8 +109,8 @@ const chooseIdleTarget = (
     .sort((a, b) => a.score - b.score || b.distance - a.distance);
 
   for (const { candidate } of candidates) {
-    if (findPath(world.tiles, person.position, candidate, CONFIG.roadSpeedMultiplier))
-      return candidate;
+    const path = findPath(world.tiles, person.position, candidate, CONFIG.roadSpeedMultiplier);
+    if (path) return { target: candidate, path };
   }
   return undefined;
 };
@@ -176,11 +176,11 @@ export function syncIdleBehavior(world: World): void {
     }
 
     if (person.idleTarget) reserved.delete(key(person.idleTarget));
-    const target = chooseIdleTarget(world, person, anchor, reserved, buildingCells);
-    person.idleTarget = target;
-    if (!target) continue;
-    reserved.add(key(target));
-    person.path = findPath(world.tiles, person.position, target, CONFIG.roadSpeedMultiplier) ?? [];
+    const choice = chooseIdleTarget(world, person, anchor, reserved, buildingCells);
+    person.idleTarget = choice?.target;
+    if (!choice) continue;
+    reserved.add(key(choice.target));
+    person.path = choice.path;
     person.movement = 0;
     person.active = true;
   }
