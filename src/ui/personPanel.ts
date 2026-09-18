@@ -31,6 +31,7 @@ const ALERT_META: Record<PersonAlertSeverity, { icon: string; label: string }> =
 
 const PROFESSION_ICONS: Record<Profession, string> = {
   woodcutter: "🪓",
+  fisher: "🎣",
   builder: "🔨",
   carrier: "📦",
   merchant: "🧭",
@@ -77,6 +78,7 @@ const workplaceLabel = (world: World, person: Person): string => {
     return workplace?.name ?? "Unbekannter Arbeitsplatz";
   }
   if (person.woodcutter) return "Waldarbeit · automatisch";
+  if (person.fisher) return "Angelgebiet · automatisch";
   if (person.extractor === "clay") return "Lehmvorkommen · automatisch";
   if (person.extractor === "stone") return "Steinvorkommen · automatisch";
   if (person.builder) return "Baustellenpool";
