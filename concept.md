@@ -79,9 +79,9 @@ Damit können Bewohner ein Gebäude an einer bewusst definierten Stelle erreiche
 
 ## Bauen, Freiraum und Abriss
 
-Gebäude brauchen weiterhin ihren vollständigen Grundriss plus den bestehenden freien Ring von einer alten Weltkachel rundherum. Für registrierte Gebäudetypen kommt der Grundriss aus der aktuellen Editor-Definition; für noch nicht registrierte Typen gilt die derzeitige codebasierte Form.
+Gebäude brauchen ihren vollständigen Grundriss plus einen freien Ring von zwei Mikrozellen rundherum. Für registrierte Gebäudetypen kommt der Grundriss aus der aktuellen Editor-Definition; für noch nicht registrierte Typen gilt die derzeitige codebasierte Form.
 
-Natürliche Ressourcen dürfen weder den Grundriss noch den notwendigen Freiraum schneiden. Lose Waren dürfen im Freiraum liegen bleiben, aber nicht unter dem eigentlichen Gebäudegrundriss.
+Natürliche Ressourcen dürfen weder den Grundriss noch diesen Freiraum schneiden. Lose Waren dürfen im Freiraum liegen bleiben, aber nicht unter dem eigentlichen Gebäudegrundriss.
 
 Beim Abriss wird die komplette belegte Fläche wieder frei. Eine zuvor überbaute Straße kehrt nicht zurück; die Fläche wird wie bisher zu Gras.
 
@@ -96,6 +96,16 @@ Die Sprite-Größe wird als Breite in der Spielwelt eingestellt, nicht mehr als 
 Im veröffentlichten Editor werden `building.json` und das **unveränderte** Sprite heruntergeladen. Der Export verkleinert oder recomprimiert die gewählte Bilddatei nicht. Dieses Dateipaar kann gemeinsam wieder importiert und vollständig weiterbearbeitet werden, sofern es dem aktuellen Schema entspricht. Bei lokaler Entwicklung kann derselbe Stand direkt nach `src/assets/buildings/<id>/` gespeichert werden.
 
 Ältere Editor-/Building-Visual-Schemata werden nicht unterstützt oder migriert. Nur der aktuelle Schemastand ist verbindlich.
+
+## Warten, Gebäude und Personal
+
+Bewohner warten sichtbar außerhalb von Gebäuden, wenn gerade keine sinnvolle Tätigkeit ansteht. Freie Bewohner und untätige Bauarbeiter sammeln sich locker beim Hauptquartier. Abbauer warten bei ihrer persönlichen Arbeitsflagge. Zugewiesene Arbeiter und Träger warten bei ihrem Gebäude. Dabei wählen sie freie Standplätze in der näheren Umgebung, statt aufeinander oder starr am Eingang zu stehen. Laufwege dürfen sich weiterhin kreuzen.
+
+Während einer tatsächlichen Tätigkeit im Inneren eines Gebäudes ist ein Bewohner auf der Karte nicht sichtbar. Das gilt für passende Arbeits-, Ess- und Schlafvorgänge, nicht für bloßes Durchqueren begehbarer Gebäudeflächen. Beim Verlassen erscheint die Person wieder am Eingang.
+
+Fertige Gebäude zeigen ihre Zuweisung zusätzlich direkt in der Welt: eine kleine blaue Flagge je Arbeiter und eine rote Flagge je Träger neben dem Eingang. Mehrere Flaggen werden kompakt gestapelt. Die Flaggen sind reine Darstellung und beeinflussen weder Kollision noch Wegfindung.
+
+Wird ein Gebäude abgerissen, werden davon abhängige Tätigkeiten sofort beendet. Personen im Gebäude werden unmittelbar wieder sichtbar und planen anschließend aus dem neuen Weltzustand weiter.
 
 ## Arbeitsflaggen
 
