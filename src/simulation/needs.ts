@@ -23,7 +23,7 @@ const WANTS_TO_EAT_THRESHOLD = 40;
 const HUNGER_WARNING_THRESHOLD = 30;
 const CRITICAL_HUNGER_THRESHOLD = 20;
 const HUNGER_MAX = 100;
-const BREAD_FOOD_VALUE = 100;
+const BREAD_FOOD_VALUE = 80;
 const ACCUMULATOR_EPSILON = 1e-9;
 
 type BreadCandidate = { kind: "bread"; source: Building; path: Hex[]; cost: number };
@@ -159,7 +159,7 @@ const consumeBread = (world: World, person: Person, source: Building): void => {
     source.inventory ??= {};
     source.inventory.bread = (source.inventory.bread ?? 0) - 1;
   } else source.output -= 1;
-  person.hunger = (person.hunger ?? HUNGER_MAX) + BREAD_FOOD_VALUE;
+  person.hunger = Math.min(HUNGER_MAX, (person.hunger ?? HUNGER_MAX) + BREAD_FOOD_VALUE);
   finishEating(world, person);
 };
 
@@ -174,7 +174,7 @@ const consumeBush = (world: World, person: Person, tile: Tile): void => {
   const regrowTick = world.round + CONFIG.bushRegrowMinTicks + (nextRandom(world) % (span + 1));
   tile.bushRegrowTick = regrowTick;
   world.nextBushRegrowTick = Math.min(world.nextBushRegrowTick ?? regrowTick, regrowTick);
-  person.hunger = (person.hunger ?? HUNGER_MAX) + CONFIG.bushFoodValue;
+  person.hunger = Math.min(HUNGER_MAX, (person.hunger ?? HUNGER_MAX) + CONFIG.bushFoodValue);
   finishEating(world, person);
 };
 
