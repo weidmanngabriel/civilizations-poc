@@ -3,7 +3,7 @@ import { findPath, hexDistance, key, pathTravelCost, same, tileIndex, walkable }
 import { GRID_REFINEMENT } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
 
-export const WAYPOST_ORIENTATION_RADIUS_WORLD_TILES = 2.5;
+export const WAYPOST_ORIENTATION_RADIUS_WORLD_TILES = 3.5;
 export const WAYPOST_ORIENTATION_RADIUS =
   WAYPOST_ORIENTATION_RADIUS_WORLD_TILES * GRID_REFINEMENT;
 export const WAYPOST_MIN_DISTANCE_WORLD_TILES = 2.5;
