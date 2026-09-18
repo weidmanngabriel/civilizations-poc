@@ -1,6 +1,9 @@
 import type { Person, World } from "../simulation/model";
 import { same } from "../simulation/hex";
 
+const isCompletedBuilding = (building: World["buildings"][number]): boolean =>
+  !building.construction || building.construction.complete;
+
 export function personInsideBuilding(world: World, person: Person): boolean {
   if (person.path.length) return false;
 
@@ -8,12 +11,22 @@ export function personInsideBuilding(world: World, person: Person): boolean {
     if (!person.trip.picked && person.trip.sourceKind !== "resource" && person.trip.sourceKind !== "looseGood") {
       const source = world.buildings.find((building) =>
         building.id === person.trip!.source && !building.retired);
-      if (source && source.kind !== "well" && same(person.position, source.position)) return true;
+      if (
+        source &&
+        isCompletedBuilding(source) &&
+        source.kind !== "well" &&
+        same(person.position, source.position)
+      ) return true;
     }
     if (person.trip.picked) {
       const target = world.buildings.find((building) =>
         building.id === person.trip!.target && !building.retired);
-      if (target && target.kind !== "well" && same(person.position, target.position)) return true;
+      if (
+        target &&
+        isCompletedBuilding(target) &&
+        target.kind !== "well" &&
+        same(person.position, target.position)
+      ) return true;
     }
   }
 

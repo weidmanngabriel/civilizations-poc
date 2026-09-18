@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { BuildingId, World } from "../simulation/model";
-import { buildingNotifications } from "../ui/gameNotifications";
+import { buildingAlertMap } from "../ui/buildingAlerts";
 import { pixel } from "./mapGeometry";
 
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
@@ -37,11 +37,7 @@ export function installBuildingAttentionIndicators(scene: Phaser.Scene, world: W
     };
 
     const render = () => {
-      const active = new Set(
-        buildingNotifications(world)
-          .filter((notification) => notification.kind === "building")
-          .map((notification) => notification.buildingId),
-      );
+      const active = new Set(buildingAlertMap(world).keys());
 
       for (const [buildingId, indicator] of indicators) {
         if (active.has(buildingId)) continue;

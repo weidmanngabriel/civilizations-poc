@@ -10,7 +10,9 @@ Wiese und Wege zählen grundsätzlich als Baufläche. Ein überbauter Weg versch
 
 Nach der Platzierung entsteht zunächst eine Baustelle. Bauarbeiter beschaffen benötigte Materialien und kümmern sich selbstständig um erreichbare Baustellen.
 
-Sobald ein Gebäude fertig ist und einen Arbeiter braucht, erscheint ein Hinweis. Tippe oder klicke den Hinweis beziehungsweise das Ausrufezeichen am Gebäude, um direkt dorthin zu springen und die Personalzuweisung zu öffnen. Der Hinweis verschwindet, sobald ein Arbeiter zugewiesen ist.
+Bauarbeiter bleiben während der Arbeit an einer Baustelle sichtbar. Erst ein fertig gebautes Gebäude besitzt einen Innenraum, in dem Bewohner bei passenden Tätigkeiten ausgeblendet werden.
+
+Sobald ein Gebäude fertig ist und einen Arbeiter braucht, erscheint ein Hinweis in der Gebäudeübersicht. Tippe oder klicke den Eintrag beziehungsweise das Ausrufezeichen am Gebäude, um direkt dorthin zu springen und die Personalzuweisung zu öffnen. Der Hinweis verschwindet, sobald ein Arbeiter zugewiesen ist.
 
 Zusammengehörige Gebäude sollten möglichst nahe beieinander liegen. Lange Wege bremsen Produktion und Versorgung.
 
