@@ -1,6 +1,7 @@
 import type { Building, Good, Hex, NaturalResource, NaturalResourceKind, Person, World } from "./model";
-import { findPath, pathTravelCost, same } from "./hex";
+import { pathTravelCost, same } from "./hex";
 import { CONFIG } from "./scenario";
+import { findNavigationPath } from "./wayposts";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import {
   availableLooseGoodAmount,
@@ -62,7 +63,7 @@ function planLocalResource(world: World, person: Person): boolean {
   for (const resource of world.naturalResources) {
     if (resource.kind !== kind || resource.depleted || resource.remaining <= 0 ||
       hexDistance(area.center, resource.position) > area.radius || claimedByOther(world, person, resource)) continue;
-    const path = findPath(world.tiles, person.position, resource.position, CONFIG.roadSpeedMultiplier);
+    const path = findNavigationPath(world, person.position, resource.position, CONFIG.roadSpeedMultiplier);
     if (!path) continue;
     candidates.push({ resource, path, cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier) });
   }
@@ -106,7 +107,7 @@ function planLocalStorageCarrier(world: World, person: Person): boolean {
     for (const source of world.buildings) {
       if (source.id === target.id || hexDistance(area.center, source.position) > area.radius) continue;
       if (buildingSourceStock(source, good) - reservedAtBuildingSource(world, source.id, good) + 1e-9 < CONFIG.carryCapacity) continue;
-      const path = findPath(world.tiles, person.position, source.position, CONFIG.roadSpeedMultiplier);
+      const path = findNavigationPath(world, person.position, source.position, CONFIG.roadSpeedMultiplier);
       if (!path) continue;
       candidates.push({ sourceId: source.id, sourceKind: "building", sourcePosition: { ...source.position }, good, path,
         cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier) });
@@ -114,7 +115,7 @@ function planLocalStorageCarrier(world: World, person: Person): boolean {
     for (const source of looseGoodStacks(world)) {
       if (source.good !== good || hexDistance(area.center, source.position) > area.radius ||
         availableLooseGoodAmount(source) + 1e-9 < CONFIG.carryCapacity) continue;
-      const path = findPath(world.tiles, person.position, source.position, CONFIG.roadSpeedMultiplier);
+      const path = findNavigationPath(world, person.position, source.position, CONFIG.roadSpeedMultiplier);
       if (!path) continue;
       candidates.push({ sourceId: source.id, sourceKind: "looseGood", sourcePosition: { ...source.position }, good, path,
         cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier) });
