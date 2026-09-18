@@ -1,4 +1,4 @@
-import type { Building, Hex, Person, World } from "./model";
+import type { Building, Good, Hex, Person, World } from "./model";
 import { findPath, hexDistance, key, neighbors, same, tileIndex, walkable } from "./hex";
 import { CONFIG } from "./scenario";
 import { buildingFootprint } from "./buildingPlacement";
