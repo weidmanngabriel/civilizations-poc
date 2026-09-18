@@ -9,7 +9,8 @@ import type {
   Role,
   World,
 } from "./model";
-import { hexDistance } from "./spatial";\nimport { syncIdleBehavior, wakeIdlePeople } from "./idleBehavior";
+import { hexDistance } from "./spatial";
+import { syncIdleBehavior, wakeIdlePeople } from "./idleBehavior";
 import {
   assigned,
   building,
@@ -197,7 +198,8 @@ export function changeWoodcutters(world: World, delta: 1 | -1): boolean {
   const person = freePerson(world);
   if (!person) return false;
 
-  person.idleTarget = undefined;\n  person.woodcutter = true;
+  person.idleTarget = undefined;
+  person.woodcutter = true;
   const target = nearestUnclaimedResource(world, person, "forest");
   person.resourceTarget = target?.id;
   person.active = Boolean(target && samePosition(person.position, target.position));
@@ -224,7 +226,8 @@ export function changeExtractors(
   const person = freePerson(world);
   if (!person) return false;
 
-  person.idleTarget = undefined;\n  person.extractor = kind;
+  person.idleTarget = undefined;
+  person.extractor = kind;
   const target = nearestUnclaimedResource(world, person, kind);
   person.resourceTarget = target?.id;
   person.active = Boolean(target && samePosition(person.position, target.position));
@@ -239,7 +242,8 @@ export function changeBuilders(world: World, delta: 1 | -1): boolean {
   const person = freePerson(world);
   if (!person) return false;
 
-  person.idleTarget = undefined;\n  person.builder = true;
+  person.idleTarget = undefined;
+  person.builder = true;
   const site = nearestOpenConstructionSite(world, person);
   person.assignment = site ? { building: site.id, role: "builder" } : undefined;
   person.active = Boolean(site && samePosition(person.position, site.position));
