@@ -118,6 +118,16 @@ Woodcutters, clay diggers, stonecutters, warehouse carriers and HQ carriers use 
 
 Extractor flags start at the first selected resource. Storage-carrier flags start at their storage workplace. Moving a flag invalidates an unpicked source outside the new area but does not discard already carried cargo. Production carriers are deliberately outside this system.
 
+## Wayposts and high-level navigation
+
+Wayposts are first-class navigation objects in `World.wayposts`; they are not buildings and remain independent from per-person work flags. Player-facing worlds start with one waypost on valid terrain roughly two coarse world tiles in front of the HQ entrance.
+
+Waypost balance is intentionally owned by separate constants even where current values match work-area balance. A waypost has a **2.5 coarse-world-tile orientation radius**. New wayposts require at least **2.5 coarse world tiles** center-to-center distance. Two reachable wayposts connect bidirectionally when their distance is at most **5 coarse world tiles**. Each stored connection is rendered as its own directional sign on the source post using the shared isometric map projection.
+
+Placement reuses the building-placement interaction model without treating a waypost as a `Building`: desktop uses a hover ghost plus left-click placement and right-click/Escape cancellation; touch uses tap-to-position plus an explicit confirmation button. The placement preview shows the orientation area and spacing constraint.
+
+Navigation uses the waypost graph when both route endpoints can orient to connected wayposts. The graph selects the high-level sequence, while every segment remains an ordinary micro-cell A* route and therefore still respects terrain, blocking and road speed. If no usable graph route exists, normal global A* remains the fallback. Hunger, sleep, farm work, local work areas and ordinary transport use the same navigation helper so the rule is consistent across travel.
+
 ## Hunger, sleep, farms, roads and progression
 
 Hunger and sleep retain their documented behavior and event-driven target planning. Hunger is sampled once per simulated second while movement and production continue at 60 Hz.
@@ -170,7 +180,7 @@ All other unchanged systems remain documented in [`architecture-detail.md`](./ar
 
 ## Testing and deployment
 
-`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Coverage includes building-visual schema validation, resolution-independent sprite metadata, registered-building entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas, technology progression and save/load reconstruction.
+`npm test` is the deterministic Node suite. `npm run build` performs TypeScript checking and the Vite production build. Coverage includes building-visual schema validation, resolution-independent sprite metadata, registered-building entrance/footprint/blocking behavior, placement/demolition, physical goods, logistics, work areas, waypost spacing/connections/navigation, technology progression and save/load reconstruction.
 
 Vite builds both the game root and `building-editor/index.html`. GitHub Pages publishes both from the same `dist` artifact.
 
