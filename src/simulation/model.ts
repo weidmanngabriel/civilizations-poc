@@ -1,4 +1,4 @@
-export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "clay" | "rubble" | "brick" | "stoneBlock";
+export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "clay" | "rubble" | "brick" | "stoneBlock";
 export type BuildingId = string;
 export type BuildingKind = "hq" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "stonemason" | "warehouse" | "house";
 export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "field" | "house">;
@@ -9,6 +9,7 @@ export type PlaceableBuildingKind = BuildableBuildingKind | "house";
 export type Role = "worker" | "carrier" | "merchant" | "builder";
 export type Profession =
   | "woodcutter"
+  | "fisher"
   | "builder"
   | "carrier"
   | "merchant"
@@ -154,6 +155,11 @@ export interface Person {
   merchantRoute?: MerchantRoute;
   farmTask?: FarmTask;
   woodcutter?: boolean;
+  fisher?: boolean;
+  /** Current shoreline cell. A cast happens immediately on arrival. */
+  fishingSpot?: Hex;
+  /** After a cast, the fisher waits until this simulation tick before changing spot. */
+  fishingWaitUntilTick?: number;
   extractor?: "clay" | "stone";
   resourceTarget?: NaturalResourceId;
   /** Local resource-collection area for extractors and carriers. */
