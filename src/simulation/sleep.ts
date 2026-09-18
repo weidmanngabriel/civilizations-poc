@@ -22,10 +22,10 @@ const sleepValue = (person: Person): number => {
 };
 
 const secondsPerSleepPoint = (person: Person): number => {
-  if (person.trip?.picked) return 4;
-  if (person.progress > 0 || (person.farmTask && person.path.length === 0)) return 4;
-  if (person.path.length > 0) return 8;
-  return 16;
+  if (person.trip?.picked) return 2;
+  if (person.progress > 0 || (person.farmTask && person.path.length === 0)) return 2;
+  if (person.path.length > 0) return 4;
+  return 8;
 };
 
 const decaySleep = (person: Person): void => {
