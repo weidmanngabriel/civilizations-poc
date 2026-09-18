@@ -10,7 +10,7 @@ import type {
   World,
 } from "../simulation/model";
 import { key, same } from "../simulation/hex";
-import { personWorldPosition } from "../simulation/movement";
+import { personWorldPosition } from "../simulation/movement";\nimport { personInsideBuilding } from "./personVisibility";
 import { CONFIG } from "../simulation/scenario";
 import { GOOD_ICONS } from "../icons";
 import {
