@@ -13,6 +13,7 @@ import { installNaturalResourceIndicators } from "./game/naturalResourceIndicato
 import { installPersonSelection } from "./game/personSelection";
 import { installSleepIndicators } from "./game/sleepIndicators";
 import { installWorkAreaInteraction } from "./game/workAreaInteraction";
+import { installWaypostIndicators } from "./game/waypostIndicators";
 import {
   installMobileMapTouchControls,
   preventMobilePageZoom,
@@ -117,6 +118,7 @@ installHungerIndicators(scene, world);
 installSleepIndicators(scene, world);
 installPersonSelection(scene, world);
 installWorkAreaInteraction(scene, world);
+installWaypostIndicators(scene, world);
 installTileSelectionGuard();
 mountControls(world, () => scene.renderWorld());
 installPerformanceDebugPanel(world);
@@ -150,3 +152,4 @@ const game = new Phaser.Game({
 
 // Keep touch and desktop input adapters separate so neither interaction model regresses the other.
 installMobileMapTouchControls(game, scene);
+installDesktopBuildPlacement(game, scene);
