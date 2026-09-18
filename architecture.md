@@ -96,9 +96,9 @@ Activating another editor-authored runtime building now consists only of replaci
 
 ## Placement, clearance and demolition
 
-`src/simulation/buildingPlacement.ts` remains authoritative for placement legality. For registered kinds it uses the editor footprint; otherwise it uses the current hard-coded shape table. The existing one-coarse-tile clearance ring is computed around whichever footprint is authoritative.
+`src/simulation/buildingPlacement.ts` remains authoritative for placement legality. For registered kinds it uses the editor footprint; otherwise it uses the current hard-coded shape table. The placement clearance is a compact ring of two micro-cells around whichever footprint is authoritative.
 
-Active natural-resource footprints reserve both the building footprint and clearance ring. Loose goods block only the actual footprint because they remain walkable and may stay in the surrounding clearance area.
+Active natural-resource footprints reserve both the building footprint and the two-micro-cell clearance ring. Loose goods block only the actual footprint because they remain walkable and may stay in the surrounding clearance area.
 
 For registered placeable buildings, construction stores the interaction position at the authored entrance, writes the authored footprint and `buildingBlocking` overlay, and otherwise preserves the existing construction/gameplay semantics.
 
@@ -111,6 +111,16 @@ Construction requirements are centralized in `src/simulation/constructionRules.t
 HQ and warehouses use the same first-class storage semantics. Production workers/building carriers may fetch required goods from either storage type. Storage carriers deliver directly into their assigned warehouse/HQ inventory.
 
 Automatic storage-to-storage collection remains forbidden. Warehouse merchants retain explicit warehouse-to-warehouse routes. Builders and production-building carriers retain their separate long-distance/demand-driven sourcing rules.
+
+## Idle positions, indoor visibility and staffing markers
+
+Idle positioning is authoritative simulation state through `Person.idleTarget`. Only final waiting positions are reserved; people may still cross the same cells while moving. Free people and idle builders wait outside the HQ, natural-resource workers wait around their personal work-area flag, and assigned building staff wait outside their workplace. A deterministic spread picks a reachable free stand position near the relevant anchor rather than stacking people at the entrance.
+
+Building activities still use the authored entrance as their interaction coordinate. Presentation hides a person only while an actual building activity is underway there, such as production work, eating from a building or sleeping in a house. Merely crossing a walkable footprint cell does not hide the person.
+
+Assigned staffing is also visualized without changing simulation rules: completed buildings show small presentation-only flags next to the entrance, blue for workers and red for carriers. Multiple flags are stacked compactly.
+
+Demolishing a building immediately cancels activities that depend on that building. Assigned people lose the removed workplace, indoor need actions are interrupted, and anyone who was hidden becomes visible immediately before normal replanning continues.
 
 ## Work areas
 
