@@ -39,6 +39,8 @@ Das Hauptquartier und normale Lager besitzen echte Inventare. Träger liefern di
 
 Automatische Lager-zu-Lager-Verteilung bleibt verboten. Händler verbinden Lager weiterhin explizit miteinander. Produktionsgebäude und Bauarbeiter dürfen benötigte Waren nach ihren eigenen Regeln aus Lager/HQ oder von physischen Bodenhaufen beschaffen.
 
+Beim Abholen und Abladen bleibt die transportierende Person jeweils **drei simulierte Sekunden** am Quell- beziehungsweise Zielort. Erst danach wechselt die Ware tatsächlich den Besitzer. Pause und Simulationsgeschwindigkeit wirken damit genauso auf diese Interaktion wie auf andere Abläufe.
+
 ## Gebäude und Editor-Definitionen
 
 Gebäude besitzen weiterhin getrennte **Gameplay-Regeln** und **räumlich-visuelle Definitionen**.
@@ -99,7 +101,7 @@ Im veröffentlichten Editor werden `building.json` und das **unveränderte** Spr
 
 ## Warten, Gebäude und Personal
 
-Bewohner warten sichtbar außerhalb von Gebäuden, wenn gerade keine sinnvolle Tätigkeit ansteht. Freie Bewohner und untätige Bauarbeiter sammeln sich locker beim Hauptquartier. Abbauer warten bei ihrer persönlichen Arbeitsflagge. Zugewiesene Arbeiter und Träger warten bei ihrem Gebäude. Dabei wählen sie freie Standplätze in der näheren Umgebung, statt aufeinander oder starr am Eingang zu stehen. Laufwege dürfen sich weiterhin kreuzen.
+Bewohner warten sichtbar außerhalb von Gebäuden, wenn gerade keine sinnvolle Tätigkeit ansteht. In der Personenansicht heißt dieser Zustand ausdrücklich **„Wartet“** statt „Arbeitet“. Freie Bewohner und untätige Bauarbeiter sammeln sich locker beim Hauptquartier. Abbauer warten bei ihrer persönlichen Arbeitsflagge. Zugewiesene Arbeiter und Träger warten bei ihrem Gebäude. Dabei wählen sie freie Standplätze in der näheren Umgebung, statt aufeinander oder starr am Eingang zu stehen. Ein bereits gewählter Warteplatz bleibt bei allgemeinen Neuberechnungen erhalten; freie Bewohner laufen deshalb nicht zwischendurch unnötig zum Hauptquartier zurück. Laufwege dürfen sich weiterhin kreuzen.
 
 Während einer tatsächlichen Tätigkeit im Inneren eines Gebäudes ist die komplette normale Bewohnerdarstellung auf der Karte ausgeblendet, einschließlich Name, Tätigkeit und getragener Ware. Das gilt für passende Arbeits-, Ess- und Schlafvorgänge, nicht für bloßes Durchqueren begehbarer Gebäudeflächen. Eine bestehende Auswahl bleibt erhalten; nur der Auswahlmarker bleibt am Eingang sichtbar. Beim Verlassen erscheint die Person wieder am Eingang.
 

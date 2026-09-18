@@ -38,6 +38,7 @@ export const CONFIG = {
   trafficThreshold: 8,
   trafficWindowTicks: 32 * 60,
   carryCapacity: 1,
+  transferDurationTicks: 3 * 60,
   inputCapacity: 10,
   outputCapacity: 10,
   forestOutputCapacity: 3,
