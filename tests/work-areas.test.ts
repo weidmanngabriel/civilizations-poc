@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CONFIG, createWorld } from "../src/simulation/scenario";
+import { CONFIG, createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
 import { GRID_REFINEMENT } from "../src/simulation/spatial";
 import { hexDistance, neighbors, same } from "../src/simulation/hex";
 import {
@@ -21,6 +21,24 @@ import {
 test("work areas use a 2.5-world-tile radius", () => {
   assert.equal(WORK_AREA_RADIUS_WORLD_TILES, 2.5);
   assert.equal(WORK_AREA_RADIUS, 2.5 * GRID_REFINEMENT);
+});
+
+test("initial woodcutters place their flags at their first selected trees", () => {
+  const world = createDefaultGameWorld();
+  const hq = world.buildings.find((building) => building.id === "hq")!;
+
+  tick(world);
+
+  const initialWoodcutters = woodcutters(world);
+  assert.equal(initialWoodcutters.length, 2);
+  for (const worker of initialWoodcutters) {
+    assert.ok(worker.resourceTarget);
+    assert.ok(worker.workArea);
+    const tree = world.naturalResources.find((resource) => resource.id === worker.resourceTarget)!;
+    assert.deepEqual(worker.workArea!.center, tree.position);
+    assert.equal(same(worker.workArea!.center, hq.position), false);
+  }
+  assert.notDeepEqual(initialWoodcutters[0]!.resourceTarget, initialWoodcutters[1]!.resourceTarget);
 });
 
 test("woodcutters keep resource targets inside their movable work flag", () => {
