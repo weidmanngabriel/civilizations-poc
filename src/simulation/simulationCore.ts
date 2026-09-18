@@ -19,6 +19,7 @@ import {
   changeBuilders as changeBuildersNow,
   changeExtractors as changeExtractorsNow,
   changeWoodcutters as changeWoodcuttersNow,
+  fishers,
   isUnderConstruction,
   resourceWorkers,
   status as statusNow,
@@ -28,6 +29,7 @@ import {
 import {
   clearWorkArea,
   ensureWorkArea,
+  initializeFisher,
   setWorkAreaCenter,
   supportsWorkArea,
   syncWorkAreas,
@@ -52,6 +54,7 @@ const freePerson = (world: World): Person | undefined =>
     (candidate) =>
       !candidate.assignment &&
       !candidate.woodcutter &&
+      !candidate.fisher &&
       !candidate.extractor &&
       !candidate.builder,
   );
@@ -209,6 +212,35 @@ export function changeWoodcutters(world: World, delta: 1 | -1): boolean {
   return true;
 }
 
+
+export function changeFishers(world: World, delta: 1 | -1): boolean {
+  if (delta === -1) {
+    const person = fishers(world).at(-1);
+    if (!person) return false;
+    person.fisher = undefined;
+    person.fishingSpot = undefined;
+    person.fishingWaitUntilTick = undefined;
+    person.path = [];
+    person.movement = 0;
+    person.active = false;
+    person.idleTarget = undefined;
+    clearWorkArea(person);
+    return true;
+  }
+
+  const person = freePerson(world);
+  if (!person) return false;
+  person.idleTarget = undefined;
+  person.fisher = true;
+  person.assignment = undefined;
+  person.resourceTarget = undefined;
+  person.active = false;
+  person.movement = 0;
+  person.path = [];
+  initializeFisher(world, person);
+  return true;
+}
+
 export function changeExtractors(
   world: World,
   kind: ExtractorKind,
@@ -295,6 +327,7 @@ export {
   builders,
   clearWorkArea,
   ensureWorkArea,
+  fishers,
   setWorkAreaCenter,
   supportsWorkArea,
   WORK_AREA_RADIUS,
