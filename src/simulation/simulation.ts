@@ -145,7 +145,32 @@ function preparePhysicalResourceTick(world: World): void {
   migrateNaturalResourceOutputToGround(world);
 }
 
-function finishPhysicalResourceTick(world: World): void {
+function moveCompletedExtractorOutputIntoHands(
+  world: World,
+  peopleBefore: PersonBeforeTick[],
+  resourcesBefore: Map<NaturalResourceId, ResourceBeforeTick>,
+): void {
+  for (const before of peopleBefore) {
+    if (!before.resourceTarget || before.person.outdoorCarry) continue;
+    const previous = resourcesBefore.get(before.resourceTarget);
+    const resource = world.naturalResources.find(
+      (candidate) => candidate.id === before.resourceTarget,
+    );
+    if (!previous || !resource) continue;
+    const extracted = previous.remaining - resource.remaining;
+    if (extracted <= 0 || resource.output <= previous.output) continue;
+
+    resource.output = Math.max(previous.output, resource.output - 1);
+    before.person.outdoorCarry = naturalResourceGood(resource);
+  }
+}
+
+function finishPhysicalResourceTick(
+  world: World,
+  peopleBefore: PersonBeforeTick[],
+  resourcesBefore: Map<NaturalResourceId, ResourceBeforeTick>,
+): void {
+  moveCompletedExtractorOutputIntoHands(world, peopleBefore, resourcesBefore);
   migrateNaturalResourceOutputToGround(world);
   ensureResourceBlockingCurrent(world);
 }
@@ -337,7 +362,7 @@ export function tick(world: World): void {
   performanceProfiler.profileFeature("resourceDepletion", () =>
     finishDeferredResourceDepletion(world, deferredResourceDepletion),
   );
-  finishPhysicalResourceTick(world);
+  finishPhysicalResourceTick(world, peopleBefore, resourcesBefore);
   if (deferredResourceDepletion.length) {
     performanceProfiler.profileFeature("workAreaSync", () => syncWorkAreas(world));
   }
