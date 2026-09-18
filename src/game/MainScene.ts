@@ -104,8 +104,16 @@ export class MainScene extends Phaser.Scene {
       this.renderWorld();
     };
     const selectRequestedBuilding = (event: Event) => {
-      this.selectedBuildingId = (event as CustomEvent<{ id: BuildingId }>).detail.id;
+      const detail = (event as CustomEvent<{ id: BuildingId; focus?: boolean }>).detail;
+      this.selectedBuildingId = detail.id;
       this.selectedTile = undefined;
+      if (detail.focus) {
+        const building = this.world.buildings.find((candidate) => candidate.id === detail.id && !candidate.retired);
+        if (building) {
+          const position = pixel(building.position);
+          this.cameras.main.centerOn(position.x, position.y);
+        }
+      }
       this.renderWorld();
     };
     const setMerchantTargetMode = (event: Event) => {
