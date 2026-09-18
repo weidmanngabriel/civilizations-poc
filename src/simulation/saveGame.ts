@@ -36,7 +36,8 @@ export type SavedActivity =
   | "harvesting"
   | "extracting-resource"
   | "building"
-  | "producing";
+  | "producing"
+  | "fishing";
 
 type SavedPerson = {
   id: string;
@@ -79,6 +80,7 @@ export const currentActivity = (person: Person): SavedActivity => {
   if (person.farmTask?.kind === "sow") return "sowing";
   if (person.farmTask?.kind === "fertilize") return "fertilizing";
   if (person.farmTask?.kind === "harvest") return "harvesting";
+  if (person.fisher && person.fishingWaitUntilTick !== undefined) return "fishing";
   if ((person.woodcutter || person.extractor) && person.progress > 0) return "extracting-resource";
   if (person.builder && person.progress > 0) return "building";
   if (person.assignment?.role === "worker" && person.progress > 0) return "producing";
