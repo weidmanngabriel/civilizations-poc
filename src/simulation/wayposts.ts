@@ -248,6 +248,42 @@ const resetNavigationFailures = (person: Person): void => {
   person.navigationFailedTargets = undefined;
 };
 
+export function findCandidateNavigationPath(
+  world: World,
+  person: Person,
+  end: Hex,
+  roadSpeedMultiplier = 1.3,
+): Hex[] | null {
+  if (same(person.position, end)) {
+    person.navigationBlocked = undefined;
+    return [];
+  }
+
+  const revision = world.waypostRevision ?? 0;
+  if (person.navigationFailureRevision !== revision) {
+    person.navigationFailureRevision = revision;
+    person.navigationFailedTargets = [];
+  }
+
+  const targetKey = navigationTargetKey(end);
+  if (person.navigationFailedTargets?.includes(targetKey)) {
+    person.navigationBlocked = true;
+    return null;
+  }
+
+  const path = findNavigationPath(world, person.position, end, roadSpeedMultiplier);
+  if (path) {
+    person.navigationBlocked = undefined;
+    return path;
+  }
+
+  person.navigationBlocked = true;
+  person.navigationFailedTargets ??= [];
+  if (!person.navigationFailedTargets.includes(targetKey))
+    person.navigationFailedTargets.push(targetKey);
+  return null;
+}
+
 export function findRequiredNavigationPath(
   world: World,
   person: Person,
