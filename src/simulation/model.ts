@@ -145,6 +145,7 @@ export interface SleepState {
   resumeAssignment?: { building: BuildingId; role: Role };
   resumeBuilder: boolean;
   resumeWoodcutter: boolean;
+  resumeFisher: boolean;
   resumeExtractor?: "clay" | "stone";
   resumeResourceTarget?: NaturalResourceId;
 }
