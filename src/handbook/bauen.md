@@ -1,6 +1,6 @@
 # Bauen
 
-Gebäude werden über das Baumenü ausgewählt und anschließend direkt auf der Karte platziert.
+Gebäude werden über das Baumenü ausgewählt und anschließend direkt auf der Karte platziert. Am Desktop bewegst du den Ghost mit der Maus und baust mit Linksklick; abbrechen kannst du über „Abbrechen“ oder `Esc`. Auf Touch verschiebt ein kurzer Tap den Ghost, Ziehen bewegt die Karte und „Bauen“ bestätigt die Position.
 
 Neue Gebäude werden nach und nach durch Berufserfahrung und bereits aufgebaute Produktionsketten verfügbar. Im Technologiebaum siehst du, was schon bekannt ist und welche Entwicklung noch fehlt.
 
