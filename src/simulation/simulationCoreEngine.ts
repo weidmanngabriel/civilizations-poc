@@ -159,6 +159,27 @@ const routeToPosition = (
     findRequiredNavigationPath(w, p, position, CONFIG.roadSpeedMultiplier),
   ) ?? [];
 };
+const routeWithinWorkArea = (
+  w: World,
+  p: Person,
+  position: Hex,
+  reason: PathReason = routeReason(p),
+) => {
+  const area = p.workArea;
+  const staysLocal = Boolean(
+    area &&
+    hexDistance(area.center, p.position) <= area.radius &&
+    hexDistance(area.center, position) <= area.radius,
+  );
+  if (!staysLocal) {
+    routeToPosition(w, p, position, reason);
+    return;
+  }
+  clearNavigationBlocked(p);
+  p.path = performanceProfiler.withPathReason(reason, () =>
+    findPath(w.tiles, p.position, position, CONFIG.roadSpeedMultiplier),
+  ) ?? [];
+};
 const route = (
   w: World,
   p: Person,
@@ -313,13 +334,13 @@ function rerouteCurrentTask(w: World, p: Person): void {
     if (!p.trip.picked && p.trip.sourceKind === "looseGood") {
       const source = looseGoodStack(w, p.trip.source);
       const position = source?.position ?? p.trip.sourcePosition;
-      if (position) routeToPosition(w, p, position, "reroute");
+      if (position) routeWithinWorkArea(w, p, position, "reroute");
       else p.path = [];
       return;
     }
     if (!p.trip.picked && p.trip.sourceKind === "resource") {
       const source = w.naturalResources.find((resource) => resource.id === p.trip!.source);
-      if (source) routeToPosition(w, p, source.position, "reroute");
+      if (source) routeWithinWorkArea(w, p, source.position, "reroute");
       else p.path = [];
       return;
     }
@@ -332,7 +353,7 @@ function rerouteCurrentTask(w: World, p: Person): void {
   }
   if (p.outdoorCarry && p.workArea) {
     if (!same(p.position, p.workArea.center))
-      routeToPosition(w, p, p.workArea.center, "reroute");
+      routeWithinWorkArea(w, p, p.workArea.center, "reroute");
     else {
       p.path = [];
       p.movement = 0;
@@ -341,7 +362,7 @@ function rerouteCurrentTask(w: World, p: Person): void {
   }
   if (p.fishingSpot) {
     if (!same(p.position, p.fishingSpot))
-      routeToPosition(w, p, p.fishingSpot, "reroute");
+      routeWithinWorkArea(w, p, p.fishingSpot, "reroute");
     else {
       p.path = [];
       p.movement = 0;
@@ -350,7 +371,7 @@ function rerouteCurrentTask(w: World, p: Person): void {
   }
   if (p.resourceTarget) {
     const target = w.naturalResources.find((resource) => resource.id === p.resourceTarget);
-    if (target && !target.depleted) routeToPosition(w, p, target.position, "reroute");
+    if (target && !target.depleted) routeWithinWorkArea(w, p, target.position, "reroute");
     else p.path = [];
     return;
   }
@@ -1269,7 +1290,7 @@ export function tick(w: World): void {
           p.trip.picked = true;
           p.trip.transferUntilTick = undefined;
           p.movement = 0;
-          route(w, p, building(w, p.trip.target));
+          routeWithinWorkArea(w, p, building(w, p.trip.target).position);
         } else {
           const target = building(w, p.trip.target);
           if (!same(p.position, target.position)) continue;
