@@ -13,3 +13,11 @@ Hat jemand gerade nichts zu tun, wartet er in der Nähe des passenden Ortes: fre
 Bewohner sammeln durch ihre Arbeit Erfahrung und werden in ihrem Beruf besser. Freie Bewohner kannst du neuen Aufgaben zuweisen.
 
 Die Personenübersicht zeigt zusätzlich aktuelle Hinweise in drei Stufen. **Rot** steht für kritische Bedürfnisse, **Gelb** für wichtige Bedürfnisse und **Blau** für reine Informationen wie eine freie Person ohne Aufgabe. Hunger und Müdigkeit erscheinen erst ab 30 % gelb und ab 20 % rot; vorher kann sich ein Bewohner bereits selbständig um das Bedürfnis kümmern, ohne in diesen Filtern aufzutauchen. Jede Person zählt nur einmal in ihrer jeweils wichtigsten Stufe. Tippe oder klicke auf eine Stufe, um die Liste darauf zu filtern. Die kleinen Zähler am Personen-Button zeigen dir solche Hinweise auch dann, wenn die Übersicht geschlossen ist.
+
+## Fischer
+
+Fischer arbeiten ohne eigenes Gebäude an der Wasserkante. Jeder Fischer besitzt eine Arbeitsflagge, die sein Angelgebiet festlegt. Nach einem Fangwurf wartet er kurz und sucht dann einen anderen geeigneten Platz am Wasser innerhalb dieses Bereichs.
+
+Mit zunehmender Berufserfahrung wird ein Fischer zuverlässiger. Gefangene Fische liegen als Ware in der Welt und müssen wie andere lose Waren abgeholt und eingelagert werden.
+
+Wenn ein Fischer an der falschen Stelle arbeitet oder kein Wasser erreicht, versetze seine Arbeitsflagge näher an eine gut zugängliche Uferzone.
