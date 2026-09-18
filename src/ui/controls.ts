@@ -436,6 +436,8 @@ export function mountControls(w: World, renderMap: () => void): void {
         : undefined;
       const state = p.trip
         ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOOD_ICONS[p.trip.good]} ${GOODS[p.trip.good]} · ${tripPlace}`
+        : p.outdoorCarry
+          ? `Trägt ${GOOD_ICONS[p.outdoorCarry]} ${GOODS[p.outdoorCarry]} zur Arbeitsflagge`
         : farmAction
           ? `${farmAction}${p.path.length ? " · auf dem Weg" : ""}`
           : p.assignment?.role === "merchant" && p.merchantRoute?.target
