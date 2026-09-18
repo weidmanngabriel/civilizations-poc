@@ -67,7 +67,7 @@ test("delivery triggers the required follow-up decision immediately", () => {
     picked: true,
   };
 
-  tick(world);
+  for (let i = 0; i <= CONFIG.transferDurationTicks; i++) tick(world);
 
   assert.equal(sawmill.input, 1);
   assert.deepEqual(worker.trip, {
