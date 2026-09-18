@@ -15,7 +15,7 @@ Beim Aufheben loser Bodenware bleibt ein Bewohner eine simulierte Sekunde am War
 
 ## Wegweiser
 
-Über das **Baumenü** kannst du Wegweiser platzieren. Beim Start steht bereits ein erster Wegweiser ungefähr zwei Weltkacheln vor dem Hauptquartier.
+Über das **Baumenü** kannst du Wegweiser platzieren. Sobald du den Modus öffnest, siehst du sofort alle aktuell gültigen Positionen hervorgehoben. Beim Start steht bereits ein erster Wegweiser ungefähr eine Weltkachel vor dem Hauptquartier.
 
 Ein Wegweiser dient Bewohnern zur Orientierung in einem Bereich von **2,5 Weltkacheln**. Neue Wegweiser brauchen mindestens diesen Abstand voneinander. Sind zwei Wegweiser erreichbar und höchstens **5 Weltkacheln** voneinander entfernt, verbinden sie sich automatisch.
 
