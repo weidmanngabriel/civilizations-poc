@@ -17,6 +17,7 @@ const isBusy = (person: Person): boolean =>
     person.trip ||
     person.farmTask ||
     person.resourceTarget ||
+    person.fisher ||
     person.progress > 0
   );
 
@@ -26,7 +27,7 @@ const workplace = (world: World, person: Person): Building | undefined =>
     : undefined;
 
 const idleAnchor = (world: World, person: Person): Hex | undefined => {
-  if ((person.woodcutter || person.extractor) && person.workArea) return person.workArea.center;
+  if ((person.woodcutter || person.fisher || person.extractor) && person.workArea) return person.workArea.center;
   const assignedBuilding = workplace(world, person);
   if (assignedBuilding) return assignedBuilding.position;
   return world.buildings.find((building) => building.id === "hq" && !building.retired)?.position;
