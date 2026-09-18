@@ -8,6 +8,7 @@ const TILE_SELECTED_EVENT = "poc-tile-selected";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
+const WAYPOST_PLACEMENT_REQUESTED_EVENT = "poc-waypost-placement-requested";
 
 const BUILDING_NAMES: Record<PlaceableBuildingKind, string> = {
   warehouse: "Lager",
@@ -55,7 +56,7 @@ export function mountBuildMenu(world: World): void {
     </nav>
     <section id="build-menu-panel" class="build-menu-panel" hidden>
       <div class="build-menu-header">
-        <div><small>BAUMENÜ</small><strong>Gebäude bauen</strong></div>
+        <div><small>BAUMENÜ</small><strong>Bauen & platzieren</strong></div>
         <button id="build-menu-close" type="button" aria-label="Baumenü schließen">×</button>
       </div>
       <div class="build-menu-list">
@@ -71,6 +72,13 @@ export function mountBuildMenu(world: World): void {
               </button>`,
           )
           .join("")}
+        <button class="build-menu-item" type="button" data-place-waypost>
+          <span class="build-menu-building-icon" aria-hidden="true">🪧</span>
+          <span class="build-menu-building-copy">
+            <strong>Wegweiser</strong>
+            <span class="build-menu-cost">Verkehrsnetz erweitern</span>
+          </span>
+        </button>
       </div>
     </section>`;
 
@@ -98,7 +106,15 @@ export function mountBuildMenu(world: World): void {
   close.addEventListener("click", () => setOpen(false));
 
   menu.addEventListener("click", (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-build-kind]");
+    const target = event.target as HTMLElement;
+    const waypostButton = target.closest<HTMLButtonElement>("button[data-place-waypost]");
+    if (waypostButton) {
+      window.dispatchEvent(new CustomEvent(WAYPOST_PLACEMENT_REQUESTED_EVENT));
+      setOpen(false);
+      return;
+    }
+
+    const button = target.closest<HTMLButtonElement>("button[data-build-kind]");
     if (!button || button.hidden) return;
     const kind = button.dataset.buildKind as PlaceableBuildingKind;
     if (!isBuildingUnlocked(world, kind)) return;
