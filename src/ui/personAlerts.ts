@@ -8,7 +8,7 @@ export type PersonAlertSeverity = "critical" | "warning" | "info";
 
 export interface PersonAlert {
   severity: PersonAlertSeverity;
-  code: "critical-hunger" | "critical-sleep" | "hunger" | "sleep" | "no-extractable-resource" | "idle";
+  code: "critical-hunger" | "critical-sleep" | "hunger" | "sleep" | "no-route" | "no-extractable-resource" | "idle";
   label: string;
 }
 
@@ -53,6 +53,9 @@ export const personAlert = (world: World, person: Person): PersonAlert | undefin
   }
   if (sleep === "tired") {
     return { severity: "warning", code: "sleep", label: "Müde" };
+  }
+  if (person.navigationBlocked) {
+    return { severity: "warning", code: "no-route", label: "Kein Weg über Wegweiser" };
   }
   if (hasNoExtractableResource(world, person)) {
     return { severity: "warning", code: "no-extractable-resource", label: "Nichts mehr abzubauen" };
