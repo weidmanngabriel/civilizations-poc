@@ -29,6 +29,7 @@ import {
 import {
   clearWorkArea,
   ensureWorkArea,
+  fishingCatchChance,
   initializeFisher,
   setWorkAreaCenter,
   supportsWorkArea,
@@ -328,6 +329,7 @@ export {
   clearWorkArea,
   ensureWorkArea,
   fishers,
+  fishingCatchChance,
   setWorkAreaCenter,
   supportsWorkArea,
   WORK_AREA_RADIUS,
