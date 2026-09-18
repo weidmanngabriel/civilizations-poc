@@ -3,7 +3,7 @@ import { findPath, hexDistance, key, neighbors, same, tileIndex, walkable } from
 import { CONFIG } from "./scenario";
 import { buildingFootprint } from "./buildingPlacement";
 
-const IDLE_MIN_DISTANCE = 1;
+const IDLE_MIN_DISTANCE = 2;
 const IDLE_MAX_DISTANCE = 4;
 
 const isBusy = (person: Person): boolean =>
@@ -89,7 +89,7 @@ const chooseIdleTarget = (
     }))
     .filter((entry): entry is { candidate: Hex; path: Hex[]; distance: number; score: number } =>
       Boolean(entry.path))
-    .sort((a, b) => b.distance - a.distance || a.score - b.score);
+    .sort((a, b) => a.score - b.score || b.distance - a.distance);
   return candidates[0]?.candidate;
 };
 
