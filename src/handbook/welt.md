@@ -1,13 +1,11 @@
 # Welt und Wege
 
-Die Landschaft beeinflusst deine Siedlung. Wasser und Berge können Wege blockieren. Natürliche Ressourcen liegen als eigene Objekte auf dem Untergrund: Ein Wald besteht aus vielen einzelnen Bäumen und nicht aus einem besonderen Waldboden.
+Wasser, Berge und natürliche Ressourcen beeinflussen, wo Bewohner laufen und wo Gebäude stehen können.
 
-Wälder bestehen jetzt aus dichteren Gruppen einzelner Bäume mit bewussten Lücken dazwischen. Ein Baum blockiert nur seine eigene kleine Position. Bewohner können deshalb zwischen den Stämmen hindurchlaufen, aber nicht direkt durch einen Baum. Jeder Baum liefert aktuell drei Holz. Wenn er gefällt ist, verschwindet der Baum und der Untergrund darunter bleibt erhalten.
+Bäume und Felsen können Wege blockieren. Andere Vorkommen sind begehbar, bleiben aber eigenständige Objekte auf dem Untergrund.
 
-Lehm und Stein erscheinen als größere Vorkommen aus mehreren sichtbaren Teilstücken. Lehm bleibt begehbar, während Stein die belegte Fläche für Wege sperrt.
+Abgebaute Waren bleiben sichtbar in der Welt liegen, bis sie abgeholt werden.
 
-Beerenbüsche blockieren keine Wege. Sie belegen nur einen kleinen Standort, ihre Darstellung kann aber größer sein, damit sie auf der Karte gut zu erkennen sind.
+Wo Bewohner häufig über freie Wiesen laufen, können mit der Zeit von selbst Wege entstehen. Auf Wegen bewegen sie sich schneller.
 
-Wege musst du nicht vollständig im Voraus planen. Wo Bewohner häufig über freie Wiesen laufen, können mit der Zeit von selbst Wege entstehen. Auf Wegen bewegen sie sich schneller. Aktive Rohstoffvorkommen werden dabei nicht von Wegen überdeckt, auch wenn ihre Fläche begehbar ist.
-
-So entwickelt die Siedlung nach und nach ihre eigenen Hauptwege. Gute Standorte für Gebäude nutzen diese Wege und halten wichtige Ziele nah beieinander.
+So bildet die Siedlung nach und nach eigene Hauptwege. Gute Standorte nutzen diese Wege und halten wichtige Ziele nah beieinander.
