@@ -1,11 +1,14 @@
 import type { Building, Good, Hex, NaturalResource, NaturalResourceKind, Person, World } from "./model";
-import { findPath, pathTravelCost, same } from "./hex";
+import { findPath, key, neighbors, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
+import { awardProfessionExperience, professionExperience } from "./experience";
 import {
   availableLooseGoodAmount,
+  findLooseGoodDropPosition,
   looseGoodStack,
   looseGoodStacks,
+  placeLooseGood,
   releaseLooseGoodReservation,
   reserveLooseGood,
 } from "./looseGoods";
@@ -13,7 +16,8 @@ import {
 export const WORK_AREA_RADIUS_WORLD_TILES = 2.5;
 export const WORK_AREA_RADIUS = WORK_AREA_RADIUS_WORLD_TILES * GRID_REFINEMENT;
 
-const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "wheat", "flour", "water", "bread", "clay", "rubble", "brick", "stoneBlock"];
+const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "wheat", "flour", "water", "bread", "fish", "clay", "rubble", "brick", "stoneBlock"];
+const FISHING_WAIT_TICKS = 5 * CONFIG.simulationHz;
 const isComplete = (building: Building): boolean => !building.construction || building.construction.complete;
 
 const storageCarrierWorkplace = (world: World, person: Person): Building | undefined => {
@@ -23,11 +27,12 @@ const storageCarrierWorkplace = (world: World, person: Person): Building | undef
     (building.kind === "warehouse" || building.kind === "hq"));
 };
 
-export const supportsWorkArea = (person: Person): boolean => Boolean(person.woodcutter || person.extractor || person.workArea);
+export const supportsWorkArea = (person: Person): boolean => Boolean(person.woodcutter || person.fisher || person.extractor || person.workArea);
 export const workAreaContains = (person: Person, position: Hex): boolean =>
   Boolean(person.workArea && hexDistance(person.workArea.center, position) <= person.workArea.radius);
 
 function defaultWorkAreaCenter(world: World, person: Person): Hex {
+  if (person.fishingSpot) return person.fishingSpot;
   if (person.resourceTarget) {
     const resource = world.naturalResources.find((candidate) => candidate.id === person.resourceTarget);
     if (resource) return resource.position;
@@ -42,6 +47,134 @@ export function ensureWorkArea(world: World, person: Person, preferredCenter?: H
 }
 
 export function clearWorkArea(person: Person): void { person.workArea = undefined; }
+
+
+export function fishingCatchChance(person: Person): number {
+  return 0.3 + 0.5 * professionExperience(person, "fisher") / 100;
+}
+
+const nextRandomFraction = (world: World): number => {
+  world.rngState = (Math.imul(world.rngState, 1664525) + 1013904223) >>> 0;
+  return world.rngState / 0x100000000;
+};
+
+const isFishingSpot = (world: World, position: Hex): boolean => {
+  const tiles = tileIndex(world.tiles);
+  const tile = tiles.get(key(position));
+  if (!tile || tile.resourceBlocking || tile.buildingBlocking) return false;
+  if (tile.terrain === "river" || tile.terrain === "mountain" || tile.terrain === "building") return false;
+  return neighbors(position).some((neighbor) => tiles.get(key(neighbor))?.terrain === "river");
+};
+
+type FishingCandidate = { position: Hex; path: Hex[]; cost: number };
+
+function fishingCandidates(
+  world: World,
+  person: Person,
+  center?: Hex,
+  radius?: number,
+): FishingCandidate[] {
+  const candidates: FishingCandidate[] = [];
+  for (const tile of world.tiles) {
+    if (!isFishingSpot(world, tile)) continue;
+    if (center && radius !== undefined && hexDistance(center, tile) > radius) continue;
+    const path = findPath(world.tiles, person.position, tile, CONFIG.roadSpeedMultiplier);
+    if (!path) continue;
+    candidates.push({
+      position: { q: tile.q, r: tile.r },
+      path,
+      cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier),
+    });
+  }
+  candidates.sort((a, b) =>
+    a.cost - b.cost ||
+    a.position.q - b.position.q ||
+    a.position.r - b.position.r,
+  );
+  return candidates;
+}
+
+function useFishingCandidate(person: Person, candidate: FishingCandidate): void {
+  person.idleTarget = undefined;
+  person.fishingSpot = { ...candidate.position };
+  person.fishingWaitUntilTick = undefined;
+  person.path = candidate.path;
+  person.movement = 0;
+  person.active = same(person.position, candidate.position);
+}
+
+export function initializeFisher(world: World, person: Person): boolean {
+  const candidate = fishingCandidates(world, person)[0];
+  ensureWorkArea(world, person, candidate?.position ?? person.position);
+  if (!candidate) {
+    person.fishingSpot = undefined;
+    person.fishingWaitUntilTick = undefined;
+    person.path = [];
+    person.active = false;
+    person.workArea!.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
+    return false;
+  }
+  useFishingCandidate(person, candidate);
+  return true;
+}
+
+function planLocalFishingSpot(world: World, person: Person): boolean {
+  const area = person.workArea;
+  if (!area) return false;
+  const candidates = fishingCandidates(world, person, area.center, area.radius);
+  const different = person.fishingSpot
+    ? candidates.filter((candidate) => !same(candidate.position, person.fishingSpot!))
+    : candidates;
+  const pool = different.length ? different : candidates;
+  if (!pool.length) return false;
+  const bestCost = pool[0]!.cost;
+  const best = pool.filter((candidate) => Math.abs(candidate.cost - bestCost) < 1e-9);
+  const index = Math.floor(nextRandomFraction(world) * best.length);
+  useFishingCandidate(person, best[index] ?? best[0]!);
+  area.retryAfterTick = undefined;
+  return true;
+}
+
+function castFishingLine(world: World, person: Person): void {
+  if (nextRandomFraction(world) < fishingCatchChance(person)) {
+    const drop = findLooseGoodDropPosition(world, person.position, "fish", GRID_REFINEMENT);
+    if (drop) placeLooseGood(world, drop, "fish", 1);
+  }
+  awardProfessionExperience(person, "fisher");
+  person.fishingWaitUntilTick = world.round + FISHING_WAIT_TICKS;
+  person.active = true;
+  if (person.workArea) person.workArea.retryAfterTick = undefined;
+}
+
+function enforceFisher(world: World, person: Person): void {
+  const area = person.workArea!;
+  if (person.hungerState || person.sleepState) return;
+  if (person.path.length) {
+    person.active = false;
+    return;
+  }
+
+  if (person.fishingWaitUntilTick !== undefined) {
+    if (world.round < person.fishingWaitUntilTick) {
+      person.active = true;
+      return;
+    }
+    person.fishingWaitUntilTick = undefined;
+    person.active = false;
+    if (!planLocalFishingSpot(world, person))
+      area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
+    return;
+  }
+
+  if (person.fishingSpot && same(person.position, person.fishingSpot)) {
+    castFishingLine(world, person);
+    return;
+  }
+
+  if (area.retryAfterTick !== undefined && world.round < area.retryAfterTick) return;
+  if (!planLocalFishingSpot(world, person))
+    area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
+}
 
 function resourceKindFor(person: Person): NaturalResourceKind | undefined {
   if (person.woodcutter) return "forest";
@@ -194,17 +327,19 @@ function enforceStorageCarrier(world: World, person: Person): void {
 export function syncWorkAreas(world: World): void {
   for (const person of world.people) {
     const resourceWorker = Boolean(person.woodcutter || person.extractor);
+    const fisher = Boolean(person.fisher);
     const storageCarrier = Boolean(storageCarrierWorkplace(world, person));
-    if (!resourceWorker && !storageCarrier) { clearWorkArea(person); continue; }
+    if (!resourceWorker && !fisher && !storageCarrier) { clearWorkArea(person); continue; }
     ensureWorkArea(world, person);
     if (resourceWorker) enforceResourceWorker(world, person);
+    else if (fisher) enforceFisher(world, person);
     else enforceStorageCarrier(world, person);
   }
 }
 
 export function setWorkAreaCenter(world: World, personId: number, center: Hex): boolean {
   const person = world.people.find((candidate) => candidate.id === personId);
-  const eligible = Boolean(person && (person.woodcutter || person.extractor || storageCarrierWorkplace(world, person)));
+  const eligible = Boolean(person && (person.woodcutter || person.fisher || person.extractor || storageCarrierWorkplace(world, person)));
   if (!person || !eligible) return false;
   if (!world.tiles.some((tile) => tile.q === center.q && tile.r === center.r)) return false;
   ensureWorkArea(world, person, center);
@@ -218,6 +353,13 @@ export function setWorkAreaCenter(world: World, personId: number, center: Hex): 
       person.active = false;
       person.progress = 0;
     }
+  }
+  if (person.fishingSpot && !workAreaContains(person, person.fishingSpot)) {
+    person.fishingSpot = undefined;
+    person.fishingWaitUntilTick = undefined;
+    person.path = [];
+    person.movement = 0;
+    person.active = false;
   }
   if (person.trip && !person.trip.picked) {
     const sourcePosition = tripSourcePosition(world, person);
