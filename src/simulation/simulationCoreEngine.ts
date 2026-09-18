@@ -24,6 +24,7 @@ import {
   tileIndex,
 } from "./hex";
 import { CONFIG } from "./scenario";
+import { findPathViaWayposts } from "./wayposts";
 import {
   activeFarmFieldCount,
   advanceFarmSystem,
