@@ -6,10 +6,14 @@ import { buildingFootprint } from "./buildingPlacement";
 const IDLE_MIN_DISTANCE = 2;
 const IDLE_MAX_DISTANCE = 4;
 
+const needDue = (person: Person): boolean =>
+  Boolean(person.hungerState || person.sleepState) ||
+  (person.hunger ?? 100) <= 40 ||
+  (person.sleep ?? 100) <= 40;
+
 const isBusy = (person: Person): boolean =>
   Boolean(
-    person.hungerState ||
-    person.sleepState ||
+    needDue(person) ||
     person.trip ||
     person.farmTask ||
     person.resourceTarget ||
@@ -41,6 +45,22 @@ const productionReady = (building: Building): boolean => {
   return Object.entries(requirements).every(([good, amount]) =>
     recipeInputAmount(building, good as Good) + 1e-9 >= (amount ?? 0)
   );
+};
+
+const constructionReady = (building: Building): boolean =>
+  Boolean(
+    building.construction &&
+    !building.construction.complete &&
+    Object.entries(building.construction.required).every(
+      ([good, amount]) => (building.construction!.delivered[good as Good] ?? 0) >= (amount ?? 0),
+    ),
+  );
+
+const returnToBuilding = (world: World, person: Person, building: Building): void => {
+  person.idleTarget = undefined;
+  person.path = findPath(world.tiles, person.position, building.position, CONFIG.roadSpeedMultiplier) ?? [];
+  person.movement = 0;
+  person.active = same(person.position, building.position);
 };
 
 const hashScore = (personId: number, position: Hex, round: number): number => {
@@ -96,16 +116,26 @@ const chooseIdleTarget = (
 export function wakeIdlePeople(world: World): void {
   for (const person of world.people) {
     if (!person.idleTarget) continue;
+    if (needDue(person)) {
+      person.idleTarget = undefined;
+      person.path = [];
+      person.movement = 0;
+      person.active = false;
+      continue;
+    }
     if (isBusy(person)) {
       person.idleTarget = undefined;
       continue;
     }
     const assignedBuilding = workplace(world, person);
-    if (person.assignment?.role === "worker" && assignedBuilding && productionReady(assignedBuilding)) {
-      person.idleTarget = undefined;
-      person.path = [];
-      person.movement = 0;
-      person.active = false;
+    if (
+      assignedBuilding &&
+      (
+        (person.assignment?.role === "worker" && productionReady(assignedBuilding)) ||
+        (person.assignment?.role === "builder" && constructionReady(assignedBuilding))
+      )
+    ) {
+      returnToBuilding(world, person, assignedBuilding);
       continue;
     }
     if (person.path.length && !same(person.path.at(-1)!, person.idleTarget))
