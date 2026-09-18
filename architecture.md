@@ -158,7 +158,7 @@ Player-facing worlds start with only the explicitly declared `STARTING_TECHNOLOG
 
 Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map/person presentation state; natural resources, loose goods, work-area flags and registered building sprites are presentation layers over authoritative simulation state.
 
-Camera zoom remains 0.7×–10× for mouse-wheel and pinch. Building assets intended to remain crisp at the upper zoom range should therefore retain substantially more source pixels than their normal world-space display size. Desktop and touch remain first-class input adapters, with the iPhone 13 Mini as the mobile baseline.
+Camera zoom remains 0.7×–10× for mouse-wheel and pinch. Building assets intended to remain crisp at the upper zoom range should therefore retain substantially more source pixels than their normal world-space display size. Desktop and touch remain first-class input adapters, with the iPhone 13 Mini as the mobile baseline. Build placement chooses its presentation mode from the most recently observed Pointer Event: mouse input uses direct left-click placement and hides the confirm button, while touch/pen keeps tap-to-move plus explicit confirmation. The hover/fine-pointer media query is used only before any concrete pointer type has been observed, which keeps hybrid devices from being locked into the wrong interaction model.
 
 ## Building editor
 
