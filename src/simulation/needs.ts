@@ -218,7 +218,13 @@ const startEating = (world: World, person: Person): boolean => {
   return assignFoodCandidate(world, person, person.hungerState, candidate);
 };
 
-const atTaskBoundary = (person: Person): boolean => person.progress === 0 && !person.farmTask && !person.trip && person.path.length === 0;
+const atTaskBoundary = (person: Person): boolean =>
+  person.progress === 0 &&
+  !person.farmTask &&
+  !person.trip &&
+  !person.outdoorCarry &&
+  person.fishingWaitUntilTick === undefined &&
+  person.path.length === 0;
 
 const selectedFoodTarget = (world: World, person: Person): SelectedFoodTarget | undefined => {
   const state = person.hungerState!;
