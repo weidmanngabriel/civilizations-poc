@@ -160,6 +160,7 @@ export function findPathViaWayposts(
   world: World,
   start: Hex,
   end: Hex,
+  roadSpeedMultiplier = 1.3,
 ): Hex[] | null {
   const graphRoute = waypointGraphRoute(world, start, end);
   if (!graphRoute) return null;
@@ -179,4 +180,18 @@ export function findPathViaWayposts(
     cursor = segment.at(-1) ?? cursor;
   }
   return result;
+}
+
+
+/** Prefer the player-authored waypost network when both ends can orient to it. */
+export function findNavigationPath(
+  world: World,
+  start: Hex,
+  end: Hex,
+  roadSpeedMultiplier = 1.3,
+): Hex[] | null {
+  return (
+    findPathViaWayposts(world, start, end, roadSpeedMultiplier) ??
+    findPath(world.tiles, start, end, roadSpeedMultiplier)
+  );
 }
