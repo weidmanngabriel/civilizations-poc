@@ -60,10 +60,14 @@ test("an idle production worker waits outside the assigned workplace", () => {
 
 
 test("a fresh player game advances immediately and starts visible movement", () => {
+  const createStarted = performance.now();
   const world = createDefaultGameWorld();
+  const createdAt = performance.now();
   const beforeRound = world.round;
 
   tick(world);
+  const tickedAt = performance.now();
+  console.log(`fresh-game timing create=${Math.round(createdAt - createStarted)}ms tick=${Math.round(tickedAt - createdAt)}ms`);
 
   assert.equal(world.round, beforeRound + 1);
   assert.ok(world.people.some((person) => person.path.length > 0));
