@@ -43,6 +43,8 @@ test("assigning a woodcutter keeps pathfinding out of the assignment call", () =
 
 test("assigning an extractor keeps pathfinding out of the assignment call", () => {
   const world = createDefaultGameWorld();
+  world.wayposts = undefined;
+  world.waypostRevision = undefined;
 
   assert.equal(changeExtractors(world, "clay", 1), true);
   const worker = world.people.find((person) => person.extractor === "clay")!;

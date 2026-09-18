@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createDefaultGameWorld } from "../src/simulation/scenario";
+import { changeWoodcutters } from "../src/simulation/simulation";
 import {
   WAYPOST_MAX_CONNECTION_DISTANCE_WORLD_TILES,
   WAYPOST_MIN_DISTANCE_WORLD_TILES,
@@ -17,7 +18,7 @@ import { GRID_REFINEMENT } from "../src/simulation/spatial";
 
 test("player world starts with one HQ waypost and independent balance constants", () => {
   const world = createDefaultGameWorld();
-  assert.equal(WAYPOST_ORIENTATION_RADIUS_WORLD_TILES, 2.5);
+  assert.equal(WAYPOST_ORIENTATION_RADIUS_WORLD_TILES, 3.5);
   assert.equal(WAYPOST_MIN_DISTANCE_WORLD_TILES, 2.5);
   assert.equal(WAYPOST_MAX_CONNECTION_DISTANCE_WORLD_TILES, 5);
   assert.equal(wayposts(world).length, 1);
@@ -46,7 +47,7 @@ test("reachable wayposts connect within five world tiles and support network rou
     .filter((tile) => tile.terrain === "grass")
     .filter((tile) => {
       const distance = hexDistance(first.position, tile);
-      return distance >= 3 * GRID_REFINEMENT && distance <= 4 * GRID_REFINEMENT;
+      return distance >= 4 * GRID_REFINEMENT && distance <= 5 * GRID_REFINEMENT;
     })
     .find((tile) => canPlaceWaypost(world, tile));
 
@@ -69,7 +70,7 @@ test("normal navigation visibly routes through connected wayposts when both ends
     .filter((tile) => tile.terrain === "grass")
     .filter((tile) => {
       const distance = hexDistance(first.position, tile);
-      return distance >= 3 * GRID_REFINEMENT && distance <= 4 * GRID_REFINEMENT;
+      return distance >= 4 * GRID_REFINEMENT && distance <= 5 * GRID_REFINEMENT;
     })
     .find((tile) => canPlaceWaypost(world, tile));
   assert.ok(secondTile);
@@ -126,7 +127,7 @@ test("failed required routes are cached until the waypost network revision chang
     .filter((tile) => tile.terrain === "grass")
     .filter((tile) => {
       const distance = hexDistance(first.position, tile);
-      return distance >= 3 * GRID_REFINEMENT && distance <= 4 * GRID_REFINEMENT;
+      return distance >= 4 * GRID_REFINEMENT && distance <= 5 * GRID_REFINEMENT;
     })
     .find((tile) => canPlaceWaypost(world, tile));
   assert.ok(secondTile);
@@ -164,4 +165,49 @@ test("failed required routes are cached until the waypost network revision chang
   assert.ok(retried, "network revision change must allow one fresh route search");
   assert.equal(person.navigationBlocked, undefined);
   assert.equal(person.navigationFailedTargets, undefined);
+});
+
+
+test("new extractor assignments cannot bypass the waypost network", () => {
+  const world = createDefaultGameWorld();
+  const first = wayposts(world)[0]!;
+  const farForest = world.naturalResources.find(
+    (resource) =>
+      resource.kind === "forest" &&
+      !resource.depleted &&
+      hexDistance(first.position, resource.position) >
+        WAYPOST_ORIENTATION_RADIUS_WORLD_TILES * GRID_REFINEMENT,
+  );
+  assert.ok(farForest, "fixture needs a forest outside the initial waypost orientation area");
+
+  for (const resource of world.naturalResources) {
+    if (resource.kind !== "forest" || resource.id === farForest.id) continue;
+    resource.remaining = 0;
+    resource.depleted = true;
+  }
+
+  const person = world.people.find(
+    (candidate) =>
+      !candidate.assignment &&
+      !candidate.woodcutter &&
+      !candidate.fisher &&
+      !candidate.extractor &&
+      !candidate.builder,
+  );
+  assert.ok(person);
+  person.position = { ...first.position };
+  person.path = [];
+
+  assert.equal(changeWoodcutters(world, 1), true);
+  const worker = world.people.find((candidate) => candidate.woodcutter);
+  assert.ok(worker);
+  assert.equal(worker.resourceTarget, undefined);
+  assert.equal(
+    worker.path.some(
+      (position) =>
+        position.q === farForest.position.q && position.r === farForest.position.r,
+    ),
+    false,
+    "worker must not receive a direct path to the unreachable forest",
+  );
 });

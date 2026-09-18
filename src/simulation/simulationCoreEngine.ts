@@ -15,7 +15,6 @@ import type {
   World,
 } from "./model";
 import {
-  findPath,
   findPathBySteps,
   key,
   movementCost,
@@ -498,7 +497,7 @@ function naturalResourceCandidates(
           resourceWorkers(w, resource.id).length === 0,
       )
       .map((resource) => {
-        const path = findPath(w.tiles, origin, resource.position, CONFIG.roadSpeedMultiplier);
+        const path = findNavigationPath(w, origin, resource.position, CONFIG.roadSpeedMultiplier);
         return path ? {
           resource,
           path,
@@ -594,8 +593,8 @@ function builderCandidates(w: World, origin: Hex): BuilderCandidate[] {
           assigned(w, b.id, "builder").length < 2,
       )
       .map((site) => {
-        const path = findPath(
-          w.tiles,
+        const path = findNavigationPath(
+          w,
           origin,
           site.position,
           CONFIG.roadSpeedMultiplier,
@@ -728,8 +727,8 @@ function requestInput(w: World, p: Person, b: Building): boolean {
         if (isStorageCollection && !collectionSourceAllowed(w, p, b, source.position, pathReason))
           continue;
         const path = performanceProfiler.withPathReason(pathReason, () =>
-          findPath(
-            w.tiles,
+          findNavigationPath(
+            w,
             p.position,
             source.position,
             CONFIG.roadSpeedMultiplier,
@@ -745,7 +744,7 @@ function requestInput(w: World, p: Person, b: Building): boolean {
         if (isStorageCollection && !collectionSourceAllowed(w, p, b, source.position, pathReason))
           continue;
         const path = performanceProfiler.withPathReason(pathReason, () =>
-          findPath(w.tiles, p.position, source.position, CONFIG.roadSpeedMultiplier),
+          findNavigationPath(w, p.position, source.position, CONFIG.roadSpeedMultiplier),
         );
         if (path) sources.push({ sourceKind: "looseGood", source, good, path });
       }
@@ -807,7 +806,7 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): boolean
     available(w, source, routeConfig.good) + 1e-9 < CONFIG.carryCapacity ||
     !storageHasSpace(w, target, routeConfig.good) ||
     !performanceProfiler.withPathReason("merchant", () =>
-      findPath(w.tiles, source.position, target.position, CONFIG.roadSpeedMultiplier),
+      findNavigationPath(w, source.position, target.position, CONFIG.roadSpeedMultiplier),
     )
   )
     return false;
