@@ -175,6 +175,33 @@ test("each extracted unit is carried to the personal work flag before becoming a
   );
 });
 
+test("fisher reroutes keep the current fishing spot instead of returning to HQ", () => {
+  const world = createWorld(1);
+  assert.equal(changeFishers(world, 1), true);
+  const fisher = fishers(world)[0]!;
+  assert.ok(fisher.fishingSpot);
+  assert.ok(fisher.path.length > 0, "the fisher should start by walking to the fishing spot");
+
+  tick(world);
+  const fishingSpot = { ...fisher.fishingSpot! };
+  const roadTile = world.tiles.find(
+    (tile) =>
+      tile.terrain === "grass" &&
+      !same(tile, fisher.position) &&
+      !same(tile, fishingSpot) &&
+      hexDistance(tile, fishingSpot) > WORK_AREA_RADIUS * 2,
+  );
+  assert.ok(roadTile);
+  assert.equal(setRoad(world, roadTile, true), true);
+
+  assert.ok(fisher.path.length > 0);
+  assert.equal(
+    same(fisher.path.at(-1)!, fishingSpot),
+    true,
+    "generic rerouting must preserve the authoritative fishing task target",
+  );
+});
+
 test("fishers use one five-second cast cycle and carry a catch to their flag", () => {
   const world = createWorld(1);
   assert.equal(changeFishers(world, 1), true);
