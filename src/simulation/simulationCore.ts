@@ -9,7 +9,8 @@ import type {
   Role,
   World,
 } from "./model";
-import { hexDistance } from "./spatial";
+import { GRID_REFINEMENT, hexDistance } from "./spatial";
+import { findLooseGoodDropPosition, placeLooseGood } from "./looseGoods";
 import { syncIdleBehavior, wakeIdlePeople } from "./idleBehavior";
 import {
   assigned,
@@ -59,6 +60,14 @@ const freePerson = (world: World): Person | undefined =>
       !candidate.extractor &&
       !candidate.builder,
   );
+
+function dropOutdoorCarryOnRelease(world: World, person: Person): void {
+  const good = person.outdoorCarry;
+  if (!good) return;
+  const drop = findLooseGoodDropPosition(world, person.position, good, GRID_REFINEMENT);
+  if (drop) placeLooseGood(world, drop, good, 1);
+  person.outdoorCarry = undefined;
+}
 
 function queuePlan(world: World, plan: PendingPlan): void {
   const queue = pendingPlans.get(world) ?? [];
@@ -195,7 +204,10 @@ export function changeWoodcutters(world: World, delta: 1 | -1): boolean {
     const changed = changeWoodcuttersNow(world, -1);
     if (changed) {
       const removed = before.find((person) => !person.woodcutter);
-      if (removed) clearWorkArea(removed);
+      if (removed) {
+        dropOutdoorCarryOnRelease(world, removed);
+        clearWorkArea(removed);
+      }
     }
     return changed;
   }
@@ -220,7 +232,10 @@ export function changeFishers(world: World, delta: 1 | -1): boolean {
     if (!person) return false;
     person.fisher = undefined;
     person.fishingSpot = undefined;
+    person.fishingWaterTarget = undefined;
+    person.fishingStartedAtTick = undefined;
     person.fishingWaitUntilTick = undefined;
+    dropOutdoorCarryOnRelease(world, person);
     person.path = [];
     person.movement = 0;
     person.active = false;
@@ -252,7 +267,10 @@ export function changeExtractors(
     const changed = changeExtractorsNow(world, kind, -1);
     if (changed) {
       const removed = before.find((person) => person.extractor !== kind);
-      if (removed) clearWorkArea(removed);
+      if (removed) {
+        dropOutdoorCarryOnRelease(world, removed);
+        clearWorkArea(removed);
+      }
     }
     return changed;
   }
