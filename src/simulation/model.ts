@@ -156,6 +156,8 @@ export interface Person {
   resourceTarget?: NaturalResourceId;
   /** Local resource-collection area for extractors and carriers. */
   workArea?: WorkArea;
+  /** Reserved stand position while this person has nothing useful to do. */
+  idleTarget?: Hex;
   builder?: boolean;
   experience?: Partial<Record<Profession, number>>;
   experienceActionProgress?: Partial<Record<Profession, number>>;
