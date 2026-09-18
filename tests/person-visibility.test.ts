@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createWorld } from "../src/simulation/scenario";
 import { personInsideBuilding } from "../src/game/personVisibility";
+import { buildAt } from "../src/simulation/simulation";
 
 test("timed transfers hide residents only when the interaction happens at a building", () => {
   const world = createWorld(1);
@@ -52,4 +53,15 @@ test("timed transfers hide residents only when the interaction happens at a buil
     transferUntilTick: 360,
   };
   assert.equal(personInsideBuilding(world, person), true, "building dropoff should be hidden");
+
+  const well = buildAt(world, { q: 4, r: 0 }, "well")!;
+  person.position = { ...well.position };
+  person.trip = {
+    source: well.id,
+    target: hq.id,
+    good: "water",
+    picked: false,
+    transferUntilTick: 180,
+  };
+  assert.equal(personInsideBuilding(world, person), false, "well pickup should remain visible");
 });

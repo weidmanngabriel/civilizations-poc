@@ -50,7 +50,7 @@ test("generic rerouting preserves a reached idle position", () => {
   assert.deepEqual(person.position, idleTarget);
 });
 
-test("pickup and dropoff each take three simulated seconds", () => {
+test("building pickup and dropoff each take three simulated seconds", () => {
   const world = createWorld(1);
   const source = buildAt(world, { q: 0, r: 0 }, "warehouse")!;
   const target = buildAt(world, { q: 4, r: 0 }, "sawmill")!;
@@ -97,4 +97,46 @@ test("pickup and dropoff each take three simulated seconds", () => {
   tick(world);
   assert.equal(target.input, 1);
   assert.equal(worker.trip, undefined);
+});
+
+
+test("picking up loose goods from the ground takes one simulated second", () => {
+  const world = createWorld(1);
+  const target = buildAt(world, { q: 4, r: 0 }, "sawmill")!;
+
+  assert.equal(changeAssignment(world, target.id, "worker", 1), true);
+  const worker = assigned(world, target.id, "worker")[0]!;
+  worker.position = { q: 0, r: 0 };
+  worker.path = [];
+  worker.movement = 0;
+  worker.active = false;
+
+  world.looseGoods = [{
+    id: "loose-good-1",
+    position: { ...worker.position },
+    good: "wood",
+    amount: 1,
+    reserved: 1,
+  }];
+  worker.trip = {
+    source: "loose-good-1",
+    sourceKind: "looseGood",
+    sourcePosition: { ...worker.position },
+    target: target.id,
+    good: "wood",
+    picked: false,
+  };
+
+  tick(world);
+  assert.equal(world.looseGoods[0]?.amount, 1);
+  assert.equal(worker.trip?.picked, false);
+  assert.equal(worker.trip?.transferUntilTick, world.round + CONFIG.looseGoodPickupDurationTicks);
+
+  for (let i = 0; i < CONFIG.looseGoodPickupDurationTicks - 1; i++) tick(world);
+  assert.equal(world.looseGoods[0]?.amount, 1, "ground pickup must not happen before one second");
+
+  tick(world);
+  assert.equal(world.looseGoods?.length ?? 0, 0);
+  assert.equal(worker.trip?.picked, true);
+  assert.equal(worker.trip?.transferUntilTick, undefined);
 });

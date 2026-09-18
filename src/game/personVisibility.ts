@@ -8,12 +8,12 @@ export function personInsideBuilding(world: World, person: Person): boolean {
     if (!person.trip.picked && person.trip.sourceKind !== "resource" && person.trip.sourceKind !== "looseGood") {
       const source = world.buildings.find((building) =>
         building.id === person.trip!.source && !building.retired);
-      if (source && same(person.position, source.position)) return true;
+      if (source && source.kind !== "well" && same(person.position, source.position)) return true;
     }
     if (person.trip.picked) {
       const target = world.buildings.find((building) =>
         building.id === person.trip!.target && !building.retired);
-      if (target && same(person.position, target.position)) return true;
+      if (target && target.kind !== "well" && same(person.position, target.position)) return true;
     }
   }
 

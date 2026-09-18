@@ -1195,7 +1195,10 @@ export function tick(w: World): void {
             sourcePosition = building(w, p.trip.source).position;
           if (!sourcePosition || !same(p.position, sourcePosition)) continue;
           if (p.trip.transferUntilTick === undefined) {
-            p.trip.transferUntilTick = w.round + CONFIG.transferDurationTicks;
+            const pickupDuration = p.trip.sourceKind === "looseGood"
+              ? CONFIG.looseGoodPickupDurationTicks
+              : CONFIG.transferDurationTicks;
+            p.trip.transferUntilTick = w.round + pickupDuration;
             p.movement = 0;
             continue;
           }
