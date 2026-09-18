@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import type { IncrementalMainScene } from "./IncrementalMainScene";
+import { buildPlacementInputModeForPointer } from "./buildPlacementInputMode";
 
 const BUILD_MODE_EVENT = "poc-build-mode";
 const TAP_MAX_DISTANCE = 8;
@@ -23,6 +24,7 @@ export function installDesktopBuildPlacement(
   let pointerDown: PointerPosition | undefined;
   let clickEligible = false;
   let lastPointer: PointerPosition | undefined;
+  let lastPointerType: string | undefined;
 
   const screenPosition = (clientX: number, clientY: number): PointerPosition => {
     const rect = canvas.getBoundingClientRect();
@@ -32,16 +34,21 @@ export function installDesktopBuildPlacement(
     };
   };
 
-  const setDesktopInstructions = (desktop: boolean): void => {
+  const setPlacementInputMode = (pointerType?: string): "desktop" | "touch" => {
+    const mode = buildPlacementInputModeForPointer(
+      pointerType,
+      window.matchMedia("(hover: hover) and (pointer: fine)").matches,
+    );
     const overlay = document.querySelector<HTMLElement>("#build-placement-overlay");
     const copy = overlay?.querySelector<HTMLElement>("span");
     const confirm = document.querySelector<HTMLButtonElement>("#build-placement-confirm");
     if (copy) {
-      copy.innerHTML = desktop
+      copy.innerHTML = mode === "desktop"
         ? "<b>Maus bewegen, um die Position zu wählen.</b> Linksklick baut. Escape bricht ab. Grün ist gültig, rot blockiert."
         : "<b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.";
     }
-    if (confirm) confirm.hidden = desktop;
+    if (confirm) confirm.hidden = mode === "desktop";
+    return mode;
   };
 
   const updateGhost = (position: PointerPosition): void => {
@@ -50,8 +57,15 @@ export function installDesktopBuildPlacement(
     placementScene.updateBuildHover(position.x, position.y, true);
   };
 
+  window.addEventListener("pointerdown", (event) => {
+    lastPointerType = event.pointerType;
+    if (active) setPlacementInputMode(lastPointerType);
+  }, { capture: true });
+
   canvas.addEventListener("pointermove", (event) => {
     if (!isDesktopPointer(event)) return;
+    lastPointerType = event.pointerType;
+    if (active) setPlacementInputMode(lastPointerType);
     updateGhost(screenPosition(event.clientX, event.clientY));
   });
 
@@ -81,9 +95,9 @@ export function installDesktopBuildPlacement(
     active = detail.active;
     pointerDown = undefined;
     clickEligible = false;
-    const desktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    setDesktopInstructions(active && desktop);
-    if (!active || !desktop) return;
+    if (!active) return;
+    const mode = setPlacementInputMode(lastPointerType);
+    if (mode !== "desktop") return;
 
     const activePointer = scene.input?.activePointer;
     const fallback = activePointer

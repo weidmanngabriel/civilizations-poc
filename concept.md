@@ -169,7 +169,7 @@ Die drei Stufen sind direkt in der Personenübersicht filterbar und werden zusä
 
 Bewohner bleiben ungefähr so groß wie eine Mikrozelle. Namen, Beruf/Tätigkeit und getragene Waren liegen in Weltkoordinaten und skalieren mit der Karte.
 
-Die Karte lässt sich per Mausrad und Pinch von 0,7× bis 10× zoomen. Gebäude-Sprites sollen deshalb genügend Quellauflösung für starken Zoom behalten; die Runtime skaliert sie auf ihre definierte Weltgröße, ohne den Master im Editor herunterzurechnen. Desktop und Touch bleiben getrennte Eingabemodelle mit derselben autoritativen Spielregel. Kurzer Tap/Klick und Drag dürfen sich nicht gegenseitig verschlechtern.
+Die Karte lässt sich per Mausrad und Pinch von 0,7× bis 10× zoomen. Gebäude-Sprites sollen deshalb genügend Quellauflösung für starken Zoom behalten; die Runtime skaliert sie auf ihre definierte Weltgröße, ohne den Master im Editor herunterzurechnen. Desktop und Touch bleiben getrennte Eingabemodelle mit derselben autoritativen Spielregel. Kurzer Tap/Klick und Drag dürfen sich nicht gegenseitig verschlechtern. Im Baumodus folgt der Ghost am Desktop der Maus und ein Linksklick platziert direkt; ein zusätzlicher „Bauen“-Button wird dort nicht angezeigt. Abbrechen funktioniert über den sichtbaren Abbrechen-Button oder `Esc`. Auf Touch verschiebt ein Tap nur den Ghost, Drag bewegt weiterhin die Karte und ein eigener „Bauen“-Button bestätigt die Platzierung.
 
 ## Neues Spiel, Speichern und Laden
 
