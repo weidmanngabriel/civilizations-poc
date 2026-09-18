@@ -186,7 +186,7 @@ function enforceStorageCarrier(world: World, person: Person): void {
   if (person.trip || person.path.length || person.hungerState || person.sleepState || person.farmTask || person.progress > 0 ||
     (area.retryAfterTick !== undefined && world.round < area.retryAfterTick)) return;
   const workplace = storageCarrierWorkplace(world, person);
-  if (!workplace || !same(person.position, workplace.position)) return;
+  if (!workplace) return;
   person.active = true;
   if (!planLocalStorageCarrier(world, person)) area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
 }
