@@ -68,33 +68,32 @@ const isFishingSpot = (
   return neighbors(position).some((neighbor) => tiles.get(key(neighbor))?.terrain === "river");
 };
 
-type FishingCandidate = { position: Hex; path: Hex[]; cost: number };
+type FishingCandidate = { position: Hex; path: Hex[] };
 
-function fishingCandidates(
+function fishingCandidate(
   world: World,
   person: Person,
   center?: Hex,
   radius?: number,
-): FishingCandidate[] {
-  const candidates: FishingCandidate[] = [];
+  excluded?: Hex,
+): FishingCandidate | undefined {
   const tiles = tileIndex(world.tiles);
-  for (const tile of world.tiles) {
-    if (!isFishingSpot(tiles, tile)) continue;
-    if (center && radius !== undefined && hexDistance(center, tile) > radius) continue;
-    const path = findPath(world.tiles, person.position, tile, CONFIG.roadSpeedMultiplier);
-    if (!path) continue;
-    candidates.push({
-      position: { q: tile.q, r: tile.r },
-      path,
-      cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier),
-    });
+  const positions = world.tiles
+    .filter((tile) => isFishingSpot(tiles, tile))
+    .filter((tile) => !center || radius === undefined || hexDistance(center, tile) <= radius)
+    .filter((tile) => !excluded || !same(tile, excluded))
+    .sort(
+      (a, b) =>
+        hexDistance(person.position, a) - hexDistance(person.position, b) ||
+        a.q - b.q ||
+        a.r - b.r,
+    );
+
+  for (const position of positions) {
+    const path = findPath(world.tiles, person.position, position, CONFIG.roadSpeedMultiplier);
+    if (path) return { position: { q: position.q, r: position.r }, path };
   }
-  candidates.sort((a, b) =>
-    a.cost - b.cost ||
-    a.position.q - b.position.q ||
-    a.position.r - b.position.r,
-  );
-  return candidates;
+  return undefined;
 }
 
 function useFishingCandidate(person: Person, candidate: FishingCandidate): void {
@@ -107,7 +106,7 @@ function useFishingCandidate(person: Person, candidate: FishingCandidate): void 
 }
 
 export function initializeFisher(world: World, person: Person): boolean {
-  const candidate = fishingCandidates(world, person)[0];
+  const candidate = fishingCandidate(world, person);
   ensureWorkArea(world, person, candidate?.position ?? person.position);
   if (!candidate) {
     person.fishingSpot = undefined;
@@ -124,16 +123,17 @@ export function initializeFisher(world: World, person: Person): boolean {
 function planLocalFishingSpot(world: World, person: Person): boolean {
   const area = person.workArea;
   if (!area) return false;
-  const candidates = fishingCandidates(world, person, area.center, area.radius);
-  const different = person.fishingSpot
-    ? candidates.filter((candidate) => !same(candidate.position, person.fishingSpot!))
-    : candidates;
-  const pool = different.length ? different : candidates;
-  if (!pool.length) return false;
-  const bestCost = pool[0]!.cost;
-  const best = pool.filter((candidate) => Math.abs(candidate.cost - bestCost) < 1e-9);
-  const index = Math.floor(nextRandomFraction(world) * best.length);
-  useFishingCandidate(person, best[index] ?? best[0]!);
+  const alternative = fishingCandidate(
+    world,
+    person,
+    area.center,
+    area.radius,
+    person.fishingSpot,
+  );
+  const candidate =
+    alternative ?? fishingCandidate(world, person, area.center, area.radius);
+  if (!candidate) return false;
+  useFishingCandidate(person, candidate);
   area.retryAfterTick = undefined;
   return true;
 }
