@@ -10,4 +10,6 @@ Normale Träger verschieben Waren nicht automatisch zwischen verschiedenen Lager
 
 Produktionsarbeiter und Bauarbeiter dürfen benötigte Waren nach ihren eigenen Regeln beschaffen.
 
+Beim Abholen und Abladen bleiben Bewohner jeweils kurz am Ort stehen. Der Warenübergang dauert drei simulierte Sekunden.
+
 Wenn eine Produktion stockt, prüfe den tatsächlichen Warenfluss, die Wege und die Arbeitsbereiche der beteiligten Bewohner.
