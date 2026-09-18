@@ -1,21 +1,13 @@
 # Bewohner
 
-Bewohner arbeiten weitgehend selbstständig, sobald du ihnen eine Aufgabe gegeben hast. Sie suchen ihren Arbeitsplatz, holen benötigte Waren und setzen ihre Arbeit danach selbst fort.
+Bewohner arbeiten weitgehend selbstständig, sobald sie eine Aufgabe haben. Sie suchen ihren Arbeitsplatz, holen benötigte Waren und setzen ihre Arbeit fort, sobald die Voraussetzungen passen.
 
-Hat ein Bewohner ein Ziel für Arbeit, Essen oder Schlaf gewählt, behält er dieses Ziel unterwegs bei. Erst am Ziel, nach Abschluss einer Tätigkeit oder wenn das Ziel dort nicht mehr nutzbar ist, entscheidet er neu. Ist gerade kein passendes Ziel verfügbar, versucht er es später erneut.
+Hunger und Müdigkeit können Arbeit unterbrechen. Danach kehren Bewohner normalerweise zu ihrer Aufgabe zurück.
 
-Jeder Bewohner hat einen eigenen Namen. Tippe oder klicke eine Person auf der Karte an, um sie zu inspizieren. Die Personenansicht zeigt unter anderem Beruf, aktuelle Tätigkeit, Arbeitsplatz, Erfahrung, Hunger, Schlaf und eine gerade getragene Ware. Auf dem Handy erscheint diese Ansicht am unteren Bildschirmrand.
+Wenn Bewohner in einem Gebäude arbeiten, essen oder schlafen, sind sie draußen nicht sichtbar. Beim Verlassen erscheinen sie wieder am Eingang.
 
-Über **Personen** im linken Menü öffnest du die Bewohnerliste. Dort kannst du nach Namen suchen und nach Berufen oder freien Bewohnern filtern. Die Berufsfilter lassen sich seitlich durchscrollen. Ein Klick auf einen Eintrag springt zur Person auf der Karte. Mit den Pfeilen in der Personenansicht kannst du anschließend durch die aktuelle Auswahl wechseln.
+Hat jemand gerade nichts zu tun, wartet er in der Nähe des passenden Ortes: freie Bewohner beim Hauptquartier, Abbauer bei ihrer Arbeitsflagge und zugewiesene Arbeiter bei ihrem Gebäude. Sie verteilen sich dabei auf freie Standplätze.
 
-Dabei haben Bewohner eigene Bedürfnisse. Hungrige oder müde Bewohner unterbrechen ihre Arbeit und kümmern sich zunächst um sich selbst. Ihre Arbeitsplatz-Zuweisung bleibt dabei bestehen; nach Essen oder Schlafen kehren sie zu ihrer Aufgabe zurück. Wohnhäuser bieten einen guten Schlafplatz; Nahrung finden Bewohner in deiner Siedlung oder teilweise auch in der Natur.
+Über **Personen** im linken Menü findest du alle Bewohner. Dort kannst du suchen, nach Aufgaben filtern und direkt zu einer Person springen.
 
-Wer draußen schläft, kann einen Baum oder Busch als Schlafplatz wählen. Mehrere Bewohner dürfen zunächst denselben Naturplatz ansteuern. Liegt bei der Ankunft bereits jemand dort, sucht der nächste Bewohner von dort aus weiter. Auf dem Boden gibt es diese Begrenzung nicht.
-
-Essen dauert fünf simulierte Sekunden. Während dieser Zeit bleibt der Bewohner an der Nahrungsquelle. Wird ein Beerenbusch genutzt, ist er danach sichtbar abgeerntet und steht erst nach seinem Nachwachsen wieder als Nahrungsquelle zur Verfügung.
-
-Beim Essen wird immer die volle Wirkung der gewählten Nahrung gutgeschrieben. Hunger kann dadurch vorübergehend über 100 steigen; dieser Überschuss geht nicht verloren.
-
-Bewohner sammeln Erfahrung durch erfolgreich abgeschlossene Tätigkeiten in ihrem Beruf. Jede abgeschlossene Tätigkeit erhöht die Berufserfahrung um einen Punkt; nach 100 Tätigkeiten sind 100 % erreicht. Abgebrochene Tätigkeiten zählen nicht.
-
-Freie Bewohner kannst du neuen Aufgaben zuweisen. Holzfäller und Bauarbeiter werden zentral am Hauptquartier verwaltet, andere Berufe direkt am jeweiligen Gebäude.
+Bewohner sammeln durch ihre Arbeit Erfahrung und werden in ihrem Beruf besser. Freie Bewohner kannst du neuen Aufgaben zuweisen.
