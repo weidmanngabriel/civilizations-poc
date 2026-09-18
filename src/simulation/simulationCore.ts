@@ -259,6 +259,7 @@ export function notifyConstructionSiteAdded(world: World): void {
     const site = nearestOpenConstructionSite(world, person);
     if (!site) continue;
     person.assignment = { building: site.id, role: "builder" };
+    person.idleTarget = undefined;
     person.active = samePosition(person.position, site.position);
     person.movement = 0;
     person.path = [];
