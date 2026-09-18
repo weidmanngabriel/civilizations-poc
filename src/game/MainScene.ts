@@ -75,6 +75,17 @@ type WorldBounds = { minX: number; maxX: number; minY: number; maxY: number };
 const underConstruction = (b: Building): boolean =>
   Boolean(b.construction && !b.construction.complete);
 
+const hexArea = (center: Hex, radius: number): Hex[] => {
+  const cells: Hex[] = [];
+  for (let dq = -radius; dq <= radius; dq += 1) {
+    const minDr = Math.max(-radius, -dq - radius);
+    const maxDr = Math.min(radius, -dq + radius);
+    for (let dr = minDr; dr <= maxDr; dr += 1)
+      cells.push({ q: center.q + dq, r: center.r + dr });
+  }
+  return cells;
+};
+
 export class MainScene extends Phaser.Scene {
   private mapGraphics?: Phaser.GameObjects.Graphics;
   private mapLabels?: Phaser.GameObjects.Container;
