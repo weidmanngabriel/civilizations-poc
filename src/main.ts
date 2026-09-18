@@ -10,7 +10,7 @@ import { installLooseGoodsIndicators } from "./game/looseGoodsIndicators";
 import { installNaturalResourceIndicators } from "./game/naturalResourceIndicators";
 import { installPersonSelection } from "./game/personSelection";
 import { installSleepIndicators } from "./game/sleepIndicators";
-import { installWorkAreaInteraction } from "./game/workAreaInteraction";
+import { installWorkAreaInteraction } from "./game/workAreaInteraction";\nimport { installWaypostIndicators } from "./game/waypostIndicators";
 import {
   installMobileMapTouchControls,
   preventMobilePageZoom,
@@ -110,7 +110,7 @@ installBuildingSprites(scene, world);
 installHungerIndicators(scene, world);
 installSleepIndicators(scene, world);
 installPersonSelection(scene, world);
-installWorkAreaInteraction(scene, world);
+installWorkAreaInteraction(scene, world);\ninstallWaypostIndicators(scene, world);
 installTileSelectionGuard();
 mountControls(world, () => scene.renderWorld());
 installPerformanceDebugPanel(world);
