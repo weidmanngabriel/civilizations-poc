@@ -1,5 +1,5 @@
 import type { Building, Good, Hex, Person, World } from "./model";
-import { findPath, findPathBySteps, hexDistance, key, neighbors, same, tileIndex, walkable } from "./hex";
+import { findPath, hexDistance, key, neighbors, same, tileIndex, walkable } from "./hex";
 import { CONFIG } from "./scenario";
 import { buildingFootprint } from "./buildingPlacement";
 
@@ -70,6 +70,42 @@ const hashScore = (personId: number, position: Hex, round: number): number => {
   return value >>> 0;
 };
 
+const localPath = (world: World, start: Hex, target: Hex, maxSteps: number): Hex[] | undefined => {
+  if (same(start, target)) return [];
+  const tiles = tileIndex(world.tiles);
+  const startTile = tiles.get(key(start));
+  const targetTile = tiles.get(key(target));
+  if (!startTile || !targetTile || !walkable(startTile) || !walkable(targetTile)) return undefined;
+
+  const startKey = key(start);
+  const targetKey = key(target);
+  const queue: Array<{ position: Hex; depth: number }> = [{ position: start, depth: 0 }];
+  const previous = new Map<string, Hex | undefined>([[startKey, undefined]]);
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const current = queue[index]!;
+    if (current.depth >= maxSteps) continue;
+    for (const next of neighbors(current.position)) {
+      const nextKey = key(next);
+      if (previous.has(nextKey)) continue;
+      const tile = tiles.get(nextKey);
+      if (!tile || !walkable(tile)) continue;
+      previous.set(nextKey, current.position);
+      if (nextKey === targetKey) {
+        const path: Hex[] = [next];
+        let cursor = current.position;
+        while (key(cursor) !== startKey) {
+          path.unshift(cursor);
+          cursor = previous.get(key(cursor))!;
+        }
+        return path;
+      }
+      queue.push({ position: next, depth: current.depth + 1 });
+    }
+  }
+  return undefined;
+};
+
 const nearbyCells = (world: World, anchor: Hex): Hex[] => {
   const tiles = tileIndex(world.tiles);
   const seen = new Set<string>([key(anchor)]);
@@ -109,9 +145,9 @@ const chooseIdleTarget = (
     .sort((a, b) => a.score - b.score || b.distance - a.distance);
 
   for (const { candidate } of candidates) {
-    const local = hexDistance(person.position, candidate) <= IDLE_MAX_DISTANCE * 2;
-    const path = local
-      ? findPathBySteps(world.tiles, person.position, candidate)
+    const localDistance = hexDistance(person.position, candidate);
+    const path = localDistance <= IDLE_MAX_DISTANCE * 2
+      ? localPath(world, person.position, candidate, IDLE_MAX_DISTANCE * 2)
       : findPath(world.tiles, person.position, candidate, CONFIG.roadSpeedMultiplier);
     if (path) return { target: candidate, path };
   }
