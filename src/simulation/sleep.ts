@@ -152,6 +152,7 @@ const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
     const buildingId = person.trip.picked ? person.trip.target : person.trip.source;
     return world.buildings.find((building) => building.id === buildingId)?.position;
   }
+  if (person.outdoorCarry && person.workArea) return person.workArea.center;
   if (person.resourceTarget) return world.naturalResources.find((resource) => resource.id === person.resourceTarget)?.position;
   if (person.fisher && person.fishingSpot) return person.fishingSpot;
   if (person.assignment) return world.buildings.find((building) => building.id === person.assignment!.building)?.position;
@@ -161,6 +162,7 @@ const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
 const resumeTask = (world: World, person: Person, state: SleepState): void => {
   person.builder = state.resumeBuilder || undefined;
   person.woodcutter = state.resumeWoodcutter || undefined;
+  person.fisher = state.resumeFisher || undefined;
   person.extractor = state.resumeExtractor;
   const resourceStillAvailable = state.resumeResourceTarget
     ? world.naturalResources.some((resource) => resource.id === state.resumeResourceTarget && !resource.depleted &&
@@ -214,6 +216,7 @@ const startSleeping = (world: World, person: Person, context: SleepSearchContext
     resumeAssignment: person.assignment ? { ...person.assignment } : undefined,
     resumeBuilder: Boolean(person.builder),
     resumeWoodcutter: Boolean(person.woodcutter),
+    resumeFisher: Boolean(person.fisher),
     resumeExtractor: person.extractor,
     resumeResourceTarget: person.resourceTarget,
   };
