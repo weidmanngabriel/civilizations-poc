@@ -148,7 +148,7 @@ test("fishers cast on arrival, then wait five simulated seconds before moving on
 
   const waitUntil = fisher.fishingWaitUntilTick!;
   while (world.round < waitUntil) {
-    const experienceBefore = fisher.experience?.fisher;
+    const experienceBefore: number | undefined = fisher.experience?.fisher;
     tick(world);
     if (world.round < waitUntil)
       assert.equal(fisher.experience?.fisher, experienceBefore);
