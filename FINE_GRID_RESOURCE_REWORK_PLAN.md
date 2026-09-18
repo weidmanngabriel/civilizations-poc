@@ -57,7 +57,7 @@ Complete.
 
 Per-person work flags apply to woodcutters, clay diggers, stonecutters, fishers, warehouse carriers and HQ carriers. The shared radius is **2.5 coarse world tiles / 12.5 micro-cells**.
 
-Natural-resource workers receive their initial flag at the first reachable resource and subsequently choose only matching unclaimed sources inside it. Empty areas cause local waiting/retry rather than global roaming. Extractor flags are red and never move autonomously.
+Natural-resource workers receive their initial flag at the first reachable resource and subsequently choose only matching unclaimed sources inside it. Movement inside the established personal work area uses direct micro-grid paths and does not detour through the waypost graph. Empty areas cause local waiting/retry rather than global roaming. Extractor flags are red and never move autonomously.
 
 Warehouse/HQ carriers receive their initial flag at their storage workplace and auto-collect only non-storage sources inside their own area. Moving a flag cancels an unpicked outside source while already carried goods still finish delivery.
 
