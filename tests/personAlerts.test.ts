@@ -47,3 +47,41 @@ test("assigned or otherwise occupied people are not reported as idle", () => {
 
   assert.equal(personAlert(world, person), undefined);
 });
+
+
+test("need alerts stay hidden between search and warning thresholds", () => {
+  const world = createWorld(2);
+  const [hungry, tired] = world.people;
+
+  hungry!.hunger = 35;
+  hungry!.hungerState = { resumeActive: false };
+  hungry!.sleep = 100;
+
+  tired!.hunger = 100;
+  tired!.sleep = 35;
+  tired!.sleepState = {
+    kind: "ground",
+    target: { ...tired!.position },
+    progress: 0,
+    completedPhases: 0,
+    recoveryPerPhase: 10,
+    resumeActive: false,
+    resumeBuilder: false,
+    resumeWoodcutter: false,
+  };
+
+  assert.equal(personAlert(world, hungry!), undefined);
+  assert.equal(personAlert(world, tired!), undefined);
+
+  hungry!.hunger = 30;
+  tired!.sleep = 30;
+
+  assert.equal(personAlert(world, hungry!)?.code, "hunger");
+  assert.equal(personAlert(world, tired!)?.code, "sleep");
+
+  hungry!.hunger = 20;
+  tired!.sleep = 20;
+
+  assert.equal(personAlert(world, hungry!)?.code, "critical-hunger");
+  assert.equal(personAlert(world, tired!)?.code, "critical-sleep");
+});
