@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createWorld, CONFIG } from "../src/simulation/scenario";
-import { changeAssignment, tick } from "../src/simulation/simulation";
+import {
+  changeAssignment,
+  setWorkAreaCenter,
+  tick,
+  WORK_AREA_RADIUS,
+} from "../src/simulation/simulation";
 import { hexDistance } from "../src/simulation/spatial";
 import type { Building } from "../src/simulation/model";
 
@@ -18,14 +23,32 @@ test("wood extraction creates a ground stack and sawmill workers collect from it
   woodcutter.path = [];
   woodcutter.progress = CONFIG.duration - 1;
 
+  const flagTile = world.tiles.find(
+    (tile) =>
+      tile.terrain === "grass" &&
+      hexDistance(tile, forest.position) >= 4 &&
+      hexDistance(tile, forest.position) <= Math.floor(WORK_AREA_RADIUS),
+  )!;
+  assert.equal(setWorkAreaCenter(world, woodcutter.id, flagTile), true);
+
   tick(world);
 
   assert.equal(forest.remaining, oldRemaining - 1);
   assert.equal(forest.output, 0, "wood must no longer remain on the tree output pool");
+  assert.equal(woodcutter.outdoorCarry, "wood");
+  assert.equal(
+    world.looseGoods?.some((candidate) => candidate.good === "wood") ?? false,
+    false,
+    "the unit must stay on the woodcutter until the flag is reached",
+  );
+
+  let guard = 10_000;
+  while (woodcutter.outdoorCarry && guard-- > 0) tick(world);
+  assert.ok(guard > 0);
   const stack = world.looseGoods?.find((candidate) => candidate.good === "wood");
-  assert.ok(stack, "extracted wood should become a physical ground stack");
+  assert.ok(stack, "carried wood should become a physical ground stack at the work flag");
   assert.equal(stack.amount, 1);
-  assert.ok(hexDistance(forest.position, stack.position) <= CONFIG.spatialScale);
+  assert.ok(hexDistance(flagTile, stack.position) <= CONFIG.spatialScale);
   assert.equal(
     world.naturalResources.some((resource) => resource.id === stack.id),
     false,

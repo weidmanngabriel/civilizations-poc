@@ -54,7 +54,7 @@ Terrain describes only underlying ground. Trees, clay and stone are independent 
 The physical raw-resource chain is:
 
 ```text
-natural source -> extractor -> loose ground stack -> pickup -> consumer/storage
+natural source -> extractor carries one unit -> personal work flag -> loose ground stack -> pickup -> consumer/storage
 ```
 
 There is no fake natural-resource mirror for loose goods and no hidden HQ storage proxy.
@@ -110,9 +110,9 @@ Construction requirements are centralized in `src/simulation/constructionRules.t
 
 Fishing reuses the personal work-area system rather than introducing a building or a separate water-resource entity. A fisher owns the same **2.5-world-tile work flag** used by outdoor resource workers. Valid fishing spots are walkable land cells adjacent to river terrain and inside that work area.
 
-The simulation stores the current fishing spot and an absolute wait deadline on the person. Arrival at the spot resolves one deterministic catch roll immediately, then starts a five-simulated-second wait. After that deadline the worker plans a different reachable shoreline cell when one is available. Catch probability is derived from fisherman profession XP, from 0.30 at zero XP to 0.80 at 100 XP.
+The simulation stores the current fishing spot, adjacent water target, cycle start tick and absolute end tick on the person. One fishing cycle lasts exactly five simulated seconds. Presentation derives a roughly 0.5-second cast, four-second hold and 0.5-second reel animation from those authoritative ticks. The deterministic catch roll is resolved only when the line is reeled in. Catch probability is derived from fisherman profession XP, from 0.30 at zero XP to 0.80 at 100 XP.
 
-A successful cast creates one normal `fish` loose-good unit near the fishing position. There is deliberately no fish stock attached to water yet; collection and storage therefore reuse the generic physical loose-good and local-carrier systems.
+A successful cast sets exactly one `fish` unit as outdoor cargo on the fisherman. The fisherman carries that unit back to the personal work flag, where it becomes a normal loose-good stack. Natural-resource extractors use the same one-unit outdoor-cargo state: every completed wood, clay or rubble unit is carried to the worker's personal flag before becoming loose ground stock. This keeps the work flag as the authoritative outdoor collection point without introducing a second logistics system.
 
 ## Storage and transport
 
@@ -134,7 +134,7 @@ Demolishing a building immediately cancels activities that depend on that buildi
 
 ## Work areas
 
-Woodcutters, clay diggers, stonecutters, warehouse carriers and HQ carriers use per-person `WorkArea` state. The shared radius remains 2.5 coarse world tiles / 12.5 micro-cells.
+Woodcutters, clay diggers, stonecutters, fishers, warehouse carriers and HQ carriers use per-person `WorkArea` state. The shared radius remains 2.5 coarse world tiles / 12.5 micro-cells.
 
 Extractor flags start at the first selected resource. Storage-carrier flags start at their storage workplace. Moving a flag invalidates an unpicked source outside the new area but does not discard already carried cargo. Production carriers are deliberately outside this system.
 

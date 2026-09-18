@@ -129,6 +129,7 @@ const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
     const buildingId = person.trip.picked ? person.trip.target : person.trip.source;
     return world.buildings.find((building) => building.id === buildingId)?.position;
   }
+  if (person.outdoorCarry && person.workArea) return person.workArea.center;
   if (person.resourceTarget) return world.naturalResources.find((resource) => resource.id === person.resourceTarget)?.position;
   if (person.fisher && person.fishingSpot) return person.fishingSpot;
   if (person.assignment) return world.buildings.find((building) => building.id === person.assignment!.building)?.position;
@@ -217,7 +218,13 @@ const startEating = (world: World, person: Person): boolean => {
   return assignFoodCandidate(world, person, person.hungerState, candidate);
 };
 
-const atTaskBoundary = (person: Person): boolean => person.progress === 0 && !person.farmTask && !person.trip && person.path.length === 0;
+const atTaskBoundary = (person: Person): boolean =>
+  person.progress === 0 &&
+  !person.farmTask &&
+  !person.trip &&
+  !person.outdoorCarry &&
+  person.fishingWaitUntilTick === undefined &&
+  person.path.length === 0;
 
 const selectedFoodTarget = (world: World, person: Person): SelectedFoodTarget | undefined => {
   const state = person.hungerState!;

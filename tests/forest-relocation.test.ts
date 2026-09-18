@@ -105,10 +105,18 @@ test("each appointed woodcutter claims a different tree", () => {
 });
 
 test("one tree yields exactly three physical wood units", () => {
-  const { world, forest } = activeWoodcutter();
-  for (let produced = 0; produced < CONFIG.forestYield; produced++)
-    for (let round = 0; round < CONFIG.duration; round++) tick(world);
+  const { world, forest, worker } = activeWoodcutter();
+  let guard = 30_000;
+  while (
+    (forest.remaining > 0 || worker.outdoorCarry || groundWoodAmount(world) < CONFIG.forestYield) &&
+    guard-- > 0
+  ) {
+    worker.hunger = 100;
+    worker.sleep = 100;
+    tick(world);
+  }
 
+  assert.ok(guard > 0);
   assert.equal(CONFIG.forestYield, 3);
   assert.equal(forest.output, 0);
   assert.equal(forest.remaining, 0);
@@ -118,9 +126,17 @@ test("one tree yields exactly three physical wood units", () => {
 
 test("a depleted tree disappears, unblocks its cell, and its woodcutter relocates", () => {
   const { world, forest, worker } = activeWoodcutter();
-  for (let produced = 0; produced < CONFIG.forestYield; produced++)
-    for (let round = 0; round < CONFIG.duration; round++) tick(world);
+  let guard = 30_000;
+  while (
+    (forest.remaining > 0 || worker.outdoorCarry || groundWoodAmount(world) < CONFIG.forestYield) &&
+    guard-- > 0
+  ) {
+    worker.hunger = 100;
+    worker.sleep = 100;
+    tick(world);
+  }
 
+  assert.ok(guard > 0);
   assert.equal(forest.remaining, 0);
   assert.equal(forest.output, 0);
   assert.equal(groundWoodAmount(world), CONFIG.forestYield);
@@ -146,15 +162,22 @@ test("woodcutter experience speeds up felling by up to 50 percent without increa
 
   tick(world);
   assert.equal(forest.output, 0);
-  assert.equal(groundWoodAmount(world), 1);
+  assert.equal(worker.outdoorCarry, "wood");
+  assert.equal(groundWoodAmount(world), 0);
   assert.equal(forest.remaining, CONFIG.forestYield - 1);
 });
 
 test("leftover wood remains collectible after the tree has disappeared", () => {
-  const { world, forest } = activeWoodcutter();
+  const { world, forest, worker } = activeWoodcutter();
   forest.remaining = 1;
   forest.output = 0;
-  for (let i = 0; i < CONFIG.duration; i++) tick(world);
+  let guard = 10_000;
+  while ((!forest.depleted || worker.outdoorCarry || groundWoodAmount(world) < 1) && guard-- > 0) {
+    worker.hunger = 100;
+    worker.sleep = 100;
+    tick(world);
+  }
+  assert.ok(guard > 0);
   assert.equal(forest.depleted, true);
   assert.equal(forest.output, 0);
   const stack = groundWood(world)[0];

@@ -145,6 +145,7 @@ export interface SleepState {
   resumeAssignment?: { building: BuildingId; role: Role };
   resumeBuilder: boolean;
   resumeWoodcutter: boolean;
+  resumeFisher?: boolean;
   resumeExtractor?: "clay" | "stone";
   resumeResourceTarget?: NaturalResourceId;
 }
@@ -156,10 +157,16 @@ export interface Person {
   farmTask?: FarmTask;
   woodcutter?: boolean;
   fisher?: boolean;
-  /** Current shoreline cell. A cast happens immediately on arrival. */
+  /** Current shoreline cell used for the active or next fishing cycle. */
   fishingSpot?: Hex;
-  /** After a cast, the fisher waits until this simulation tick before changing spot. */
+  /** Adjacent water cell used by the visible fishing line/hook. */
+  fishingWaterTarget?: Hex;
+  /** Simulation tick at which the current five-second fishing cycle started. */
+  fishingStartedAtTick?: number;
+  /** Simulation tick at which the current fishing cycle finishes and the line is reeled in. */
   fishingWaitUntilTick?: number;
+  /** Exactly one outdoor-produced unit currently carried back to this person's work flag. */
+  outdoorCarry?: Good;
   extractor?: "clay" | "stone";
   resourceTarget?: NaturalResourceId;
   /** Local resource-collection area for extractors and carriers. */

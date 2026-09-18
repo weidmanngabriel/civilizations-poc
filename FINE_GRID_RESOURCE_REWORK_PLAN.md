@@ -25,7 +25,7 @@ The world uses a 205 × 125 micro-grid, a 5× refinement of the former 41 × 25 
 
 Trees are one-cell blocking resources with three wood. Clay and stone use compact four-cell footprints; clay is walkable and stone blocking. Blocking targets are interacted with from reachable neighboring walkable cells rather than being entered.
 
-Physical wood, clay and rubble lie in walkable `LooseGoodStack`s of 1–3 units. Reservations protect concrete units. `Trip` can now point directly at a building, natural resource or loose-good stack; physical stacks are no longer mirrored as temporary fake natural resources.
+Physical wood, clay and rubble lie in walkable `LooseGoodStack`s of 1–3 units. Each newly extracted unit is first carried individually by its outdoor worker to that person's work flag and only then becomes a loose stack near the flag. Reservations protect concrete units. `Trip` can point directly at a building, natural resource or loose-good stack; physical stacks are no longer mirrored as temporary fake natural resources.
 
 The HQ and warehouses share the same real storage semantics in the transport core. The old hidden HQ storage proxy and its separate carrier planner are removed. Automatic storage-to-storage collection remains forbidden; explicit warehouse merchant routes remain separate.
 
@@ -55,7 +55,7 @@ Complete.
 
 ### Local work areas
 
-Per-person work flags apply to woodcutters, clay diggers, stonecutters, warehouse carriers and HQ carriers. The shared radius is **2.5 coarse world tiles / 12.5 micro-cells**.
+Per-person work flags apply to woodcutters, clay diggers, stonecutters, fishers, warehouse carriers and HQ carriers. The shared radius is **2.5 coarse world tiles / 12.5 micro-cells**.
 
 Natural-resource workers receive their initial flag at the first reachable resource and subsequently choose only matching unclaimed sources inside it. Empty areas cause local waiting/retry rather than global roaming. Extractor flags are red and never move autonomously.
 
@@ -69,7 +69,7 @@ Production-building carriers, merchants and builders keep their separate sourcin
 - Loose-good reservations are owned by the physical stack through planning, cancellation and pickup.
 - Hunger/sleep interruptions resume an existing physical pickup instead of depending on a proxy entity.
 - HQ storage is first-class; `hq-storage-proxy` and the needs-layer HQ carrier planner are gone.
-- Physical raw-resource output is migrated directly from short-lived extractor output staging into `LooseGoodStack`s.
+- Completed extractor output is converted into one unit of person-carried outdoor cargo and deposited as a `LooseGoodStack` only at the worker's personal flag.
 
 ### Farms and fields
 
