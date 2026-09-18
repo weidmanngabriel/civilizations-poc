@@ -35,15 +35,15 @@ test("hunger decays at idle, walking and active-work rates in one-second steps",
   const world = createWorld(1);
   const person = world.people[0]!;
 
-  for (let i = 0; i < 8; i += 1) advanceHungerTick(world);
+  for (let i = 0; i < 4; i += 1) advanceHungerTick(world);
   assert.equal(person.hunger, 99);
 
   person.path = [{ q: person.position.q + 1, r: person.position.r }];
-  for (let i = 0; i < 4; i += 1) advanceHungerTick(world);
+  for (let i = 0; i < 2; i += 1) advanceHungerTick(world);
   assert.equal(person.hunger, 98);
 
   person.trip = { source: "a", target: "b", good: "wood", picked: true };
-  for (let i = 0; i < 2; i += 1) advanceHungerTick(world);
+  advanceHungerTick(world);
   assert.equal(person.hunger, 97);
 });
 
