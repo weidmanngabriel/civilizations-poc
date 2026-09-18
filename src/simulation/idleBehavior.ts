@@ -103,14 +103,16 @@ const chooseIdleTarget = (
     .filter((candidate) => !reserved.has(key(candidate)) && !buildingCells.has(key(candidate)))
     .map((candidate) => ({
       candidate,
-      path: findPath(world.tiles, person.position, candidate, CONFIG.roadSpeedMultiplier),
       distance: hexDistance(anchor, candidate),
       score: hashScore(person.id, candidate, world.round),
     }))
-    .filter((entry): entry is { candidate: Hex; path: Hex[]; distance: number; score: number } =>
-      Boolean(entry.path))
     .sort((a, b) => a.score - b.score || b.distance - a.distance);
-  return candidates[0]?.candidate;
+
+  for (const { candidate } of candidates) {
+    if (findPath(world.tiles, person.position, candidate, CONFIG.roadSpeedMultiplier))
+      return candidate;
+  }
+  return undefined;
 };
 
 export function wakeIdlePeople(world: World): void {
