@@ -338,6 +338,17 @@ export function mountPersonPanel(world: World): void {
       <button class="person-open-list" type="button" data-person-action="open-browser">Personenliste öffnen</button>`;
   };
 
+  const resetBrowserFilters = (): void => {
+    activeFilter = "all";
+    activeAlertFilter = "all";
+    searchQuery = "";
+    search.value = "";
+    for (const button of filterButtons)
+      button.setAttribute("aria-pressed", String(button.dataset.personFilter === "all"));
+    for (const button of alertFilterButtons)
+      button.setAttribute("aria-pressed", "false");
+  };
+
   const closeConflictingMenus = (): void => {
     const buildPanel = document.querySelector<HTMLElement>("#build-menu-panel");
     if (buildPanel && !buildPanel.hidden)
@@ -360,6 +371,7 @@ export function mountPersonPanel(world: World): void {
       inspector.hidden = true;
       requestAnimationFrame(() => search.focus({ preventScroll: true }));
     } else {
+      resetBrowserFilters();
       renderInspector();
     }
   };
