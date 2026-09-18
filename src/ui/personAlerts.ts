@@ -2,14 +2,28 @@ import type { Person, World } from "../simulation/model";
 import { currentProfession } from "../simulation/experience";
 import { hungerStatus } from "../simulation/needs";
 import { sleepStatus } from "../simulation/sleep";
+import { hexDistance } from "../simulation/spatial";
 
 export type PersonAlertSeverity = "critical" | "warning" | "info";
 
 export interface PersonAlert {
   severity: PersonAlertSeverity;
-  code: "critical-hunger" | "critical-sleep" | "hunger" | "sleep" | "idle";
+  code: "critical-hunger" | "critical-sleep" | "hunger" | "sleep" | "no-extractable-resource" | "idle";
   label: string;
 }
+
+const hasNoExtractableResource = (world: World, person: Person): boolean => {
+  const kind = person.woodcutter ? "forest" : person.extractor;
+  const area = person.workArea;
+  if (!kind || !area || person.resourceTarget || person.outdoorCarry) return false;
+  return !world.naturalResources.some(
+    (resource) =>
+      resource.kind === kind &&
+      !resource.depleted &&
+      resource.remaining > 0 &&
+      hexDistance(area.center, resource.position) <= area.radius,
+  );
+};
 
 const isTrulyIdle = (world: World, person: Person): boolean =>
   !currentProfession(world, person) &&
@@ -39,6 +53,9 @@ export const personAlert = (world: World, person: Person): PersonAlert | undefin
   }
   if (sleep === "tired") {
     return { severity: "warning", code: "sleep", label: "Müde" };
+  }
+  if (hasNoExtractableResource(world, person)) {
+    return { severity: "warning", code: "no-extractable-resource", label: "Nichts mehr abzubauen" };
   }
   if (isTrulyIdle(world, person)) {
     return { severity: "info", code: "idle", label: "Keine Aufgabe" };

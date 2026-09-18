@@ -85,3 +85,35 @@ test("need alerts stay hidden between search and warning thresholds", () => {
   assert.equal(personAlert(world, hungry!)?.code, "critical-hunger");
   assert.equal(personAlert(world, tired!)?.code, "critical-sleep");
 });
+
+test("extractors with an exhausted work area get an important alert", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  person.hunger = 100;
+  person.sleep = 100;
+  person.woodcutter = true;
+  person.workArea = { center: { ...person.position }, radius: 12.5 };
+  person.resourceTarget = undefined;
+  person.outdoorCarry = undefined;
+
+  for (const resource of world.naturalResources) {
+    if (resource.kind === "forest") {
+      resource.remaining = 0;
+      resource.depleted = true;
+    }
+  }
+
+  assert.deepEqual(personAlert(world, person), {
+    severity: "warning",
+    code: "no-extractable-resource",
+    label: "Nichts mehr abzubauen",
+  });
+
+  const tree = world.naturalResources.find((resource) => resource.kind === "forest")!;
+  tree.position = { ...person.workArea.center };
+  tree.remaining = 1;
+  tree.depleted = false;
+
+  assert.equal(personAlert(world, person), undefined);
+});
+

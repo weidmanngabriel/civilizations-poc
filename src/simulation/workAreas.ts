@@ -3,6 +3,7 @@ import { findPath, key, neighbors, pathTravelCost, same, tileIndex } from "./hex
 import { CONFIG } from "./scenario";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { awardProfessionExperience, professionExperience } from "./experience";
+import { startEatingAfterCompletedAction } from "./needs";
 import {
   availableLooseGoodAmount,
   findLooseGoodDropPosition,
@@ -235,6 +236,8 @@ function enforceFisher(world: World, person: Person): void {
       return;
     }
     finishFishingCycle(world, person);
+    if (startEatingAfterCompletedAction(world, person)) return;
+    if (person.hungerState) return;
     if (person.outdoorCarry) {
       routeOutdoorCarryToFlag(world, person);
       return;
