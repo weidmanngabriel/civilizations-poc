@@ -141,7 +141,13 @@ const natureSleepTargetOccupied = (world: World, person: Person, target: Hex): b
     other.path.length === 0,
   );
 
-const atTaskBoundary = (person: Person): boolean => person.progress === 0 && !person.farmTask && !person.trip && person.path.length === 0;
+const atTaskBoundary = (person: Person): boolean =>
+  person.progress === 0 &&
+  !person.farmTask &&
+  !person.trip &&
+  !person.outdoorCarry &&
+  person.fishingWaitUntilTick === undefined &&
+  person.path.length === 0;
 
 const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
   if (person.farmTask) return person.farmTask.target;
