@@ -1,7 +1,7 @@
 import type { Building, Hex, Person, Tile, World } from "./model";
 import { key, neighbors, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
-import { findRequiredNavigationPath } from "./wayposts";
+import { clearNavigationBlocked, findRequiredNavigationPath } from "./wayposts";
 import { refinedCellCluster } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
 import { looseGoodStacks } from "./looseGoods";
@@ -360,6 +360,7 @@ export function rerouteFarmTask(w: World, p: Person): boolean {
 
 export function clearFarmTask(p: Person): void {
   p.farmTask = undefined;
+  clearNavigationBlocked(p);
 }
 
 export function removeActiveFarmFields(w: World, farmId: string): void {
