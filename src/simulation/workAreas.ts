@@ -58,8 +58,10 @@ const nextRandomFraction = (world: World): number => {
   return world.rngState / 0x100000000;
 };
 
-const isFishingSpot = (world: World, position: Hex): boolean => {
-  const tiles = tileIndex(world.tiles);
+const isFishingSpot = (
+  tiles: ReturnType<typeof tileIndex>,
+  position: Hex,
+): boolean => {
   const tile = tiles.get(key(position));
   if (!tile || tile.resourceBlocking || tile.buildingBlocking) return false;
   if (tile.terrain === "river" || tile.terrain === "mountain" || tile.terrain === "building") return false;
@@ -75,8 +77,9 @@ function fishingCandidates(
   radius?: number,
 ): FishingCandidate[] {
   const candidates: FishingCandidate[] = [];
+  const tiles = tileIndex(world.tiles);
   for (const tile of world.tiles) {
-    if (!isFishingSpot(world, tile)) continue;
+    if (!isFishingSpot(tiles, tile)) continue;
     if (center && radius !== undefined && hexDistance(center, tile) > radius) continue;
     const path = findPath(world.tiles, person.position, tile, CONFIG.roadSpeedMultiplier);
     if (!path) continue;
