@@ -177,6 +177,22 @@ Die Personenübersicht bündelt aktuelle Probleme und Hinweise in drei Stufen: *
 
 Die drei Stufen sind direkt in der Personenübersicht filterbar und werden zusätzlich kompakt am Personen-Button angezeigt, damit dringende Probleme auch bei geschlossener Liste sichtbar bleiben. Die Klassifizierung wird höchstens einmal pro Sekunde aktualisiert. Eine Arbeitsblockade wird nur dann als eigener Hinweis gezeigt, wenn ihre Ursache zuverlässig aus dem Simulationszustand feststeht; bloßes Warten wird nicht als Ressourcenmangel interpretiert.
 
+## Direkte Personensteuerung
+
+Bewohner werden einzeln ausgewählt. Die normale Auswahl zeigt nur kompakte Personeninformationen; die eigentlichen Befehle liegen in einem separaten Kontextmenü. Am Desktop öffnet die **Leertaste** dieses Menü, zusätzlich steht auf allen Eingabegeräten ein sichtbarer Aktionsbutton zur Verfügung.
+
+Das Kontextmenü besitzt dauerhaft **16 feste Slots** als hohles Quadrat ohne Ecken. Nicht verfügbare Aktionen werden nicht ausgegraut, sondern gar nicht angezeigt; ihre Position bleibt leer, damit spätere Aktionen ergänzt werden können, ohne gelernte Positionen zu verschieben.
+
+Der erste verbindliche Aktionssatz ist:
+
+- oben: **Beruf**, **Arbeitsplatz**, **Wohnung**, **Arbeitsbereich**;
+- rechts: **Bewegen**, **Essen**, **Schlafen**;
+- alle übrigen Slots bleiben vorerst leer.
+
+Arbeitsbereich erscheint nur bei Personen mit persönlicher Arbeitsflagge. Arbeitsplatz und Wohnung wechseln in einen Karten-Auswahlmodus, in dem nur gültige Ziele hervorgehoben werden. Bewegen wartet auf eine Zielzelle. Direkte Bewegungsbefehle haben bis zur Ankunft Vorrang vor normaler Autonomie; danach setzt die Person ihre reguläre Tätigkeit fort. Ein bewusst ausgelöster Ess- oder Schlafbefehl startet die bereits vorhandene Bedürfnislogik sofort. Eine zugewiesene Wohnung wird beim Schlafen gegenüber anderen Häusern bevorzugt.
+
+Beruf und Arbeitsplatz sind getrennte Entscheidungen. Ein Bewohner kann daher einen Beruf besitzen, ohne bereits einen passenden Arbeitsplatz zu haben. Berufserfahrung bleibt wie bisher personenbezogen erhalten.
+
 ## Darstellung, Zoom und Eingabe
 
 Bewohner bleiben ungefähr so groß wie eine Mikrozelle. Namen, Beruf/Tätigkeit und getragene Waren liegen in Weltkoordinaten und skalieren mit der Karte. Bewohner werden visuell vor natürlichen Ressourcen, Büschen und losen Waren dargestellt, damit sie beim Überqueren nicht von diesen verdeckt werden.
