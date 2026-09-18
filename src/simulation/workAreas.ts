@@ -270,6 +270,21 @@ function initializeResourceWorker(world: World, person: Person): boolean {
   const kind = resourceKindFor(person);
   if (!kind) return false;
 
+  if (person.resourceTarget) {
+    const selected = world.naturalResources.find((resource) =>
+      resource.id === person.resourceTarget &&
+      resource.kind === kind &&
+      !resource.depleted &&
+      resource.remaining > 0 &&
+      !claimedByOther(world, person, resource),
+    );
+    if (selected) {
+      ensureWorkArea(world, person, selected.position);
+      return true;
+    }
+    person.resourceTarget = undefined;
+  }
+
   const candidates: ResourceCandidate[] = [];
   for (const resource of world.naturalResources) {
     if (resource.kind !== kind || resource.depleted || resource.remaining <= 0 || claimedByOther(world, person, resource)) continue;
