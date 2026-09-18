@@ -140,11 +140,11 @@ Extractor flags start at the first selected resource. Storage-carrier flags star
 
 ## Wayposts and high-level navigation
 
-Wayposts are first-class navigation objects in `World.wayposts`; they are not buildings and remain independent from per-person work flags. Player-facing worlds start with one waypost on valid terrain roughly two coarse world tiles in front of the HQ entrance.
+Wayposts are first-class navigation objects in `World.wayposts`; they are not buildings and remain independent from per-person work flags. Player-facing worlds start with one waypost on valid terrain roughly one coarse world tile in front of the HQ entrance.
 
 Waypost balance is intentionally owned by separate constants even where current values match work-area balance. A waypost has a **2.5 coarse-world-tile orientation radius**. New wayposts require at least **2.5 coarse world tiles** center-to-center distance. Two reachable wayposts connect bidirectionally when their distance is at most **5 coarse world tiles**. Each stored connection is rendered as its own directional sign using the shared isometric projection.
 
-Placement reuses the building-placement interaction model without treating a waypost as a `Building`: desktop uses a hover ghost plus left-click placement and right-click/Escape cancellation; touch uses tap-to-position plus an explicit confirmation button. The placement preview shows the orientation area and spacing constraint.
+Placement reuses the building-placement interaction model without treating a waypost as a `Building`: desktop uses a hover ghost plus left-click placement and right-click/Escape cancellation; touch uses tap-to-position plus an explicit confirmation button. Entering waypost placement immediately highlights every currently valid anchor while the dimmed map makes invalid anchors visible by contrast. After choosing a position, the ghost additionally shows the orientation area and spacing constraint.
 
 Navigation uses the waypost graph when both route endpoints can orient to connected wayposts. The graph chooses the high-level sequence, while every segment remains an ordinary micro-cell A* route and therefore still respects terrain, blocking and road speed. If no usable graph route exists, normal global A* remains the fallback. Hunger, sleep, farm work, local work areas and ordinary transport use the same navigation helper so this rule stays consistent.
 

@@ -1,4 +1,4 @@
-import type { Hex, Waypost, World } from "./model";
+import type { Hex, Tile, Waypost, World } from "./model";
 import { findPath, hexDistance, key, tileIndex, walkable } from "./hex";
 import { GRID_REFINEMENT } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
@@ -16,23 +16,44 @@ export const WAYPOST_MAX_CONNECTION_DISTANCE =
 
 export const wayposts = (world: World): Waypost[] => world.wayposts ?? [];
 
-const activeResourceCells = (world: World): Set<string> =>
-  new Set(
+type WaypostPlacementContext = {
+  tiles: Map<string, Tile>;
+  activeResourceCells: Set<string>;
+  looseGoodCells: Set<string>;
+};
+
+const waypostPlacementContext = (world: World): WaypostPlacementContext => ({
+  tiles: tileIndex(world.tiles),
+  activeResourceCells: new Set(
     world.naturalResources
       .filter((resource) => !resource.depleted)
       .flatMap((resource) => naturalResourceFootprint(resource).map(key)),
-  );
+  ),
+  looseGoodCells: new Set((world.looseGoods ?? []).map((stack) => key(stack.position))),
+});
 
-export function canPlaceWaypost(world: World, position: Hex): boolean {
-  const tile = tileIndex(world.tiles).get(key(position));
+const canPlaceWaypostWithContext = (
+  world: World,
+  position: Hex,
+  context: WaypostPlacementContext,
+): boolean => {
+  const tile = context.tiles.get(key(position));
   if (!tile || (tile.terrain !== "grass" && tile.terrain !== "road") || !walkable(tile))
     return false;
-  if (tile.bush || activeResourceCells(world).has(key(position))) return false;
-  if ((world.looseGoods ?? []).some((stack) => key(stack.position) === key(position)))
-    return false;
+  if (tile.bush || context.activeResourceCells.has(key(position))) return false;
+  if (context.looseGoodCells.has(key(position))) return false;
   return wayposts(world).every(
     (waypost) => hexDistance(waypost.position, position) >= WAYPOST_MIN_DISTANCE,
   );
+};
+
+export function canPlaceWaypost(world: World, position: Hex): boolean {
+  return canPlaceWaypostWithContext(world, position, waypostPlacementContext(world));
+}
+
+export function validWaypostAnchors(world: World): Hex[] {
+  const context = waypostPlacementContext(world);
+  return world.tiles.filter((tile) => canPlaceWaypostWithContext(world, tile, context));
 }
 
 const canConnect = (world: World, a: Waypost, b: Waypost): boolean => {
@@ -71,14 +92,14 @@ const initialWaypostCandidate = (world: World): Hex | undefined => {
   if (!hq) return undefined;
   const preferred = {
     q: hq.position.q,
-    r: hq.position.r + 2 * GRID_REFINEMENT,
+    r: hq.position.r + GRID_REFINEMENT,
   };
   const candidates = world.tiles
     .filter((tile) => tile.terrain === "grass" || tile.terrain === "road")
     .map((tile) => ({
       tile,
       preferredDistance: hexDistance(tile, preferred),
-      hqDistance: Math.abs(hexDistance(tile, hq.position) - 2 * GRID_REFINEMENT),
+      hqDistance: Math.abs(hexDistance(tile, hq.position) - GRID_REFINEMENT),
     }))
     .sort(
       (a, b) =>
@@ -173,7 +194,7 @@ export function findPathViaWayposts(
       world.tiles,
       cursor,
       target,
-      CONFIG.roadSpeedMultiplier,
+      roadSpeedMultiplier,
     );
     if (!segment) return null;
     result.push(...segment);

@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { BuildableBuildingKind, Hex, World } from "../simulation/model";
 import { validBuildingAnchors } from "../simulation/buildingPlacement";
+import { validWaypostAnchors } from "../simulation/wayposts";
 import { HEX_RADIUS, pixel } from "./mapGeometry";
 
 const BUILD_MODE_EVENT = "poc-build-mode";
@@ -40,9 +41,11 @@ export function installBuildPlacementHighlights(scene: Phaser.Scene, world: Worl
 
     const showFor = (kind?: BuildableBuildingKind | "waypost") => {
       graphics.clear();
-      if (!kind || kind === "waypost") return;
+      if (!kind) return;
 
-      const anchors = validBuildingAnchors(world, kind);
+      const anchors = kind === "waypost"
+        ? validWaypostAnchors(world)
+        : validBuildingAnchors(world, kind);
       graphics.fillStyle(HIGHLIGHT_COLOR, HIGHLIGHT_ALPHA);
       for (const anchor of anchors) graphics.fillPoints(hexPoints(anchor), true);
     };
