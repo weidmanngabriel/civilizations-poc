@@ -23,6 +23,6 @@ Für jede Verbindung erscheint am Pfosten ein eigenes Richtungsschild zum verbun
 
 Auf dem Desktop zeigt die Maus zuerst den Ghost; Linksklick platziert und Rechtsklick oder Escape bricht ab. Auf Touch setzt ein Tap nur die Vorschau, Ziehen verschiebt die Karte und **„Platzieren“** bestätigt.
 
-Bewohner bevorzugen das Wegweisernetz, wenn Start und Ziel sinnvoll daran angeschlossen sind. Fehlt eine passende Verbindung, können sie weiterhin den normalen direkten Weg suchen.
+Bewohner nutzen das Wegweisernetz für längere Navigation verpflichtend. Die kurzen Teilstrecken zum ersten Wegweiser, zwischen verbundenen Wegweisern und vom letzten Wegweiser zum Ziel werden weiterhin lokal berechnet. Bei mehreren Möglichkeiten gewinnt die Route mit der geringsten realen Reisezeit; bestehende Wege können sie dadurch attraktiver machen. Gibt es keine gültige Route, bleibt die Person stehen und zeigt einen gelben Hinweis. Erst wenn sich das Wegweisernetz ändert, wird ein zuvor gescheitertes Ziel erneut geprüft.
 
 Wenn eine Produktion stockt, prüfe den tatsächlichen Warenfluss, die Wege und die Arbeitsbereiche der beteiligten Bewohner.

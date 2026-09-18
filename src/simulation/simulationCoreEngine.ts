@@ -24,7 +24,7 @@ import {
   tileIndex,
 } from "./hex";
 import { CONFIG } from "./scenario";
-import { findNavigationPath } from "./wayposts";
+import { clearNavigationBlocked, findNavigationPath, findRequiredNavigationPath } from "./wayposts";
 import {
   activeFarmFieldCount,
   advanceFarmSystem,
@@ -124,6 +124,7 @@ const needDueBeforeNewTask = (p: Person): boolean =>
   foodDueBeforeNewTask(p) || sleepDueBeforeNewTask(p);
 
 const workRetryAfterTick = new WeakMap<Person, number>();
+const observedWaypostRevision = new WeakMap<World, number>();
 const immediateWorkDecisionPeople = new WeakSet<Person>();
 const clearWorkRetry = (p: Person): void => {
   workRetryAfterTick.delete(p);
@@ -155,7 +156,7 @@ const routeToPosition = (
   reason: PathReason = routeReason(p),
 ) => {
   p.path = performanceProfiler.withPathReason(reason, () =>
-    findNavigationPath(w, p.position, position, CONFIG.roadSpeedMultiplier),
+    findRequiredNavigationPath(w, p, position, CONFIG.roadSpeedMultiplier),
   ) ?? [];
 };
 const route = (
@@ -303,6 +304,7 @@ function cancel(w: World, p: Person): void {
   p.progress = 0;
   p.movement = 0;
   p.path = [];
+  clearNavigationBlocked(p);
 }
 
 function rerouteCurrentTask(w: World, p: Person): void {
@@ -353,9 +355,13 @@ function rerouteCurrentTask(w: World, p: Person): void {
     return;
   }
   if (p.idleTarget) {
-    if (!same(p.position, p.idleTarget))
-      routeToPosition(w, p, p.idleTarget, "reroute");
-    else {
+    clearNavigationBlocked(p);
+    if (!same(p.position, p.idleTarget)) {
+      p.path = performanceProfiler.withPathReason("reroute", () =>
+        findNavigationPath(w, p.position, p.idleTarget!, CONFIG.roadSpeedMultiplier),
+      ) ?? [];
+      if (!p.path.length) p.idleTarget = undefined;
+    } else {
       p.path = [];
       p.movement = 0;
     }
@@ -1178,6 +1184,20 @@ function advanceConstruction(w: World): void {
 /** One deterministic 1/60-second simulation step. */
 export function tick(w: World): void {
   w.round++;
+
+  const waypostRevision = w.waypostRevision ?? 0;
+  const previousWaypostRevision = observedWaypostRevision.get(w);
+  observedWaypostRevision.set(w, waypostRevision);
+  if (
+    previousWaypostRevision !== undefined &&
+    previousWaypostRevision !== waypostRevision
+  ) {
+    for (const p of w.people) {
+      if (!p.navigationBlocked || p.hungerState || p.sleepState) continue;
+      rerouteCurrentTask(w, p);
+    }
+  }
+
   const regularDecisionTick =
     (w.round - 1) % CONFIG.decisionIntervalTicks === 0;
   const immediateDecisionPeople = new Set<number>();

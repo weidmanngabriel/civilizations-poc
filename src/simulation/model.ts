@@ -198,6 +198,12 @@ export interface Person {
   progress: number;
   movement: number;
   path: Hex[];
+  /** True while a required destination cannot be reached through the waypost network. */
+  navigationBlocked?: boolean;
+  /** Waypost-network revision for which navigationFailedTargets was computed. */
+  navigationFailureRevision?: number;
+  /** Required destinations already proven unreachable in the current waypost-network revision. */
+  navigationFailedTargets?: string[];
   trip?: Trip;
 }
 export interface World {
@@ -206,6 +212,8 @@ export interface World {
   nextBuildingId: number;
   nextFieldId: number;
   nextWaypostId?: number;
+  /** Incremented whenever the waypost network changes, invalidating failed-route caches. */
+  waypostRevision?: number;
   /** Loose-good ids are initialized lazily for compatibility with older fixtures. */
   nextLooseGoodId?: number;
   rngState: number;

@@ -117,3 +117,18 @@ test("extractors with an exhausted work area get an important alert", () => {
   assert.equal(personAlert(world, person), undefined);
 });
 
+
+
+test("blocked required navigation is an important person alert", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  person.hunger = 100;
+  person.sleep = 100;
+  person.navigationBlocked = true;
+
+  assert.deepEqual(personAlert(world, person), {
+    severity: "warning",
+    code: "no-route",
+    label: "Kein Weg über Wegweiser",
+  });
+});

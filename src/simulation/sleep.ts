@@ -1,7 +1,7 @@
 import type { Building, Hex, Person, SleepLocationKind, SleepState, World } from "./model";
 import { findPathBySteps, key, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
-import { findNavigationPath } from "./wayposts";
+import { clearNavigationBlocked, findRequiredNavigationPath } from "./wayposts";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 
@@ -40,7 +40,7 @@ const decaySleep = (person: Person): void => {
 
 const routeTo = (world: World, person: Person, target: Hex): Hex[] | undefined =>
   performanceProfiler.withPathReason("sleep", () =>
-    findNavigationPath(world, person.position, target, CONFIG.roadSpeedMultiplier),
+    findRequiredNavigationPath(world, person, target, CONFIG.roadSpeedMultiplier),
   ) ?? undefined;
 
 const isCompletedHouse = (building: Building): boolean =>
@@ -213,6 +213,7 @@ const recoveryPerPhase = (person: Person, kind: SleepLocationKind): number => {
 
 const startSleeping = (world: World, person: Person, context: SleepSearchContext): void => {
   const candidate = chooseSleepTarget(world, person, context);
+  if (candidate.kind === "ground") clearNavigationBlocked(person);
   person.sleepState = {
     kind: candidate.kind,
     target: { ...candidate.target },
@@ -242,6 +243,7 @@ const applyReplacementTarget = (
   excludedTargets: ReadonlySet<string> = new Set(),
 ): void => {
   const replacement = chooseSleepTarget(world, person, context, excludedTargets);
+  if (replacement.kind === "ground") clearNavigationBlocked(person);
   state.kind = replacement.kind;
   state.target = { ...replacement.target };
   state.progress = 0;

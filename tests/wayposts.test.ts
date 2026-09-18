@@ -8,10 +8,11 @@ import {
   canPlaceWaypost,
   findNavigationPath,
   findPathViaWayposts,
+  findRequiredNavigationPath,
   placeWaypost,
   wayposts,
 } from "../src/simulation/wayposts";
-import { hexDistance } from "../src/simulation/hex";
+import { findPath, hexDistance } from "../src/simulation/hex";
 import { GRID_REFINEMENT } from "../src/simulation/spatial";
 
 test("player world starts with one HQ waypost and independent balance constants", () => {
@@ -95,4 +96,72 @@ test("normal navigation visibly routes through connected wayposts when both ends
   );
   assert.ok(firstIndex >= 0, "route should pass through the entry waypost");
   assert.ok(secondIndex > firstIndex, "route should then pass through the connected exit waypost");
+});
+
+
+test("player navigation has no global direct fallback outside the waypost network", () => {
+  const world = createDefaultGameWorld();
+  const first = wayposts(world)[0]!;
+  const end = world.tiles
+    .filter((tile) => tile.terrain === "grass")
+    .filter((tile) => hexDistance(first.position, tile) > 4 * GRID_REFINEMENT)
+    .find((tile) => Boolean(findPath(world.tiles, first.position, tile)));
+  assert.ok(end, "fixture needs a globally reachable tile outside the initial waypost area");
+
+  assert.ok(findPath(world.tiles, first.position, end), "low-level A* can physically reach the tile");
+  assert.equal(
+    findNavigationPath(world, first.position, end),
+    null,
+    "player navigation must not bypass the waypost network",
+  );
+});
+
+test("failed required routes are cached until the waypost network revision changes", () => {
+  const world = createDefaultGameWorld();
+  const person = world.people[0]!;
+  const first = wayposts(world)[0]!;
+  person.position = { ...first.position };
+
+  const secondTile = world.tiles
+    .filter((tile) => tile.terrain === "grass")
+    .filter((tile) => {
+      const distance = hexDistance(first.position, tile);
+      return distance >= 3 * GRID_REFINEMENT && distance <= 4 * GRID_REFINEMENT;
+    })
+    .find((tile) => canPlaceWaypost(world, tile));
+  assert.ok(secondTile);
+
+  const end = world.tiles
+    .filter((tile) => tile.terrain === "grass")
+    .find((tile) =>
+      hexDistance(tile, secondTile) === 1 &&
+      hexDistance(tile, first.position) > WAYPOST_ORIENTATION_RADIUS_WORLD_TILES * GRID_REFINEMENT
+    );
+  assert.ok(end);
+
+  const initialRevision = world.waypostRevision ?? 0;
+  assert.equal(findRequiredNavigationPath(world, person, end), null);
+  assert.equal(person.navigationBlocked, true);
+  assert.deepEqual(person.navigationFailedTargets, [`${end.q},${end.r}`]);
+
+  const manualSecond = {
+    id: "waypost-manual",
+    position: { q: secondTile.q, r: secondTile.r },
+    connections: [first.id],
+  };
+  first.connections ??= [];
+  first.connections.push(manualSecond.id);
+  world.wayposts!.push(manualSecond);
+
+  assert.equal(
+    findRequiredNavigationPath(world, person, end),
+    null,
+    "same network revision must reuse the cached failure",
+  );
+
+  world.waypostRevision = initialRevision + 1;
+  const retried = findRequiredNavigationPath(world, person, end);
+  assert.ok(retried, "network revision change must allow one fresh route search");
+  assert.equal(person.navigationBlocked, undefined);
+  assert.equal(person.navigationFailedTargets, undefined);
 });

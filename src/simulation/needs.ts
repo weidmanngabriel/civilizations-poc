@@ -9,7 +9,7 @@ import type {
 } from "./model";
 import { key, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
-import { findNavigationPath } from "./wayposts";
+import { findRequiredNavigationPath } from "./wayposts";
 import { hexDistance } from "./spatial";
 import {
   availableLooseGoodAmount,
@@ -103,7 +103,7 @@ const decayHunger = (person: Person): void => {
 };
 
 const routeTo = (world: World, person: Person, target: Hex, reason: PathReason = "hunger"): Hex[] | undefined =>
-  performanceProfiler.withPathReason(reason, () => findNavigationPath(world, person.position, target, ROAD_SPEED_MULTIPLIER)) ?? undefined;
+  performanceProfiler.withPathReason(reason, () => findRequiredNavigationPath(world, person, target, ROAD_SPEED_MULTIPLIER)) ?? undefined;
 
 const sourceTie = (source: FoodSource): string => {
   if (source.kind === "building")
