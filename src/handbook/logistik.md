@@ -10,6 +10,6 @@ Normale Träger verschieben Waren nicht automatisch zwischen verschiedenen Lager
 
 Produktionsarbeiter und Bauarbeiter dürfen benötigte Waren nach ihren eigenen Regeln beschaffen.
 
-Beim Abholen und Abladen bleiben Bewohner jeweils kurz am Ort stehen. Der Warenübergang dauert drei simulierte Sekunden. Findet dieser Vorgang an einem Gebäude statt, befindet sich der Bewohner währenddessen im Gebäude und ist auf der Karte nicht sichtbar.
+Beim Aufheben loser Bodenware bleibt ein Bewohner eine simulierte Sekunde am Warenhaufen. Abholen an anderen Quellen und Abladen dauern drei simulierte Sekunden. Bei normalen Gebäuden befindet sich der Bewohner während des Warenübergangs im Gebäude und ist auf der Karte nicht sichtbar. Am Brunnen bleibt er sichtbar, weil er diesen nicht betritt.
 
 Wenn eine Produktion stockt, prüfe den tatsächlichen Warenfluss, die Wege und die Arbeitsbereiche der beteiligten Bewohner.
