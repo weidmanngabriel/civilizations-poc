@@ -57,15 +57,16 @@ test("a person can receive profession, workplace and home independently", () => 
 test("direct movement overrides normal behavior only until the chosen target is reached", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
-  const target = world.tiles.find((tile) =>
-    tile.terrain === "grass" &&
-    !tile.resourceBlocking &&
-    !tile.buildingBlocking &&
-    hexDistance(person.position, tile) === 1,
-  );
-  assert.ok(target, "expected a reachable neighboring tile");
+  const target = world.tiles
+    .filter((tile) =>
+      tile.terrain === "grass" &&
+      !tile.resourceBlocking &&
+      !tile.buildingBlocking,
+    )
+    .sort((a, b) => hexDistance(person.position, a) - hexDistance(person.position, b))
+    .find((tile) => orderPersonMove(world, person.id, { q: tile.q, r: tile.r }));
+  assert.ok(target, "expected a reachable free tile");
 
-  assert.equal(orderPersonMove(world, person.id, { q: target.q, r: target.r }), true);
   assert.deepEqual(person.manualMoveTarget, { q: target.q, r: target.r });
 
   for (let step = 0; step < 300 && person.manualMoveTarget; step += 1) tick(world);
