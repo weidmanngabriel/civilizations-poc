@@ -145,6 +145,10 @@ Zusätzlich koppelt die Gebäudeprogression an die tatsächlich aufgebaute Produ
 
 Freischaltungen sind dauerhaft. Wird die auslösende Produktionsstätte später abgerissen, bleibt das bereits bekannte Gebäude verfügbar. Wohnhaus und Farm sind von Anfang an verfügbar; der Brunnen nicht mehr.
 
+## Spielhinweise
+
+Hinweise werden spielweit in einer gemeinsamen Übersicht gebündelt. Personenprobleme und Gebäudeaufgaben verwenden dasselbe Prioritätsmodell. Fertige Gebäude mit mindestens einem Arbeiterplatz zeigen einen wichtigen Hinweis, solange noch kein Arbeiter zugewiesen ist. Auf der Karte erscheint zusätzlich ein Ausrufezeichen am Gebäude. Ein Klick oder Tap auf den Hinweis oder Marker zentriert die Kamera und öffnet das Gebäude. Nach einer Arbeiterzuweisung verschwindet der Hinweis; wird später wieder der letzte Arbeiter entfernt, erscheint er erneut.
+
 ## Personenhinweise
 
 Die Personenübersicht bündelt aktuelle Probleme und Hinweise in drei Stufen: **kritisch**, **wichtig** und **Info**. Jede Person wird höchstens einmal gezählt und immer nur in ihrer schwersten aktuell zutreffenden Stufe. Hunger oder Müdigkeit erscheinen erst ab **30 %** als gelber wichtiger Hinweis und ab **20 %** als roter kritischer Hinweis. Personen zwischen 31 und 40 % können bereits selbständig nach Versorgung suchen, erscheinen aber noch nicht in diesen Warnfiltern. Freie Personen ohne Aufgabe erscheinen als Information.
