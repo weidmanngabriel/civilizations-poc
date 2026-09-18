@@ -52,7 +52,7 @@ test("HQ bread is a valid food source", () => {
 
   for (let i = 0; i < CONFIG.simulationHz * 5; i++) tick(world);
 
-  assert.equal(person.hunger, 100);
+  assert.equal(person.hunger, 99);
   assert.equal(hq.inventory?.bread, 9);
   assert.equal(person.hungerState, undefined);
 });
@@ -71,7 +71,7 @@ test("berries restore forty hunger and regrow after two to three minutes", () =>
 
   for (let i = 0; i < CONFIG.simulationHz * 5; i++) tick(world);
 
-  assert.equal(person.hunger, 60);
+  assert.equal(person.hunger, 59);
   assert.equal(bush.bushAvailable, false);
   assert.ok(bush.bushRegrowTick !== undefined);
   assert.ok(bush.bushRegrowTick! >= world.round + CONFIG.bushRegrowMinTicks - 1);

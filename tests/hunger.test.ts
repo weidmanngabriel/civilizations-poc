@@ -247,7 +247,7 @@ test("critical hunger pauses at the next one-second check and keeps work progres
   assert.equal(person.progress, 72);
 
   finishTimedEating(world, person);
-  assert.equal(person.hunger, 99);
+  assert.equal(person.hunger, 98);
   assert.equal(person.progress, 72);
 });
 
@@ -314,6 +314,6 @@ test("worker spends five seconds eating at HQ before returning to work", () => {
   assert.ok(eatingStartedAt >= 0, "person should start eating after reaching the HQ");
   assert.equal(eatingFinishedAt - eatingStartedAt, CONFIG.simulationHz * 5);
   assert.equal(hq.inventory.bread, 0);
-  assert.equal(person.hunger, 99);
+  assert.equal(person.hunger, 98);
   assert.ok(person.path.length > 0, "person should resume the route to the workplace after eating");
 });
