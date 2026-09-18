@@ -205,7 +205,7 @@ function routeOutdoorCarryToFlag(world: World, person: Person): boolean {
 
 function finishFishingCycle(world: World, person: Person): void {
   const caught = nextRandomFraction(world) < fishingCatchChance(person);
-  awardProfessionExperience(person, "fisher");
+  if (caught) awardProfessionExperience(person, "fisher");
   person.fishingWaterTarget = undefined;
   person.fishingStartedAtTick = undefined;
   person.fishingWaitUntilTick = undefined;

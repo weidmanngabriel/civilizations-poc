@@ -10,6 +10,7 @@ import {
   changeWoodcutters,
   fishingCatchChance,
   fishers,
+  setRoad,
   setWorkAreaCenter,
   tick,
   WORK_AREA_RADIUS,
@@ -145,6 +146,23 @@ test("each extracted unit is carried to the personal work flag before becoming a
     "the extracted unit must not appear at the resource",
   );
 
+  tick(world);
+  assert.equal(worker.outdoorCarry, "wood");
+  assert.ok(worker.path.length > 0, "the worker should be returning to the flag");
+  const roadTile = world.tiles.find(
+    (tile) =>
+      tile.terrain === "grass" &&
+      hexDistance(tile, resource.position) > WORK_AREA_RADIUS * 2,
+  );
+  assert.ok(roadTile);
+  assert.equal(setRoad(world, roadTile, true), true);
+  assert.ok(worker.path.length > 0, "a global reroute must keep the flag delivery route");
+  assert.equal(
+    same(worker.path.at(-1)!, worker.workArea!.center),
+    true,
+    "carried outdoor goods take precedence over the retained resource target",
+  );
+
   guard = 10_000;
   while (worker.outdoorCarry && guard-- > 0) tick(world);
   assert.ok(guard > 0);
@@ -230,6 +248,29 @@ test("fishers use one five-second cast cycle and carry a catch to their flag", (
       (stack) => hexDistance(stack.position, fisher.workArea!.center) <= GRID_REFINEMENT,
     ),
   );
+});
+
+
+test("failed fishing cycles do not award profession experience", () => {
+  const world = createWorld(1);
+  assert.equal(changeFishers(world, 1), true);
+  const fisher = fishers(world)[0]!;
+  assert.ok(fisher.fishingSpot);
+
+  fisher.position = { ...fisher.fishingSpot! };
+  fisher.path = [];
+  fisher.movement = 0;
+  fisher.active = false;
+  world.rngState = 1000;
+
+  tick(world);
+  assert.ok(fisher.fishingWaitUntilTick !== undefined);
+
+  let guard = 10_000;
+  while (fisher.fishingWaitUntilTick !== undefined && guard-- > 0) tick(world);
+  assert.ok(guard > 0);
+  assert.equal(fisher.experience?.fisher ?? 0, 0);
+  assert.equal(fisher.outdoorCarry, undefined);
 });
 
 test("moving a fisher flag invalidates a fishing spot outside the new area", () => {

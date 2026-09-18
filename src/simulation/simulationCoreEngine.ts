@@ -327,6 +327,15 @@ function rerouteCurrentTask(w: World, p: Person): void {
     else p.path = [];
     return;
   }
+  if (p.outdoorCarry && p.workArea) {
+    if (!same(p.position, p.workArea.center))
+      routeToPosition(w, p, p.workArea.center, "reroute");
+    else {
+      p.path = [];
+      p.movement = 0;
+    }
+    return;
+  }
   if (p.resourceTarget) {
     const target = w.naturalResources.find((resource) => resource.id === p.resourceTarget);
     if (target && !target.depleted) routeToPosition(w, p, target.position, "reroute");

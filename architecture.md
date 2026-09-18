@@ -110,7 +110,7 @@ Construction requirements are centralized in `src/simulation/constructionRules.t
 
 Fishing reuses the personal work-area system rather than introducing a building or a separate water-resource entity. A fisher owns the same **2.5-world-tile work flag** used by outdoor resource workers. Valid fishing spots are walkable land cells adjacent to river terrain and inside that work area.
 
-The simulation stores the current fishing spot, adjacent water target, cycle start tick and absolute end tick on the person. One fishing cycle lasts exactly five simulated seconds. Presentation derives a roughly 0.5-second cast, four-second hold and 0.5-second reel animation from those authoritative ticks. The deterministic catch roll is resolved only when the line is reeled in. Catch probability is derived from fisherman profession XP, from 0.30 at zero XP to 0.80 at 100 XP.
+The simulation stores the current fishing spot, adjacent water target, cycle start tick and absolute end tick on the person. One fishing cycle lasts exactly five simulated seconds. Presentation derives a roughly 0.5-second cast, four-second hold and 0.5-second reel animation from those authoritative ticks. The deterministic catch roll is resolved only when the line is reeled in. Catch probability is derived from fisherman profession XP, from 0.30 at zero XP to 0.80 at 100 XP. Fisher profession XP is awarded only for a successful catch; failed cycles do not advance experience.
 
 A successful cast sets exactly one `fish` unit as outdoor cargo on the fisherman. The fisherman carries that unit back to the personal work flag, where it becomes a normal loose-good stack. Natural-resource extractors use the same one-unit outdoor-cargo state: every completed wood, clay or rubble unit is carried to the worker's personal flag before becoming loose ground stock. This keeps the work flag as the authoritative outdoor collection point without introducing a second logistics system.
 
@@ -136,7 +136,7 @@ Demolishing a building immediately cancels activities that depend on that buildi
 
 Woodcutters, clay diggers, stonecutters, fishers, warehouse carriers and HQ carriers use per-person `WorkArea` state. The shared radius remains 2.5 coarse world tiles / 12.5 micro-cells.
 
-Extractor flags start at the first selected resource. Storage-carrier flags start at their storage workplace. Moving a flag invalidates an unpicked source outside the new area but does not discard already carried cargo. Production carriers are deliberately outside this system.
+Extractor flags start at the first selected resource. Storage-carrier flags start at their storage workplace. Moving a flag invalidates an unpicked source outside the new area but does not discard already carried cargo. While an extractor carries outdoor cargo, the flag delivery route has priority over the retained resource target, including generic reroutes caused by terrain or road changes. Production carriers are deliberately outside this system.
 
 ## Hunger, sleep, farms, roads and progression
 
