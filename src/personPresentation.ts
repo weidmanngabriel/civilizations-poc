@@ -17,6 +17,11 @@ export const personActivityLabel = (person: Person): string => {
     if (person.farmTask.kind === "fertilize") return "Düngt";
     return "Sät";
   }
+  if (person.fisher) {
+    if (person.path.length) return "Geht zum Angelplatz";
+    if (person.fishingWaitUntilTick !== undefined) return "Angelt";
+    return "Sucht Angelplatz";
+  }
   if (person.idleTarget) return person.path.length ? "Unterwegs" : "Wartet";
   if (person.active) return "Arbeitet";
   if (person.path.length) return "Unterwegs";

@@ -2,11 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createWorld } from "../src/simulation/scenario";
 import { GRID_REFINEMENT } from "../src/simulation/spatial";
-import { hexDistance } from "../src/simulation/hex";
+import { hexDistance, neighbors, same } from "../src/simulation/hex";
 import {
   buildAt,
   changeAssignment,
+  changeFishers,
   changeWoodcutters,
+  fishingCatchChance,
+  fishers,
   setWorkAreaCenter,
   tick,
   WORK_AREA_RADIUS,
@@ -96,4 +99,77 @@ test("carriers receive a work flag at their workplace and reject outside pickup 
     assert.ok(tripSource);
     assert.equal(hexDistance(carrier.workArea!.center, tripSource!) <= WORK_AREA_RADIUS, true);
   }
+});
+
+
+test("fisher catch chance rises from 30 to 80 percent with experience", () => {
+  const world = createWorld(1);
+  const fisher = world.people[0]!;
+  assert.equal(fishingCatchChance(fisher), 0.3);
+  fisher.experience = { fisher: 100 };
+  assert.equal(fishingCatchChance(fisher), 0.8);
+});
+
+test("fishers cast on arrival, then wait five simulated seconds before moving on", () => {
+  const world = createWorld(1);
+  assert.equal(changeFishers(world, 1), true);
+  const fisher = fishers(world)[0]!;
+  assert.ok(fisher.workArea);
+  assert.ok(fisher.fishingSpot);
+  assert.equal(
+    hexDistance(fisher.workArea!.center, fisher.fishingSpot!) <= WORK_AREA_RADIUS,
+    true,
+  );
+  assert.equal(
+    neighbors(fisher.fishingSpot!).some((position) =>
+      world.tiles.some((tile) => same(tile, position) && tile.terrain === "river"),
+    ),
+    true,
+  );
+
+  const firstSpot = { ...fisher.fishingSpot! };
+  fisher.position = { ...firstSpot };
+  fisher.path = [];
+  fisher.movement = 0;
+  fisher.active = false;
+  world.rngState = 0;
+
+  tick(world);
+
+  assert.equal(fisher.experience?.fisher, 1, "the cast itself awards experience");
+  assert.ok(fisher.fishingWaitUntilTick !== undefined, "waiting starts immediately after the cast");
+  assert.equal(
+    (world.looseGoods ?? [])
+      .filter((stack) => stack.good === "fish")
+      .reduce((sum, stack) => sum + stack.amount, 0),
+    1,
+    "a successful cast creates one physical fish",
+  );
+
+  const waitUntil = fisher.fishingWaitUntilTick!;
+  while (world.round < waitUntil) {
+    const experienceBefore: number | undefined = fisher.experience?.fisher;
+    tick(world);
+    if (world.round < waitUntil)
+      assert.equal(fisher.experience?.fisher, experienceBefore);
+  }
+
+  assert.equal(fisher.experience?.fisher, 1);
+  assert.ok(
+    !same(fisher.fishingSpot!, firstSpot) || fisher.path.length > 0,
+    "after waiting the fisher chooses another shoreline position when possible",
+  );
+});
+
+test("moving a fisher flag invalidates a fishing spot outside the new area", () => {
+  const world = createWorld(1);
+  assert.equal(changeFishers(world, 1), true);
+  const fisher = fishers(world)[0]!;
+  const oldSpot = { ...fisher.fishingSpot! };
+  const farTile = world.tiles
+    .filter((tile) => hexDistance(tile, oldSpot) > WORK_AREA_RADIUS)
+    .sort((a, b) => hexDistance(a, oldSpot) - hexDistance(b, oldSpot))[0]!;
+  assert.equal(setWorkAreaCenter(world, fisher.id, farTile), true);
+  if (fisher.fishingSpot)
+    assert.equal(hexDistance(fisher.workArea!.center, fisher.fishingSpot) <= WORK_AREA_RADIUS, true);
 });

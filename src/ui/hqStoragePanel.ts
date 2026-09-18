@@ -13,6 +13,7 @@ const GOODS: Record<Good, string> = {
   flour: "Mehl",
   water: "Wasser",
   bread: "Brot",
+  fish: "Fisch",
   clay: "Lehm",
   rubble: "Bruchstein",
   brick: "Backstein",
@@ -44,7 +45,7 @@ export function installHqStoragePanel(world: World): void {
     );
     const active = carriers.filter((person) => person.active || person.path.length > 0 || person.trip).length;
     const free = world.people.filter(
-      (person) => !person.assignment && !person.woodcutter && !person.extractor && !person.builder,
+      (person) => !person.assignment && !person.woodcutter && !person.fisher && !person.extractor && !person.builder,
     ).length;
     const count = addon.querySelector<HTMLElement>("[data-hq-carrier-count]");
     const activeCount = addon.querySelector<HTMLElement>("[data-hq-carrier-active]");

@@ -106,6 +106,14 @@ Demolition restores the complete footprint, clears the building collision overla
 
 Construction requirements are centralized in `src/simulation/constructionRules.ts`. `buildingPlacement.ts` derives construction plans and durations from these shared requirements instead of owning a second cost table. The same module maps processed construction goods to the building type that produces them, so progression can derive prerequisites from actual construction costs.
 
+## Fishing
+
+Fishing reuses the personal work-area system rather than introducing a building or a separate water-resource entity. A fisher owns the same **2.5-world-tile work flag** used by outdoor resource workers. Valid fishing spots are walkable land cells adjacent to river terrain and inside that work area.
+
+The simulation stores the current fishing spot and an absolute wait deadline on the person. Arrival at the spot resolves one deterministic catch roll immediately, then starts a five-simulated-second wait. After that deadline the worker plans a different reachable shoreline cell when one is available. Catch probability is derived from fisherman profession XP, from 0.30 at zero XP to 0.80 at 100 XP.
+
+A successful cast creates one normal `fish` loose-good unit near the fishing position. There is deliberately no fish stock attached to water yet; collection and storage therefore reuse the generic physical loose-good and local-carrier systems.
+
 ## Storage and transport
 
 HQ and warehouses use the same first-class storage semantics. Production workers/building carriers may fetch required goods from either storage type. Storage carriers deliver directly into their assigned warehouse/HQ inventory.
