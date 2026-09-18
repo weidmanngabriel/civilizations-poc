@@ -2,7 +2,6 @@ import type { Hex, Person, Tile, Waypost, World } from "./model";
 import { findPath, hexDistance, key, pathTravelCost, same, tileIndex, walkable } from "./hex";
 import { GRID_REFINEMENT } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
-import { CONFIG } from "./scenario";
 
 export const WAYPOST_ORIENTATION_RADIUS_WORLD_TILES = 2.5;
 export const WAYPOST_ORIENTATION_RADIUS =
@@ -234,6 +233,10 @@ export function findNavigationPath(
   end: Hex,
   roadSpeedMultiplier = 1.3,
 ): Hex[] | null {
+  // Neutral/sandbox fixtures without a waypost system keep low-level A* semantics.
+  // Player-facing worlds always own a waypost array and therefore require the network.
+  if (world.wayposts === undefined)
+    return findPath(world.tiles, start, end, roadSpeedMultiplier);
   return findPathViaWayposts(world, start, end, roadSpeedMultiplier);
 }
 
@@ -244,7 +247,7 @@ export function findRequiredNavigationPath(
   roadSpeedMultiplier = 1.3,
 ): Hex[] | null {
   const path = findNavigationPath(world, person.position, end, roadSpeedMultiplier);
-  person.navigationBlocked = !path && !same(person.position, end);
+  person.navigationBlocked = !path && !same(person.position, end) ? true : undefined;
   return path;
 }
 
