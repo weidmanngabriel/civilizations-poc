@@ -7,8 +7,9 @@ import type {
   Tile,
   World,
 } from "./model";
-import { findPath, key, pathTravelCost, same, tileIndex } from "./hex";
+import { key, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
+import { findNavigationPath } from "./wayposts";
 import { hexDistance } from "./spatial";
 import {
   performanceNow,
@@ -79,7 +80,7 @@ const decayHunger = (person: Person): void => {
 };
 
 const routeTo = (world: World, person: Person, target: Hex, reason: PathReason = "hunger"): Hex[] | undefined =>
-  performanceProfiler.withPathReason(reason, () => findPath(world.tiles, person.position, target, ROAD_SPEED_MULTIPLIER)) ?? undefined;
+  performanceProfiler.withPathReason(reason, () => findNavigationPath(world, person.position, target, ROAD_SPEED_MULTIPLIER)) ?? undefined;
 
 const sourceTie = (source: FoodSource): string => source.kind === "bread"
   ? `0:${source.source.id}`
