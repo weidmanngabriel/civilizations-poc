@@ -81,7 +81,7 @@ export const stonecutters = (w: World): Person[] =>
 export const builders = (w: World): Person[] =>
   w.people.filter((p) => p.builder);
 export const freePeople = (w: World): Person[] =>
-  w.people.filter((p) => !p.assignment && !p.woodcutter && !p.fisher && !p.extractor && !p.builder);
+  w.people.filter((p) => !p.profession && !p.assignment && !p.woodcutter && !p.fisher && !p.extractor && !p.builder);
 export const isUnderConstruction = (b: Building): boolean =>
   Boolean(b.construction && !b.construction.complete);
 const isStorageBuilding = (b: Building): boolean =>
