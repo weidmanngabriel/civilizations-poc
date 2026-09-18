@@ -85,6 +85,11 @@ const workplaceLabel = (world: World, person: Person): string => {
   return "—";
 };
 
+const homeLabel = (world: World, person: Person): string =>
+  person.home
+    ? world.buildings.find((building) => building.id === person.home && !building.retired)?.name ?? "Unbekannte Wohnung"
+    : "—";
+
 const cargoLabel = (person: Person): string =>
   person.trip?.picked
     ? `${GOOD_ICONS[person.trip.good]} ${GOODS[person.trip.good]}`
@@ -276,6 +281,7 @@ export function mountPersonPanel(world: World): void {
     const sleep = displayNeed(person.sleep);
     const workplace = workplaceLabel(world, person);
     const activity = personActivityLabel(person);
+    const home = homeLabel(world, person);
     const cargo = cargoLabel(person);
     const ids = currentNavigation();
     const index = Math.max(0, ids.indexOf(person.id));
@@ -287,6 +293,7 @@ export function mountPersonPanel(world: World): void {
       sleep,
       workplace,
       activity,
+      home,
       cargo,
       ids.join(","),
     ].join("|");
@@ -319,6 +326,7 @@ export function mountPersonPanel(world: World): void {
       <dl class="person-facts">
         <div><dt>Aktuell</dt><dd>${escapeHtml(activity)}</dd></div>
         <div><dt>Arbeitsplatz</dt><dd>${escapeHtml(workplace)}</dd></div>
+        <div><dt>Wohnung</dt><dd>${escapeHtml(home)}</dd></div>
         <div><dt>Erfahrung</dt><dd>${experience === undefined ? "—" : `${experience} %`}</dd></div>
         <div><dt>Getragen</dt><dd>${cargo}</dd></div>
       </dl>
