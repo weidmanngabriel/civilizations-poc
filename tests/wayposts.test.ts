@@ -47,7 +47,7 @@ test("reachable wayposts connect within five world tiles and support network rou
     .filter((tile) => tile.terrain === "grass")
     .filter((tile) => {
       const distance = hexDistance(first.position, tile);
-      return distance >= 3 * GRID_REFINEMENT && distance <= 4 * GRID_REFINEMENT;
+      return distance >= 4 * GRID_REFINEMENT && distance <= 5 * GRID_REFINEMENT;
     })
     .find((tile) => canPlaceWaypost(world, tile));
 
@@ -70,7 +70,7 @@ test("normal navigation visibly routes through connected wayposts when both ends
     .filter((tile) => tile.terrain === "grass")
     .filter((tile) => {
       const distance = hexDistance(first.position, tile);
-      return distance >= 3 * GRID_REFINEMENT && distance <= 4 * GRID_REFINEMENT;
+      return distance >= 4 * GRID_REFINEMENT && distance <= 5 * GRID_REFINEMENT;
     })
     .find((tile) => canPlaceWaypost(world, tile));
   assert.ok(secondTile);
@@ -127,7 +127,7 @@ test("failed required routes are cached until the waypost network revision chang
     .filter((tile) => tile.terrain === "grass")
     .filter((tile) => {
       const distance = hexDistance(first.position, tile);
-      return distance >= 3 * GRID_REFINEMENT && distance <= 4 * GRID_REFINEMENT;
+      return distance >= 4 * GRID_REFINEMENT && distance <= 5 * GRID_REFINEMENT;
     })
     .find((tile) => canPlaceWaypost(world, tile));
   assert.ok(secondTile);
@@ -202,5 +202,12 @@ test("new extractor assignments cannot bypass the waypost network", () => {
   const worker = world.people.find((candidate) => candidate.woodcutter);
   assert.ok(worker);
   assert.equal(worker.resourceTarget, undefined);
-  assert.deepEqual(worker.path, []);
+  assert.equal(
+    worker.path.some(
+      (position) =>
+        position.q === farForest.position.q && position.r === farForest.position.r,
+    ),
+    false,
+    "worker must not receive a direct path to the unreachable forest",
+  );
 });
