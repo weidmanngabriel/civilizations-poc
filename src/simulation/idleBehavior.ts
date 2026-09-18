@@ -28,9 +28,8 @@ const idleAnchor = (world: World, person: Person): Hex | undefined => {
   return world.buildings.find((building) => building.id === "hq" && !building.retired)?.position;
 };
 
-const recipeInputAmount = (building: Building, good: string): number => {
-  if (building.recipe?.inputs)
-    return building.inputInventory?.[good as keyof typeof building.inputInventory] ?? 0;
+const recipeInputAmount = (building: Building, good: Good): number => {
+  if (building.recipe?.inputs) return building.inputInventory?.[good] ?? 0;
   return building.recipe?.input === good ? building.input : 0;
 };
 
@@ -40,7 +39,7 @@ const productionReady = (building: Building): boolean => {
   const requirements = building.recipe.inputs ??
     (building.recipe.input ? { [building.recipe.input]: building.recipe.amount } : {});
   return Object.entries(requirements).every(([good, amount]) =>
-    recipeInputAmount(building, good) + 1e-9 >= (amount ?? 0)
+    recipeInputAmount(building, good as Good) + 1e-9 >= (amount ?? 0)
   );
 };
 
