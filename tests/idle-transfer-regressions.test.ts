@@ -9,7 +9,7 @@ import {
   setRoad,
   tick,
 } from "../src/simulation/simulation";
-import { personActivityLabel } from "../src/ui/personPanel";
+import { personActivityLabel } from "../src/personPresentation";
 
 test("idle residents are shown as waiting instead of working", () => {
   const person: Person = {
