@@ -15,6 +15,7 @@ import type {
   World,
 } from "./model";
 import {
+  findPath,
   findPathBySteps,
   key,
   movementCost,
@@ -483,7 +484,7 @@ type ExtractorKind = "clay" | "stone";
 
 function naturalResourceCandidates(
   w: World,
-  origin: Hex,
+  person: Person,
   kind: NaturalResourceKind,
 ): NaturalResourceCandidate[] {
   const reason: PathReason = kind === "forest" ? "woodcutter" : "other";
@@ -497,7 +498,9 @@ function naturalResourceCandidates(
           resourceWorkers(w, resource.id).length === 0,
       )
       .map((resource) => {
-        const path = findNavigationPath(w, origin, resource.position, CONFIG.roadSpeedMultiplier);
+        const path = w.wayposts === undefined
+          ? findPath(w.tiles, person.position, resource.position, CONFIG.roadSpeedMultiplier)
+          : findRequiredNavigationPath(w, person, resource.position, CONFIG.roadSpeedMultiplier);
         return path ? {
           resource,
           path,
@@ -516,7 +519,7 @@ function assignNaturalWorker(w: World, p: Person, kind: NaturalResourceKind): bo
     scheduleWorkRetry(w, p);
     return false;
   }
-  const candidates = naturalResourceCandidates(w, p.position, kind);
+  const candidates = naturalResourceCandidates(w, p, kind);
   if (!candidates.length) {
     p.resourceTarget = undefined;
     p.assignment = undefined;
@@ -583,7 +586,7 @@ export function changeWoodcutters(w: World, delta: 1 | -1): boolean {
 
 type BuilderCandidate = { site: Building; path: Hex[]; cost: number };
 
-function builderCandidates(w: World, origin: Hex): BuilderCandidate[] {
+function builderCandidates(w: World, person: Person): BuilderCandidate[] {
   return performanceProfiler.withPathReason("builder", () => {
     const candidates = w.buildings
       .filter(
@@ -593,12 +596,9 @@ function builderCandidates(w: World, origin: Hex): BuilderCandidate[] {
           assigned(w, b.id, "builder").length < 2,
       )
       .map((site) => {
-        const path = findNavigationPath(
-          w,
-          origin,
-          site.position,
-          CONFIG.roadSpeedMultiplier,
-        );
+        const path = w.wayposts === undefined
+          ? findPath(w.tiles, person.position, site.position, CONFIG.roadSpeedMultiplier)
+          : findRequiredNavigationPath(w, person, site.position, CONFIG.roadSpeedMultiplier);
         return path
           ? {
               site,
@@ -619,7 +619,7 @@ function assignBuilder(w: World, p: Person): boolean {
     scheduleWorkRetry(w, p);
     return false;
   }
-  const candidates = builderCandidates(w, p.position);
+  const candidates = builderCandidates(w, p);
   if (!candidates.length) {
     p.assignment = undefined;
     p.active = false;
@@ -727,12 +727,9 @@ function requestInput(w: World, p: Person, b: Building): boolean {
         if (isStorageCollection && !collectionSourceAllowed(w, p, b, source.position, pathReason))
           continue;
         const path = performanceProfiler.withPathReason(pathReason, () =>
-          findNavigationPath(
-            w,
-            p.position,
-            source.position,
-            CONFIG.roadSpeedMultiplier,
-          ),
+          w.wayposts === undefined
+            ? findPath(w.tiles, p.position, source.position, CONFIG.roadSpeedMultiplier)
+            : findRequiredNavigationPath(w, p, source.position, CONFIG.roadSpeedMultiplier),
         );
         if (path) sources.push({ sourceKind: "building", source, good, path });
       }
@@ -744,7 +741,9 @@ function requestInput(w: World, p: Person, b: Building): boolean {
         if (isStorageCollection && !collectionSourceAllowed(w, p, b, source.position, pathReason))
           continue;
         const path = performanceProfiler.withPathReason(pathReason, () =>
-          findNavigationPath(w, p.position, source.position, CONFIG.roadSpeedMultiplier),
+          w.wayposts === undefined
+            ? findPath(w.tiles, p.position, source.position, CONFIG.roadSpeedMultiplier)
+            : findRequiredNavigationPath(w, p, source.position, CONFIG.roadSpeedMultiplier),
         );
         if (path) sources.push({ sourceKind: "looseGood", source, good, path });
       }
@@ -806,7 +805,9 @@ function requestMerchantTransfer(w: World, p: Person, source: Building): boolean
     available(w, source, routeConfig.good) + 1e-9 < CONFIG.carryCapacity ||
     !storageHasSpace(w, target, routeConfig.good) ||
     !performanceProfiler.withPathReason("merchant", () =>
-      findNavigationPath(w, source.position, target.position, CONFIG.roadSpeedMultiplier),
+      w.wayposts === undefined
+        ? findPath(w.tiles, source.position, target.position, CONFIG.roadSpeedMultiplier)
+        : findRequiredNavigationPath(w, p, target.position, CONFIG.roadSpeedMultiplier),
     )
   )
     return false;
