@@ -3,7 +3,7 @@ import { findPath, hexDistance, key, pathTravelCost, same, tileIndex, walkable }
 import { GRID_REFINEMENT } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
 
-export const WAYPOST_ORIENTATION_RADIUS_WORLD_TILES = 2.5;
+export const WAYPOST_ORIENTATION_RADIUS_WORLD_TILES = 3.5;
 export const WAYPOST_ORIENTATION_RADIUS =
   WAYPOST_ORIENTATION_RADIUS_WORLD_TILES * GRID_REFINEMENT;
 export const WAYPOST_MIN_DISTANCE_WORLD_TILES = 2.5;
@@ -247,6 +247,42 @@ const resetNavigationFailures = (person: Person): void => {
   person.navigationFailureRevision = undefined;
   person.navigationFailedTargets = undefined;
 };
+
+export function findCandidateNavigationPath(
+  world: World,
+  person: Person,
+  end: Hex,
+  roadSpeedMultiplier = 1.3,
+): Hex[] | null {
+  if (same(person.position, end)) {
+    person.navigationBlocked = undefined;
+    return [];
+  }
+
+  const revision = world.waypostRevision ?? 0;
+  if (person.navigationFailureRevision !== revision) {
+    person.navigationFailureRevision = revision;
+    person.navigationFailedTargets = [];
+  }
+
+  const targetKey = navigationTargetKey(end);
+  if (person.navigationFailedTargets?.includes(targetKey)) {
+    person.navigationBlocked = true;
+    return null;
+  }
+
+  const path = findNavigationPath(world, person.position, end, roadSpeedMultiplier);
+  if (path) {
+    person.navigationBlocked = undefined;
+    return path;
+  }
+
+  person.navigationBlocked = true;
+  person.navigationFailedTargets ??= [];
+  if (!person.navigationFailedTargets.includes(targetKey))
+    person.navigationFailedTargets.push(targetKey);
+  return null;
+}
 
 export function findRequiredNavigationPath(
   world: World,
