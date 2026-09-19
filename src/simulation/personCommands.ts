@@ -65,6 +65,9 @@ const stopCurrentWork = (world: World, person: Person): boolean => {
   person.farmTask = undefined;
   person.woodcutter = undefined;
   person.fisher = undefined;
+  person.hunter = undefined;
+  person.huntTarget = undefined;
+  person.nextRangedAttackTick = undefined;
   person.fishingSpot = undefined;
   person.fishingWaterTarget = undefined;
   person.fishingStartedAtTick = undefined;
