@@ -269,21 +269,24 @@ export function findNavigationPath(
   return findPathViaWayposts(world, start, end, roadSpeedMultiplier);
 }
 
-const findPersonNavigationPath = (
-  world: World,
-  person: Person,
-  end: Hex,
-  roadSpeedMultiplier: number,
-): Hex[] | null =>
-  usesUnrestrictedGlobalPathfinding(person)
-    ? findPath(world.tiles, person.position, end, roadSpeedMultiplier)
-    : findNavigationPath(world, person.position, end, roadSpeedMultiplier);
 
 const navigationTargetKey = (target: Hex): string => key(target);
 
 const resetNavigationFailures = (person: Person): void => {
   person.navigationFailureRevision = undefined;
   person.navigationFailedTargets = undefined;
+};
+
+const findUnrestrictedNavigationPath = (
+  world: World,
+  person: Person,
+  end: Hex,
+  roadSpeedMultiplier: number,
+): Hex[] | null => {
+  const path = findPath(world.tiles, person.position, end, roadSpeedMultiplier);
+  person.navigationBlocked = path ? undefined : true;
+  resetNavigationFailures(person);
+  return path;
 };
 
 export function findCandidateNavigationPath(
@@ -296,6 +299,8 @@ export function findCandidateNavigationPath(
     person.navigationBlocked = undefined;
     return [];
   }
+  if (usesUnrestrictedGlobalPathfinding(person))
+    return findUnrestrictedNavigationPath(world, person, end, roadSpeedMultiplier);
 
   const revision = world.waypostRevision ?? 0;
   if (person.navigationFailureRevision !== revision) {
@@ -309,7 +314,7 @@ export function findCandidateNavigationPath(
     return null;
   }
 
-  const path = findPersonNavigationPath(world, person, end, roadSpeedMultiplier);
+  const path = findNavigationPath(world, person.position, end, roadSpeedMultiplier);
   if (path) {
     person.navigationBlocked = undefined;
     return path;
@@ -333,6 +338,8 @@ export function findRequiredNavigationPath(
     resetNavigationFailures(person);
     return [];
   }
+  if (usesUnrestrictedGlobalPathfinding(person))
+    return findUnrestrictedNavigationPath(world, person, end, roadSpeedMultiplier);
 
   const revision = world.waypostRevision ?? 0;
   if (person.navigationFailureRevision !== revision) {
@@ -346,7 +353,7 @@ export function findRequiredNavigationPath(
     return null;
   }
 
-  const path = findPersonNavigationPath(world, person, end, roadSpeedMultiplier);
+  const path = findNavigationPath(world, person.position, end, roadSpeedMultiplier);
   if (path) {
     person.navigationBlocked = undefined;
     resetNavigationFailures(person);
