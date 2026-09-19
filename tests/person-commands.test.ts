@@ -38,6 +38,7 @@ test("a person can receive profession, workplace and home independently", () => 
     output: 0,
   };
   world.buildings.push(sawmill, house);
+  person.experience = { woodcutter: 10 };
 
   assert.equal(setPersonProfession(world, person.id, "sawmillWorker"), true);
   assert.equal(currentProfession(world, person), "sawmillWorker");
