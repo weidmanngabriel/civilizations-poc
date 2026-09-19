@@ -24,6 +24,7 @@ type NodeStatus = { state: NodeState; text: string };
 
 const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
+const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
 
 const NODES: TechNode[] = [
   { id: "civil", label: "👤 Ungelernter Wikinger", x: 70, y: 610, kind: "base" },
@@ -362,6 +363,7 @@ export function mountTechnologyTree(world: World): void {
     toggle.classList.toggle("active", open);
     toggle.setAttribute("aria-expanded", String(open));
     if (!open) return;
+    window.dispatchEvent(new CustomEvent(UI_MENU_OPENED_EVENT, { detail: { menu: "technology" } }));
     refreshStatuses();
     document.querySelector<HTMLButtonElement>("#build-menu-close")?.click();
     document.querySelector<HTMLButtonElement>("#handbook-close")?.click();

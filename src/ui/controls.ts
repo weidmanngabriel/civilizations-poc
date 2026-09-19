@@ -69,6 +69,9 @@ const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
   stonemason: "Steinmetzhütte",
 };
 
+const SORTED_BUILDING_KINDS = (Object.keys(BUILDING_NAMES) as BuildableBuildingKind[])
+  .sort((a, b) => BUILDING_NAMES[a].localeCompare(BUILDING_NAMES[b], "de"));
+
 const formatOutputAmount = (value: number): string => value.toFixed(1).replace(".", ",");
 const formatWholeAmount = (value: number): string => String(Math.round(value));
 const escapeHtml = (value: string): string =>
@@ -307,7 +310,7 @@ export function mountControls(w: World, renderMap: () => void): void {
                   ? "Fluss"
                   : "Belegt";
       selectionPanel.hidden = false;
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>KACHEL</small><h3>${tileName}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div>${buildable ? `<p class="recipe">Gebäude wählen. Danach Position auf der Karte wählen und bestätigen.</p><div class="stepper build-choice-grid">${(Object.keys(BUILDING_NAMES) as BuildableBuildingKind[]).map((kind) => `<button class="icon-button" data-action="build" data-kind="${kind}">${buildingIcon(kind)}<span>${BUILDING_NAMES[kind]}</span></button>`).join("")}</div>` : `<p class="recipe">Auf dieser Kachel kann aktuell nicht gebaut werden.</p>`}${roadAction ? `<div class="stepper">${roadAction}</div>` : ""}`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>KACHEL</small><h3>${tileName}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div>${buildable ? `<p class="recipe">Gebäude wählen. Danach Position auf der Karte wählen und bestätigen.</p><div class="stepper build-choice-grid">${SORTED_BUILDING_KINDS.map((kind) => `<button class="icon-button" data-action="build" data-kind="${kind}">${buildingIcon(kind)}<span>${BUILDING_NAMES[kind]}</span></button>`).join("")}</div>` : `<p class="recipe">Auf dieser Kachel kann aktuell nicht gebaut werden.</p>`}${roadAction ? `<div class="stepper">${roadAction}</div>` : ""}`;
       return;
     }
 

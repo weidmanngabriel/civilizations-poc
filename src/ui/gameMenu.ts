@@ -6,6 +6,7 @@ const WORLD_REPLACED_EVENT = "poc-world-replaced";
 const SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
+const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
 
 const timestampForFilename = (date: Date): string =>
   date.toISOString().replace(/[:.]/g, "-");
@@ -49,6 +50,7 @@ export function mountGameMenu(world: World, renderMap: () => void): void {
       <div><small>SPIEL</small><strong>Spielstand</strong></div>
       <button id="game-menu-close" type="button" aria-label="Spielmenü schließen">×</button>
     </div>
+    <div class="game-menu-runtime"></div>
     <div class="build-menu-list">
       <button class="build-menu-item" type="button" data-game-action="new">
         <span class="build-menu-building-icon" aria-hidden="true">↻</span>
@@ -72,9 +74,19 @@ export function mountGameMenu(world: World, renderMap: () => void): void {
   main.append(fileInput);
 
   const close = panel.querySelector<HTMLButtonElement>("#game-menu-close")!;
+  const runtime = panel.querySelector<HTMLElement>(".game-menu-runtime")!;
+  const autoplay = document.querySelector<HTMLButtonElement>("#autoplay");
+  const speedControl = document.querySelector<HTMLElement>(".speed-control");
+  const debugToggle = document.querySelector<HTMLButtonElement>("#debug-toggle");
+  if (autoplay) runtime.append(autoplay);
+  if (speedControl) runtime.append(speedControl);
+  if (debugToggle) runtime.append(debugToggle);
+  document.querySelector<HTMLElement>(".round-controls")?.remove();
+  document.querySelector<HTMLElement>(".bottom-bar")?.remove();
 
   const setOpen = (open: boolean): void => {
     if (open) {
+      window.dispatchEvent(new CustomEvent(UI_MENU_OPENED_EVENT, { detail: { menu: "game" } }));
       document.querySelector<HTMLButtonElement>("#build-menu-close")?.click();
       document.querySelector<HTMLButtonElement>("#handbook-close")?.click();
     }
@@ -97,7 +109,12 @@ export function mountGameMenu(world: World, renderMap: () => void): void {
   close.addEventListener("click", () => setOpen(false));
 
   panel.addEventListener("click", (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-game-action]");
+    const target = event.target as HTMLElement;
+    if (target.closest("#autoplay") || target.closest("#debug-toggle")) {
+      setOpen(false);
+      return;
+    }
+    const button = target.closest<HTMLButtonElement>("[data-game-action]");
     const action = button?.dataset.gameAction;
     if (!action) return;
 

@@ -9,6 +9,7 @@ const BUILD_MODE_EVENT = "poc-build-mode";
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const WAYPOST_PLACEMENT_REQUESTED_EVENT = "poc-waypost-placement-requested";
+const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
 
 const BUILDING_NAMES: Record<PlaceableBuildingKind, string> = {
   warehouse: "Lager",
@@ -22,6 +23,9 @@ const BUILDING_NAMES: Record<PlaceableBuildingKind, string> = {
   pottery: "Töpferei",
   stonemason: "Steinmetzhütte",
 };
+
+const SORTED_BUILDING_KINDS = (Object.keys(BUILDING_NAMES) as PlaceableBuildingKind[])
+  .sort((a, b) => BUILDING_NAMES[a].localeCompare(BUILDING_NAMES[b], "de"));
 
 let allowNextTileSelection = false;
 
@@ -60,7 +64,14 @@ export function mountBuildMenu(world: World): void {
         <button id="build-menu-close" type="button" aria-label="Baumenü schließen">×</button>
       </div>
       <div class="build-menu-list">
-        ${(Object.keys(BUILDING_NAMES) as PlaceableBuildingKind[])
+        <button class="build-menu-item" type="button" data-place-waypost>
+          <span class="build-menu-building-icon" aria-hidden="true">🪧</span>
+          <span class="build-menu-building-copy">
+            <strong>Wegweiser</strong>
+            <span class="build-menu-cost">Verkehrsnetz erweitern</span>
+          </span>
+        </button>
+        ${SORTED_BUILDING_KINDS
           .map(
             (kind) => `
               <button class="build-menu-item" type="button" data-build-kind="${kind}">
@@ -72,13 +83,6 @@ export function mountBuildMenu(world: World): void {
               </button>`,
           )
           .join("")}
-        <button class="build-menu-item" type="button" data-place-waypost>
-          <span class="build-menu-building-icon" aria-hidden="true">🪧</span>
-          <span class="build-menu-building-copy">
-            <strong>Wegweiser</strong>
-            <span class="build-menu-cost">Verkehrsnetz erweitern</span>
-          </span>
-        </button>
       </div>
     </section>`;
 
@@ -96,7 +100,10 @@ export function mountBuildMenu(world: World): void {
   };
 
   const setOpen = (open: boolean): void => {
-    if (open) refreshAvailability();
+    if (open) {
+      window.dispatchEvent(new CustomEvent(UI_MENU_OPENED_EVENT, { detail: { menu: "build" } }));
+      refreshAvailability();
+    }
     panel.hidden = !open;
     toggle.setAttribute("aria-expanded", String(open));
     toggle.classList.toggle("active", open);

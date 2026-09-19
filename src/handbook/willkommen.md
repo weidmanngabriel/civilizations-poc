@@ -10,4 +10,4 @@ Tippe oder klicke Gebäude und Bewohner an, um mehr zu erfahren. Die Karte kanns
 
 ## Spielstand
 
-Über **Spiel** kannst du ein neues Spiel starten sowie deinen aktuellen Spielstand speichern oder laden.
+Über **Spiel** pausierst oder setzt du die Simulation fort, stellst die Geschwindigkeit ein, öffnest Debug und kannst außerdem ein neues Spiel starten sowie deinen aktuellen Spielstand speichern oder laden. Dadurch bleiben diese Steuerungen außerhalb des Menüs von der Karte verschwunden.

@@ -6,6 +6,7 @@ const BUILDING_SELECTED_EVENT = "poc-building-selected";
 const BUILDING_SELECTION_REQUESTED_EVENT = "poc-building-selection-requested";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
+const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
 
 type BuildingAlertFilter = "all" | BuildingAlertSeverity;
 
@@ -192,6 +193,7 @@ export function mountBuildingPanel(world: World): void {
     toggle.setAttribute("aria-expanded", String(open));
     toggle.classList.toggle("active", open);
     if (open) {
+      window.dispatchEvent(new CustomEvent(UI_MENU_OPENED_EVENT, { detail: { menu: "buildings" } }));
       closeConflictingMenus();
       renderList();
     } else {

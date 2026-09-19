@@ -22,6 +22,7 @@ const PERSON_SELECTION_REQUESTED_EVENT = "poc-person-selection-requested";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT = "poc-person-context-toggle-requested";
+const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
 
 type ActionId =
   | "profession"
@@ -121,9 +122,11 @@ export function mountPersonContextMenu(world: World): void {
     const current = currentProfession(world, person);
     professionList.innerHTML = [
       `<button type="button" data-profession="" aria-pressed="${current === undefined}">👤 Frei</button>`,
-      ...(Object.entries(PROFESSION_LABELS) as [Profession, string][]).map(([profession, label]) =>
-        `<button type="button" data-profession="${profession}" aria-pressed="${current === profession}">${label}</button>`,
-      ),
+      ...(Object.entries(PROFESSION_LABELS) as [Profession, string][])
+        .sort((a, b) => a[1].localeCompare(b[1], "de"))
+        .map(([profession, label]) =>
+          `<button type="button" data-profession="${profession}" aria-pressed="${current === profession}">${label}</button>`,
+        ),
     ].join("");
   };
 
@@ -179,8 +182,12 @@ export function mountPersonContextMenu(world: World): void {
       }));
       return;
     }
-    if (action === "eat") commandEat(world, person.id);
-    if (action === "sleep") commandSleep(world, person.id);
+    const success = action === "eat"
+      ? commandEat(world, person.id)
+      : action === "sleep"
+        ? commandSleep(world, person.id)
+        : false;
+    if (!success) return;
     setMenuOpen(false);
     window.dispatchEvent(new CustomEvent(PERSON_SELECTION_REQUESTED_EVENT, {
       detail: { id: person.id, focus: false },
@@ -198,8 +205,7 @@ export function mountPersonContextMenu(world: World): void {
     if (!button || !person) return;
     const profession = button.dataset.profession as Profession | "";
     if (!setPersonProfession(world, person.id, profession || undefined)) return;
-    picker.hidden = true;
-    renderMenu();
+    setMenuOpen(false);
     window.dispatchEvent(new CustomEvent(PERSON_SELECTION_REQUESTED_EVENT, {
       detail: { id: person.id, focus: false },
     }));
@@ -231,6 +237,7 @@ export function mountPersonContextMenu(world: World): void {
       }));
   });
   window.addEventListener(PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT, () => setMenuOpen(menu.hidden));
+  window.addEventListener(UI_MENU_OPENED_EVENT, () => setMenuOpen(false));
   window.addEventListener(BUILD_MODE_EVENT, () => setMenuOpen(false));
   window.addEventListener(MERCHANT_TARGET_MODE_EVENT, () => setMenuOpen(false));
   window.addEventListener(WORK_AREA_MODE_EVENT, (event) => {
