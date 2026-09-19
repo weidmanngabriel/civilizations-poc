@@ -1,12 +1,20 @@
 # Willkommen
 
+## Das Grundprinzip
+
 In deiner Siedlung ist jeder Bewohner eine eigene Person. Waren, Arbeit und Wege sind nicht abstrakt: Bewohner bewegen sich selbstständig zwischen Rohstoffen, Arbeitsplätzen, Lagern und Versorgung.
 
 Darum zählt nicht nur, **was** du baust, sondern auch **wo** du es baust. Kurze Wege und sinnvoll angeordnete Gebäude machen einen großen Unterschied.
 
 Wenn etwas stockt, hilft meist diese Frage: **Wo ist die Person, wo ist die benötigte Ware und gibt es einen erreichbaren Weg dazwischen?**
 
+## Bedienung
+
 Tippe oder klicke Gebäude und Bewohner an, um mehr zu erfahren. Die Karte kannst du jederzeit verschieben und zoomen.
+
+## Handbuch nutzen
+
+Auf längeren Handbuchseiten findest du unten rechts einen runden Listen-Button. Er öffnet eine Übersicht der Abschnitte auf der aktuellen Seite; ein Klick oder Tap springt direkt zum gewählten Abschnitt.
 
 ## Spielstand
 
