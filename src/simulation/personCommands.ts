@@ -59,6 +59,7 @@ const stopCurrentWork = (world: World, person: Person): boolean => {
   if (person.trip?.picked || person.outdoorCarry) return false;
   if (person.sleepState) interruptSleep(world, person);
   releaseTripReservation(world, person);
+  if (person.huntLootTarget) releaseLooseGoodReservation(world, person.huntLootTarget, 1);
   person.trip = undefined;
   person.assignment = undefined;
   person.merchantRoute = undefined;
@@ -67,6 +68,10 @@ const stopCurrentWork = (world: World, person: Person): boolean => {
   person.fisher = undefined;
   person.hunter = undefined;
   person.huntTarget = undefined;
+  person.huntAimTarget = undefined;
+  person.huntAimUntilTick = undefined;
+  person.huntLootTarget = undefined;
+  person.huntLootPickupUntilTick = undefined;
   person.nextRangedAttackTick = undefined;
   person.fishingSpot = undefined;
   person.fishingWaterTarget = undefined;

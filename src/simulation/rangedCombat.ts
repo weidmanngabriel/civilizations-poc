@@ -14,6 +14,8 @@ export type RangedAttackProfile = {
   flightTicks: number;
   cooldownTicks: number;
   range: number;
+  /** How long an impacted projectile remains in the world for presentation. */
+  impactLifetimeTicks?: number;
 };
 
 export type RangedImpact = {
@@ -48,6 +50,9 @@ export function fireRangedAttack(
     startedAtTick: world.round,
     impactAtTick: world.round + profile.flightTicks,
     hit: randomFraction(world) < Math.max(0, Math.min(1, hitChance)),
+    ...(profile.impactLifetimeTicks !== undefined
+      ? { impactLifetimeTicks: profile.impactLifetimeTicks }
+      : {}),
     ...(rewardProfession ? { rewardProfession } : {}),
   };
   (world.projectiles ??= []).push(projectile);
@@ -61,16 +66,26 @@ export function advanceRangedCombat(world: World): RangedImpact[] {
   const impacts: RangedImpact[] = [];
   const remaining: Projectile[] = [];
   for (const projectile of active) {
+    if (projectile.resolvedAtTick !== undefined) {
+      if (projectile.expiresAtTick === undefined || world.round < projectile.expiresAtTick)
+        remaining.push(projectile);
+      continue;
+    }
     if (world.round < projectile.impactAtTick) {
       remaining.push(projectile);
       continue;
     }
+
+    projectile.resolvedAtTick = world.round;
+    projectile.expiresAtTick =
+      world.round + Math.max(0, projectile.impactLifetimeTicks ?? 0);
     impacts.push({
       projectile,
       target: projectile.target,
       hit: projectile.hit,
       rewardProfession: projectile.rewardProfession,
     });
+    if (projectile.expiresAtTick > world.round) remaining.push(projectile);
   }
   world.projectiles = remaining;
   return impacts;

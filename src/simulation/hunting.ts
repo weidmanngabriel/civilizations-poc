@@ -1,9 +1,22 @@
 import type { Animal, Person, World } from "./model";
-import { findPath } from "./hex";
+import { findPath, same } from "./hex";
 import { awardProfessionExperience, professionExperience } from "./experience";
 import { CONFIG } from "./scenario";
-import { hexDistance } from "./spatial";
-import { HUNTER_WORK_AREA_RADIUS, ensureWorkArea, workAreaContains } from "./workAreas";
+import { GRID_REFINEMENT, hexDistance } from "./spatial";
+import {
+  HUNTER_WORK_AREA_RADIUS,
+  ensureWorkArea,
+  routeOutdoorCarryToFlag,
+  workAreaContains,
+} from "./workAreas";
+import {
+  findLooseGoodDropPosition,
+  looseGoodStack,
+  pickupReservedLooseGood,
+  placeLooseGood,
+  releaseLooseGoodReservation,
+  reserveLooseGood,
+} from "./looseGoods";
 import {
   advanceRangedCombat,
   fireRangedAttack,
@@ -16,11 +29,17 @@ import {
   removeAnimal,
 } from "./wildlife";
 
+const HUNTER_BOW_RANGE = 2 * GRID_REFINEMENT;
+const HUNTER_AIM_TICKS = 2 * CONFIG.simulationHz;
+const HUNTER_LOOT_PICKUP_TICKS = 1 * CONFIG.simulationHz;
+const HUNTER_ARROW_GROUND_TICKS = 10 * CONFIG.simulationHz;
+
 const HUNTER_BOW: RangedAttackProfile = {
   projectileKind: "arrow",
   flightTicks: Math.round(0.45 * CONFIG.simulationHz),
   cooldownTicks: Math.round(1.5 * CONFIG.simulationHz),
-  range: Math.round(HUNTER_WORK_AREA_RADIUS * 0.4),
+  range: HUNTER_BOW_RANGE,
+  impactLifetimeTicks: HUNTER_ARROW_GROUND_TICKS,
 };
 
 export function hunterHitChance(person: Person, targetFleeing: boolean): number {
@@ -30,14 +49,18 @@ export function hunterHitChance(person: Person, targetFleeing: boolean): number 
 
 const animals = (world: World): Animal[] => world.animals ?? [];
 
-const hunterBusy = (person: Person): boolean =>
+const hunterInterrupted = (person: Person): boolean =>
   Boolean(
     person.hungerState ||
     person.sleepState ||
     person.manualMoveTarget ||
-    person.trip ||
-    person.outdoorCarry,
+    person.trip,
   );
+
+const clearAim = (hunter: Person): void => {
+  hunter.huntAimTarget = undefined;
+  hunter.huntAimUntilTick = undefined;
+};
 
 const targetForHunter = (world: World, hunter: Person): Animal | undefined => {
   const area = hunter.workArea;
@@ -76,10 +99,133 @@ const routeIntoRange = (world: World, hunter: Person, target: Animal): void => {
   hunter.active = travelSteps === 0;
 };
 
+const abandonLoot = (world: World, hunter: Person): void => {
+  if (hunter.huntLootTarget)
+    releaseLooseGoodReservation(world, hunter.huntLootTarget, 1);
+  hunter.huntLootTarget = undefined;
+  hunter.huntLootPickupUntilTick = undefined;
+};
+
+function collectHuntLoot(world: World, hunter: Person): void {
+  const targetId = hunter.huntLootTarget;
+  if (!targetId) return;
+  const stack = looseGoodStack(world, targetId);
+  if (!stack || stack.good !== "meat" || stack.amount < 1 || stack.reserved < 1) {
+    hunter.huntLootTarget = undefined;
+    hunter.huntLootPickupUntilTick = undefined;
+    hunter.path = [];
+    hunter.active = false;
+    return;
+  }
+
+  if (hunter.path.length) {
+    hunter.active = false;
+    return;
+  }
+
+  if (!same(hunter.position, stack.position)) {
+    const retryAfter = hunter.workArea?.retryAfterTick;
+    if (retryAfter !== undefined && world.round < retryAfter) return;
+    const path = findPath(world.tiles, hunter.position, stack.position, CONFIG.roadSpeedMultiplier);
+    if (!path) {
+      hunter.active = false;
+      if (hunter.workArea)
+        hunter.workArea.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
+      return;
+    }
+    hunter.path = path;
+    hunter.movement = 0;
+    hunter.active = false;
+    if (hunter.workArea) hunter.workArea.retryAfterTick = undefined;
+    return;
+  }
+
+  if (hunter.huntLootPickupUntilTick === undefined) {
+    hunter.huntLootPickupUntilTick = world.round + HUNTER_LOOT_PICKUP_TICKS;
+    hunter.active = true;
+    return;
+  }
+  if (world.round < hunter.huntLootPickupUntilTick) {
+    hunter.active = true;
+    return;
+  }
+
+  if (!pickupReservedLooseGood(world, targetId, 1)) {
+    abandonLoot(world, hunter);
+    return;
+  }
+
+  hunter.huntLootTarget = undefined;
+  hunter.huntLootPickupUntilTick = undefined;
+  hunter.outdoorCarry = "meat";
+  hunter.path = [];
+  hunter.movement = 0;
+  hunter.active = false;
+  routeOutdoorCarryToFlag(world, hunter);
+}
+
+function startAiming(world: World, hunter: Person, target: Animal): void {
+  hunter.path = [];
+  hunter.movement = 0;
+  hunter.active = true;
+  hunter.huntAimTarget = target.id;
+  hunter.huntAimUntilTick = world.round + HUNTER_AIM_TICKS;
+}
+
+function finishAiming(world: World, hunter: Person): boolean {
+  if (!hunter.huntAimTarget || hunter.huntAimUntilTick === undefined) return false;
+  const target = animals(world).find((candidate) => candidate.id === hunter.huntAimTarget);
+  if (!target) {
+    clearAim(hunter);
+    hunter.huntTarget = undefined;
+    hunter.active = false;
+    return true;
+  }
+
+  hunter.path = [];
+  hunter.movement = 0;
+  hunter.active = true;
+  if (world.round < hunter.huntAimUntilTick) return true;
+
+  const fleeing = animalIsFleeing(world, target);
+  fireRangedAttack(
+    world,
+    hunter,
+    { kind: "animal", id: target.id },
+    target.position,
+    HUNTER_BOW,
+    hunterHitChance(hunter, fleeing),
+    "hunter",
+  );
+  hunter.nextRangedAttackTick = world.round + HUNTER_BOW.cooldownTicks;
+  hunter.huntTarget = target.id;
+  clearAim(hunter);
+  frightenAnimalGroup(world, target.groupId, hunter.position);
+  return true;
+}
+
 function advanceHunter(world: World, hunter: Person): void {
   ensureWorkArea(world, hunter);
-  if (hunterBusy(hunter)) return;
+
+  if (hunterInterrupted(hunter)) {
+    clearAim(hunter);
+    return;
+  }
+
+  if (hunter.outdoorCarry) {
+    clearAim(hunter);
+    routeOutdoorCarryToFlag(world, hunter);
+    return;
+  }
+
+  if (hunter.huntLootTarget) {
+    clearAim(hunter);
+    collectHuntLoot(world, hunter);
+    return;
+  }
+
   if (!hunter.workArea || !workAreaContains(hunter, hunter.position)) return;
+  if (finishAiming(world, hunter)) return;
 
   const target = targetForHunter(world, hunter);
   if (!target) {
@@ -93,38 +239,41 @@ function advanceHunter(world: World, hunter: Person): void {
     return;
   }
 
-  hunter.path = [];
-  hunter.movement = 0;
-  hunter.active = true;
-  if ((hunter.nextRangedAttackTick ?? 0) > world.round) return;
+  startAiming(world, hunter, target);
+}
 
-  const fleeing = animalIsFleeing(world, target);
-  fireRangedAttack(
-    world,
-    hunter,
-    { kind: "animal", id: target.id },
-    target.position,
-    HUNTER_BOW,
-    hunterHitChance(hunter, fleeing),
-    "hunter",
-  );
-  hunter.nextRangedAttackTick = world.round + HUNTER_BOW.cooldownTicks;
-  frightenAnimalGroup(world, target.groupId, hunter.position);
+function createHuntingLoot(world: World, shooter: Person | undefined, position: { q: number; r: number }): void {
+  const drop = findLooseGoodDropPosition(world, position, "meat", GRID_REFINEMENT);
+  if (!drop) return;
+  const stack = placeLooseGood(world, drop, "meat", 1);
+  if (!stack || !shooter || !shooter.hunter) return;
+  if (!reserveLooseGood(world, stack.id, 1)) return;
+  shooter.huntLootTarget = stack.id;
+  shooter.huntLootPickupUntilTick = undefined;
+  shooter.path = [];
+  shooter.movement = 0;
+  shooter.active = false;
 }
 
 function resolveHuntingImpact(world: World, impact: RangedImpact): void {
   if (!impact.hit || impact.target.kind !== "animal") return;
   const removed = removeAnimal(world, impact.target.id);
   if (!removed) return;
-  if (impact.rewardProfession) {
-    const shooter =
-      impact.projectile.source.kind === "person"
-        ? world.people.find((person) => person.id === impact.projectile.source.id)
-        : undefined;
-    if (shooter) awardProfessionExperience(shooter, impact.rewardProfession);
-  }
-  for (const person of world.people)
+
+  const shooter =
+    impact.projectile.source.kind === "person"
+      ? world.people.find((person) => person.id === impact.projectile.source.id)
+      : undefined;
+
+  if (impact.rewardProfession && shooter)
+    awardProfessionExperience(shooter, impact.rewardProfession);
+
+  createHuntingLoot(world, shooter, removed.position);
+
+  for (const person of world.people) {
     if (person.huntTarget === removed.id) person.huntTarget = undefined;
+    if (person.huntAimTarget === removed.id) clearAim(person);
+  }
 }
 
 export function advanceHunting(world: World): void {

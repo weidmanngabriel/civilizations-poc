@@ -11,6 +11,7 @@ const goodColors: Record<Good, number> = {
   water: 0x77b9d4,
   bread: 0xb8793d,
   fish: 0x6fa7b8,
+  meat: 0xb85f55,
   clay: 0x9b6a4d,
   rubble: 0x8b8f8c,
   brick: 0xb55d42,
@@ -51,6 +52,14 @@ const drawPiece = (
     graphics.fillCircle(x, y, 2.2);
     graphics.fillStyle(0xb88460, 0.85);
     graphics.fillCircle(x - 0.6, y - 0.6, 0.7);
+    return;
+  }
+  if (good === "meat") {
+    graphics.fillStyle(color, 0.98);
+    graphics.fillEllipse(x, y, 4.7, 3.3);
+    graphics.fillStyle(0xe7ddd0, 1);
+    graphics.fillCircle(x + 2.2, y - 0.2, 1);
+    graphics.fillCircle(x + 3.2, y - 0.2, 0.85);
     return;
   }
   if (good === "rubble") {

@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { hunterHitChance, advanceHunting } from "../src/simulation/hunting";
+import { commandEat, resolveFoodArrivals } from "../src/simulation/needs";
+import { placeLooseGood } from "../src/simulation/looseGoods";
 import { setPersonProfession } from "../src/simulation/personCommands";
 import { createWorld, CONFIG } from "../src/simulation/scenario";
-import { HUNTER_WORK_AREA_RADIUS } from "../src/simulation/workAreas";
+import {
+  HUNTER_WORK_AREA_RADIUS,
+  HUNTER_WORK_AREA_RADIUS_WORLD_TILES,
+  WORK_AREA_RADIUS_WORLD_TILES,
+} from "../src/simulation/workAreas";
 import { hexDistance } from "../src/simulation/spatial";
 import {
   advanceWildlife,
@@ -39,13 +45,15 @@ test("hunter hit chance scales with experience and fleeing halves it", () => {
   assert.equal(hunterHitChance(hunter, true), 0.475);
 });
 
-test("hunter gets a work area twice as large as normal outdoor workers", () => {
+test("hunter gets a ten-world-tile work area", () => {
   const world = createWorld(1);
   const hunter = world.people[0]!;
   hunter.position = { ...firstGrass(world) };
 
   assert.equal(setPersonProfession(world, hunter.id, "hunter"), true);
   assert.equal(hunter.workArea?.radius, HUNTER_WORK_AREA_RADIUS);
+  assert.equal(HUNTER_WORK_AREA_RADIUS_WORLD_TILES, 10);
+  assert.equal(HUNTER_WORK_AREA_RADIUS_WORLD_TILES, WORK_AREA_RADIUS_WORLD_TILES * 4);
 });
 
 test("a shot frightens every animal in the group for five seconds", () => {
@@ -66,29 +74,88 @@ test("a shot frightens every animal in the group for five seconds", () => {
   for (const animal of members) assert.equal(animal.fleeingUntilTick, undefined);
 });
 
-test("hunter gains experience only when the projectile actually kills wildlife", () => {
+test("hunter aims for two seconds, fires a locked shot, and retrieves meat", () => {
   const world = createWorld(1);
   const hunter = world.people[0]!;
-  const home = firstGrass(world);
+  const home = centralGrass(world);
   hunter.position = { ...home };
   assert.equal(setPersonProfession(world, hunter.id, "hunter"), true);
 
-  const group = spawnAnimalGroup(world, "hare", home, 1)!;
+  const targetTile = world.tiles
+    .filter((tile) => tile.terrain === "grass" && !tile.resourceBlocking && !tile.buildingBlocking)
+    .sort(
+      (a, b) =>
+        Math.abs(hexDistance(home, a) - 6) - Math.abs(hexDistance(home, b) - 6) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0]!;
+  const group = spawnAnimalGroup(world, "hare", targetTile, 1)!;
   const animal = world.animals!.find((candidate) => candidate.groupId === group.id)!;
-  animal.position = { ...home };
+  animal.position = { ...targetTile };
+  animal.path = [];
 
   world.rngState = 1972;
   advanceHunting(world);
+  assert.equal(world.projectiles?.length ?? 0, 0);
+  assert.equal(hunter.huntAimTarget, animal.id);
+  assert.equal(hunter.huntAimUntilTick, 2 * CONFIG.simulationHz);
+  assert.equal(hunter.path.length, 0);
+
+  const escapedTile = world.tiles
+    .filter((tile) => tile.terrain === "grass" && !tile.resourceBlocking && !tile.buildingBlocking)
+    .sort(
+      (a, b) =>
+        Math.abs(hexDistance(home, a) - 18) - Math.abs(hexDistance(home, b) - 18) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0]!;
+  animal.position = { ...escapedTile };
+
+  world.round = 2 * CONFIG.simulationHz;
+  advanceHunting(world);
   assert.equal(world.projectiles?.length, 1);
+  assert.deepEqual(world.projectiles![0]!.targetPosition, escapedTile);
   assert.equal(hunter.experience?.hunter ?? 0, 0);
 
-  for (let i = 0; i < Math.ceil(0.5 * CONFIG.simulationHz); i += 1) {
-    world.round += 1;
-    advanceHunting(world);
-  }
+  world.round = world.projectiles![0]!.impactAtTick;
+  advanceHunting(world);
 
   assert.equal(world.animals?.length, 0);
   assert.equal(hunter.experience?.hunter, 1);
+  assert.equal(world.projectiles?.length, 1);
+  assert.ok(world.projectiles![0]!.resolvedAtTick !== undefined);
+  assert.equal(
+    world.projectiles![0]!.expiresAtTick,
+    world.projectiles![0]!.resolvedAtTick! + 10 * CONFIG.simulationHz,
+  );
+
+  const meat = world.looseGoods?.find((stack) => stack.good === "meat");
+  assert.ok(meat);
+  assert.equal(meat!.reserved, 1);
+  assert.equal(hunter.huntLootTarget, meat!.id);
+
+  hunter.position = { ...meat!.position };
+  hunter.path = [];
+  advanceHunting(world);
+  assert.equal(hunter.huntLootPickupUntilTick, world.round + CONFIG.simulationHz);
+
+  world.round += CONFIG.simulationHz;
+  advanceHunting(world);
+  assert.equal(hunter.outdoorCarry, "meat");
+  assert.equal(hunter.huntLootTarget, undefined);
+  assert.ok(hunter.path.length > 0 || (
+    hunter.workArea &&
+    hunter.position.q === hunter.workArea.center.q &&
+    hunter.position.r === hunter.workArea.center.r
+  ));
+
+  hunter.position = { ...hunter.workArea!.center };
+  hunter.path = [];
+  advanceHunting(world);
+  assert.equal(hunter.outdoorCarry, undefined);
+  assert.ok(world.looseGoods?.some(
+    (stack) => stack.good === "meat" && hexDistance(stack.position, hunter.workArea!.center) <= 5,
+  ));
 });
 
 
@@ -147,4 +214,49 @@ test("hare group migration develops sustained drift over several minutes", () =>
     maxDistance >= 12,
     `expected migrating group center to leave the spawn area, max distance was ${maxDistance}`,
   );
+});
+
+
+test("impacted arrows remain for ten seconds and are removed afterwards", () => {
+  const world = createWorld(1);
+  const hunter = world.people[0]!;
+  const home = centralGrass(world);
+  hunter.position = { ...home };
+  assert.equal(setPersonProfession(world, hunter.id, "hunter"), true);
+  const group = spawnAnimalGroup(world, "hare", home, 1)!;
+
+  world.rngState = 1972;
+  advanceHunting(world);
+  world.round = 2 * CONFIG.simulationHz;
+  advanceHunting(world);
+  const projectile = world.projectiles![0]!;
+  world.round = projectile.impactAtTick;
+  advanceHunting(world);
+
+  const expiresAt = projectile.expiresAtTick!;
+  world.round = expiresAt - 1;
+  advanceHunting(world);
+  assert.ok(world.projectiles?.some((candidate) => candidate.id === projectile.id));
+
+  world.round = expiresAt;
+  advanceHunting(world);
+  assert.equal(world.projectiles?.some((candidate) => candidate.id === projectile.id), false);
+});
+
+test("meat restores the same sixty hunger points as fish", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  person.position = { ...centralGrass(world) };
+  person.hunger = 20;
+  const stack = placeLooseGood(world, person.position, "meat", 1)!;
+
+  assert.equal(commandEat(world, person.id), true);
+  assert.equal(person.hungerState?.foodLooseGood, stack.id);
+  resolveFoodArrivals(world);
+  assert.ok(person.hungerState?.eatingUntilTick !== undefined);
+
+  world.round = person.hungerState!.eatingUntilTick!;
+  resolveFoodArrivals(world);
+  assert.equal(person.hunger, 80);
+  assert.equal(world.looseGoods?.some((candidate) => candidate.id === stack.id), false);
 });

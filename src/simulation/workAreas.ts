@@ -22,13 +22,13 @@ import {
 
 export const WORK_AREA_RADIUS_WORLD_TILES = 2.5;
 export const WORK_AREA_RADIUS = WORK_AREA_RADIUS_WORLD_TILES * GRID_REFINEMENT;
-export const HUNTER_WORK_AREA_RADIUS_WORLD_TILES = WORK_AREA_RADIUS_WORLD_TILES * 2;
+export const HUNTER_WORK_AREA_RADIUS_WORLD_TILES = WORK_AREA_RADIUS_WORLD_TILES * 4;
 export const HUNTER_WORK_AREA_RADIUS = HUNTER_WORK_AREA_RADIUS_WORLD_TILES * GRID_REFINEMENT;
 
 const workAreaRadiusFor = (person: Person): number =>
   person.hunter ? HUNTER_WORK_AREA_RADIUS : WORK_AREA_RADIUS;
 
-const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "wheat", "flour", "water", "bread", "fish", "clay", "rubble", "brick", "stoneBlock"];
+const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "wheat", "flour", "water", "bread", "fish", "meat", "clay", "rubble", "brick", "stoneBlock"];
 const FISHING_WAIT_TICKS = 5 * CONFIG.simulationHz;
 const isComplete = (building: Building): boolean => !building.construction || building.construction.complete;
 
@@ -193,7 +193,7 @@ function startFishingCycle(world: World, person: Person): void {
   person.active = true;
 }
 
-function routeOutdoorCarryToFlag(world: World, person: Person): boolean {
+export function routeOutdoorCarryToFlag(world: World, person: Person): boolean {
   const area = person.workArea;
   const good = person.outdoorCarry;
   if (!area || !good) return true;
@@ -527,7 +527,8 @@ export function syncWorkAreas(world: World): void {
       person.hungerState ||
       person.sleepState ||
       person.manualMoveTarget ||
-      (storageCarrier && person.trip?.picked),
+      (storageCarrier && person.trip?.picked) ||
+      (hunter && Boolean(person.huntLootTarget || person.outdoorCarry)),
     );
     if (outsideLocalNode && !externalPriority) {
       if (!person.path.length) {

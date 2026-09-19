@@ -103,7 +103,6 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
         animalSprites.delete(id);
       }
 
-      const zoom = scene.cameras.main.zoom;
       for (const projectile of world.projectiles ?? []) {
         if (projectile.kind !== "arrow") continue;
         const point = projectilePosition(world, projectile);
@@ -114,13 +113,27 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
         const length = Math.hypot(dx, dy) || 1;
         const ux = dx / length;
         const uy = dy / length;
-        const half = 2.2 / zoom;
-        projectileGraphics.lineStyle(0.9 / zoom, 0x4c3827, 1);
+        const impacted = projectile.resolvedAtTick !== undefined;
+        const half = impacted ? 3.4 : 3;
+        projectileGraphics.lineStyle(1.05, 0x4c3827, 1);
         projectileGraphics.lineBetween(
           point.x - ux * half,
           point.y - uy * half,
           point.x + ux * half,
           point.y + uy * half,
+        );
+        const tipX = point.x + ux * half;
+        const tipY = point.y + uy * half;
+        const px = -uy;
+        const py = ux;
+        projectileGraphics.fillStyle(0x66513c, 1);
+        projectileGraphics.fillTriangle(
+          tipX + ux * 1.7,
+          tipY + uy * 1.7,
+          tipX - ux * 0.5 + px * 1.15,
+          tipY - uy * 0.5 + py * 1.15,
+          tipX - ux * 0.5 - px * 1.15,
+          tipY - uy * 0.5 - py * 1.15,
         );
       }
     };
