@@ -9,6 +9,7 @@ import {
   HUNTER_WORK_AREA_RADIUS,
   HUNTER_WORK_AREA_RADIUS_WORLD_TILES,
   WORK_AREA_RADIUS_WORLD_TILES,
+  syncWorkAreas,
 } from "../src/simulation/workAreas";
 import { hexDistance } from "../src/simulation/spatial";
 import {
@@ -403,13 +404,19 @@ test("hunter keeps pursuing an acquired target outside the hunting area", () => 
 
   hunter.position = { ...outsideHunter };
   hunter.path = [];
+  hunter.navigationBlocked = true;
   animal.position = { ...outsideTarget };
   animal.path = [];
+
+  syncWorkAreas(world);
+  assert.equal(hunter.path.length, 0);
+  assert.equal(hunter.huntTarget, animal.id);
 
   advanceHunting(world);
 
   assert.equal(hunter.huntTarget, animal.id);
   assert.equal(hunter.huntAimTarget, animal.id);
+  assert.equal(hunter.navigationBlocked, undefined);
 });
 
 test("hunter does not acquire a new target outside the hunting area", () => {
@@ -442,4 +449,52 @@ test("hunter does not acquire a new target outside the hunting area", () => {
 
   assert.equal(hunter.huntTarget, undefined);
   assert.equal(hunter.huntAimTarget, undefined);
+});
+
+
+test("hunter uses global pathfinding to carry loot back from outside the hunting area", () => {
+  const world = createWorld(1);
+  const hunter = world.people[0]!;
+  const home = centralGrass(world);
+  hunter.position = { ...home };
+  assert.equal(setPersonProfession(world, hunter.id, "hunter"), true);
+
+  const outside = world.tiles
+    .filter(
+      (tile) =>
+        tile.terrain === "grass" &&
+        !tile.resourceBlocking &&
+        !tile.buildingBlocking &&
+        hexDistance(home, tile) > HUNTER_WORK_AREA_RADIUS + 5,
+    )
+    .sort(
+      (a, b) =>
+        hexDistance(home, a) - hexDistance(home, b) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0]!;
+  assert.ok(outside);
+
+  hunter.position = { ...outside };
+  hunter.path = [];
+  hunter.outdoorCarry = "meat";
+  hunter.navigationBlocked = true;
+
+  syncWorkAreas(world);
+  assert.equal(hunter.path.length, 0);
+  assert.equal(hunter.outdoorCarry, "meat");
+
+  advanceHunting(world);
+
+  assert.ok(hunter.path.length > 0);
+  assert.equal(hunter.navigationBlocked, undefined);
+
+  hunter.position = { ...hunter.workArea!.center };
+  hunter.path = [];
+  advanceHunting(world);
+
+  assert.equal(hunter.outdoorCarry, undefined);
+  assert.ok(world.looseGoods?.some(
+    (stack) => stack.good === "meat" && hexDistance(stack.position, hunter.workArea!.center) <= 5,
+  ));
 });
