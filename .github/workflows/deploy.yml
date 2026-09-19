@@ -24,18 +24,6 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - name: Install ffmpeg for Character Lab review video
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-      - name: Capture Character Lab review media
-        run: npm run capture:character-lab -- woodcut 21
-      - name: Upload Character Lab review media
-        uses: actions/upload-artifact@v4
-        with:
-          name: character-lab-review-${{ github.sha }}
-          path: |
-            character-lab/review-output/woodcut/*.png
-            character-lab/review-output/woodcut/*.webm
-          retention-days: 14
       - uses: actions/configure-pages@v5
         if: github.event_name != 'pull_request'
       - uses: actions/upload-pages-artifact@v3
