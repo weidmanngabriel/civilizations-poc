@@ -6,7 +6,7 @@ Gebäude werden über das Baumenü ausgewählt und anschließend direkt auf der 
 
 ## Freischaltungen
 
-Neue Gebäude werden nach und nach durch Berufserfahrung und bereits aufgebaute Produktionsketten verfügbar. Im Technologiebaum siehst du, was schon bekannt ist und welche Entwicklung noch fehlt.
+Neue Gebäude werden nach und nach durch Berufserfahrung und bereits aufgebaute Produktionsketten verfügbar. Ein Jäger mit 10 Erfahrungspunkten kann zum **Näher** werden und schaltet die **Näherei** dauerhaft frei. Im Technologiebaum siehst du, was schon bekannt ist und welche Entwicklung noch fehlt.
 
 ## Baufläche und Wegweiser
 
