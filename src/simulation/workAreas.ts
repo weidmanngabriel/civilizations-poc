@@ -2,6 +2,11 @@ import type { Building, Good, Hex, NaturalResource, NaturalResourceKind, Person,
 import { findPath, key, neighbors, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 import { clearNavigationBlocked, findRequiredNavigationPath } from "./wayposts";
+import {
+  findLocalNavigationPath,
+  findPathIntoLocalNavigationNode,
+  type LocalNavigationNode,
+} from "./localNavigation";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { awardProfessionExperience, professionExperience } from "./experience";
 import { startEatingAfterCompletedAction } from "./needs";
@@ -32,6 +37,15 @@ const storageCarrierWorkplace = (world: World, person: Person): Building | undef
 export const supportsWorkArea = (person: Person): boolean => Boolean(person.woodcutter || person.fisher || person.extractor || person.workArea);
 export const workAreaContains = (person: Person, position: Hex): boolean =>
   Boolean(person.workArea && hexDistance(person.workArea.center, position) <= person.workArea.radius);
+
+const workAreaNavigationNode = (person: Person): LocalNavigationNode | undefined => {
+  const area = person.workArea;
+  if (!area) return undefined;
+  return {
+    entry: area.center,
+    contains: (position) => hexDistance(area.center, position) <= area.radius,
+  };
+};
 
 function defaultWorkAreaCenter(world: World, person: Person): Hex {
   if (person.fishingSpot) return person.fishingSpot;
@@ -92,8 +106,14 @@ function fishingCandidate(
     );
 
   for (const position of positions) {
-    const path = center
-      ? findPath(world.tiles, person.position, position, CONFIG.roadSpeedMultiplier)
+    const node = center && radius !== undefined
+      ? {
+          entry: center,
+          contains: (candidate: Hex) => hexDistance(center, candidate) <= radius,
+        }
+      : undefined;
+    const path = node
+      ? findLocalNavigationPath(world, person, node, position, CONFIG.roadSpeedMultiplier)
       : findRequiredNavigationPath(world, person, position, CONFIG.roadSpeedMultiplier);
     if (path) return { position: { q: position.q, r: position.r }, path };
   }
@@ -180,7 +200,8 @@ function routeOutdoorCarryToFlag(world: World, person: Person): boolean {
   }
 
   if (!same(person.position, area.center)) {
-    const path = findPath(world.tiles, person.position, area.center, CONFIG.roadSpeedMultiplier);
+    const node = workAreaNavigationNode(person)!;
+    const path = findLocalNavigationPath(world, person, node, area.center, CONFIG.roadSpeedMultiplier);
     if (!path) {
       person.active = false;
       area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
@@ -324,7 +345,8 @@ function planLocalResource(world: World, person: Person): boolean {
   for (const resource of world.naturalResources) {
     if (resource.kind !== kind || resource.depleted || resource.remaining <= 0 ||
       hexDistance(area.center, resource.position) > area.radius || claimedByOther(world, person, resource)) continue;
-    const path = findPath(world.tiles, person.position, resource.position, CONFIG.roadSpeedMultiplier);
+    const node = workAreaNavigationNode(person)!;
+    const path = findLocalNavigationPath(world, person, node, resource.position, CONFIG.roadSpeedMultiplier);
     if (!path) continue;
     candidates.push({ resource, path, cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier) });
   }
@@ -368,7 +390,8 @@ function planLocalStorageCarrier(world: World, person: Person): boolean {
     for (const source of world.buildings) {
       if (source.id === target.id || hexDistance(area.center, source.position) > area.radius) continue;
       if (buildingSourceStock(source, good) - reservedAtBuildingSource(world, source.id, good) + 1e-9 < CONFIG.carryCapacity) continue;
-      const path = findPath(world.tiles, person.position, source.position, CONFIG.roadSpeedMultiplier);
+      const node = workAreaNavigationNode(person)!;
+      const path = findLocalNavigationPath(world, person, node, source.position, CONFIG.roadSpeedMultiplier);
       if (!path) continue;
       candidates.push({ sourceId: source.id, sourceKind: "building", sourcePosition: { ...source.position }, good, path,
         cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier) });
@@ -376,7 +399,8 @@ function planLocalStorageCarrier(world: World, person: Person): boolean {
     for (const source of looseGoodStacks(world)) {
       if (source.good !== good || hexDistance(area.center, source.position) > area.radius ||
         availableLooseGoodAmount(source) + 1e-9 < CONFIG.carryCapacity) continue;
-      const path = findPath(world.tiles, person.position, source.position, CONFIG.roadSpeedMultiplier);
+      const node = workAreaNavigationNode(person)!;
+      const path = findLocalNavigationPath(world, person, node, source.position, CONFIG.roadSpeedMultiplier);
       if (!path) continue;
       candidates.push({ sourceId: source.id, sourceKind: "looseGood", sourcePosition: { ...source.position }, good, path,
         cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier) });
@@ -476,6 +500,30 @@ export function syncWorkAreas(world: World): void {
     if (!resourceWorker && !fisher && !storageCarrier) { clearWorkArea(person); continue; }
     if (resourceWorker && !person.workArea && !initializeResourceWorker(world, person)) continue;
     ensureWorkArea(world, person);
+
+    const node = workAreaNavigationNode(person)!;
+    const outsideLocalNode = !node.contains(person.position);
+    const externalPriority = Boolean(
+      person.hungerState ||
+      person.sleepState ||
+      person.manualMoveTarget ||
+      (storageCarrier && person.trip?.picked),
+    );
+    if (outsideLocalNode && !externalPriority) {
+      if (!person.path.length) {
+        person.path =
+          findPathIntoLocalNavigationNode(
+            world,
+            person,
+            node,
+            CONFIG.roadSpeedMultiplier,
+          ) ?? [];
+        person.movement = 0;
+      }
+      person.active = false;
+      continue;
+    }
+
     if (resourceWorker) enforceResourceWorker(world, person);
     else if (fisher) enforceFisher(world, person);
     else enforceStorageCarrier(world, person);
@@ -511,6 +559,17 @@ export function setWorkAreaCenter(world: World, personId: number, center: Hex): 
   if (person.trip && !person.trip.picked) {
     const sourcePosition = tripSourcePosition(world, person);
     if (!sourcePosition || !workAreaContains(person, sourcePosition)) resetUnpickedTrip(world, person);
+  }
+  if (
+    !workAreaContains(person, person.position) &&
+    !person.hungerState &&
+    !person.sleepState &&
+    !person.manualMoveTarget &&
+    !person.trip?.picked
+  ) {
+    person.path = [];
+    person.movement = 0;
+    person.active = false;
   }
   person.workArea.retryAfterTick = undefined;
   syncWorkAreas(world);
