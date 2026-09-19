@@ -460,7 +460,10 @@ export function mountPersonPanel(world: World): void {
       panel.querySelector<HTMLButtonElement>('button[data-action="close"]')?.click();
   };
 
-  toggle.addEventListener("click", () => setBrowserOpen(browser.hidden));
+  toggle.addEventListener("click", () => {
+    if (!browser.hidden && staffPicker) returnToStaffBuilding();
+    else setBrowserOpen(browser.hidden);
+  });
   search.addEventListener("input", () => {
     searchQuery = search.value;
     renderBrowserList();
@@ -552,9 +555,14 @@ export function mountPersonPanel(world: World): void {
   window.addEventListener(TILE_SELECTED_EVENT, onWorldSelection);
   window.addEventListener(BUILD_MODE_EVENT, onModalMode);
   window.addEventListener(MERCHANT_TARGET_MODE_EVENT, onModalMode);
-  document.querySelector<HTMLButtonElement>("#build-menu-toggle")?.addEventListener("click", () => setBrowserOpen(false));
-  document.querySelector<HTMLButtonElement>("#handbook-toggle")?.addEventListener("click", () => setBrowserOpen(false));
-  document.querySelector<HTMLButtonElement>("#building-menu-toggle")?.addEventListener("click", () => setBrowserOpen(false));
+  const closeForOtherMenu = (): void => {
+    staffPicker = undefined;
+    renderBrowserMode();
+    setBrowserOpen(false);
+  };
+  document.querySelector<HTMLButtonElement>("#build-menu-toggle")?.addEventListener("click", closeForOtherMenu);
+  document.querySelector<HTMLButtonElement>("#handbook-toggle")?.addEventListener("click", closeForOtherMenu);
+  document.querySelector<HTMLButtonElement>("#building-menu-toggle")?.addEventListener("click", closeForOtherMenu);
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     if (!browser.hidden) {
