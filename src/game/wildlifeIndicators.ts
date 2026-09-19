@@ -38,7 +38,7 @@ const animalPosition = (animal: Animal): { x: number; y: number; moving: boolean
 const ensureHareTexture = (scene: Phaser.Scene): void => {
   if (scene.textures.exists(HARE_TEXTURE)) return;
 
-  const g = scene.make.graphics({ x: 0, y: 0 });
+  const g = scene.add.graphics().setVisible(false);
   g.fillStyle(0xb9a58b, 1);
   g.fillEllipse(27, 24, 28, 18);
   g.fillEllipse(43, 18, 15, 14);
