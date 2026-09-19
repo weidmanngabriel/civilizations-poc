@@ -2,8 +2,8 @@ import type { Animal, Person, World } from "./model";
 import { findPath } from "./hex";
 import { awardProfessionExperience, professionExperience } from "./experience";
 import { CONFIG } from "./scenario";
-import { GRID_REFINEMENT, hexDistance } from "./spatial";
-import { ensureWorkArea, workAreaContains } from "./workAreas";
+import { hexDistance } from "./spatial";
+import { HUNTER_WORK_AREA_RADIUS, ensureWorkArea, workAreaContains } from "./workAreas";
 import {
   advanceRangedCombat,
   fireRangedAttack,
@@ -16,15 +16,11 @@ import {
   removeAnimal,
 } from "./wildlife";
 
-export const HUNTER_WORK_AREA_RADIUS_WORLD_TILES = 5;
-export const HUNTER_WORK_AREA_RADIUS =
-  HUNTER_WORK_AREA_RADIUS_WORLD_TILES * GRID_REFINEMENT;
-
 const HUNTER_BOW: RangedAttackProfile = {
   projectileKind: "arrow",
   flightTicks: Math.round(0.45 * CONFIG.simulationHz),
   cooldownTicks: Math.round(1.5 * CONFIG.simulationHz),
-  range: Math.round(2 * GRID_REFINEMENT),
+  range: Math.round(HUNTER_WORK_AREA_RADIUS * 0.4),
 };
 
 export function hunterHitChance(person: Person, targetFleeing: boolean): number {
