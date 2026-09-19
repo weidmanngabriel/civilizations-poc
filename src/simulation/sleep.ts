@@ -3,6 +3,12 @@ import { findPathBySteps, key, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 import { clearNavigationBlocked, findRequiredNavigationPath } from "./wayposts";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
+import {
+  findLocalNeedPath,
+  findNeedReturnPath,
+  localNeedPathLeavesWaypostCoverage,
+  NEED_LOCAL_NAVIGATION_RADIUS,
+} from "./needNavigation";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 
 const SLEEP_MAX = 100;
@@ -43,6 +49,17 @@ const routeTo = (world: World, person: Person, target: Hex): Hex[] | undefined =
     findRequiredNavigationPath(world, person, target, CONFIG.roadSpeedMultiplier),
   ) ?? undefined;
 
+const localRouteTo = (
+  world: World,
+  person: Person,
+  origin: Hex,
+  target: Hex,
+): Hex[] | undefined =>
+  performanceProfiler.withPathReason(
+    "sleep",
+    () => findLocalNeedPath(world, person, origin, target, CONFIG.roadSpeedMultiplier),
+  ) ?? undefined;
+
 const isCompletedHouse = (building: Building): boolean =>
   building.kind === "house" && !building.retired && (!building.construction || building.construction.complete);
 
@@ -51,7 +68,13 @@ const withinSleepRadius = (world: World, origin: Hex, target: Hex): boolean => {
   return Boolean(path && path.length <= SLEEP_RADIUS_STEPS);
 };
 
-type SleepCandidate = { kind: Exclude<SleepLocationKind, "ground">; target: Hex; path: Hex[]; cost: number };
+type SleepCandidate = {
+  kind: Exclude<SleepLocationKind, "ground">;
+  target: Hex;
+  path: Hex[];
+  cost: number;
+  localNeedSearch: boolean;
+};
 type SleepSearchContext = { houses?: Hex[]; nature?: Hex[] };
 
 const natureTargets = (world: World): Hex[] => {
@@ -86,6 +109,8 @@ const bestCandidate = (
   kind: "house" | "nature",
   context: SleepSearchContext,
   excludedTargets: ReadonlySet<string> = new Set(),
+  origin?: Hex,
+  localOnly = false,
 ): SleepCandidate | undefined => {
   const targets = searchTargets(world, person, context, kind)
     .filter((target) => !excludedTargets.has(key(target)))
@@ -97,14 +122,20 @@ const bestCandidate = (
         lowerBound: distance / CONFIG.roadSpeedMultiplier,
       };
     })
-    .filter((candidate) => candidate.distance <= SLEEP_RADIUS_STEPS)
+    .filter((candidate) =>
+      candidate.distance <= (
+        localOnly ? NEED_LOCAL_NAVIGATION_RADIUS : SLEEP_RADIUS_STEPS
+      ),
+    )
     .sort((a, b) => a.lowerBound - b.lowerBound || a.target.r - b.target.r || a.target.q - b.target.q);
 
   let best: SleepCandidate | undefined;
   for (const candidate of targets) {
     if (best && candidate.lowerBound > best.cost + ACCUMULATOR_EPSILON) break;
-    if (!withinSleepRadius(world, person.position, candidate.target)) continue;
-    const path = routeTo(world, person, candidate.target);
+    if (!localOnly && !withinSleepRadius(world, person.position, candidate.target)) continue;
+    const path = localOnly && origin
+      ? localRouteTo(world, person, origin, candidate.target)
+      : routeTo(world, person, candidate.target);
     if (!path) continue;
     const cost = pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier);
     if (
@@ -113,7 +144,7 @@ const bestCandidate = (
       (Math.abs(cost - best.cost) <= ACCUMULATOR_EPSILON &&
         (candidate.target.r < best.target.r ||
           (candidate.target.r === best.target.r && candidate.target.q < best.target.q)))
-    ) best = { kind, target: candidate.target, path, cost };
+    ) best = { kind, target: candidate.target, path, cost, localNeedSearch: localOnly };
   }
   return best;
 };
@@ -123,10 +154,13 @@ const chooseSleepTarget = (
   person: Person,
   context: SleepSearchContext,
   excludedTargets: ReadonlySet<string> = new Set(),
-): SleepCandidate | { kind: "ground"; target: Hex; path: Hex[] } =>
-  bestCandidate(world, person, "house", context, excludedTargets) ??
-  bestCandidate(world, person, "nature", context, excludedTargets) ??
-  { kind: "ground", target: { ...person.position }, path: [] };
+  origin: Hex = person.position,
+): SleepCandidate | { kind: "ground"; target: Hex; path: Hex[]; localNeedSearch: false } =>
+  bestCandidate(world, person, "house", context, excludedTargets, origin, true) ??
+  bestCandidate(world, person, "nature", context, excludedTargets, origin, true) ??
+  bestCandidate(world, person, "house", context, excludedTargets, origin, false) ??
+  bestCandidate(world, person, "nature", context, excludedTargets, origin, false) ??
+  { kind: "ground", target: { ...person.position }, path: [], localNeedSearch: false };
 
 const targetStillValid = (world: World, state: SleepState): boolean => {
   if (state.kind === "ground") return true;
@@ -193,12 +227,59 @@ const resumeTask = (world: World, person: Person, state: SleepState): void => {
   person.path = routeTo(world, person, target) ?? [];
 };
 
-const finishSleeping = (world: World, person: Person): void => {
-  const state = person.sleepState!;
+const completeSleeping = (world: World, person: Person, state: SleepState): void => {
   person.sleepAccumulator = 0;
   person.sleepState = undefined;
   person.sleepGraceTicks = 2;
   resumeTask(world, person, state);
+};
+
+const finishSleeping = (world: World, person: Person): void => {
+  const state = person.sleepState!;
+  const origin = state.needOrigin;
+  if (
+    state.returnToNeedOrigin &&
+    origin &&
+    !same(person.position, origin)
+  ) {
+    const returnPath = findNeedReturnPath(
+      world,
+      person,
+      origin,
+      CONFIG.roadSpeedMultiplier,
+    );
+    if (returnPath) {
+      state.returningToNeedOrigin = true;
+      state.progress = SLEEP_DURATION_TICKS;
+      person.path = returnPath;
+      person.movement = 0;
+      person.active = false;
+      return;
+    }
+  }
+  completeSleeping(world, person, state);
+};
+
+const ensureSleepReturn = (world: World, person: Person): void => {
+  const state = person.sleepState!;
+  const origin = state.needOrigin;
+  if (!state.returningToNeedOrigin || !origin) return;
+  if (same(person.position, origin)) {
+    completeSleeping(world, person, state);
+    return;
+  }
+  if (person.path.length > 0) {
+    person.active = false;
+    return;
+  }
+  const path = findNeedReturnPath(world, person, origin, CONFIG.roadSpeedMultiplier);
+  if (!path) {
+    completeSleeping(world, person, state);
+    return;
+  }
+  person.path = path;
+  person.movement = 0;
+  person.active = false;
 };
 
 export const interruptSleep = (world: World, person: Person): void => {
@@ -216,9 +297,15 @@ const recoveryPerPhase = (person: Person, kind: SleepLocationKind): number => {
 };
 
 const startSleeping = (world: World, person: Person, context: SleepSearchContext): void => {
-  const candidate = chooseSleepTarget(world, person, context);
+  const origin = { ...person.position };
+  const candidate = chooseSleepTarget(world, person, context, new Set(), origin);
   if (candidate.kind === "ground") clearNavigationBlocked(person);
   person.sleepState = {
+    needOrigin: origin,
+    localNeedSearch: candidate.localNeedSearch,
+    returnToNeedOrigin:
+      candidate.localNeedSearch &&
+      localNeedPathLeavesWaypostCoverage(world, origin, candidate.path),
     kind: candidate.kind,
     target: { ...candidate.target },
     progress: 0,
@@ -255,8 +342,14 @@ const applyReplacementTarget = (
   context: SleepSearchContext,
   excludedTargets: ReadonlySet<string> = new Set(),
 ): void => {
-  const replacement = chooseSleepTarget(world, person, context, excludedTargets);
+  const origin = state.needOrigin ?? { ...person.position };
+  const replacement = chooseSleepTarget(world, person, context, excludedTargets, origin);
   if (replacement.kind === "ground") clearNavigationBlocked(person);
+  state.localNeedSearch = replacement.localNeedSearch;
+  state.returnToNeedOrigin =
+    replacement.localNeedSearch &&
+    localNeedPathLeavesWaypostCoverage(world, origin, replacement.path);
+  state.returningToNeedOrigin = undefined;
   state.kind = replacement.kind;
   state.target = { ...replacement.target };
   state.progress = 0;
@@ -273,11 +366,17 @@ const applySleepPhase = (person: Person, state: SleepState): void => {
 
 const ensureSleepRouteOrProgress = (world: World, person: Person, context: SleepSearchContext): void => {
   const state = person.sleepState!;
+  if (state.returningToNeedOrigin) {
+    ensureSleepReturn(world, person);
+    return;
+  }
   if (person.hungerState) return;
   if (person.path.length > 0) { person.active = false; return; }
   if (!same(person.position, state.target)) {
     if (!targetStillValid(world, state)) { applyReplacementTarget(world, person, state, context); return; }
-    const reroute = routeTo(world, person, state.target);
+    const reroute = state.localNeedSearch && state.needOrigin
+      ? localRouteTo(world, person, state.needOrigin, state.target)
+      : routeTo(world, person, state.target);
     if (!reroute) applyReplacementTarget(world, person, state, context);
     else person.path = reroute;
     person.movement = 0;
