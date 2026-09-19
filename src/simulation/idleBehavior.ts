@@ -19,6 +19,8 @@ const isBusy = (person: Person): boolean =>
     person.farmTask ||
     person.outdoorCarry ||
     person.resourceTarget ||
+    person.woodcutter ||
+    person.extractor ||
     person.fisher ||
     person.navigationBlocked ||
     person.progress > 0
