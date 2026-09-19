@@ -14,6 +14,7 @@ import {
   gainProfessionExperience,
   productionMultiplier,
 } from "./experience";
+import { equipmentWorkSpeedMultiplier, recordToolWork } from "./equipment";
 
 const randomIndex = (w: World, length: number): number => {
   w.rngState = (Math.imul(w.rngState, 1664525) + 1013904223) >>> 0;
@@ -364,8 +365,10 @@ export function advanceFarmSystem(w: World): number[] {
     }
 
     gainProfessionExperience(p, "farmer");
-    task.progress++;
+    const workSpeed = equipmentWorkSpeedMultiplier(p);
+    task.progress += workSpeed;
     p.progress = task.progress;
+    recordToolWork(w, p, workSpeed);
     if (task.progress < CONFIG.farmActionDurationTicks) continue;
 
     if (task.kind === "sow") {
