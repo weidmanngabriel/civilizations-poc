@@ -11,6 +11,7 @@ export const BUILDING_CONSTRUCTION_REQUIREMENTS: Record<PlaceableBuildingKind, G
   well: { wood: 2, stoneBlock: 2 },
   pottery: { wood: 4 },
   stonemason: { wood: 4 },
+  tailor: { wood: 4 },
 };
 
 /** Construction goods that come directly from extraction and need no processing building. */
