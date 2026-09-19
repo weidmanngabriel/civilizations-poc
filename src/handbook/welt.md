@@ -8,6 +8,10 @@ Bäume und Felsen können Wege blockieren. Andere Vorkommen sind begehbar, bleib
 
 Abgebaute Waren bleiben sichtbar in der Welt liegen, bis sie abgeholt werden.
 
+## Kleinwild
+
+Hasen leben in kleinen Gruppen und bewegen sich nur gelegentlich einige Schritte. Sie bleiben normalerweise in der Nähe ihrer Gruppe und ihres ursprünglichen Gebiets. Werden sie beschossen, fliehen die Tiere einzeln auseinander und finden danach nach und nach wieder zusammen.
+
 ## Entstehende Wege
 
 Wo Bewohner häufig über freie Wiesen laufen, können mit der Zeit von selbst Wege entstehen. Auf Wegen bewegen sie sich schneller. Eine bereits begonnene Reise wird durch einen neu entstandenen Weg nicht plötzlich umgeplant; der neue Weg zählt bei der nächsten Routenwahl.
