@@ -6,7 +6,7 @@ Neue Gebäude werden nach und nach durch Berufserfahrung und bereits aufgebaute 
 
 Ein Gebäude braucht seinen vollständigen Grundriss und einen kleinen freien Bereich darum. Natürliche Ressourcen dürfen diesen Platz nicht schneiden. Warenhaufen dürfen neben einem Gebäude liegen, aber nicht unter seinem eigentlichen Grundriss.
 
-Außerdem muss der Eingang des Gebäudes im Radius eines Wegweisers liegen. Dabei zählt jeder platzierte Wegweiser, auch wenn er nicht mit dem übrigen Wegweisernetz verbunden ist. Außerhalb aller Wegweiserradien ist die Baufläche deaktiviert.
+Außerdem muss der Eingang des Gebäudes im Radius eines Wegweisers liegen. Dabei zählt jeder platzierte Wegweiser, auch wenn er nicht mit dem übrigen Wegweisernetz verbunden ist. Außerhalb aller Wegweiserradien ist die Baufläche deaktiviert. Ein Gebäude darf weder die Wegweiser-Zelle noch eine der sechs direkt angrenzenden Mikrozellen mit seinem Grundriss überdecken.
 
 Wiese und Wege zählen grundsätzlich als Baufläche. Ein überbauter Weg verschwindet dauerhaft.
 
@@ -19,3 +19,6 @@ Sobald ein Gebäude fertig ist und einen Arbeiter braucht, erscheint ein Hinweis
 Zusammengehörige Gebäude sollten möglichst nahe beieinander liegen. Lange Wege bremsen Produktion und Versorgung.
 
 Gebäude können wieder abgerissen werden. Personen im Gebäude brechen ihre aktuelle Tätigkeit sofort ab und erscheinen wieder draußen.
+
+
+Wegweiser kannst du direkt auf der Karte auswählen. Im Wegweiser-Menü lassen sie sich wieder abreißen; dadurch verschwinden auch ihre Verbindungen zu anderen Wegweisern.
