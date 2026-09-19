@@ -315,11 +315,13 @@ export function advanceFarmSystem(w: World): number[] {
     const currentStage = field.fieldStage;
     if (currentStage === undefined || currentStage >= 4) continue;
     const fertilizer = activeFertilizers.get(field.id);
-    field.fieldGrowthProgress = (field.fieldGrowthProgress ?? 0) + (fertilizer ? 3 : 1);
+    const fertilizerSpeed = fertilizer ? equipmentWorkSpeedMultiplier(fertilizer) : 1;
+    field.fieldGrowthProgress = (field.fieldGrowthProgress ?? 0) + (fertilizer ? 3 * fertilizerSpeed : 1);
     if (fertilizer) {
       gainProfessionExperience(fertilizer, "farmer");
-      fertilizer.farmTask!.progress++;
+      fertilizer.farmTask!.progress += fertilizerSpeed;
       fertilizer.progress = fertilizer.farmTask!.progress;
+      recordToolWork(w, fertilizer, fertilizerSpeed);
     }
     if (field.fieldGrowthProgress < CONFIG.fieldStageDurationTicks) continue;
     field.fieldStage = (currentStage + 1) as 2 | 3 | 4;
