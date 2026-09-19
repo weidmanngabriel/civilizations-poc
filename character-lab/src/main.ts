@@ -17,9 +17,9 @@ type AnimationDefinition = {
   keyframes: Keyframe[];
 };
 
-type JointBound = { min: number; max: number; neutral: number };
+type JointAxis = { neutral: number };
 type CharacterDefinition = {
-  parts: Record<PartId, Partial<Record<Axis, JointBound>>>;
+  parts: Record<PartId, Partial<Record<Axis, JointAxis>>>;
 };
 
 const CHARACTER = characterDefinitionJson as unknown as CharacterDefinition;
@@ -96,48 +96,47 @@ const WOODCUT: AnimationDefinition = {
   interpolation: "easeInOut",
   previewDurationMs: 10_000,
   keyframes: [
-    // Position A: two weighted chops. Small root shifts add a visible transfer of weight.
-    { progress: 0.000, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.00, "root.yaw": 0, "torso.pitch": 2 } },
-    { progress: 0.035, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.06, "root.yaw": 0, "torso.pitch": -13, "head.pitch": -5, "rightArm.pitch": 142, "leftArm.pitch": 112, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
-    { progress: 0.080, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.88, "root.yaw": 0, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": -48, "leftArm.pitch": -28, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
-    { progress: 0.115, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.94, "root.yaw": 0, "torso.pitch": 7, "head.pitch": 5, "rightArm.pitch": -18, "leftArm.pitch": -8 } },
-    { progress: 0.145, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.06, "root.yaw": 0, "torso.pitch": -13, "head.pitch": -5, "rightArm.pitch": 142, "leftArm.pitch": 112, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
-    { progress: 0.190, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.88, "root.yaw": 0, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": -48, "leftArm.pitch": -28, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
-    { progress: 0.220, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.00, "root.yaw": 0, "torso.pitch": 2 } },
+    // Position A (south of tree): local forward points inward at yaw 180°.
+    { progress: 0.000, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.00, "root.yaw": 180, "torso.pitch": 2 } },
+    { progress: 0.035, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.06, "root.yaw": 180, "torso.pitch": -12, "head.pitch": -4, "rightArm.pitch": 155, "leftArm.pitch": 120, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.080, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.88, "root.yaw": 180, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": 48, "leftArm.pitch": 30, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.115, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.94, "root.yaw": 180, "torso.pitch": 6, "head.pitch": 4, "rightArm.pitch": 82, "leftArm.pitch": 58 } },
+    { progress: 0.145, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.06, "root.yaw": 180, "torso.pitch": -12, "head.pitch": -4, "rightArm.pitch": 155, "leftArm.pitch": 120, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.190, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.88, "root.yaw": 180, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": 48, "leftArm.pitch": 30, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.220, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.00, "root.yaw": 180, "torso.pitch": 2, "rightArm.pitch": 25, "leftArm.pitch": 12 } },
 
-    // Sidestep around the tree while mostly facing inward. Negative yaw avoids long 300° spins.
-    { progress: 0.250, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.42, "root.z": -1.96, "root.yaw": -14, "torso.pitch": -2, "leftArm.pitch": 15, "rightArm.pitch": -8, "leftLeg.pitch": -28, "rightLeg.pitch": 28 } },
-    { progress: 0.280, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.88, "root.z": -1.78, "root.yaw": -30, "torso.pitch": 3, "leftArm.pitch": -15, "rightArm.pitch": 8, "leftLeg.pitch": 28, "rightLeg.pitch": -28 } },
-    { progress: 0.310, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.28, "root.z": -1.42, "root.yaw": -46, "torso.pitch": -2, "leftArm.pitch": 15, "rightArm.pitch": -8, "leftLeg.pitch": -28, "rightLeg.pitch": 28 } },
-    { progress: 0.340, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.58, "root.z": -0.78, "root.yaw": -72, "torso.pitch": 3, "leftArm.pitch": -15, "rightArm.pitch": 8, "leftLeg.pitch": 28, "rightLeg.pitch": -28 } },
-    { progress: 0.380, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.70, "root.z": 1.00, "root.yaw": -120, "torso.pitch": 2 } },
+    // Sidestep clockwise while continuously facing the tree.
+    { progress: 0.250, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.42, "root.z": -1.96, "root.yaw": 166, "torso.pitch": -2, "leftArm.pitch": 15, "rightArm.pitch": -8, "leftLeg.pitch": -28, "rightLeg.pitch": 28 } },
+    { progress: 0.280, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.88, "root.z": -1.78, "root.yaw": 150, "torso.pitch": 3, "leftArm.pitch": -15, "rightArm.pitch": 8, "leftLeg.pitch": 28, "rightLeg.pitch": -28 } },
+    { progress: 0.310, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.28, "root.z": -1.42, "root.yaw": 134, "torso.pitch": -2, "leftArm.pitch": 15, "rightArm.pitch": -8, "leftLeg.pitch": -28, "rightLeg.pitch": 28 } },
+    { progress: 0.340, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.58, "root.z": -0.78, "root.yaw": 108, "torso.pitch": 3, "leftArm.pitch": -15, "rightArm.pitch": 8, "leftLeg.pitch": 28, "rightLeg.pitch": -28 } },
+    { progress: 0.380, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.70, "root.z": 1.00, "root.yaw": 60, "torso.pitch": 2 } },
 
-    // Position B: repeat the same weighted two-chop rhythm.
-    { progress: 0.405, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.75, "root.z": 1.03, "root.yaw": -120, "torso.pitch": -13, "head.pitch": -5, "rightArm.pitch": 142, "leftArm.pitch": 112, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
-    { progress: 0.445, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.60, "root.z": 0.94, "root.yaw": -120, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": -48, "leftArm.pitch": -28, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
-    { progress: 0.475, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.65, "root.z": 0.97, "root.yaw": -120, "torso.pitch": 7, "head.pitch": 5, "rightArm.pitch": -18, "leftArm.pitch": -8 } },
-    { progress: 0.505, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.75, "root.z": 1.03, "root.yaw": -120, "torso.pitch": -13, "head.pitch": -5, "rightArm.pitch": 142, "leftArm.pitch": 112, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
-    { progress: 0.545, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.60, "root.z": 0.94, "root.yaw": -120, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": -48, "leftArm.pitch": -28, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
-    { progress: 0.580, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.70, "root.z": 1.00, "root.yaw": -120, "torso.pitch": 2 } },
+    // Position B (north-east): two top-down inward chops.
+    { progress: 0.405, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.75, "root.z": 1.03, "root.yaw": 60, "torso.pitch": -12, "head.pitch": -4, "rightArm.pitch": 155, "leftArm.pitch": 120, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.445, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.60, "root.z": 0.94, "root.yaw": 60, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": 48, "leftArm.pitch": 30, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.475, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.65, "root.z": 0.97, "root.yaw": 60, "torso.pitch": 6, "head.pitch": 4, "rightArm.pitch": 82, "leftArm.pitch": 58 } },
+    { progress: 0.505, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.75, "root.z": 1.03, "root.yaw": 60, "torso.pitch": -12, "head.pitch": -4, "rightArm.pitch": 155, "leftArm.pitch": 120, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.545, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.60, "root.z": 0.94, "root.yaw": 60, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": 48, "leftArm.pitch": 30, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.580, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.70, "root.z": 1.00, "root.yaw": 60, "torso.pitch": 2, "rightArm.pitch": 25, "leftArm.pitch": 12 } },
 
-    // Continue the sidestep around the back while keeping the tree as the visual focus.
-    { progress: 0.610, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.42, "root.z": 1.40, "root.yaw": -136, "torso.pitch": -2, "leftArm.pitch": 15, "rightArm.pitch": -8, "leftLeg.pitch": -28, "rightLeg.pitch": 28 } },
-    { progress: 0.640, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.92, "root.z": 1.78, "root.yaw": -153, "torso.pitch": 3, "leftArm.pitch": -15, "rightArm.pitch": 8, "leftLeg.pitch": 28, "rightLeg.pitch": -28 } },
-    { progress: 0.670, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.28, "root.z": 2.00, "root.yaw": -174, "torso.pitch": -2, "leftArm.pitch": 15, "rightArm.pitch": -8, "leftLeg.pitch": -28, "rightLeg.pitch": 28 } },
-    { progress: 0.700, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -0.55, "root.z": 1.92, "root.yaw": -196, "torso.pitch": 3, "leftArm.pitch": -15, "rightArm.pitch": 8, "leftLeg.pitch": 28, "rightLeg.pitch": -28 } },
-    { progress: 0.740, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.70, "root.z": 1.00, "root.yaw": -240, "torso.pitch": 2 } },
+    // Continue clockwise to the north-west position, still facing inward.
+    { progress: 0.610, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.42, "root.z": 1.40, "root.yaw": 44, "torso.pitch": -2, "leftArm.pitch": 15, "rightArm.pitch": -8, "leftLeg.pitch": -28, "rightLeg.pitch": 28 } },
+    { progress: 0.640, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.92, "root.z": 1.78, "root.yaw": 27, "torso.pitch": 3, "leftArm.pitch": -15, "rightArm.pitch": 8, "leftLeg.pitch": 28, "rightLeg.pitch": -28 } },
+    { progress: 0.670, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.28, "root.z": 2.00, "root.yaw": 6, "torso.pitch": -2, "leftArm.pitch": 15, "rightArm.pitch": -8, "leftLeg.pitch": -28, "rightLeg.pitch": 28 } },
+    { progress: 0.700, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -0.55, "root.z": 1.92, "root.yaw": -16, "torso.pitch": 3, "leftArm.pitch": -15, "rightArm.pitch": 8, "leftLeg.pitch": 28, "rightLeg.pitch": -28 } },
+    { progress: 0.740, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.70, "root.z": 1.00, "root.yaw": -60, "torso.pitch": 2 } },
 
-    // Position C: two final chops and a short settle.
-    { progress: 0.765, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.75, "root.z": 1.03, "root.yaw": -240, "torso.pitch": -13, "head.pitch": -5, "rightArm.pitch": 142, "leftArm.pitch": 112, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
-    { progress: 0.805, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.60, "root.z": 0.94, "root.yaw": -240, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": -48, "leftArm.pitch": -28, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
-    { progress: 0.835, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.65, "root.z": 0.97, "root.yaw": -240, "torso.pitch": 7, "head.pitch": 5, "rightArm.pitch": -18, "leftArm.pitch": -8 } },
-    { progress: 0.865, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.75, "root.z": 1.03, "root.yaw": -240, "torso.pitch": -13, "head.pitch": -5, "rightArm.pitch": 142, "leftArm.pitch": 112, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
-    { progress: 0.905, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.60, "root.z": 0.94, "root.yaw": -240, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": -48, "leftArm.pitch": -28, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
-    { progress: 0.950, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.70, "root.z": 1.00, "root.yaw": -240, "torso.pitch": 5, "rightArm.pitch": 20, "leftArm.pitch": 10 } },
-    { progress: 1.000, pose: { ...NEUTRAL_POSE, "root.x": -1.70, "root.z": 1.00, "root.yaw": -240, "torso.pitch": 2 } },
+    // Position C (north-west): two final top-down inward chops and settle.
+    { progress: 0.765, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.75, "root.z": 1.03, "root.yaw": -60, "torso.pitch": -12, "head.pitch": -4, "rightArm.pitch": 155, "leftArm.pitch": 120, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.805, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.60, "root.z": 0.94, "root.yaw": -60, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": 48, "leftArm.pitch": 30, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.835, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.65, "root.z": 0.97, "root.yaw": -60, "torso.pitch": 6, "head.pitch": 4, "rightArm.pitch": 82, "leftArm.pitch": 58 } },
+    { progress: 0.865, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.75, "root.z": 1.03, "root.yaw": -60, "torso.pitch": -12, "head.pitch": -4, "rightArm.pitch": 155, "leftArm.pitch": 120, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.905, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.60, "root.z": 0.94, "root.yaw": -60, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": 48, "leftArm.pitch": 30, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.950, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.70, "root.z": 1.00, "root.yaw": -60, "torso.pitch": 5, "rightArm.pitch": 25, "leftArm.pitch": 12 } },
+    { progress: 1.000, pose: { ...NEUTRAL_POSE, "root.x": -1.70, "root.z": 1.00, "root.yaw": -60, "torso.pitch": 2 } },
   ],
 };
-
 const captureParams = new URLSearchParams(window.location.search);
 const capturePresetId = captureParams.get("capture");
 const captureMode = capturePresetId !== null;
@@ -291,27 +290,23 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-const ROOT_BOUNDS: Record<string, JointBound> = {
-  "root.x": { min: -3, max: 3, neutral: 0 },
-  "root.z": { min: -3, max: 3, neutral: 0 },
-  "root.yaw": { min: -360, max: 360, neutral: 0 },
-};
+const ROOT_POSE_KEYS = new Set(["root.x", "root.z", "root.yaw"]);
 
-function boundForKey(key: string): JointBound | undefined {
-  if (ROOT_BOUNDS[key]) return ROOT_BOUNDS[key];
-  const [partRaw, axisRaw] = key.split(".");
+function isPoseKey(key: string): boolean {
+  if (ROOT_POSE_KEYS.has(key)) return true;
+  const [partRaw, axisRaw, extra] = key.split(".");
+  if (!partRaw || !axisRaw || extra !== undefined) return false;
   const part = partRaw as PartId;
   const axis = axisRaw as Axis;
-  return CHARACTER.parts[part]?.[axis];
+  return CHARACTER.parts[part]?.[axis] !== undefined;
 }
 
 function sanitizePose(value: unknown): Pose {
   const result: Pose = { ...NEUTRAL_POSE };
   if (!value || typeof value !== "object" || Array.isArray(value)) return result;
   for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
-    const bound = boundForKey(key);
-    if (!bound || typeof raw !== "number" || !Number.isFinite(raw)) continue;
-    result[key] = clamp(raw, bound.min, bound.max);
+    if (!isPoseKey(key) || typeof raw !== "number" || !Number.isFinite(raw)) continue;
+    result[key] = raw;
   }
   return result;
 }
@@ -418,12 +413,12 @@ function setProgress(value: number): void {
 }
 
 function setPartAngle(part: PartId, axis: Axis, degrees: number): number {
-  const bound = CHARACTER.parts[part]?.[axis];
-  if (!bound) throw new Error(`${part} unterstützt ${axis} nicht.`);
-  const value = clamp(degrees, bound.min, bound.max);
-  currentPose[jointKey(part, axis)] = value;
+  const definition = CHARACTER.parts[part]?.[axis];
+  if (!definition) throw new Error(`${part} unterstützt ${axis} nicht.`);
+  if (!Number.isFinite(degrees)) throw new Error("Winkel muss eine endliche Zahl sein.");
+  currentPose[jointKey(part, axis)] = degrees;
   updatePose(currentPose);
-  return value;
+  return degrees;
 }
 
 function setCharacterYaw(value: number): void {
@@ -513,28 +508,26 @@ function renderJointControls(): void {
   const part = partSelect.value as PartId;
   const axes = CHARACTER.parts[part];
   for (const axis of Object.keys(axes) as Axis[]) {
-    const bound = axes[axis]!;
+    const definition = axes[axis]!;
     const key = jointKey(part, axis);
     const wrapper = document.createElement("div");
     wrapper.className = "field";
     const label = document.createElement("label");
     label.textContent = axis === "pitch" ? "Vor / zurück" : "Links / rechts";
-    const slider = document.createElement("input");
-    slider.type = "range";
-    slider.min = String(bound.min);
-    slider.max = String(bound.max);
-    slider.step = "1";
-    slider.value = String(currentPose[key] ?? bound.neutral);
+    const input = document.createElement("input");
+    input.type = "number";
+    input.step = "1";
+    input.value = String(currentPose[key] ?? definition.neutral);
     const values = document.createElement("div");
     values.className = "value-row";
-    values.innerHTML = `<span>${bound.min}° … ${bound.max}°</span><strong>${Math.round(Number(slider.value))}°</strong>`;
-    slider.addEventListener("input", () => {
+    values.innerHTML = `<span>Winkel frei</span><strong>${Math.round(Number(input.value))}°</strong>`;
+    input.addEventListener("change", () => {
       pause();
-      const actual = setPartAngle(part, axis, Number(slider.value));
+      const actual = setPartAngle(part, axis, Number(input.value));
       const strong = values.querySelector("strong");
       if (strong) strong.textContent = `${Math.round(actual)}°`;
     });
-    wrapper.append(label, slider, values);
+    wrapper.append(label, input, values);
     jointControls.append(wrapper);
   }
 }
