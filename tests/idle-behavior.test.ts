@@ -1,25 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
+import { createWorld } from "../src/simulation/scenario";
 import { buildAt, tick } from "../src/simulation/simulation";
 import { buildingFootprint } from "../src/simulation/buildingPlacement";
 import { hexDistance, key } from "../src/simulation/hex";
 import { syncIdleBehavior } from "../src/simulation/idleBehavior";
 
-test("free people wait on distinct positions outside the HQ", () => {
+test("free people stay where they are when idle", () => {
   const world = createWorld();
-  const hq = world.buildings.find((building) => building.id === "hq")!;
-  const footprint = new Set(buildingFootprint(hq).map(key));
+  const positions = world.people.map((person) => ({ ...person.position }));
 
   syncIdleBehavior(world);
 
-  const targets = world.people.map((person) => person.idleTarget).filter(Boolean);
-  assert.ok(targets.length > 1);
-  assert.equal(new Set(targets.map((target) => key(target!))).size, targets.length);
-  for (const target of targets) {
-    assert.equal(footprint.has(key(target!)), false);
-    const distance = hexDistance(hq.position, target!);
-    assert.ok(distance >= 2 && distance <= 4);
+  for (const [index, person] of world.people.entries()) {
+    assert.equal(person.idleTarget, undefined);
+    assert.equal(person.path.length, 0);
+    assert.deepEqual(person.position, positions[index]);
   }
 });
 
@@ -61,13 +57,17 @@ test("an idle production worker waits outside the assigned workplace", () => {
 });
 
 
-test("a fresh player game advances immediately and starts visible movement", () => {
-  const world = createDefaultGameWorld();
+test("a fresh idle world advances without sending residents toward the HQ", () => {
+  const world = createWorld();
   const beforeRound = world.round;
+  const positions = world.people.map((person) => ({ ...person.position }));
 
   tick(world);
 
   assert.equal(world.round, beforeRound + 1);
-  assert.ok(world.people.some((person) => person.path.length > 0));
-  assert.ok(world.people.some((person) => person.idleTarget));
+  for (const [index, person] of world.people.entries()) {
+    assert.equal(person.idleTarget, undefined);
+    assert.equal(person.path.length, 0);
+    assert.deepEqual(person.position, positions[index]);
+  }
 });
