@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { BuildableBuildingKind } from "../src/simulation/model";
+import type { PlaceableBuildingKind } from "../src/simulation/model";
 import { createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
 import { hexDistance, same } from "../src/simulation/hex";
 import { placeLooseGood } from "../src/simulation/looseGoods";
@@ -19,7 +19,7 @@ import {
 
 const findValidOrigin = (
   world: ReturnType<typeof createWorld>,
-  kind: BuildableBuildingKind,
+  kind: PlaceableBuildingKind,
 ) => {
   const tile = world.tiles.find((candidate) => canPlaceBuilding(world, candidate, kind));
   assert.ok(tile, "expected a valid building position");
