@@ -215,6 +215,7 @@ export const ALL_GOODS: Good[] = [
   "fish",
   "meat",
   "leather",
+  "shoes",
   "clay",
   "rubble",
   "brick",
@@ -944,6 +945,16 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
       input: 0,
       output: 0,
       recipe: { input: "rubble", amount: 2, output: "stoneBlock", duration: CONFIG.duration },
+    };
+  if (kind === "tailor")
+    return {
+      kind,
+      name: "Näherei",
+      workers: 1,
+      carriers: 2,
+      input: 0,
+      output: 0,
+      recipe: { input: "leather", amount: 1, output: "shoes", duration: CONFIG.duration },
     };
   if (kind === "well")
     return {
