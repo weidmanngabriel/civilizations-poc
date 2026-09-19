@@ -1,5 +1,6 @@
 import type { BuildingId, Person, Profession, Role, World } from "../simulation/model";
 import {
+  canLearnProfession,
   currentProfession,
   PROFESSION_LABELS,
   professionExperience,
@@ -212,6 +213,9 @@ export function mountPersonPanel(world: World): void {
         ) return false;
         const profession = professionOf(world, person);
         const alert = alerts.get(person.id);
+        const requiredProfession = staffPickerProfession();
+        if (staffPicker && requiredProfession && !canLearnProfession(person, requiredProfession))
+          return false;
         if (!staffPicker) {
           if (activeAlertFilter !== "all" && alert?.severity !== activeAlertFilter) return false;
           if (activeFilter === "free" && profession) return false;
