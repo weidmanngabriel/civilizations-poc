@@ -130,6 +130,20 @@ const WOODCUT: AnimationDefinition = {
   ],
 };
 
+const captureParams = new URLSearchParams(window.location.search);
+const capturePresetId = captureParams.get("capture");
+const captureMode = capturePresetId !== null;
+const captureProgress = Number(captureParams.get("progress") ?? "0");
+const captureYaw = Number(captureParams.get("yaw") ?? "135");
+const captureZoom = Number(captureParams.get("zoom") ?? "0.9");
+
+function presetById(id: string | null): AnimationDefinition | undefined {
+  if (id === "idle") return IDLE;
+  if (id === "walk") return WALK;
+  if (id === "woodcut") return WOODCUT;
+  return undefined;
+}
+
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Character Lab root missing.");
 
@@ -258,6 +272,7 @@ let zoom = 1;
 let renderPose: (pose: Pose) => void = () => {};
 let renderYaw: (degrees: number) => void = () => {};
 let renderZoom: (value: number) => void = () => {};
+let renderNow: () => void = () => {};
 
 function jointKey(part: PartId, axis: Axis): string {
   return `${part}.${axis}`;
@@ -597,6 +612,8 @@ type CharacterLabApi = {
   deleteKeyframe(progress?: number): void;
   play(): void;
   pause(): void;
+  captureFrame(progress: number): Promise<string>;
+  captureFrames(progressValues: number[]): Promise<string[]>;
 };
 
 declare global {
@@ -627,11 +644,23 @@ window.characterLab = {
   deleteKeyframe,
   play,
   pause,
+  captureFrame: async (value) => {
+    pause();
+    setProgress(value);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    renderNow();
+    return canvas.toDataURL("image/png");
+  },
+  captureFrames: async (values) => {
+    const frames: string[] = [];
+    for (const value of values) frames.push(await window.characterLab.captureFrame(value));
+    return frames;
+  },
 };
 
 function initThree(): void {
   try {
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = false;
 
@@ -758,6 +787,7 @@ function initThree(): void {
       setZoom(zoom * (event.deltaY > 0 ? 0.92 : 1.08));
     }, { passive: false });
 
+    renderNow = () => renderer.render(scene, camera);
     renderPose(currentPose);
     renderYaw(characterYaw);
     renderZoom(zoom);
@@ -770,7 +800,7 @@ function initThree(): void {
         const next = playStartProgress + elapsed;
         setProgress(next % 1);
       }
-      renderer.render(scene, camera);
+      renderNow();
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
@@ -784,8 +814,20 @@ function initThree(): void {
 
 renderJointControls();
 renderKeyframes();
-setProgress(0);
-setCharacterYaw(characterYaw);
-setZoom(zoom);
-installPwaSupport();
+
+if (captureMode) {
+  document.body.classList.add("capture-mode");
+  const preset = presetById(capturePresetId);
+  if (preset) currentAnimation = sanitizeAnimation(preset);
+  animationIdInput.value = currentAnimation.id;
+  interpolationSelect.value = currentAnimation.interpolation;
+  setProgress(Number.isFinite(captureProgress) ? captureProgress : 0);
+  setCharacterYaw(Number.isFinite(captureYaw) ? captureYaw : 135);
+  setZoom(Number.isFinite(captureZoom) ? captureZoom : 0.9);
+} else {
+  setProgress(0);
+  setCharacterYaw(characterYaw);
+  setZoom(zoom);
+  installPwaSupport();
+}
 initThree();

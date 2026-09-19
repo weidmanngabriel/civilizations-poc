@@ -90,3 +90,33 @@ button.secondary { background:#223a2b; }
   .preview-toolbar button { padding:6px 7px; font-size:12px; }
   .sidebar { padding:16px 14px 44px; }
 }
+
+
+.capture-mode {
+  overflow: hidden;
+}
+.capture-mode .lab-header,
+.capture-mode .sidebar,
+.capture-mode .preview-toolbar {
+  display: none !important;
+}
+.capture-mode .lab-shell,
+.capture-mode .lab-layout {
+  width: 100vw;
+  height: 100vh;
+  min-height: 0;
+}
+.capture-mode .preview-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  width: 100vw;
+  height: 100vh;
+  min-height: 0;
+  border: 0;
+  box-shadow: none;
+}
+.capture-mode #viewport {
+  width: 100vw;
+  height: 100vh;
+}
