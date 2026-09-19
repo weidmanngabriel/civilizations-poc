@@ -1,4 +1,12 @@
-export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "meat" | "leather" | "shoes" | "clay" | "rubble" | "brick" | "stoneBlock";\nexport type EquipmentGood = "woodenTool" | "shoes";\nexport type EquipmentSlot = "tool" | "shoes";\nexport interface EquippedItem {\n  good: EquipmentGood;\n  durability: number;\n  /** Accumulated effective work progress toward the next tool-use wear point. */\n  workProgress?: number;\n}
+export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "meat" | "leather" | "shoes" | "clay" | "rubble" | "brick" | "stoneBlock";
+export type EquipmentGood = "woodenTool" | "shoes";
+export type EquipmentSlot = "tool" | "shoes";
+export interface EquippedItem {
+  good: EquipmentGood;
+  durability: number;
+  /** Accumulated effective work progress toward the next tool-use wear point. */
+  workProgress?: number;
+}
 export type BuildingId = string;
 export type WaypostId = string;
 export type BuildingKind = "hq" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "stonemason" | "tailor" | "warehouse" | "house";
