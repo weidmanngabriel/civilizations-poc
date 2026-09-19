@@ -226,7 +226,11 @@ try {
   console.log(`Captured ${reviewFrameCount} review PNGs and ${durationMs / 1000}s WebM at ${videoFps} fps to ${outputDir}`);
 } finally {
   client?.close();
-  chrome?.kill("SIGTERM");
+  if (chrome && chrome.exitCode === null) {
+    const exited = new Promise((resolve) => chrome.once("exit", resolve));
+    chrome.kill("SIGTERM");
+    await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 3000))]);
+  }
   preview.kill("SIGTERM");
-  await rm(userDataDir, { recursive: true, force: true });
+  await rm(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 150 });
 }
