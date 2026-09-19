@@ -192,8 +192,6 @@ export function mountPersonPanel(world: World): void {
     return undefined;
   };
 
-  const personIsFree = (person: Person): boolean => professionOf(world, person) === undefined;
-
   const staffPickerPriority = (person: Person): number => {
     if (!staffPicker) return 0;
     const requiredProfession = staffPickerProfession();
