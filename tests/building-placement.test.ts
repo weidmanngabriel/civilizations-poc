@@ -76,8 +76,42 @@ test("player buildings require their entrance to be inside any placed waypost ra
   }];
   assert.equal(canPlaceBuilding(world, origin, "house"), false);
 
-  world.wayposts[0]!.position = { ...entrance };
+  const footprint = footprintAt("house", origin);
+  const nearbyWaypostTile = world.tiles.find(
+    (tile) =>
+      hexDistance(tile, entrance) <= WAYPOST_ORIENTATION_RADIUS &&
+      footprint.every((position) => hexDistance(tile, position) > 1),
+  );
+  assert.ok(nearbyWaypostTile);
+  world.wayposts[0]!.position = { q: nearbyWaypostTile.q, r: nearbyWaypostTile.r };
   assert.equal(canPlaceBuilding(world, origin, "house"), true);
+});
+
+test("wayposts reserve their cell plus one neighboring micro-cell from building footprints", () => {
+  const world = createDefaultGameWorld();
+  const waypost = world.wayposts![0]!;
+  const candidate = validBuildingAnchors(world, "house").find((anchor) => {
+    const footprint = footprintAt("house", anchor);
+    return footprint.some((position) => hexDistance(position, waypost.position) === 2);
+  });
+  assert.ok(candidate);
+
+  const footprint = footprintAt("house", candidate);
+  const closest = footprint
+    .slice()
+    .sort(
+      (a, b) =>
+        hexDistance(a, waypost.position) - hexDistance(b, waypost.position),
+    )[0]!;
+  world.wayposts![0]!.position = {
+    q: closest.q + 1,
+    r: closest.r,
+  };
+  assert.equal(
+    footprint.some((position) => hexDistance(position, world.wayposts![0]!.position) <= 1),
+    true,
+  );
+  assert.equal(canPlaceBuilding(world, candidate, "house"), false);
 });
 
 test("buildable buildings occupy multiple tiles and keep a two-micro-cell clearance", () => {

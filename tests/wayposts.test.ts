@@ -11,6 +11,7 @@ import {
   findPathViaWayposts,
   findRequiredNavigationPath,
   placeWaypost,
+  removeWaypost,
   wayposts,
 } from "../src/simulation/wayposts";
 import { findPath, hexDistance, key, neighbors, tileIndex, walkable } from "../src/simulation/hex";
@@ -59,6 +60,29 @@ test("reachable wayposts connect between 3.5 and 7 world tiles and support netwo
 
   const path = findPathViaWayposts(world, first.position, second.position);
   assert.ok(path);
+});
+
+
+test("demolishing a waypost removes reciprocal connections and advances the network revision", () => {
+  const world = createDefaultGameWorld();
+  const first = wayposts(world)[0]!;
+  const secondTile = world.tiles
+    .filter((tile) => tile.terrain === "grass")
+    .filter((tile) => {
+      const distance = hexDistance(first.position, tile);
+      return distance >= 4 * GRID_REFINEMENT && distance <= 5 * GRID_REFINEMENT;
+    })
+    .find((tile) => canPlaceWaypost(world, tile));
+  assert.ok(secondTile);
+  const second = placeWaypost(world, secondTile);
+  assert.ok(second);
+  assert.ok(first.connections?.includes(second.id));
+
+  const revision = world.waypostRevision ?? 0;
+  assert.equal(removeWaypost(world, second.id), true);
+  assert.equal(wayposts(world).some((post) => post.id === second.id), false);
+  assert.equal(first.connections?.includes(second.id), false);
+  assert.equal(world.waypostRevision, revision + 1);
 });
 
 

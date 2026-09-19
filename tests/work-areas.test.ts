@@ -369,3 +369,83 @@ test("moving a fisher flag invalidates a fishing spot outside the new area", () 
   if (fisher.fishingSpot)
     assert.equal(hexDistance(fisher.workArea!.center, fisher.fishingSpot) <= WORK_AREA_RADIUS, true);
 });
+
+
+test("moving a work flag outside the worker area still requires global waypost travel", () => {
+  const world = createWorld(1);
+  assert.equal(changeWoodcutters(world, 1), true);
+  tick(world);
+  const worker = woodcutters(world)[0]!;
+  const oldCenter = { ...worker.workArea!.center };
+  const farTile = world.tiles
+    .filter((tile) => tile.terrain === "grass")
+    .find((tile) => hexDistance(tile, oldCenter) > WORK_AREA_RADIUS + 5);
+  assert.ok(farTile);
+
+  world.wayposts = [];
+  world.waypostRevision = 0;
+  assert.equal(setWorkAreaCenter(world, worker.id, farTile), true);
+
+  assert.deepEqual(worker.workArea!.center, { q: farTile.q, r: farTile.r });
+  assert.equal(worker.path.length, 0);
+  assert.equal(worker.navigationBlocked, true);
+});
+
+
+test("an extractor with no remaining local target returns to the work flag", () => {
+  const world = createWorld(1);
+  assert.equal(changeWoodcutters(world, 1), true);
+  tick(world);
+  const worker = woodcutters(world)[0]!;
+  const center = { ...worker.workArea!.center };
+  const target = world.naturalResources.find(
+    (resource) => resource.id === worker.resourceTarget,
+  )!;
+  worker.position = { ...target.position };
+  worker.path = [];
+  worker.resourceTarget = undefined;
+  worker.active = false;
+  for (const resource of world.naturalResources) {
+    if (
+      resource.kind === "forest" &&
+      hexDistance(center, resource.position) <= WORK_AREA_RADIUS
+    ) {
+      resource.remaining = 0;
+      resource.depleted = true;
+    }
+  }
+  worker.workArea!.retryAfterTick = undefined;
+
+  tick(world);
+
+  if (!same(worker.position, center)) {
+    assert.ok(worker.path.length > 0);
+    assert.equal(same(worker.path.at(-1)!, center), true);
+  }
+});
+
+test("a failed fishing cycle replans locally without returning to the work flag", () => {
+  const world = createWorld(1);
+  assert.equal(changeFishers(world, 1), true);
+  const fisher = fishers(world)[0]!;
+  const spot = { ...fisher.fishingSpot! };
+  const center = { ...fisher.workArea!.center };
+  fisher.position = spot;
+  fisher.path = [];
+  fisher.active = false;
+  fisher.hunger = 100;
+  world.rngState = 1000;
+
+  tick(world);
+  const waitUntil = fisher.fishingWaitUntilTick!;
+  while (world.round < waitUntil) tick(world);
+
+  assert.equal(fisher.outdoorCarry, undefined);
+  assert.equal(
+    !same(spot, center) && fisher.path.length > 0
+      ? same(fisher.path.at(-1)!, center)
+      : false,
+    false,
+    "a failed cast should continue with local fishing instead of routing to the flag",
+  );
+});

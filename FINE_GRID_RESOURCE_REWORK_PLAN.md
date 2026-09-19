@@ -57,7 +57,7 @@ Complete.
 
 Per-person work flags apply to woodcutters, clay diggers, stonecutters, fishers, warehouse carriers and HQ carriers. The shared radius is **2.5 coarse world tiles / 12.5 micro-cells**.
 
-Natural-resource workers receive their initial flag at the first reachable resource and subsequently choose only matching unclaimed sources inside it. Movement inside the established personal work area uses direct micro-grid paths and does not detour through the waypost graph. Empty areas cause local waiting/retry rather than global roaming. Extractor flags are red and never move autonomously.
+Natural-resource workers receive their initial flag at the first reachable resource and subsequently choose only matching unclaimed sources inside it. The flag is a private local navigation node: movement is direct only after the worker is already inside the current work area. Moving the flag outside the worker's current area requires a normal global waypost route into the new area first. Extractors carry each completed unit back to the flag before beginning further work; when no local source remains, they return to the flag before waiting. Empty areas cause local waiting/retry rather than global roaming. Extractor flags are red and never move autonomously.
 
 Warehouse/HQ carriers receive their initial flag at their storage workplace and auto-collect only non-storage sources inside their own area. Moving a flag cancels an unpicked outside source while already carried goods still finish delivery.
 
@@ -67,7 +67,7 @@ Production-building carriers, merchants and builders keep their separate sourcin
 
 High-level navigation is implemented as a separate `World.wayposts` graph. Player-facing worlds start with one valid waypost roughly one coarse tile in front of HQ. Orientation radius is 3.5 coarse world tiles; minimum spacing is coupled to the same 3.5 coarse world tiles and maximum direct connection distance is coupled to twice the radius, 7 coarse world tiles. These are separate waypost constants and are not derived from work-area balance.
 
-Entering placement immediately highlights every currently valid waypost anchor. Reachable posts in range receive reciprocal stored connections. Each connection is shown by its own projected directional sign. Player-facing high-level travel requires a connected waypost sequence, but the posts are navigation nodes rather than physical checkpoints. Trips covered by one or two connected nodes use direct micro-grid A*. For chains of three or more nodes, the graph selects the high-level chain and micro-grid A* is restricted to the union of those orientation areas. This bounds long searches without forcing people through signpost cells. There is no player-world direct fallback that bypasses missing graph connectivity. Failed required targets are cached against a waypost-network revision and are retried only after the network changes; blocked people expose a warning state.
+Entering placement immediately highlights every currently valid waypost anchor. Reachable posts in range receive reciprocal stored connections. Each connection is shown by its own projected directional sign. Wayposts reserve their own micro-cell plus one adjacent-cell ring against building footprints, can be selected on the map and can be demolished; removal cleans reciprocal graph edges and advances the network revision. Player-facing high-level travel requires a connected waypost sequence, but the posts are navigation nodes rather than physical checkpoints. Trips covered by one or two connected nodes use direct micro-grid A*. For chains of three or more nodes, the graph selects the high-level chain and micro-grid A* is restricted to the union of those orientation areas. This bounds long searches without forcing people through signpost cells. There is no player-world direct fallback that bypasses missing graph connectivity. Failed required targets are cached against a waypost-network revision and are retried only after the network changes; blocked people expose a warning state.
 
 ### Physical transport-source cleanup
 
@@ -79,7 +79,7 @@ Entering placement immediately highlights every currently valid waypost anchor. 
 
 ### Farms and fields
 
-Farm rules and balance remain unchanged. Field placement now obeys the physical world model: the full refined field footprint must be grass and cannot overwrite natural-resource footprints, loose goods, other reserved sow footprints or occupied cells. Demolishing a farm still removes its active fields.
+Farm balance remains unchanged, but the farm now acts as the farmer's local navigation node. Reaching the farm area from outside still requires the global waypost graph; once inside, field work uses local A*. After sowing or fertilizing the farmer returns to the farm before choosing the next task, while harvesting already ends with wheat delivery to the farm. Field placement obeys the physical world model: the full refined field footprint must be grass and cannot overwrite natural-resource footprints, loose goods, other reserved sow footprints or occupied cells. Demolishing a farm still removes its active fields.
 
 ### Building clearance and demolition
 

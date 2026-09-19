@@ -21,7 +21,7 @@ import { refinedCellCluster } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
 import { looseGoodStacks } from "./looseGoods";
 import { BUILDING_CONSTRUCTION_REQUIREMENTS } from "./constructionRules";
-import { WAYPOST_ORIENTATION_RADIUS } from "./wayposts";
+import { WAYPOST_BUILD_CLEARANCE, WAYPOST_ORIENTATION_RADIUS } from "./wayposts";
 
 export type BuildingPlacementShape = {
   cells: Hex[];
@@ -191,6 +191,13 @@ const canPlaceWithLookup = (
     return false;
 
   const footprint = footprintAt(kind, anchorPosition);
+  if (
+    lookup.wayposts?.some((waypostPosition) =>
+      footprint.some(
+        (position) => hexDistance(waypostPosition, position) <= WAYPOST_BUILD_CLEARANCE,
+      ),
+    )
+  ) return false;
   if (!footprint.every((position) => freePlacementTile(lookup, position, true))) return false;
   if (!clearanceAt(kind, anchorPosition).every((position) => freePlacementTile(lookup, position, false))) return false;
   return !footprint.some((position) => lookup.people.has(key(position)));

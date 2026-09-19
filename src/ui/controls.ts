@@ -5,6 +5,7 @@ import type {
   Good,
   Hex,
   Role,
+  WaypostId,
   World,
 } from "../simulation/model";
 import {
@@ -35,7 +36,7 @@ import {
 } from "../simulation/buildingPlacement";
 import { CONFIG } from "../simulation/scenario";
 import { same } from "../simulation/hex";
-import { canPlaceWaypost, placeWaypost } from "../simulation/wayposts";
+import { canPlaceWaypost, placeWaypost, removeWaypost, wayposts } from "../simulation/wayposts";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 import { BUILDING_SVG, GOOD_ICONS, buildingIcon } from "../icons";
 
@@ -49,10 +50,12 @@ const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const BUILD_POSITION_SELECTED_EVENT = "poc-build-position-selected";
 const WAYPOST_PLACEMENT_REQUESTED_EVENT = "poc-waypost-placement-requested";
+const WAYPOST_SELECTED_EVENT = "poc-waypost-selected";
 const PERSON_SELECTION_REQUESTED_EVENT = "poc-person-selection-requested";
 const PERSON_STAFF_PICKER_REQUESTED_EVENT = "poc-person-staff-picker-requested";
 
 type BuildingSelectedDetail = { id: BuildingId };
+type WaypostSelectedDetail = { id: WaypostId };
 type TileSelectedDetail = { position: Hex };
 type BuildPositionSelectedDetail = { position: Hex };
 type SimulationSpeed = 0.5 | 1 | 2 | 3;
@@ -91,6 +94,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   let simulationBudget = 0;
   let simulationSpeed: SimulationSpeed = 1;
   let selectedBuildingId: BuildingId | undefined;
+  let selectedWaypostId: WaypostId | undefined;
   let selectedTile: Hex | undefined;
   let merchantTargetSelection: number | undefined;
   let merchantSelectionWasRunning = false;
@@ -269,6 +273,19 @@ export function mountControls(w: World, renderMap: () => void): void {
   function renderSelectionPanel(): void {
     if (buildPlacementKind || merchantTargetSelection !== undefined) {
       selectionPanel.hidden = true;
+      return;
+    }
+
+    if (selectedWaypostId) {
+      const selectedWaypost = wayposts(w).find((post) => post.id === selectedWaypostId);
+      if (!selectedWaypost) {
+        selectedWaypostId = undefined;
+        selectionPanel.hidden = true;
+        selectionPanel.innerHTML = "";
+        return;
+      }
+      selectionPanel.hidden = false;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>WEGWEISER</small><h3>🪧 Wegweiser</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Lokaler Zugang zum übergeordneten Wegenetz · ${selectedWaypost.connections?.length ?? 0} direkte Verbindungen</p><button data-action="demolish-waypost" class="danger">Abreißen</button>`;
       return;
     }
 
@@ -532,6 +549,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     buildPlacementPosition = undefined;
     selectedTile = undefined;
     selectedBuildingId = undefined;
+    selectedWaypostId = undefined;
     setDebugOpen(false);
     main.classList.add("merchant-target-mode");
     buildPlacementTitle.textContent =
@@ -641,9 +659,19 @@ export function mountControls(w: World, renderMap: () => void): void {
     const action = button.dataset.action;
     if (action === "close") {
       selectedBuildingId = undefined;
+      selectedWaypostId = undefined;
       selectedTile = undefined;
       renderSelectionPanel();
       window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
+      return;
+    }
+    if (action === "demolish-waypost" && selectedWaypostId) {
+      if (window.confirm("Wegweiser wirklich abreißen? Verbindungen im Wegenetz werden entfernt.")) {
+        removeWaypost(w, selectedWaypostId);
+        selectedWaypostId = undefined;
+        window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
+        refresh();
+      }
       return;
     }
     if (action === "merchant-map-target") {
@@ -733,13 +761,23 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
     selectedTile = undefined;
+    selectedWaypostId = undefined;
     selectedBuildingId = id;
+    renderSelectionPanel();
+  });
+
+  window.addEventListener(WAYPOST_SELECTED_EVENT, (event) => {
+    if (merchantTargetSelection !== undefined || buildPlacementKind) return;
+    selectedBuildingId = undefined;
+    selectedTile = undefined;
+    selectedWaypostId = (event as CustomEvent<WaypostSelectedDetail>).detail.id;
     renderSelectionPanel();
   });
 
   window.addEventListener(TILE_SELECTED_EVENT, (event) => {
     if (merchantTargetSelection !== undefined || buildPlacementKind) return;
     selectedBuildingId = undefined;
+    selectedWaypostId = undefined;
     selectedTile = (event as CustomEvent<TileSelectedDetail>).detail.position;
     renderSelectionPanel();
   });

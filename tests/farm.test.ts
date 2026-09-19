@@ -223,3 +223,68 @@ test("farmer waits to harvest while farm output is full", () => {
   assert.equal(farmer.farmTask, undefined);
   assert.equal(farmer.trip, undefined);
 });
+
+
+test("farmers use the farm as a local navigation node without global wayposts", () => {
+  const w = createWorld();
+  const { farm, farmer } = finishedFarm(w);
+  w.wayposts = [];
+  w.waypostRevision = 0;
+
+  tick(w);
+
+  assert.ok(farmer.farmTask, "farmer should plan local field work inside the farm area");
+  assert.equal(farmer.navigationBlocked, undefined);
+  assert.ok(distance(farmer.farmTask!.target, farm.position) <= CONFIG.farmFieldRadius + 8);
+});
+
+test("farmers outside the farm work area still require the global waypost network", () => {
+  const w = createWorld();
+  const { farm, farmer } = finishedFarm(w);
+  const farTile = w.tiles
+    .filter((tile) => tile.terrain === "grass")
+    .find((tile) => distance(tile, farm.position) > CONFIG.farmFieldRadius + 10);
+  assert.ok(farTile);
+
+  farmer.position = { q: farTile.q, r: farTile.r };
+  farmer.path = [];
+  farmer.active = true;
+  farmer.farmTask = undefined;
+  w.wayposts = [];
+  w.waypostRevision = 0;
+
+  tick(w);
+
+  assert.equal(farmer.farmTask, undefined);
+  assert.equal(farmer.path.length, 0);
+  assert.equal(farmer.navigationBlocked, true);
+});
+
+
+test("farmers return to the farm before starting another local task", () => {
+  const w = createWorld();
+  const { farm, farmer } = finishedFarm(w);
+  const field = addField(
+    w,
+    farm,
+    nearbyGrass(w, farm.position),
+    1,
+    CONFIG.fieldStageDurationTicks - 3,
+  );
+  farmer.position = { ...field.position };
+  farmer.path = [];
+  farmer.farmTask = {
+    kind: "fertilize",
+    target: { ...field.position },
+    fieldId: field.id,
+    progress: 0,
+  };
+
+  tick(w);
+  assert.equal(field.fieldStage, 2);
+  assert.equal(farmer.farmTask, undefined);
+
+  tick(w);
+  assert.ok(farmer.path.length > 0, "completed field work should route back to the farm");
+  assert.deepEqual(farmer.path.at(-1), farm.position);
+});

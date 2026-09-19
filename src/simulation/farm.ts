@@ -1,8 +1,13 @@
 import type { Building, Hex, Person, Tile, World } from "./model";
 import { key, neighbors, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
-import { clearNavigationBlocked, findRequiredNavigationPath } from "./wayposts";
-import { refinedCellCluster } from "./spatial";
+import { clearNavigationBlocked } from "./wayposts";
+import { hexDistance, refinedCellCluster } from "./spatial";
+import {
+  findLocalNavigationPath,
+  findPathIntoLocalNavigationNode,
+  type LocalNavigationNode,
+} from "./localNavigation";
 import { naturalResourceFootprint } from "./naturalResources";
 import { looseGoodStacks } from "./looseGoods";
 import {
@@ -28,8 +33,27 @@ const fieldFootprintAt = (target: Hex): Hex[] =>
     r: target.r + offset.r,
   }));
 
-const routeTo = (w: World, p: Person, target: Hex): Hex[] | null =>
-  findRequiredNavigationPath(w, p, target, CONFIG.roadSpeedMultiplier);
+const farmNavigationNode = (farm: Building): LocalNavigationNode => ({
+  entry: farm.position,
+  contains: (position) =>
+    farmFootprint(farm).some(
+      (footprintCell) => hexDistance(footprintCell, position) <= CONFIG.farmFieldRadius,
+    ),
+});
+
+const routeTo = (
+  w: World,
+  p: Person,
+  farm: Building,
+  target: Hex,
+): Hex[] | null =>
+  findLocalNavigationPath(
+    w,
+    p,
+    farmNavigationNode(farm),
+    target,
+    CONFIG.roadSpeedMultiplier,
+  );
 
 const tileAt = (w: World, position: Hex): Tile | undefined =>
   tileIndex(w.tiles).get(key(position));
@@ -97,7 +121,7 @@ const sowCandidates = (w: World, farm: Building, p: Person): { tile: Tile; path:
     .filter((tile): tile is Tile => Boolean(tile?.terrain === "grass"))
     .filter((tile) => fieldAreaIsFree(w, tile, reserved, occupiedByPeople, physicalObstacles))
     .map((tile) => {
-      const path = routeTo(w, p, tile);
+      const path = routeTo(w, p, farm, tile);
       return path ? { tile, path } : undefined;
     })
     .filter((candidate): candidate is { tile: Tile; path: Hex[] } => Boolean(candidate));
@@ -112,7 +136,7 @@ const fieldCandidates = (
   farmFields(w, farm.id)
     .filter(predicate)
     .map((field) => {
-      const path = routeTo(w, p, field.position);
+      const path = routeTo(w, p, farm, field.position);
       return path ? { field, path } : undefined;
     })
     .filter((candidate): candidate is { field: Building; path: Hex[] } => Boolean(candidate));
@@ -163,6 +187,29 @@ export function planFarmWorker(w: World, p: Person, farm: Building): boolean {
     p.farmTask
   )
     return false;
+
+  const node = farmNavigationNode(farm);
+  if (!node.contains(p.position)) {
+    const path = findPathIntoLocalNavigationNode(
+      w,
+      p,
+      node,
+      CONFIG.roadSpeedMultiplier,
+    );
+    p.path = path ?? [];
+    p.movement = 0;
+    p.active = false;
+    return Boolean(path);
+  }
+  clearNavigationBlocked(p);
+
+  if (!same(p.position, farm.position)) {
+    const path = routeTo(w, p, farm, farm.position);
+    p.path = path ?? [];
+    p.movement = 0;
+    p.active = false;
+    return Boolean(path);
+  }
 
   const ripeFields = farmFields(w, farm.id).filter((field) => field.fieldStage === 4);
   const incomingWheat = w.people.filter(
@@ -333,7 +380,7 @@ export function advanceFarmSystem(w: World): number[] {
     if (field?.kind === "field" && !field.retired && field.fieldStage === 4) {
       const harvestAmount = task.outputMultiplier ?? productionMultiplier(p, "farmer");
       harvestField(w, field);
-      const path = routeTo(w, p, farm.position);
+      const path = routeTo(w, p, farm, farm.position);
       if (path) {
         p.pendingFarmBonus = Math.max(0, harvestAmount - CONFIG.carryCapacity);
         p.trip = { source: field.id, target: farm.id, good: "wheat", picked: true };
@@ -352,8 +399,29 @@ export function advanceFarmSystem(w: World): number[] {
 }
 
 export function rerouteFarmTask(w: World, p: Person): boolean {
-  if (!p.farmTask) return false;
-  p.path = routeTo(w, p, p.farmTask.target) ?? [];
+  if (!p.farmTask || !p.assignment) return false;
+  const farm = w.buildings.find(
+    (building) =>
+      building.id === p.assignment!.building &&
+      building.kind === "farm" &&
+      !building.retired,
+  );
+  if (!farm) return false;
+
+  const node = farmNavigationNode(farm);
+  if (!node.contains(p.position)) {
+    p.farmTask = undefined;
+    p.progress = 0;
+    p.path =
+      findPathIntoLocalNavigationNode(
+        w,
+        p,
+        node,
+        CONFIG.roadSpeedMultiplier,
+      ) ?? [];
+  } else {
+    p.path = routeTo(w, p, farm, p.farmTask.target) ?? [];
+  }
   p.movement = 0;
   return true;
 }

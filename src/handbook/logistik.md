@@ -2,7 +2,7 @@
 
 Waren liegen immer an einem konkreten Ort. Eine Produktionsstätte kann nur arbeiten, wenn benötigte Waren tatsächlich dort ankommen.
 
-Abbauer arbeiten innerhalb ihrer persönlichen Arbeitsflagge. Jede abgebaute Einheit tragen sie einzeln zurück zur Flagge und stapeln sie dort als lose Ware. Diese kurzen Wege innerhalb des eigenen Arbeitsbereichs laufen direkt und benötigen keinen Wegweiser. Ist im Arbeitsbereich kein passendes Vorkommen mehr verfügbar, warten sie in der Nähe der Flagge, bis du den Bereich versetzt oder wieder Arbeit verfügbar ist.
+Abbauer arbeiten innerhalb ihrer persönlichen Arbeitsflagge. Die Flagge ist ihr lokaler Navigationspunkt: kurze Wege innerhalb des bereits erreichten Arbeitsbereichs benötigen keinen Wegweiser. Versetzt du die Flagge außerhalb des aktuellen Bereichs der Person, muss sie den neuen Arbeitsbereich zuerst über das normale Wegweisernetz erreichen. Jede abgebaute Einheit tragen Abbauer einzeln zurück zur Flagge und stapeln sie dort als lose Ware. Ist im Arbeitsbereich kein passendes Vorkommen mehr verfügbar, kehren sie zur Flagge zurück und warten dort, bis du den Bereich versetzt oder wieder Arbeit verfügbar ist.
 
 Lager- und HQ-Träger sammeln Waren in ihrem eigenen lokalen Arbeitsbereich ein und bringen sie in ihr zugewiesenes Lager.
 
@@ -23,6 +23,6 @@ Für jede Verbindung erscheint am Pfosten ein eigenes Richtungsschild zum verbun
 
 Auf dem Desktop zeigt die Maus zuerst den Ghost; Linksklick platziert und Rechtsklick oder Escape bricht ab. Auf Touch setzt ein Tap nur die Vorschau, Ziehen verschiebt die Karte und **„Platzieren“** bestätigt.
 
-Bewohner nutzen das Wegweisernetz für längere Navigation verpflichtend. Die kurzen Teilstrecken zum ersten Wegweiser, zwischen verbundenen Wegweisern und vom letzten Wegweiser zum Ziel werden weiterhin lokal berechnet. Bei mehreren Möglichkeiten gewinnt die Route mit der geringsten realen Reisezeit; bestehende Wege können sie dadurch attraktiver machen. Gibt es keine gültige Route, bleibt die Person stehen und zeigt einen gelben Hinweis. Erst wenn sich das Wegweisernetz ändert, wird ein zuvor gescheitertes Ziel erneut geprüft.
+Bewohner nutzen das Wegweisernetz für längere Navigation verpflichtend, müssen die Wegweiser selbst aber nicht betreten. Bei ein oder zwei beteiligten Wegweiser-Nodes wird der konkrete Weg direkt lokal berechnet; bei längeren Reisen begrenzt die gewählte Node-Kette den Suchkorridor. Persönliche Arbeitsflaggen und Farmen bilden lokale Arbeits-Nodes: erst nach der globalen Anreise in deren Bereich läuft die eigentliche Arbeit lokal. Farmer kehren zwischen abgeschlossenen Feldaufgaben zur Farm zurück; Fischer kehren nur mit einem erfolgreichen Fang zur Flagge zurück. Gibt es keine gültige Route, bleibt die Person stehen und zeigt einen gelben Hinweis. Erst wenn sich das Wegweisernetz ändert, wird ein zuvor gescheitertes Ziel erneut geprüft.
 
 Wenn eine Produktion stockt, prüfe den tatsächlichen Warenfluss, die Wege und die Arbeitsbereiche der beteiligten Bewohner.

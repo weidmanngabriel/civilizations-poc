@@ -42,6 +42,7 @@ const SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const BUILD_POSITION_SELECTED_EVENT = "poc-build-position-selected";
+const WAYPOST_SELECTED_EVENT = "poc-waypost-selected";
 
 const colors = {
   grass: 0x526b42,
@@ -282,6 +283,29 @@ export class MainScene extends Phaser.Scene {
           detail: { id: candidate.building.id },
         }));
       }
+      return;
+    }
+
+    const waypostCandidate = wayposts(this.world)
+      .map((waypost) => ({
+        waypost,
+        distance: Phaser.Math.Distance.Between(
+          worldPoint.x,
+          worldPoint.y,
+          pixel(waypost.position).x,
+          pixel(waypost.position).y,
+        ),
+      }))
+      .filter(({ distance }) => distance <= Math.max(7, HEX_RADIUS + 4))
+      .sort((a, b) => a.distance - b.distance)[0];
+
+    if (waypostCandidate && (!candidate || waypostCandidate.distance < candidate.distance)) {
+      this.selectedBuildingId = undefined;
+      this.selectedTile = undefined;
+      this.renderWorld();
+      window.dispatchEvent(new CustomEvent(WAYPOST_SELECTED_EVENT, {
+        detail: { id: waypostCandidate.waypost.id },
+      }));
       return;
     }
 
