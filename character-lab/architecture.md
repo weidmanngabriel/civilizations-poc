@@ -112,3 +112,12 @@ Each keyframe may optionally define `interpolation`. That value controls only th
 Animations may also specify `previewDurationMs`. This is only the Character-Lab playback duration; normalized progress remains 0..1 and gameplay duration stays outside the animation asset.
 
 The current v1 tool prop is a simple axe attached directly to the right-arm hierarchy. It is shown by the bundled `woodcut` preset and follows the arm automatically.
+
+
+## Automated visual review
+
+The Character Lab supports a deterministic capture mode through query parameters, for example `/character-lab/?capture=woodcut&progress=0.45`. Capture mode hides the editor chrome, pauses playback and renders a fixed animation progress with a stable preview yaw/zoom.
+
+`window.characterLab` exposes `captureFrame(progress)` and `captureFrames(progressValues)`. These use the same animation state as the UI and return PNG data URLs after an explicit render.
+
+`scripts/capture-character-lab.mjs` serves the production build locally, opens capture URLs with the Chrome binary available on the GitHub runner and writes 21 evenly spaced PNGs for the selected preset. CI uploads those PNGs as a `character-lab-review-<sha>` workflow artifact. This artifact is the preferred input for automated or agent-led visual review.
