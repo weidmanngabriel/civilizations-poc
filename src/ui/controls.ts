@@ -10,14 +10,7 @@ import type {
 import {
   assigned,
   building,
-  builders,
-  clayDiggers,
-  changeAssignment,
-  changeBuilders,
-  changeExtractors,
   changePopulation,
-  changeWoodcutters,
-  changeFishers,
   freePeople,
   GOODS,
   isUnderConstruction,
@@ -27,15 +20,14 @@ import {
   tick,
   totalWarehouseStock,
   warehouseStock,
-  woodcutters,
-  fishers,
-  stonecutters,
 } from "../simulation/simulation";
 import {
   currentProfession,
   PROFESSION_LABELS,
   professionExperience,
 } from "../simulation/experience";
+import { personName } from "../simulation/personIdentity";
+import { personActivityLabel } from "../personPresentation";
 import {
   buildWithFootprint,
   canPlaceBuilding,
@@ -57,6 +49,8 @@ const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const BUILD_POSITION_SELECTED_EVENT = "poc-build-position-selected";
 const WAYPOST_PLACEMENT_REQUESTED_EVENT = "poc-waypost-placement-requested";
+const PERSON_SELECTION_REQUESTED_EVENT = "poc-person-selection-requested";
+const PERSON_STAFF_PICKER_REQUESTED_EVENT = "poc-person-staff-picker-requested";
 
 type BuildingSelectedDetail = { id: BuildingId };
 type TileSelectedDetail = { position: Hex };
@@ -77,6 +71,13 @@ const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
 
 const formatOutputAmount = (value: number): string => value.toFixed(1).replace(".", ",");
 const formatWholeAmount = (value: number): string => String(Math.round(value));
+const escapeHtml = (value: string): string =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -116,11 +117,13 @@ export function mountControls(w: World, renderMap: () => void): void {
           : "Bauarbeiter";
   const workerLabel = (b: Building) =>
     b.kind === "farm" ? "Farmer"
-      : b.kind === "mill" ? "Müller"
-        : b.kind === "bakery" ? "Bäcker"
-          : b.kind === "pottery" ? "Töpfer"
-            : b.kind === "stonemason" ? "Steinmetz"
-              : "Arbeiter";
+      : b.kind === "sawmill" ? "Sägewerker"
+        : b.kind === "carpenter" ? "Schreiner"
+          : b.kind === "mill" ? "Müller"
+            : b.kind === "bakery" ? "Bäcker"
+              : b.kind === "pottery" ? "Töpfer"
+                : b.kind === "stonemason" ? "Steinmetz"
+                  : "Arbeiter";
   const buildingHeading = (b: Building) => `${buildingIcon(b.kind)}<span>${b.name}</span>`;
   const goodLabel = (good: Good) => `<span class="good-label"><span aria-hidden="true">${GOOD_ICONS[good]}</span><span>${GOODS[good]}</span></span>`;
   const personIcon = (personId: number) => {
@@ -145,14 +148,6 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
     return "👤";
   };
-  const roleLimit = (b: Building, role: Role): number => {
-    if (isUnderConstruction(b)) return 0;
-    if (role === "builder") return 0;
-    if (role === "worker") return b.workers;
-    if (role === "carrier") return b.carriers;
-    return b.kind === "warehouse" ? (b.merchants ?? 0) : 0;
-  };
-
   function updateBuildPlacementConfirm(): void {
     buildPlacementConfirm.disabled = !(
       buildPlacementKind &&
@@ -163,13 +158,33 @@ export function mountControls(w: World, renderMap: () => void): void {
     );
   }
 
-  const assignmentControl = (b: Building, role: Role, limit: number): string => {
+  const staffSection = (b: Building, role: Role, limit: number): string => {
     if (b.kind === "field" || !limit) return "";
     const label = role === "worker" ? workerLabel(b) : roleLabel(role);
-    const detail = role === "merchant"
-      ? "Handelsroute je Händler"
-      : `<span data-field="${role}-active"></span> aktiv`;
-    return `<div class="assignment"><div>${label}<small>${detail}</small></div><div class="stepper"><button data-action="assignment" data-building="${b.id}" data-role="${role}" data-delta="-1" aria-label="${b.name}: ${label} verringern">−</button><output data-field="${role}-count"></output><button data-action="assignment" data-building="${b.id}" data-role="${role}" data-delta="1" aria-label="${b.name}: ${label} erhöhen">+</button></div></div>`;
+    const people = assigned(w, b.id, role);
+    const occupied = people.map((person) => `
+      <button class="staff-person" type="button" data-action="staff-person" data-person="${person.id}">
+        <span class="staff-person-icon" aria-hidden="true">${personIcon(person.id)}</span>
+        <span class="staff-person-copy">
+          <strong>${escapeHtml(personName(person.id))}</strong>
+          <small data-field="staff-activity-${person.id}">${escapeHtml(personActivityLabel(person))}</small>
+        </span>
+        <span class="staff-person-open" aria-hidden="true">›</span>
+      </button>`).join("");
+    const openSlots = Math.max(0, limit - people.length);
+    const empty = Array.from({ length: openSlots }, () => `
+      <button class="staff-person staff-person--empty" type="button" data-action="staff-candidates" data-building="${b.id}" data-role="${role}">
+        <span class="staff-person-icon staff-person-icon--empty" aria-hidden="true">+</span>
+        <span class="staff-person-copy">
+          <strong>Geeignete Personen</strong>
+          <small>Platz frei · Person direkt zuweisen</small>
+        </span>
+        <span class="staff-person-open" aria-hidden="true">›</span>
+      </button>`).join("");
+    return `<section class="staff-group">
+      <div class="staff-group-title"><strong>${label}</strong><span>${people.length}/${limit}</span></div>
+      <div class="staff-list">${occupied}${empty}</div>
+    </section>`;
   };
 
   const merchantControls = (b: Building): string => {
@@ -209,33 +224,8 @@ export function mountControls(w: World, renderMap: () => void): void {
     if (b.kind === "hq") {
       setField("population-count", String(w.people.length));
       setField("free-count", String(freePeople(w).length));
-      setField("woodcutter-count", String(woodcutters(w).length));
-      setField("fisher-count", String(fishers(w).length));
-      setField("clay-digger-count", String(clayDiggers(w).length));
-      setField("stonecutter-count", String(stonecutters(w).length));
-      setField("builder-pool-count", String(builders(w).length));
       const populationMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="population"][data-delta="-1"]');
-      const woodcutterMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="woodcutter"][data-delta="-1"]');
-      const woodcutterPlus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="woodcutter"][data-delta="1"]');
-      const fisherMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="fisher"][data-delta="-1"]');
-      const fisherPlus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="fisher"][data-delta="1"]');
-      const clayDiggerMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="clay-digger"][data-delta="-1"]');
-      const clayDiggerPlus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="clay-digger"][data-delta="1"]');
-      const stonecutterMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="stonecutter"][data-delta="-1"]');
-      const stonecutterPlus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="stonecutter"][data-delta="1"]');
-      const builderMinus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="builder-pool"][data-delta="-1"]');
-      const builderPlus = selectionPanel.querySelector<HTMLButtonElement>('button[data-action="builder-pool"][data-delta="1"]');
       if (populationMinus) populationMinus.disabled = !canRemovePopulation();
-      if (woodcutterMinus) woodcutterMinus.disabled = woodcutters(w).length === 0;
-      if (woodcutterPlus) woodcutterPlus.disabled = freePeople(w).length === 0;
-      if (fisherMinus) fisherMinus.disabled = fishers(w).length === 0;
-      if (fisherPlus) fisherPlus.disabled = freePeople(w).length === 0;
-      if (clayDiggerMinus) clayDiggerMinus.disabled = clayDiggers(w).length === 0;
-      if (clayDiggerPlus) clayDiggerPlus.disabled = freePeople(w).length === 0;
-      if (stonecutterMinus) stonecutterMinus.disabled = stonecutters(w).length === 0;
-      if (stonecutterPlus) stonecutterPlus.disabled = freePeople(w).length === 0;
-      if (builderMinus) builderMinus.disabled = builders(w).length === 0;
-      if (builderPlus) builderPlus.disabled = freePeople(w).length === 0;
       return;
     }
 
@@ -268,16 +258,8 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
 
     for (const role of ["worker", "carrier", "merchant"] as const) {
-      const limit = roleLimit(b, role);
-      if (!limit) continue;
-      const people = assigned(w, b.id, role);
-      if (role !== "merchant")
-        setField(`${role}-active`, String(people.filter((p) => p.active).length));
-      setField(`${role}-count`, `${people.length}/${limit}`);
-      const minus = selectionPanel.querySelector<HTMLButtonElement>(`button[data-action="assignment"][data-role="${role}"][data-delta="-1"]`);
-      const plus = selectionPanel.querySelector<HTMLButtonElement>(`button[data-action="assignment"][data-role="${role}"][data-delta="1"]`);
-      if (minus) minus.disabled = people.length === 0;
-      if (plus) plus.disabled = people.length >= limit || freePeople(w).length === 0;
+      for (const person of assigned(w, b.id, role))
+        setField(`staff-activity-${person.id}`, personActivityLabel(person));
     }
   };
 
@@ -345,7 +327,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
     selectionPanel.hidden = false;
     if (b.kind === "hq") {
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Sammelpunkt und globale Personalsteuerung</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> frei</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><div class="assignment"><div>Holzfäller<small>Jeder sucht selbständig einen freien Wald</small></div><div class="stepper"><button data-action="woodcutter" data-delta="-1">−</button><output data-field="woodcutter-count"></output><button data-action="woodcutter" data-delta="1">+</button></div></div><div class="assignment"><div>Fischer<small>Angeln innerhalb ihrer Arbeitsflagge am Wasser</small></div><div class="stepper"><button data-action="fisher" data-delta="-1">−</button><output data-field="fisher-count"></output><button data-action="fisher" data-delta="1">+</button></div></div><div class="assignment"><div>Lehmgräber<small>Suchen selbständig freie Lehmvorkommen</small></div><div class="stepper"><button data-action="clay-digger" data-delta="-1">−</button><output data-field="clay-digger-count"></output><button data-action="clay-digger" data-delta="1">+</button></div></div><div class="assignment"><div>Steinbrecher<small>Suchen selbständig freie Steinvorkommen</small></div><div class="stepper"><button data-action="stonecutter" data-delta="-1">−</button><output data-field="stonecutter-count"></output><button data-action="stonecutter" data-delta="1">+</button></div></div><div class="assignment"><div>Bauarbeiter<small>Werden automatisch auf Baustellen verteilt</small></div><div class="stepper"><button data-action="builder-pool" data-delta="-1">−</button><output data-field="builder-pool-count"></output><button data-action="builder-pool" data-delta="1">+</button></div></div><p class="status" data-field="status"></p>`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Sammelpunkt. Berufe und Arbeitsplätze werden direkt an einzelnen Bewohnern zugewiesen.</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> ohne Beruf</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><div class="building-staff">${staffSection(b, "carrier", b.carriers)}</div><p class="status" data-field="status"></p>`;
       updateSelectionLiveState();
       return;
     }
@@ -384,10 +366,10 @@ export function mountControls(w: World, renderMap: () => void): void {
           : b.kind === "well"
             ? `<div><span>${goodLabel("water")}</span><strong>∞</strong></div>`
             : `${recipeInputs.map(([good]) => `<div><span>${goodLabel(good)} · Input</span><strong data-field="input-${good}"></strong></div>`).join("")}${b.recipe ? `<div><span>${goodLabel(b.recipe.output)} · Output</span><strong data-field="output"></strong></div>` : ""}`;
-    const merchantAssignment = b.kind === "warehouse"
-      ? assignmentControl(b, "merchant", b.merchants ?? 0)
+    const merchantStaff = b.kind === "warehouse"
+      ? staffSection(b, "merchant", b.merchants ?? 0)
       : "";
-    selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">${recipe}</p>${assignmentControl(b, "worker", b.workers)}${assignmentControl(b, "carrier", b.carriers)}${merchantAssignment}<div class="inventory">${inventory}</div>${merchantControls(b)}<p class="status" data-field="status"></p>${demolish}`;
+    selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">${recipe}</p><div class="building-staff">${staffSection(b, "worker", b.workers)}${staffSection(b, "carrier", b.carriers)}${merchantStaff}</div><div class="inventory">${inventory}</div>${merchantControls(b)}<p class="status" data-field="status"></p>${demolish}`;
     updateSelectionLiveState();
   }
 
@@ -665,6 +647,25 @@ export function mountControls(w: World, renderMap: () => void): void {
       enterMerchantTargetMode(Number(button.dataset.person));
       return;
     }
+    if (action === "staff-person") {
+      const personId = Number(button.dataset.person);
+      selectedBuildingId = undefined;
+      selectedTile = undefined;
+      selectionPanel.hidden = true;
+      window.dispatchEvent(new CustomEvent(PERSON_SELECTION_REQUESTED_EVENT, {
+        detail: { id: personId, focus: true },
+      }));
+      return;
+    }
+    if (action === "staff-candidates") {
+      const buildingId = button.dataset.building as BuildingId;
+      const role = button.dataset.role as Role;
+      selectionPanel.hidden = true;
+      window.dispatchEvent(new CustomEvent(PERSON_STAFF_PICKER_REQUESTED_EVENT, {
+        detail: { buildingId, role },
+      }));
+      return;
+    }
     if (action === "build") {
       enterBuildPlacementMode(button.dataset.kind as BuildableBuildingKind);
       return;
@@ -689,18 +690,6 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
     const delta = Number(button.dataset.delta) as 1 | -1;
     if (action === "population") changePopulation(w, delta);
-    if (action === "woodcutter") changeWoodcutters(w, delta);
-    if (action === "fisher") changeFishers(w, delta);
-    if (action === "clay-digger") changeExtractors(w, "clay", delta);
-    if (action === "stonecutter") changeExtractors(w, "stone", delta);
-    if (action === "builder-pool") changeBuilders(w, delta);
-    if (action === "assignment")
-      changeAssignment(
-        w,
-        button.dataset.building as BuildingId,
-        button.dataset.role as Role,
-        delta,
-      );
     refresh();
   });
 

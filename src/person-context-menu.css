@@ -11,8 +11,16 @@
   background: rgb(243 211 106 / 12%);
 }
 
-.person-context-toggle > span:first-child {
-  font-size: 18px;
+.person-context-toggle-icon {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  border-radius: 2px;
+  background:
+    linear-gradient(currentColor, currentColor) 0 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 100% 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 100% / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 100% 100% / 6px 6px no-repeat;
 }
 
 .person-context-menu {

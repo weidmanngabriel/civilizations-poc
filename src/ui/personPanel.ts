@@ -1,14 +1,16 @@
-import type { Person, Profession, World } from "../simulation/model";
+import type { BuildingId, Person, Profession, Role, World } from "../simulation/model";
 import {
   currentProfession,
   PROFESSION_LABELS,
   professionExperience,
+  workerProfession,
 } from "../simulation/experience";
 import { GOODS } from "../simulation/simulation";
 import { personName } from "../simulation/personIdentity";
 import { GOOD_ICONS } from "../icons";
 import { personActivityLabel } from "../personPresentation";
 import { personAlertMap, type PersonAlertSeverity } from "./personAlerts";
+import { setPersonProfession, setPersonWorkplace } from "../simulation/personCommands";
 
 const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
@@ -19,8 +21,11 @@ const TILE_SELECTED_EVENT = "poc-tile-selected";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT = "poc-person-context-toggle-requested";
+const PERSON_STAFF_PICKER_REQUESTED_EVENT = "poc-person-staff-picker-requested";
+const BUILDING_SELECTION_REQUESTED_EVENT = "poc-building-selection-requested";
 
 type PersonSelectedDetail = { id: number };
+type StaffPickerDetail = { buildingId: BuildingId; role: Role };
 type PersonFilter = "all" | "free" | Profession;
 type PersonAlertFilter = "all" | PersonAlertSeverity;
 
@@ -121,7 +126,7 @@ export function mountPersonPanel(world: World): void {
   browser.setAttribute("aria-label", "Personenübersicht");
   browser.innerHTML = `
     <header class="person-panel-header">
-      <div><small>BEWOHNER</small><strong>Personen finden</strong></div>
+      <div><small data-person-browser-kicker>BEWOHNER</small><strong data-person-browser-title>Personen finden</strong></div>
       <button type="button" data-person-action="close-browser" aria-label="Personenübersicht schließen">×</button>
     </header>
     <div class="person-alert-filters" role="group" aria-label="Nach Hinweisstufe filtern">
@@ -161,54 +166,96 @@ export function mountPersonPanel(world: World): void {
     browser.querySelectorAll<HTMLButtonElement>("[data-person-alert-filter]"),
   );
   const alertBadge = toggle.querySelector<HTMLElement>(".person-alert-badge")!;
+  const browserKicker = browser.querySelector<HTMLElement>("[data-person-browser-kicker]")!;
+  const browserTitle = browser.querySelector<HTMLElement>("[data-person-browser-title]")!;
+  const alertFilters = browser.querySelector<HTMLElement>(".person-alert-filters")!;
+  const professionFilters = browser.querySelector<HTMLElement>(".person-filter-row")!;
 
   let selectedPersonId: number | undefined;
   let activeFilter: PersonFilter = "all";
   let activeAlertFilter: PersonAlertFilter = "all";
   let alerts = personAlertMap(world);
   let searchQuery = "";
-  let navigationIds = world.people.map((person) => person.id);
   let inspectorSignature = "";
   let browserProfessionSignature = "";
+  let staffPicker: StaffPickerDetail | undefined;
+
+  const staffPickerProfession = (): Profession | undefined => {
+    if (!staffPicker) return undefined;
+    const building = world.buildings.find((candidate) => candidate.id === staffPicker!.buildingId);
+    if (!building || building.retired) return undefined;
+    if (staffPicker.role === "worker") return workerProfession(building);
+    if (staffPicker.role === "carrier") return "carrier";
+    if (staffPicker.role === "merchant") return "merchant";
+    return undefined;
+  };
+
+  const personIsFree = (person: Person): boolean => professionOf(world, person) === undefined;
 
   const matchingPeople = (): Person[] => {
     const query = searchQuery.trim().toLocaleLowerCase("de-DE");
     return world.people
       .filter((person) => {
+        if (
+          staffPicker &&
+          person.assignment?.building === staffPicker.buildingId &&
+          person.assignment.role === staffPicker.role
+        ) return false;
         const profession = professionOf(world, person);
         const alert = alerts.get(person.id);
-        if (activeAlertFilter !== "all" && alert?.severity !== activeAlertFilter) return false;
-        if (activeFilter === "free" && profession) return false;
-        if (activeFilter !== "all" && activeFilter !== "free" && profession !== activeFilter)
-          return false;
+        if (!staffPicker) {
+          if (activeAlertFilter !== "all" && alert?.severity !== activeAlertFilter) return false;
+          if (activeFilter === "free" && profession) return false;
+          if (activeFilter !== "all" && activeFilter !== "free" && profession !== activeFilter)
+            return false;
+        }
         if (!query) return true;
         return (
           personName(person.id).toLocaleLowerCase("de-DE").includes(query) ||
           professionLabel(world, person).toLocaleLowerCase("de-DE").includes(query)
         );
       })
-      .sort((a, b) => personName(a.id).localeCompare(personName(b.id), "de"));
+      .sort((a, b) => {
+        if (staffPicker) {
+          const freeDelta = Number(personIsFree(b)) - Number(personIsFree(a));
+          if (freeDelta) return freeDelta;
+        }
+        return personName(a.id).localeCompare(personName(b.id), "de");
+      });
   };
+
+  const personListButton = (person: Person): string => `
+    <button class="person-list-item" type="button" data-person-id="${person.id}">
+      <span class="person-list-avatar" aria-hidden="true">${professionIcon(world, person)}</span>
+      <span class="person-list-copy">
+        <strong>${escapeHtml(personName(person.id))}</strong>
+        <small>${escapeHtml(professionLabel(world, person))}</small>
+        ${!staffPicker && alerts.has(person.id) ? `<em class="person-list-alert person-list-alert--${alerts.get(person.id)!.severity}">${escapeHtml(alerts.get(person.id)!.label)}</em>` : ""}
+      </span>
+      <span class="person-list-needs">
+        <span title="Hunger">🍴 <b data-person-hunger="${person.id}">${displayNeed(person.hunger)}</b></span>
+        <span title="Schlaf">💤 <b data-person-sleep="${person.id}">${displayNeed(person.sleep)}</b></span>
+      </span>
+    </button>`;
 
   const renderBrowserList = (): void => {
     const people = matchingPeople();
-    navigationIds = people.map((person) => person.id);
-    summary.textContent = `${people.length} von ${world.people.length} Personen`;
-    list.innerHTML = people.length
-      ? people.map((person) => `
-          <button class="person-list-item" type="button" data-person-id="${person.id}">
-            <span class="person-list-avatar" aria-hidden="true">${professionIcon(world, person)}</span>
-            <span class="person-list-copy">
-              <strong>${escapeHtml(personName(person.id))}</strong>
-              <small>${escapeHtml(professionLabel(world, person))}</small>
-              ${alerts.has(person.id) ? `<em class="person-list-alert person-list-alert--${alerts.get(person.id)!.severity}">${escapeHtml(alerts.get(person.id)!.label)}</em>` : ""}
-            </span>
-            <span class="person-list-needs">
-              <span title="Hunger">🍴 <b data-person-hunger="${person.id}">${displayNeed(person.hunger)}</b></span>
-              <span title="Schlaf">💤 <b data-person-sleep="${person.id}">${displayNeed(person.sleep)}</b></span>
-            </span>
-          </button>`).join("")
-      : `<div class="person-empty-state">Keine passende Person gefunden.</div>`;
+    if (staffPicker) {
+      const free = people.filter(personIsFree);
+      const assignedPeople = people.filter((person) => !personIsFree(person));
+      summary.textContent = `${people.length} geeignete Personen`;
+      list.innerHTML = people.length
+        ? [
+            free.length ? `<div class="person-picker-group"><strong>Frei</strong><small>Noch ohne Beruf</small></div>${free.map(personListButton).join("")}` : "",
+            assignedPeople.length ? `<div class="person-picker-group"><strong>Andere Personen</strong><small>Bereits mit Beruf oder Aufgabe</small></div>${assignedPeople.map(personListButton).join("")}` : "",
+          ].join("")
+        : `<div class="person-empty-state">Keine geeignete Person gefunden.</div>`;
+    } else {
+      summary.textContent = `${people.length} von ${world.people.length} Personen`;
+      list.innerHTML = people.length
+        ? people.map(personListButton).join("")
+        : `<div class="person-empty-state">Keine passende Person gefunden.</div>`;
+    }
 
     for (const button of filterButtons)
       button.setAttribute("aria-pressed", String(button.dataset.personFilter === activeFilter));
@@ -254,15 +301,6 @@ export function mountPersonPanel(world: World): void {
       if (sleep) sleep.textContent = String(displayNeed(person.sleep));
     }
   };
-  const currentNavigation = (): number[] => {
-    if (
-      selectedPersonId !== undefined &&
-      navigationIds.includes(selectedPersonId) &&
-      navigationIds.length
-    ) return navigationIds;
-    return world.people.map((person) => person.id);
-  };
-
   const renderInspector = (): void => {
     if (selectedPersonId === undefined || !browser.hidden) {
       inspector.hidden = true;
@@ -301,7 +339,7 @@ export function mountPersonPanel(world: World): void {
     inspector.innerHTML = `
       <header class="person-panel-header person-inspector-header">
         <button class="person-context-toggle" type="button" data-person-action="open-context">
-          <span aria-hidden="true">▦</span><span>Aktionen</span>
+          <span class="person-context-toggle-icon" aria-hidden="true"></span><span>Aktionen</span>
         </button>
         <div class="person-inspector-identity">
           <small>${escapeHtml(professionText)}</small>
@@ -327,8 +365,7 @@ export function mountPersonPanel(world: World): void {
         <div><dt>Wohnung</dt><dd>${escapeHtml(home)}</dd></div>
         <div><dt>Erfahrung</dt><dd>${experience === undefined ? "—" : `${experience} %`}</dd></div>
         <div><dt>Getragen</dt><dd>${cargo}</dd></div>
-      </dl>
-      <button class="person-open-list" type="button" data-person-action="open-browser">Personenliste öffnen</button>`;
+      </dl>`;
   };
 
   const resetBrowserFilters = (): void => {
@@ -354,12 +391,47 @@ export function mountPersonPanel(world: World): void {
       document.querySelector<HTMLButtonElement>('[data-building-action="close"]')?.click();
   };
 
+  const renderBrowserMode = (): void => {
+    if (!staffPicker) {
+      browserKicker.textContent = "BEWOHNER";
+      browserTitle.textContent = "Personen finden";
+      alertFilters.hidden = false;
+      professionFilters.hidden = false;
+      browser.classList.remove("person-staff-picker");
+      return;
+    }
+    const building = world.buildings.find((candidate) => candidate.id === staffPicker!.buildingId);
+    const profession = staffPickerProfession();
+    browserKicker.textContent = "GEEIGNETE PERSONEN";
+    browserTitle.textContent = profession
+      ? `${PROFESSION_LABELS[profession]} · ${building?.name ?? "Gebäude"}`
+      : (building?.name ?? "Gebäude");
+    alertFilters.hidden = true;
+    professionFilters.hidden = true;
+    browser.classList.add("person-staff-picker");
+  };
+
+  const returnToStaffBuilding = (): void => {
+    const buildingId = staffPicker?.buildingId;
+    staffPicker = undefined;
+    renderBrowserMode();
+    setBrowserOpen(false);
+    if (!buildingId) return;
+    window.dispatchEvent(new CustomEvent(BUILDING_SELECTION_REQUESTED_EVENT, {
+      detail: { id: buildingId, focus: false },
+    }));
+    window.dispatchEvent(new CustomEvent(BUILDING_SELECTED_EVENT, {
+      detail: { id: buildingId },
+    }));
+  };
+
   const setBrowserOpen = (open: boolean): void => {
     browser.hidden = !open;
     toggle.setAttribute("aria-expanded", String(open));
     toggle.classList.toggle("active", open);
     if (open) {
       closeConflictingMenus();
+      renderBrowserMode();
       renderBrowserList();
       inspector.hidden = true;
       requestAnimationFrame(() => search.focus({ preventScroll: true }));
@@ -388,7 +460,10 @@ export function mountPersonPanel(world: World): void {
       panel.querySelector<HTMLButtonElement>('button[data-action="close"]')?.click();
   };
 
-  toggle.addEventListener("click", () => setBrowserOpen(browser.hidden));
+  toggle.addEventListener("click", () => {
+    if (!browser.hidden && staffPicker) returnToStaffBuilding();
+    else setBrowserOpen(browser.hidden);
+  });
   search.addEventListener("input", () => {
     searchQuery = search.value;
     renderBrowserList();
@@ -398,7 +473,8 @@ export function mountPersonPanel(world: World): void {
     const target = event.target as HTMLElement;
     const action = target.closest<HTMLButtonElement>("[data-person-action]")?.dataset.personAction;
     if (action === "close-browser") {
-      setBrowserOpen(false);
+      if (staffPicker) returnToStaffBuilding();
+      else setBrowserOpen(false);
       return;
     }
     const alertFilter = target.closest<HTMLButtonElement>("[data-person-alert-filter]")?.dataset.personAlertFilter;
@@ -414,7 +490,26 @@ export function mountPersonPanel(world: World): void {
       return;
     }
     const personButton = target.closest<HTMLButtonElement>("[data-person-id]");
-    if (personButton?.dataset.personId) requestPerson(Number(personButton.dataset.personId));
+    if (!personButton?.dataset.personId) return;
+    const personId = Number(personButton.dataset.personId);
+    if (!staffPicker) {
+      requestPerson(personId);
+      return;
+    }
+    const person = world.people.find((candidate) => candidate.id === personId);
+    const profession = staffPickerProfession();
+    const buildingId = staffPicker.buildingId;
+    if (!person || !profession) return;
+    const existingProfession = professionOf(world, person);
+    if (
+      existingProfession &&
+      !window.confirm(`${personName(person.id)} ist bereits ${PROFESSION_LABELS[existingProfession]}. Beruf und Arbeitsplatz wirklich ändern?`)
+    ) return;
+    if (!setPersonProfession(world, person.id, profession) || !setPersonWorkplace(world, person.id, buildingId)) {
+      window.alert("Diese Person kann gerade nicht neu zugewiesen werden.");
+      return;
+    }
+    returnToStaffBuilding();
   });
 
   inspector.addEventListener("click", (event) => {
@@ -428,24 +523,12 @@ export function mountPersonPanel(world: World): void {
       window.dispatchEvent(new CustomEvent(PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT));
       return;
     }
-    if (action === "open-browser") {
-      setBrowserOpen(true);
-      return;
-    }
-    const direction = target.closest<HTMLButtonElement>("[data-person-nav]")?.dataset.personNav;
-    if (!direction || selectedPersonId === undefined) return;
-    const ids = currentNavigation();
-    if (!ids.length) return;
-    const currentIndex = Math.max(0, ids.indexOf(selectedPersonId));
-    const delta = direction === "prev" ? -1 : 1;
-    requestPerson(ids[(currentIndex + delta + ids.length) % ids.length]!);
   });
 
   const onPersonSelected = (event: Event): void => {
     const personId = (event as CustomEvent<PersonSelectedDetail>).detail.id;
     closeBuildingPanel();
     selectedPersonId = personId;
-    if (!navigationIds.includes(personId)) navigationIds = world.people.map((person) => person.id);
     inspectorSignature = "";
     renderInspector();
   };
@@ -460,18 +543,32 @@ export function mountPersonPanel(world: World): void {
     setBrowserOpen(false);
   };
 
+  window.addEventListener(PERSON_STAFF_PICKER_REQUESTED_EVENT, (event) => {
+    staffPicker = (event as CustomEvent<StaffPickerDetail>).detail;
+    resetBrowserFilters();
+    renderBrowserMode();
+    setBrowserOpen(true);
+  });
   window.addEventListener(PERSON_SELECTED_EVENT, onPersonSelected);
   window.addEventListener(PERSON_CLEARED_EVENT, onPersonCleared);
   window.addEventListener(BUILDING_SELECTED_EVENT, onWorldSelection);
   window.addEventListener(TILE_SELECTED_EVENT, onWorldSelection);
   window.addEventListener(BUILD_MODE_EVENT, onModalMode);
   window.addEventListener(MERCHANT_TARGET_MODE_EVENT, onModalMode);
-  document.querySelector<HTMLButtonElement>("#build-menu-toggle")?.addEventListener("click", () => setBrowserOpen(false));
-  document.querySelector<HTMLButtonElement>("#handbook-toggle")?.addEventListener("click", () => setBrowserOpen(false));
-  document.querySelector<HTMLButtonElement>("#building-menu-toggle")?.addEventListener("click", () => setBrowserOpen(false));
+  const closeForOtherMenu = (): void => {
+    staffPicker = undefined;
+    renderBrowserMode();
+    setBrowserOpen(false);
+  };
+  document.querySelector<HTMLButtonElement>("#build-menu-toggle")?.addEventListener("click", closeForOtherMenu);
+  document.querySelector<HTMLButtonElement>("#handbook-toggle")?.addEventListener("click", closeForOtherMenu);
+  document.querySelector<HTMLButtonElement>("#building-menu-toggle")?.addEventListener("click", closeForOtherMenu);
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if (!browser.hidden) setBrowserOpen(false);
+    if (!browser.hidden) {
+      if (staffPicker) returnToStaffBuilding();
+      else setBrowserOpen(false);
+    }
     else if (selectedPersonId !== undefined)
       window.dispatchEvent(new CustomEvent(PERSON_SELECTION_CLEAR_REQUESTED_EVENT));
   });
