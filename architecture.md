@@ -132,6 +132,14 @@ Profession XP and qualification rules are centralized in `src/simulation/experie
 
 `setPersonProfession` is the authoritative mutation boundary and rejects profession changes that do not satisfy these person-specific prerequisites. UI surfaces must use the same qualification predicate rather than duplicating progression logic. The person context menu lists only professions currently available to that person, while building staffing filters out people who cannot qualify for the building's required profession.
 
+## Person equipment
+
+Person equipment is authoritative simulation state on each `Person`. The first slots are `tool` and `shoes`; current assignable goods are only `woodenTool` and `shoes`. Manual assignment consumes one matching item from completed HQ/warehouse inventory and stores a slot preference. Wearing an item to zero removes it and immediately tries to consume the same preferred type again; if no stock exists, the one-second maintenance cadence retries later. Manual unequip clears the preference and therefore stops automatic replacement.
+
+Shoes multiply movement progress by 1.3 and lose one durability point per crossed micro-cell, for 2,500 micro-cells total. Wooden tools multiply productive work progress by 1.3. Their durability is expressed as 30 normalized work actions, where one action equals `CONFIG.duration` effective work progress; this lets ordinary production, extraction, farming, fishing and continuous construction share one wear model without profession-specific item logic.
+
+The equipment UI is split deliberately: the person context menu contains one extensible **Ausrüstung** assignment action, while the person detail panel shows individual slots and owns manual unequip. This keeps future equipment such as armour out of the fixed context-action grid.
+
 ## Storage and transport
 
 HQ and warehouses use the same first-class storage semantics. Production workers/building carriers may fetch required goods from either storage type. Storage carriers deliver directly into their assigned warehouse/HQ inventory.
