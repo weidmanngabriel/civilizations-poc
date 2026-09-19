@@ -449,3 +449,47 @@ test("a failed fishing cycle replans locally without returning to the work flag"
     "a failed cast should continue with local fishing instead of routing to the flag",
   );
 });
+
+
+test("an exhausted woodcutter idles exactly at the work flag across retry cycles", () => {
+  const world = createWorld(1);
+  assert.equal(changeWoodcutters(world, 1), true);
+  tick(world);
+  const worker = woodcutters(world)[0]!;
+  const center = { ...worker.workArea!.center };
+
+  for (const resource of world.naturalResources) {
+    if (
+      resource.kind === "forest" &&
+      hexDistance(center, resource.position) <= WORK_AREA_RADIUS
+    ) {
+      resource.remaining = 0;
+      resource.depleted = true;
+    }
+  }
+
+  worker.position = { ...center };
+  worker.resourceTarget = undefined;
+  worker.outdoorCarry = undefined;
+  worker.path = [];
+  worker.idleTarget = undefined;
+  worker.active = false;
+  worker.progress = 0;
+  worker.workArea!.retryAfterTick = undefined;
+
+  const observedPositions: Array<{ q: number; r: number }> = [];
+  for (let i = 0; i < CONFIG.decisionIntervalTicks * 4; i += 1) {
+    tick(world);
+    observedPositions.push({ ...worker.position });
+  }
+
+  assert.equal(worker.resourceTarget, undefined);
+  assert.equal(worker.idleTarget, undefined);
+  assert.equal(worker.path.length, 0);
+  assert.equal(worker.active, false);
+  assert.equal(
+    observedPositions.every((position) => same(position, center)),
+    true,
+    "an exhausted woodcutter must remain at the flag while waiting for work",
+  );
+});
