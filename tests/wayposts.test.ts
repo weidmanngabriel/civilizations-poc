@@ -217,27 +217,49 @@ test("a newly formed road does not replace an active route", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
   const tiles = tileIndex(world.tiles);
-  const first = neighbors(person.position)
-    .map((position) => tiles.get(key(position)))
-    .find((tile) => tile?.terrain === "grass" && walkable(tile));
-  assert.ok(first);
 
-  const goal = neighbors(first)
-    .map((position) => tiles.get(key(position)))
-    .find((tile) => tile && walkable(tile) && hexDistance(person.position, tile) === 2);
+  let startTile;
+  let first;
+  let detour;
+  let goal;
+  for (const candidateStart of world.tiles) {
+    if (candidateStart.terrain !== "grass" || !walkable(candidateStart)) continue;
+    for (const candidateFirstPosition of neighbors(candidateStart)) {
+      const candidateFirst = tiles.get(key(candidateFirstPosition));
+      if (candidateFirst?.terrain !== "grass" || !walkable(candidateFirst)) continue;
+      const candidateGoal = neighbors(candidateFirst)
+        .map((position) => tiles.get(key(position)))
+        .find((tile) =>
+          tile?.terrain === "grass" &&
+          walkable(tile) &&
+          hexDistance(candidateStart, tile) === 2
+        );
+      if (!candidateGoal) continue;
+      const candidateDetour = neighbors(candidateFirst)
+        .map((position) => tiles.get(key(position)))
+        .find((tile) =>
+          tile?.terrain === "grass" &&
+          walkable(tile) &&
+          key(tile) !== key(candidateStart) &&
+          key(tile) !== key(candidateGoal) &&
+          hexDistance(tile, candidateGoal) === 1
+        );
+      if (!candidateDetour) continue;
+      startTile = candidateStart;
+      first = candidateFirst;
+      detour = candidateDetour;
+      goal = candidateGoal;
+      break;
+    }
+    if (startTile) break;
+  }
+
+  assert.ok(startTile);
+  assert.ok(first);
+  assert.ok(detour);
   assert.ok(goal);
 
-  const detour = neighbors(first)
-    .map((position) => tiles.get(key(position)))
-    .find((tile) =>
-      tile &&
-      walkable(tile) &&
-      key(tile) !== key(person.position) &&
-      key(tile) !== key(goal) &&
-      hexDistance(tile, goal) === 1
-    );
-  assert.ok(detour);
-
+  person.position = { q: startTile.q, r: startTile.r };
   person.idleTarget = { q: goal.q, r: goal.r };
   person.path = [
     { q: first.q, r: first.r },
