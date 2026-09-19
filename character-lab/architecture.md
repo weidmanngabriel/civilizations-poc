@@ -28,6 +28,7 @@ Animationsdateien verwenden:
   "schema": "civilizations-character-animation",
   "version": 1,
   "id": "walk",
+  "interpolation": "easeInOut",
   "keyframes": [
     {
       "progress": 0,
@@ -39,7 +40,7 @@ Animationsdateien verwenden:
 }
 ```
 
-`progress` liegt immer zwischen 0 und 1. Zwischen benachbarten Keyframes wird linear interpoliert. Fehlende Tracks behalten ihren zuletzt bekannten Wert beziehungsweise die Neutralpose.
+`progress` liegt immer zwischen 0 und 1. `interpolation` legt die Zeitkurve zwischen benachbarten Keyframes fest: `linear`, `easeIn`, `easeOut` oder `easeInOut`. Die Ease-Varianten verwenden kubische Kurven; `easeInOut` beschleunigt und bremst an beiden Segmentenden weich. Fehlende ältere `interpolation`-Felder werden beim Import als `linear` gelesen und beim nächsten Export explizit geschrieben. Fehlende Pose-Tracks behalten ihren zuletzt bekannten Wert beziehungsweise die Neutralpose.
 
 Die reale Dauer gehört nicht zur Animationsdatei. Ein späterer Consumer kann eine Animation auf eine beliebige Dauer abbilden.
 
@@ -69,6 +70,7 @@ Die UI benutzt dieselben Funktionen wie die Browser-API. Dadurch gibt es keinen 
 - `setProgress(value)`
 - `setPartAngle(part, axis, degrees)`
 - `setCharacterYaw(degrees)`
+- `setInterpolation(mode)`
 - `loadAnimation(animation)`
 - `exportAnimation()`
 - `setKeyframe(progress, pose?)`
