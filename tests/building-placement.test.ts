@@ -114,7 +114,7 @@ test("placement fails when the required free ring contains blocked terrain", () 
   const ring = footprintRing(footprintAt("warehouse", origin));
   const blocked = world.tiles.find((tile) => same(tile, ring[0]!))!;
   blocked.terrain = "river";
-  assert.equal(canPlaceBuilding(world, origin, "house"), false);
+  assert.equal(canPlaceBuilding(world, origin, "warehouse"), false);
 });
 
 test("physical goods block only the actual building footprint", () => {
@@ -124,11 +124,11 @@ test("physical goods block only the actual building footprint", () => {
   const ring = footprintRing(footprint);
 
   assert.ok(placeLooseGood(world, footprint[0]!, "wood", 1));
-  assert.equal(canPlaceBuilding(world, origin, "house"), false);
+  assert.equal(canPlaceBuilding(world, origin, "warehouse"), false);
 
   world.looseGoods = [];
   assert.ok(placeLooseGood(world, ring[0]!, "wood", 1));
-  assert.equal(canPlaceBuilding(world, origin, "house"), true);
+  assert.equal(canPlaceBuilding(world, origin, "warehouse"), true);
 });
 
 test("demolishing a multi-tile building restores every occupied grass tile", () => {
@@ -154,7 +154,7 @@ test("roads are valid placement terrain but are removed by the building footprin
   const roadTile = world.tiles.find((tile) => same(tile, roadPosition))!;
   roadTile.terrain = "road";
 
-  assert.equal(canPlaceBuilding(world, origin, "house"), true);
+  assert.equal(canPlaceBuilding(world, origin, "warehouse"), true);
   const created = buildWithFootprint(world, origin, "warehouse");
   assert.ok(created);
   assert.equal(roadTile.terrain, "building");
