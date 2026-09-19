@@ -279,9 +279,17 @@ test("a killed boar yields meat and leather that the hunter carries to the flag 
   hunter.position = { ...home };
   assert.equal(setPersonProfession(world, hunter.id, "hunter"), true);
 
-  const group = spawnAnimalGroup(world, "boar", home, 1)!;
+  const targetTile = world.tiles
+    .filter((tile) => tile.terrain === "grass" && !tile.resourceBlocking && !tile.buildingBlocking)
+    .sort(
+      (a, b) =>
+        Math.abs(hexDistance(home, a) - 6) - Math.abs(hexDistance(home, b) - 6) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0]!;
+  const group = spawnAnimalGroup(world, "boar", targetTile, 1)!;
   const boar = world.animals!.find((animal) => animal.groupId === group.id)!;
-  boar.position = { ...home };
+  boar.position = { ...targetTile };
   boar.path = [];
 
   world.rngState = 1972;
