@@ -71,11 +71,7 @@ const targetForHunter = (world: World, hunter: Person): Animal | undefined => {
   const area = hunter.workArea;
   if (!area) return undefined;
   const current = hunter.huntTarget
-    ? animals(world).find(
-        (animal) =>
-          animal.id === hunter.huntTarget &&
-          hexDistance(area.center, animal.position) <= area.radius,
-      )
+    ? animals(world).find((animal) => animal.id === hunter.huntTarget)
     : undefined;
   if (current) return current;
 
@@ -244,7 +240,7 @@ function advanceHunter(world: World, hunter: Person): void {
     return;
   }
 
-  if (!hunter.workArea || !workAreaContains(hunter, hunter.position)) return;
+  if (!hunter.workArea) return;
   if (finishAiming(world, hunter)) return;
 
   const target = targetForHunter(world, hunter);

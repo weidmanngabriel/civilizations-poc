@@ -345,3 +345,101 @@ test("a killed boar yields meat and leather that the hunter carries to the flag 
     (stack) => stack.good === "leather" && hexDistance(stack.position, hunter.workArea!.center) <= 5,
   ));
 });
+
+
+test("hunter keeps pursuing an acquired target outside the hunting area", () => {
+  const world = createWorld(1);
+  const hunter = world.people[0]!;
+  const home = centralGrass(world);
+  hunter.position = { ...home };
+  assert.equal(setPersonProfession(world, hunter.id, "hunter"), true);
+
+  const inside = world.tiles
+    .filter((tile) => tile.terrain === "grass" && !tile.resourceBlocking && !tile.buildingBlocking)
+    .sort(
+      (a, b) =>
+        Math.abs(hexDistance(home, a) - 12) - Math.abs(hexDistance(home, b) - 12) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0]!;
+  const group = spawnAnimalGroup(world, "hare", inside, 1)!;
+  const animal = world.animals!.find((candidate) => candidate.groupId === group.id)!;
+  animal.position = { ...inside };
+  animal.path = [];
+
+  advanceHunting(world);
+  assert.equal(hunter.huntTarget, animal.id);
+
+  const outsideHunter = world.tiles
+    .filter(
+      (tile) =>
+        tile.terrain === "grass" &&
+        !tile.resourceBlocking &&
+        !tile.buildingBlocking &&
+        hexDistance(home, tile) > HUNTER_WORK_AREA_RADIUS,
+    )
+    .sort(
+      (a, b) =>
+        hexDistance(home, a) - hexDistance(home, b) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0]!;
+  const outsideTarget = world.tiles
+    .filter(
+      (tile) =>
+        tile.terrain === "grass" &&
+        !tile.resourceBlocking &&
+        !tile.buildingBlocking &&
+        hexDistance(home, tile) > HUNTER_WORK_AREA_RADIUS &&
+        hexDistance(outsideHunter, tile) <= 6,
+    )
+    .sort(
+      (a, b) =>
+        hexDistance(outsideHunter, a) - hexDistance(outsideHunter, b) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0]!;
+  assert.ok(outsideTarget);
+
+  hunter.position = { ...outsideHunter };
+  hunter.path = [];
+  animal.position = { ...outsideTarget };
+  animal.path = [];
+
+  advanceHunting(world);
+
+  assert.equal(hunter.huntTarget, animal.id);
+  assert.equal(hunter.huntAimTarget, animal.id);
+});
+
+test("hunter does not acquire a new target outside the hunting area", () => {
+  const world = createWorld(1);
+  const hunter = world.people[0]!;
+  const home = centralGrass(world);
+  hunter.position = { ...home };
+  assert.equal(setPersonProfession(world, hunter.id, "hunter"), true);
+
+  const outside = world.tiles
+    .filter(
+      (tile) =>
+        tile.terrain === "grass" &&
+        !tile.resourceBlocking &&
+        !tile.buildingBlocking &&
+        hexDistance(home, tile) > HUNTER_WORK_AREA_RADIUS,
+    )
+    .sort(
+      (a, b) =>
+        hexDistance(home, a) - hexDistance(home, b) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0]!;
+  const group = spawnAnimalGroup(world, "hare", outside, 1)!;
+  const animal = world.animals!.find((candidate) => candidate.groupId === group.id)!;
+  animal.position = { ...outside };
+  animal.path = [];
+
+  advanceHunting(world);
+
+  assert.equal(hunter.huntTarget, undefined);
+  assert.equal(hunter.huntAimTarget, undefined);
+});
