@@ -25,6 +25,7 @@ export const TECHNOLOGY_UNLOCK_RULES: TechnologyUnlockRule[] = [
   { technology: "bakery", profession: "miller", threshold: TECHNOLOGY_XP_THRESHOLD },
   { technology: "pottery", profession: "clayDigger", threshold: TECHNOLOGY_XP_THRESHOLD },
   { technology: "stonemason", profession: "stonecutter", threshold: TECHNOLOGY_XP_THRESHOLD },
+  { technology: "tailor", profession: "hunter", threshold: TECHNOLOGY_XP_THRESHOLD },
 ];
 
 export const IMPLEMENTED_TECHNOLOGIES: TechnologyId[] = Object.keys(
