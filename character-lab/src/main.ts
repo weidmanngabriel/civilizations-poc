@@ -6,13 +6,14 @@ import { installPwaSupport } from "../../src/pwa";
 type Axis = "pitch" | "yaw";
 type PartId = "head" | "leftArm" | "rightArm" | "leftLeg" | "rightLeg";
 type Pose = Record<string, number>;
-type Keyframe = { progress: number; pose: Pose };
+type Keyframe = { progress: number; pose: Pose; interpolation?: Interpolation };
 type Interpolation = "linear" | "easeIn" | "easeOut" | "easeInOut";
 type AnimationDefinition = {
   schema: "civilizations-character-animation";
   version: 1;
   id: string;
   interpolation: Interpolation;
+  previewDurationMs?: number;
   keyframes: Keyframe[];
 };
 
@@ -30,6 +31,9 @@ const NEUTRAL_POSE: Pose = {
   "rightArm.pitch": 0,
   "leftLeg.pitch": 0,
   "rightLeg.pitch": 0,
+  "root.x": 0,
+  "root.z": 0,
+  "root.yaw": 0,
 };
 
 const IDLE: AnimationDefinition = {
@@ -37,6 +41,7 @@ const IDLE: AnimationDefinition = {
   version: 1,
   id: "idle",
   interpolation: "easeInOut",
+  previewDurationMs: 1800,
   keyframes: [
     { progress: 0, pose: { ...NEUTRAL_POSE } },
     { progress: 1, pose: { ...NEUTRAL_POSE } },
@@ -48,6 +53,7 @@ const WALK: AnimationDefinition = {
   version: 1,
   id: "walk",
   interpolation: "easeInOut",
+  previewDurationMs: 1800,
   keyframes: [
     {
       progress: 0,
@@ -79,6 +85,48 @@ const WALK: AnimationDefinition = {
         "rightLeg.pitch": -34,
       },
     },
+  ],
+};
+
+const WOODCUT: AnimationDefinition = {
+  schema: "civilizations-character-animation",
+  version: 1,
+  id: "woodcut",
+  interpolation: "easeInOut",
+  previewDurationMs: 10_000,
+  keyframes: [
+    // Position A: south of the imaginary tree, facing inward.
+    { progress: 0.00, pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2, "root.yaw": 0 } },
+    { progress: 0.04, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2, "root.yaw": 0, "rightArm.pitch": -75, "leftArm.pitch": -35 } },
+    { progress: 0.08, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2, "root.yaw": 0, "rightArm.pitch": 65, "leftArm.pitch": 30 } },
+    { progress: 0.13, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2, "root.yaw": 0, "rightArm.pitch": -75, "leftArm.pitch": -35 } },
+    { progress: 0.17, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2, "root.yaw": 0, "rightArm.pitch": 65, "leftArm.pitch": 30 } },
+    { progress: 0.22, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2, "root.yaw": 0 } },
+
+    // Walk clockwise around the tree to position B.
+    { progress: 0.27, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.8, "root.z": -1.45, "root.yaw": 300, "leftArm.pitch": 24, "rightArm.pitch": -24, "leftLeg.pitch": -30, "rightLeg.pitch": 30 } },
+    { progress: 0.32, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.35, "root.z": -0.55, "root.yaw": 270, "leftArm.pitch": -24, "rightArm.pitch": 24, "leftLeg.pitch": 30, "rightLeg.pitch": -30 } },
+    { progress: 0.38, pose: { ...NEUTRAL_POSE, "root.x": 1.7, "root.z": 1.0, "root.yaw": 240 } },
+
+    // Position B: two chops.
+    { progress: 0.42, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.7, "root.z": 1.0, "root.yaw": 240, "rightArm.pitch": -75, "leftArm.pitch": -35 } },
+    { progress: 0.46, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.7, "root.z": 1.0, "root.yaw": 240, "rightArm.pitch": 65, "leftArm.pitch": 30 } },
+    { progress: 0.51, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.7, "root.z": 1.0, "root.yaw": 240, "rightArm.pitch": -75, "leftArm.pitch": -35 } },
+    { progress: 0.55, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.7, "root.z": 1.0, "root.yaw": 240, "rightArm.pitch": 65, "leftArm.pitch": 30 } },
+    { progress: 0.58, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.7, "root.z": 1.0, "root.yaw": 240 } },
+
+    // Continue around the back of the tree to position C.
+    { progress: 0.63, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.0, "root.z": 1.65, "root.yaw": 205, "leftArm.pitch": 24, "rightArm.pitch": -24, "leftLeg.pitch": -30, "rightLeg.pitch": 30 } },
+    { progress: 0.68, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": 2.0, "root.yaw": 180, "leftArm.pitch": -24, "rightArm.pitch": 24, "leftLeg.pitch": 30, "rightLeg.pitch": -30 } },
+    { progress: 0.74, pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120 } },
+
+    // Position C: two final chops.
+    { progress: 0.78, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120, "rightArm.pitch": -75, "leftArm.pitch": -35 } },
+    { progress: 0.82, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120, "rightArm.pitch": 65, "leftArm.pitch": 30 } },
+    { progress: 0.87, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120, "rightArm.pitch": -75, "leftArm.pitch": -35 } },
+    { progress: 0.91, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120, "rightArm.pitch": 65, "leftArm.pitch": 30 } },
+    { progress: 0.96, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120 } },
+    { progress: 1.00, pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120 } },
   ],
 };
 
@@ -123,6 +171,7 @@ app.innerHTML = `
         <div class="actions">
           <button class="secondary" id="example-idle">Idle laden</button>
           <button class="secondary" id="example-walk">Walk laden</button>
+          <button class="secondary" id="example-woodcut">Holzhacken laden</button>
           <button class="secondary" id="import-animation">JSON öffnen</button>
           <button class="primary" id="export-animation">JSON exportieren</button>
         </div>
@@ -218,7 +267,14 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+const ROOT_BOUNDS: Record<string, JointBound> = {
+  "root.x": { min: -3, max: 3, neutral: 0 },
+  "root.z": { min: -3, max: 3, neutral: 0 },
+  "root.yaw": { min: -360, max: 360, neutral: 0 },
+};
+
 function boundForKey(key: string): JointBound | undefined {
+  if (ROOT_BOUNDS[key]) return ROOT_BOUNDS[key];
   const [partRaw, axisRaw] = key.split(".");
   const part = partRaw as PartId;
   const axis = axisRaw as Axis;
@@ -271,6 +327,7 @@ function sanitizeAnimation(value: unknown): AnimationDefinition {
     return {
       progress: clamp(frame.progress, 0, 1),
       pose: sanitizePose(frame.pose),
+      interpolation: frame.interpolation === undefined ? undefined : sanitizeInterpolation(frame.interpolation),
     };
   }).sort((a, b) => a.progress - b.progress);
 
@@ -285,6 +342,9 @@ function sanitizeAnimation(value: unknown): AnimationDefinition {
     version: 1,
     id: raw.id,
     interpolation: sanitizeInterpolation(raw.interpolation),
+    previewDurationMs: typeof raw.previewDurationMs === "number" && Number.isFinite(raw.previewDurationMs)
+      ? clamp(raw.previewDurationMs, 250, 60_000)
+      : undefined,
     keyframes: deduped,
   };
 }
@@ -302,7 +362,7 @@ function evaluateAnimation(animation: AnimationDefinition, at: number): Pose {
     const b = frames[i + 1]!;
     if (t < a.progress || t > b.progress) continue;
     const span = Math.max(0.000001, b.progress - a.progress);
-    const local = applyInterpolation(animation.interpolation, (t - a.progress) / span);
+    const local = applyInterpolation(a.interpolation ?? animation.interpolation, (t - a.progress) / span);
     const result: Pose = {};
     for (const key of Object.keys(NEUTRAL_POSE)) {
       const av = a.pose[key] ?? NEUTRAL_POSE[key] ?? 0;
@@ -491,6 +551,7 @@ interpolationSelect.addEventListener("change", () => {
 });
 document.querySelector("#example-idle")!.addEventListener("click", () => loadAnimation(IDLE));
 document.querySelector("#example-walk")!.addEventListener("click", () => loadAnimation(WALK));
+document.querySelector("#example-woodcut")!.addEventListener("click", () => loadAnimation(WOODCUT));
 document.querySelector("#import-animation")!.addEventListener("click", () => importInput.click());
 document.querySelector("#export-animation")!.addEventListener("click", () => {
   try {
@@ -590,8 +651,10 @@ function initThree(): void {
     const grid = new THREE.GridHelper(14, 14, 0x617264, 0x35483b);
     scene.add(grid);
 
-    const root = new THREE.Group();
-    scene.add(root);
+    const viewRoot = new THREE.Group();
+    scene.add(viewRoot);
+    const motionRoot = new THREE.Group();
+    viewRoot.add(motionRoot);
 
     const material = new THREE.MeshStandardMaterial({ color: 0xd9b08c, roughness: 1, metalness: 0 });
     const shirt = new THREE.MeshStandardMaterial({ color: 0x547a60, roughness: 1, metalness: 0 });
@@ -604,11 +667,11 @@ function initThree(): void {
 
     const torso = box(1.5, 2.1, 0.75, shirt);
     torso.position.y = 3.55;
-    root.add(torso);
+    motionRoot.add(torso);
 
     const headPivot = new THREE.Group();
     headPivot.position.set(0, 4.75, 0);
-    root.add(headPivot);
+    motionRoot.add(headPivot);
     const head = box(1.25, 1.25, 1.15, material);
     head.position.y = 0.62;
     headPivot.add(head);
@@ -619,7 +682,7 @@ function initThree(): void {
     function limbPivot(x: number, y: number, length: number, mat: unknown, isArm: boolean) {
       const pivot = new THREE.Group();
       pivot.position.set(x, y, 0);
-      root.add(pivot);
+      motionRoot.add(pivot);
       const limb = box(isArm ? 0.48 : 0.58, length, isArm ? 0.48 : 0.62, mat);
       limb.position.y = -length / 2;
       pivot.add(limb);
@@ -631,6 +694,18 @@ function initThree(): void {
     const leftLeg = limbPivot(-0.42, 2.48, 2.45, trousers, false);
     const rightLeg = limbPivot(0.42, 2.48, 2.45, trousers, false);
 
+    const axeHandleMaterial = new THREE.MeshStandardMaterial({ color: 0x70482a, roughness: 1, metalness: 0 });
+    const axeHeadMaterial = new THREE.MeshStandardMaterial({ color: 0x6b7378, roughness: 0.75, metalness: 0.25 });
+    const axe = new THREE.Group();
+    axe.position.set(0, -1.95, 0.18);
+    const axeHandle = box(0.16, 1.65, 0.16, axeHandleMaterial);
+    axeHandle.position.y = -0.55;
+    axe.add(axeHandle);
+    const axeHead = box(0.78, 0.38, 0.22, axeHeadMaterial);
+    axeHead.position.set(0.24, -1.25, 0);
+    axe.add(axeHead);
+    rightArm.add(axe);
+
     renderPose = (pose) => {
       headPivot.rotation.x = THREE.MathUtils.degToRad(pose["head.pitch"] ?? 0);
       headPivot.rotation.y = THREE.MathUtils.degToRad(pose["head.yaw"] ?? 0);
@@ -638,8 +713,12 @@ function initThree(): void {
       rightArm.rotation.x = THREE.MathUtils.degToRad(pose["rightArm.pitch"] ?? 0);
       leftLeg.rotation.x = THREE.MathUtils.degToRad(pose["leftLeg.pitch"] ?? 0);
       rightLeg.rotation.x = THREE.MathUtils.degToRad(pose["rightLeg.pitch"] ?? 0);
+      motionRoot.position.x = pose["root.x"] ?? 0;
+      motionRoot.position.z = pose["root.z"] ?? 0;
+      motionRoot.rotation.y = THREE.MathUtils.degToRad(pose["root.yaw"] ?? 0);
+      axe.visible = currentAnimation.id === "woodcut";
     };
-    renderYaw = (degrees) => { root.rotation.y = THREE.MathUtils.degToRad(degrees); };
+    renderYaw = (degrees) => { viewRoot.rotation.y = THREE.MathUtils.degToRad(degrees); };
     renderZoom = (value) => { camera.zoom = value; camera.updateProjectionMatrix(); };
 
     function resize(): void {
@@ -686,7 +765,7 @@ function initThree(): void {
 
     function frame(now: number): void {
       if (playing) {
-        const cycleMs = 1800;
+        const cycleMs = currentAnimation.previewDurationMs ?? 1800;
         const elapsed = (now - playStart) / cycleMs;
         const next = playStartProgress + elapsed;
         setProgress(next % 1);
