@@ -6,7 +6,7 @@ Hunger und Müdigkeit können Arbeit unterbrechen. Beide Bedürfnisse sinken bew
 
 Wenn Bewohner in einem Gebäude arbeiten, essen oder schlafen, sind sie draußen nicht sichtbar. Name und Tätigkeit werden dort ebenfalls ausgeblendet. Hast du die Person bereits ausgewählt, bleibt nur der Auswahlmarker am Eingang sichtbar. Beim Verlassen erscheint die Person wieder am Eingang.
 
-Hat jemand gerade nichts zu tun, bleibt ein freier Bewohner einfach dort stehen, wo er sich gerade befindet. Abbauer warten weiterhin bei ihrer Arbeitsflagge und zugewiesene Arbeiter bei ihrem Gebäude. Diese arbeitsbezogenen Wartepositionen verteilen sich auf freie Standplätze.
+Beim Start einer neuen Welt stehen die Bewohner bereits auf mehreren freien Mikrozellen etwas südlich des Hauptquartiers statt direkt auf dessen Eingang. Hat jemand später gerade nichts zu tun, bleibt ein freier Bewohner grundsätzlich dort stehen, wo er sich befindet. Steht er dabei noch auf einer begehbaren Zelle innerhalb eines Gebäudegrundrisses, geht er ein kleines Stück nach draußen auf einen freien Standplatz, damit Eingänge nicht dauerhaft blockiert werden. Abbauer warten weiterhin bei ihrer Arbeitsflagge und zugewiesene Arbeiter bei ihrem Gebäude.
 
 Über **Personen** im linken Menü findest du alle Bewohner. Dort kannst du suchen, nach Aufgaben filtern und direkt zu einer Person springen.
 
