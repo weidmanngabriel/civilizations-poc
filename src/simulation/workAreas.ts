@@ -266,6 +266,20 @@ function enforceFisher(world: World, person: Person): void {
       routeOutdoorCarryToFlag(world, person);
       return;
     }
+    if (!same(person.position, area.center)) {
+      const node = workAreaNavigationNode(person)!;
+      person.path =
+        findLocalNavigationPath(
+          world,
+          person,
+          node,
+          area.center,
+          CONFIG.roadSpeedMultiplier,
+        ) ?? [];
+      person.movement = 0;
+      person.active = false;
+      return;
+    }
     if (!planLocalFishingSpot(world, person))
       area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
     return;
@@ -472,7 +486,21 @@ function enforceResourceWorker(world: World, person: Person): void {
 
   if (person.resourceTarget || person.outdoorCarry || person.hungerState || person.sleepState || person.trip || person.progress > 0 ||
     (area.retryAfterTick !== undefined && world.round < area.retryAfterTick)) return;
-  if (!planLocalResource(world, person)) area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
+  if (planLocalResource(world, person)) return;
+  if (!same(person.position, area.center)) {
+    const node = workAreaNavigationNode(person)!;
+    person.path =
+      findLocalNavigationPath(
+        world,
+        person,
+        node,
+        area.center,
+        CONFIG.roadSpeedMultiplier,
+      ) ?? [];
+    person.movement = 0;
+    person.active = false;
+  }
+  area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
 }
 
 function enforceStorageCarrier(world: World, person: Person): void {
