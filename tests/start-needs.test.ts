@@ -44,6 +44,7 @@ test("HQ bread is a valid food source", () => {
   const world = createDefaultGameWorld();
   const hq = world.buildings.find((building) => building.id === "hq")!;
   const person = world.people[5]!;
+  person.position = { ...hq.position };
   person.hunger = 20;
 
   advanceHungerTick(world);
