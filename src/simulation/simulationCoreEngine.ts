@@ -993,6 +993,7 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
       wood: 0,
       plank: 0,
       woodenTool: 0,
+      shoes: 0,
       wheat: 0,
       flour: 0,
       water: 0,
