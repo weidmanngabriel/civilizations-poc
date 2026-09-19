@@ -28,15 +28,16 @@ test("idle residents are shown as waiting instead of working", () => {
   assert.equal(personActivityLabel(person), "Unterwegs");
 });
 
-test("generic rerouting preserves a reached idle position", () => {
+test("generic rerouting leaves a free idle resident in place", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
+  const idlePosition = { ...person.position };
 
-  for (let i = 0; i < 600 && !(person.idleTarget && person.path.length === 0); i++) tick(world);
+  tick(world);
 
-  assert.ok(person.idleTarget, "resident should have an idle target");
-  assert.deepEqual(person.position, person.idleTarget);
-  const idleTarget = { ...person.idleTarget };
+  assert.equal(person.idleTarget, undefined);
+  assert.equal(person.path.length, 0);
+  assert.deepEqual(person.position, idlePosition);
 
   const roadTile = world.tiles.find(
     (tile) =>
@@ -45,9 +46,9 @@ test("generic rerouting preserves a reached idle position", () => {
   )!;
   assert.equal(setRoad(world, roadTile, true), true);
 
-  assert.deepEqual(person.idleTarget, idleTarget);
+  assert.equal(person.idleTarget, undefined);
   assert.equal(person.path.length, 0, "rerouting must not send the idle resident back to HQ");
-  assert.deepEqual(person.position, idleTarget);
+  assert.deepEqual(person.position, idlePosition);
 });
 
 test("building pickup and dropoff each take three simulated seconds", () => {
