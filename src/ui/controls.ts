@@ -36,7 +36,8 @@ import {
 } from "../simulation/buildingPlacement";
 import { CONFIG } from "../simulation/scenario";
 import { same } from "../simulation/hex";
-import { canPlaceWaypost, placeWaypost, removeWaypost, wayposts } from "../simulation/wayposts";
+import { canPlaceWaypost, removeWaypost, wayposts } from "../simulation/wayposts";
+import { orderScoutWaypost } from "../simulation/scouting";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 import { BUILDING_SVG, GOOD_ICONS, buildingIcon } from "../icons";
 
@@ -100,6 +101,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   let merchantSelectionWasRunning = false;
   let buildPlacementKind: BuildableBuildingKind | "waypost" | undefined;
   let buildPlacementPosition: Hex | undefined;
+  let waypostScoutId: number | undefined;
 
   const main = app.querySelector<HTMLElement>("main")!;
   const selectionPanel = document.querySelector<HTMLElement>("#selection-panel")!;
@@ -138,6 +140,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     if (!p) return "👤";
     if (p.woodcutter) return "🪓";
     if (p.fisher) return "🎣";
+    if (currentProfession(w, p) === "scout") return "🧭";
     if (p.extractor === "clay") return "🟤";
     if (p.extractor === "stone") return "⛏️";
     if (p.builder) return "🔨";
@@ -160,7 +163,13 @@ export function mountControls(w: World, renderMap: () => void): void {
       buildPlacementKind &&
       buildPlacementPosition &&
       (buildPlacementKind === "waypost"
-        ? canPlaceWaypost(w, buildPlacementPosition)
+        ? Boolean(
+            waypostScoutId !== undefined &&
+            w.people.some((person) =>
+              person.id === waypostScoutId && currentProfession(w, person) === "scout"
+            ) &&
+            canPlaceWaypost(w, buildPlacementPosition)
+          )
         : canPlaceBuilding(w, buildPlacementPosition, buildPlacementKind))
     );
   }
@@ -416,7 +425,9 @@ export function mountControls(w: World, renderMap: () => void): void {
       const resourceLabel = targetResource
         ? targetResource.kind === "forest" ? "Wald" : targetResource.kind === "clay" ? "Lehmvorkommen" : "Steinvorkommen"
         : undefined;
-      const assignment = p.woodcutter
+      const assignment = currentProfession(w, p) === "scout"
+        ? "Kundschafter"
+        : p.woodcutter
         ? (resourceLabel ? `Holzfäller · ${resourceLabel}` : "Holzfäller · wartet auf Wald")
         : p.fisher
           ? "Fischer · Angelgebiet"
@@ -440,7 +451,9 @@ export function mountControls(w: World, renderMap: () => void): void {
             ? (w.naturalResources.find((resource) => resource.id === p.trip!.source)?.kind === "forest" ? "Wald" : "Vorkommen")
             : building(w, p.trip.source).name
         : undefined;
-      const state = p.trip
+      const state = p.scoutWaypostTask
+        ? personActivityLabel(p)
+        : p.trip
         ? `${p.trip.picked ? "Bringt" : "Holt"} ${GOOD_ICONS[p.trip.good]} ${GOODS[p.trip.good]} · ${tripPlace}`
         : p.outdoorCarry
           ? `Trägt ${GOOD_ICONS[p.outdoorCarry]} ${GOODS[p.outdoorCarry]} zur Arbeitsflagge`
@@ -537,6 +550,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     if (!buildPlacementKind) return;
     buildPlacementKind = undefined;
     buildPlacementPosition = undefined;
+    waypostScoutId = undefined;
     main.classList.remove("merchant-target-mode");
     buildPlacementOverlay.hidden = true;
     buildPlacementConfirm.disabled = true;
@@ -544,8 +558,16 @@ export function mountControls(w: World, renderMap: () => void): void {
     renderSelectionPanel();
   };
 
-  const enterBuildPlacementMode = (kind: BuildableBuildingKind | "waypost") => {
+  const enterBuildPlacementMode = (
+    kind: BuildableBuildingKind | "waypost",
+    scoutId?: number,
+  ) => {
+    if (kind === "waypost") {
+      const scout = w.people.find((person) => person.id === scoutId);
+      if (!scout || currentProfession(w, scout) !== "scout") return;
+    }
     buildPlacementKind = kind;
+    waypostScoutId = kind === "waypost" ? scoutId : undefined;
     buildPlacementPosition = undefined;
     selectedTile = undefined;
     selectedBuildingId = undefined;
@@ -554,7 +576,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     main.classList.add("merchant-target-mode");
     buildPlacementTitle.textContent =
       kind === "waypost" ? "Wegweiser platzieren" : `${BUILDING_NAMES[kind]} platzieren`;
-    buildPlacementConfirm.textContent = kind === "waypost" ? "Platzieren" : "Bauen";
+    buildPlacementConfirm.textContent = kind === "waypost" ? "Auftrag erteilen" : "Bauen";
     buildPlacementOverlay.hidden = false;
     updateBuildPlacementConfirm();
     window.dispatchEvent(new CustomEvent(BUILD_MODE_EVENT, {
@@ -566,8 +588,8 @@ export function mountControls(w: World, renderMap: () => void): void {
   const confirmBuildPlacement = () => {
     if (!buildPlacementKind || !buildPlacementPosition) return;
     if (buildPlacementKind === "waypost") {
-      const created = placeWaypost(w, buildPlacementPosition);
-      if (!created) {
+      const scoutId = waypostScoutId;
+      if (scoutId === undefined || !orderScoutWaypost(w, scoutId, buildPlacementPosition)) {
         updateBuildPlacementConfirm();
         renderMap();
         return;
@@ -575,6 +597,9 @@ export function mountControls(w: World, renderMap: () => void): void {
       leaveBuildPlacementMode();
       selectedTile = undefined;
       selectedBuildingId = undefined;
+      window.dispatchEvent(new CustomEvent(PERSON_SELECTION_REQUESTED_EVENT, {
+        detail: { id: scoutId, focus: false },
+      }));
       refresh();
       return;
     }
@@ -724,8 +749,9 @@ export function mountControls(w: World, renderMap: () => void): void {
     refresh();
   });
 
-  window.addEventListener(WAYPOST_PLACEMENT_REQUESTED_EVENT, () => {
-    enterBuildPlacementMode("waypost");
+  window.addEventListener(WAYPOST_PLACEMENT_REQUESTED_EVENT, (event) => {
+    const personId = (event as CustomEvent<{ personId: number }>).detail.personId;
+    enterBuildPlacementMode("waypost", personId);
   });
 
   window.addEventListener(BUILD_POSITION_SELECTED_EVENT, (event) => {
