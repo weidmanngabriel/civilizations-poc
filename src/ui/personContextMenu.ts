@@ -21,6 +21,7 @@ const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
 const PERSON_SELECTION_REQUESTED_EVENT = "poc-person-selection-requested";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
+const PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT = "poc-person-context-toggle-requested";
 
 type ActionId =
   | "profession"
@@ -55,8 +56,7 @@ const isEditableTarget = (target: EventTarget | null): boolean => {
 
 export function mountPersonContextMenu(world: World): void {
   const main = document.querySelector<HTMLElement>("main");
-  const inspector = document.querySelector<HTMLElement>("#person-inspector");
-  if (!main || !inspector) return;
+  if (!main) return;
 
   const menu = document.createElement("section");
   menu.id = "person-context-menu";
@@ -134,26 +134,6 @@ export function mountPersonContextMenu(world: World): void {
     if (open) renderMenu();
   };
 
-  const refreshInspectorButton = (): void => {
-    const person = selectedPerson();
-    let button = inspector.querySelector<HTMLButtonElement>("[data-person-context-toggle]");
-    if (!person || inspector.hidden) {
-      button?.remove();
-      return;
-    }
-    if (!button) {
-      button = document.createElement("button");
-      button.type = "button";
-      button.className = "person-context-toggle";
-      button.dataset.personContextToggle = "true";
-      button.innerHTML = '<span aria-hidden="true">▦</span><span>Aktionen</span>';
-      button.addEventListener("click", () => setMenuOpen(menu.hidden));
-      const listButton = inspector.querySelector<HTMLElement>("[data-person-action='open-browser']");
-      if (listButton) inspector.insertBefore(button, listButton);
-      else inspector.append(button);
-    }
-  };
-
   const beginMode = (mode: PersonCommandMode): void => {
     const person = selectedPerson();
     if (!person) return;
@@ -229,14 +209,12 @@ export function mountPersonContextMenu(world: World): void {
 
   window.addEventListener(PERSON_SELECTED_EVENT, (event) => {
     selectedPersonId = (event as CustomEvent<{ id: number }>).detail.id;
-    refreshInspectorButton();
     if (!menu.hidden) renderMenu();
   });
   window.addEventListener(PERSON_CLEARED_EVENT, () => {
     selectedPersonId = undefined;
     setMenuOpen(false);
     cancelMode();
-    refreshInspectorButton();
   });
   window.addEventListener(PERSON_COMMAND_MODE_EVENT, (event) => {
     const detail = (event as CustomEvent<{ active: boolean; mode?: PersonCommandMode }>).detail;
@@ -252,6 +230,7 @@ export function mountPersonContextMenu(world: World): void {
         detail: { id: person.id, focus: false },
       }));
   });
+  window.addEventListener(PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT, () => setMenuOpen(menu.hidden));
   window.addEventListener(BUILD_MODE_EVENT, () => setMenuOpen(false));
   window.addEventListener(MERCHANT_TARGET_MODE_EVENT, () => setMenuOpen(false));
   window.addEventListener(WORK_AREA_MODE_EVENT, (event) => {
@@ -273,8 +252,4 @@ export function mountPersonContextMenu(world: World): void {
     }
   }, true);
 
-  new MutationObserver(() => queueMicrotask(refreshInspectorButton)).observe(inspector, {
-    childList: true,
-    subtree: true,
-  });
 }
