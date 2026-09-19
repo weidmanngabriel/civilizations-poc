@@ -116,6 +116,12 @@ The simulation stores the current fishing spot, adjacent water target, cycle sta
 
 A successful cast sets exactly one `fish` unit as outdoor cargo on the fisherman. The fisherman carries that unit back to the personal work flag, where it becomes a normal loose-good stack. Completing a fishing cycle is also an explicit hunger task boundary: at or below the normal eat threshold, the fisher starts food planning immediately after reeling in, whether the cast succeeded or failed. A caught fish remains in `outdoorCarry` during that interruption and is routed to the work flag after eating. Natural-resource extractors use the same one-unit outdoor-cargo state: every completed wood, clay or rubble unit is carried to the worker's personal flag before becoming loose ground stock. This keeps the work flag as the authoritative outdoor collection point without introducing a second logistics system.
 
+## Profession qualification
+
+Profession XP and qualification rules are centralized in `src/simulation/experience.ts`. Basic professions are always selectable. Advanced production professions require 10 XP in their direct predecessor profession: woodcutter → sawmill worker → carpenter, clay digger → potter, stonecutter → stonemason, and farmer → miller → baker.
+
+`setPersonProfession` is the authoritative mutation boundary and rejects profession changes that do not satisfy these person-specific prerequisites. UI surfaces must use the same qualification predicate rather than duplicating progression logic. The person context menu lists only professions currently available to that person, while building staffing filters out people who cannot qualify for the building's required profession.
+
 ## Storage and transport
 
 HQ and warehouses use the same first-class storage semantics. Production workers/building carriers may fetch required goods from either storage type. Storage carriers deliver directly into their assigned warehouse/HQ inventory.

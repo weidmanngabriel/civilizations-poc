@@ -165,6 +165,8 @@ Essen benötigt weiterhin fünf simulierte Sekunden am Ziel. Brot stellt 80 Hung
 
 Erfahrung wird pro Person und Beruf von 0 bis 100 gespeichert und bleibt bei Berufswechsel erhalten. Jede erfolgreich abgeschlossene berufliche Tätigkeit gibt genau 1 Erfahrungspunkt; abgebrochene Tätigkeiten geben keinen Punkt.
 
+Höherwertige Produktionsberufe sind personenbezogen an 10 XP im direkten Vorgängerberuf gebunden: Abbauer Holz → Sägewerker → Schreiner, Abbauer Lehm → Töpfer, Abbauer Stein → Steinmetz sowie Farmer → Müller → Bäcker. Basisberufe bleiben frei wählbar. Ein Bewohner kann einen Folge-Beruf erst erhalten, wenn er selbst die nötige Erfahrung gesammelt hat. Das Berufe-Menü zeigt nur die für die ausgewählte Person aktuell verfügbaren Berufe; gesperrte Berufe werden dort nicht aufgeführt. Dieselbe Qualifikationsprüfung gilt bei der direkten Personalauswahl an Produktionsgebäuden.
+
 Produktionsgebäude werden über die Qualifikation des vorgelagerten Berufs freigeschaltet: Sobald irgendeine Person 10 XP im zugeordneten Beruf erreicht, ist die entsprechende Produktionsstätte dauerhaft bekannt. So schaltet beispielsweise **Abbauer Stein** die Steinmetzhütte frei.
 
 Zusätzlich koppelt die Gebäudeprogression an die tatsächlich aufgebaute Produktionskette. Benötigt ein Gebäude verarbeitete Bauwaren, wird es erst freigeschaltet, wenn für jede dieser Waren mindestens eine passende Produktionsstätte **fertig gebaut** ist. Rohstoffe wie Holz benötigen keine Produktionsstätte. Beispiel: Der Brunnen benötigt Quader und wird daher erst nach einer fertigen Steinmetzhütte freigeschaltet. Eine Baustelle genügt nicht. Bei Gebäuden mit eigener Berufsanforderung müssen Berufsqualifikation und alle nötigen Produktionsstätten erfüllt sein.

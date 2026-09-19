@@ -1,5 +1,5 @@
 import type { Building, BuildingId, Hex, Person, Profession, Role, World } from "./model";
-import { currentProfession, workerProfession } from "./experience";
+import { canLearnProfession, currentProfession, workerProfession } from "./experience";
 import { same } from "./hex";
 import { releaseLooseGoodReservation } from "./looseGoods";
 import { commandEat, interruptEating } from "./needs";
@@ -90,7 +90,12 @@ export function setPersonProfession(
   profession: Profession | undefined,
 ): boolean {
   const person = world.people.find((candidate) => candidate.id === personId);
-  if (!person || !canChangePersonProfession(person) || !stopCurrentWork(world, person)) return false;
+  if (
+    !person ||
+    !canChangePersonProfession(person) ||
+    (profession && !canLearnProfession(person, profession)) ||
+    !stopCurrentWork(world, person)
+  ) return false;
 
   person.profession = profession;
   if (profession === "woodcutter") person.woodcutter = true;

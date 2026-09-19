@@ -4,11 +4,13 @@ import { createWorld, CONFIG } from "../src/simulation/scenario";
 import type { Building, NaturalResource } from "../src/simulation/model";
 import {
   awardProfessionExperience,
+  canLearnProfession,
   logisticsSpeedMultiplier,
   productionMultiplier,
   professionExperience,
 } from "../src/simulation/experience";
 import { tick } from "../src/simulation/simulation";
+import { setPersonProfession } from "../src/simulation/personCommands";
 
 const almostEqual = (actual: number, expected: number, epsilon = 1e-6) =>
   assert.ok(Math.abs(actual - expected) < epsilon, `${actual} != ${expected}`);
@@ -25,6 +27,34 @@ test("profession experience gains exactly one point per completed action and cap
 
   awardProfessionExperience(person, "woodcutter", 10);
   assert.equal(professionExperience(person, "woodcutter"), 100);
+});
+
+test("advanced professions require 10 XP in their predecessor profession", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+
+  assert.equal(canLearnProfession(person, "stonemason"), false);
+  assert.equal(setPersonProfession(world, person.id, "stonemason"), false);
+  assert.equal(person.profession, undefined);
+
+  person.experience = { stonecutter: 9 };
+  assert.equal(canLearnProfession(person, "stonemason"), false);
+
+  awardProfessionExperience(person, "stonecutter");
+  assert.equal(canLearnProfession(person, "stonemason"), true);
+  assert.equal(setPersonProfession(world, person.id, "stonemason"), true);
+  assert.equal(person.profession, "stonemason");
+});
+
+test("profession chains use the direct predecessor experience", () => {
+  const person = createWorld(1).people[0]!;
+  person.experience = { farmer: 10 };
+
+  assert.equal(canLearnProfession(person, "miller"), true);
+  assert.equal(canLearnProfession(person, "baker"), false);
+
+  person.experience.miller = 10;
+  assert.equal(canLearnProfession(person, "baker"), true);
 });
 
 test("experience doubles production and caps logistics speed at plus 50 percent", () => {

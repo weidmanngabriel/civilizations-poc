@@ -1,5 +1,5 @@
 import type { Person, Profession, World } from "../simulation/model";
-import { currentProfession, PROFESSION_LABELS } from "../simulation/experience";
+import { canLearnProfession, currentProfession, PROFESSION_LABELS } from "../simulation/experience";
 import {
   canChangePersonProfession,
   commandEat,
@@ -123,6 +123,7 @@ export function mountPersonContextMenu(world: World): void {
     professionList.innerHTML = [
       `<button type="button" data-profession="" aria-pressed="${current === undefined}">👤 Frei</button>`,
       ...(Object.entries(PROFESSION_LABELS) as [Profession, string][])
+        .filter(([profession]) => canLearnProfession(person, profession))
         .sort((a, b) => a[1].localeCompare(b[1], "de"))
         .map(([profession, label]) =>
           `<button type="button" data-profession="${profession}" aria-pressed="${current === profession}">${label}</button>`,
