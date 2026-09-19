@@ -145,7 +145,7 @@ type PlacementLookup = {
   occupiedResources: Set<string>;
   looseGoods: Set<string>;
   people: Set<string>;
-  wayposts: Hex[];
+  wayposts?: Hex[];
 };
 
 const createPlacementLookup = (world: World): PlacementLookup => ({
@@ -157,7 +157,7 @@ const createPlacementLookup = (world: World): PlacementLookup => ({
   ),
   looseGoods: new Set(looseGoodStacks(world).map((stack) => key(stack.position))),
   people: new Set(world.people.map((person) => key(person.position))),
-  wayposts: (world.wayposts ?? []).map((waypost) => waypost.position),
+  wayposts: world.wayposts?.map((waypost) => waypost.position),
 });
 
 const freePlacementTile = (
@@ -182,6 +182,7 @@ const canPlaceWithLookup = (
 ): boolean => {
   const entrance = buildingInteractionAt(kind, anchorPosition);
   if (
+    lookup.wayposts &&
     !lookup.wayposts.some(
       (waypostPosition) =>
         hexDistance(waypostPosition, entrance) <= WAYPOST_ORIENTATION_RADIUS,
