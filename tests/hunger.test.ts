@@ -36,15 +36,15 @@ test("hunger decays at idle, walking and active-work rates in one-second steps",
   const world = createWorld(1);
   const person = world.people[0]!;
 
-  for (let i = 0; i < 4; i += 1) advanceHungerTick(world);
+  for (let i = 0; i < 8; i += 1) advanceHungerTick(world);
   assert.equal(person.hunger, 99);
 
   person.path = [{ q: person.position.q + 1, r: person.position.r }];
-  for (let i = 0; i < 2; i += 1) advanceHungerTick(world);
+  for (let i = 0; i < 4; i += 1) advanceHungerTick(world);
   assert.equal(person.hunger, 98);
 
   person.trip = { source: "a", target: "b", good: "wood", picked: true };
-  advanceHungerTick(world);
+  for (let i = 0; i < 2; i += 1) advanceHungerTick(world);
   assert.equal(person.hunger, 97);
 });
 
@@ -295,7 +295,7 @@ test("critical hunger pauses at the next one-second check and keeps work progres
   assert.equal(person.progress, 72);
 
   finishTimedEating(world, person);
-  assert.equal(person.hunger, 98);
+  assert.equal(person.hunger, 99);
   assert.equal(person.progress, 72);
 });
 
@@ -362,6 +362,6 @@ test("worker spends five seconds eating at HQ before returning to work", () => {
   assert.ok(eatingStartedAt >= 0, "person should start eating after reaching the HQ");
   assert.equal(eatingFinishedAt - eatingStartedAt, CONFIG.simulationHz * 5);
   assert.equal(hq.inventory.bread, 0);
-  assert.equal(person.hunger, 98);
+  assert.equal(person.hunger, 99);
   assert.ok(person.path.length > 0, "person should resume the route to the workplace after eating");
 });
