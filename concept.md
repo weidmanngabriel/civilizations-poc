@@ -241,7 +241,7 @@ Die Karte lässt sich per Mausrad und Pinch von 0,7× bis 10× zoomen. Gebäude-
 
 Räumliche Objekte werden weiterhin kompakt über ihre logische Position gespeichert; abgeleitete Tile- und Footprint-Snapshots werden nicht persistiert. Für registrierte Gebäudetypen werden Grundriss, visueller Anker und blockierte Zellen beim Laden aus der **aktuellen** Registry-Definition rekonstruiert.
 
-Die aktuelle Save-Version ist **3**. Die Version des visuellen Building-Schemas ist davon unabhängig. Frühere Save-Versionen oder ältere Datenformen werden bis v1 nicht migriert oder durch besondere Kompatibilitätslogik unterstützt.
+Die aktuelle Save-Version ist **4**. Die Version des visuellen Building-Schemas ist davon unabhängig. Frühere Save-Versionen oder ältere Datenformen werden bis v1 nicht migriert oder durch besondere Kompatibilitätslogik unterstützt.
 
 ## Noch offene spätere Produktentscheidungen
 
