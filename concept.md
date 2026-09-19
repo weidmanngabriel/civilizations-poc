@@ -232,3 +232,12 @@ Nicht Teil dieses Schritts sind unter anderem:
 ## Unveränderte Produktbereiche
 
 Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`concept-detail.md`](./concept-detail.md), insbesondere Produktionsketten, Händler, Personenansicht, Technologiebaum und Handbuch. Wo ältere Detailtexte dem hier beschriebenen feinen Raster, den physischen Waren, lokalen Arbeitsbereichen, den aktuellen Gebäude-Definitionen oder den hier beschriebenen Freischaltregeln widersprechen, ist diese Datei maßgeblich.
+
+
+## Character Lab
+
+Neben dem Hauptspiel existiert unter `/character-lab/` ein eigenständiges Entwicklungswerkzeug für 3D-Bewohner. v1 dient ausschließlich dazu, blockige Charaktere, orthografisch-isometrische Darstellung, Posen und datengetriebene Animationen zu testen.
+
+Der erste Charakter besteht aus Kopf, Torso, zwei Armen und zwei Beinen. Arme und Beine bewegen sich nur vorwärts/rückwärts; der Kopf kann innerhalb definierter Grenzen seitlich sowie oben/unten drehen. Animationen verwenden einen Fortschritt von 0 bis 1 und sind unabhängig von Gameplay-Dauer oder Simulationsregeln.
+
+Das Tool kann Animations-JSON laden und exportieren und stellt seine Kernfunktionen zusätzlich über `window.characterLab` für spätere Agent-Automatisierung bereit. Eine Integration ins Hauptspiel ist ausdrücklich ein späterer Schritt.
