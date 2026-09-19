@@ -7,6 +7,7 @@ import { HUNTER_WORK_AREA_RADIUS } from "../src/simulation/workAreas";
 import { hexDistance } from "../src/simulation/spatial";
 import {
   advanceWildlife,
+  animalGroupCenter,
   frightenAnimalGroup,
   spawnAnimalGroup,
 } from "../src/simulation/wildlife";
@@ -82,7 +83,7 @@ test("wildlife groups pick a gentle migration target every thirty seconds", () =
   const world = createWorld(0);
   const home = firstGrass(world);
   const group = spawnAnimalGroup(world, "hare", home, 3)!;
-  const centerBefore = { ...home };
+  const centerBefore = animalGroupCenter(world, group.id)!;
 
   group.nextTargetTick = world.round;
   advanceWildlife(world);
