@@ -190,9 +190,9 @@ Aktuell:
 - Lehmvorkommen: 10 × Lehm, danach erschöpft.
 - Steinvorkommen: 10 × Bruchstein, danach erschöpft.
 - Töpferei: 1 Lehm + 1 Holz → 1 Backstein.
-- Steinmetzhütte: 2 Bruchstein → 1 Steinquader.
+- Steinmetzhütte: 2 Bruchstein → 1 Steinquader.\n- Näherei: 1 Leder → 1 Paar Schuhe.
 
-Backstein und Steinquader sind Baumaterialien. Einfache Startgebäude bleiben bewusst mit Holz baubar; einige fortgeschrittene Gebäude benötigen zusätzlich Backstein oder Steinquader.
+Backstein und Steinquader sind Baumaterialien. Leder aus der Wildschweinjagd kann in der Näherei zu Schuhen verarbeitet werden; Schuhe sind derzeit eine normale Ware ohne Ausrüstungseffekt. Einfache Startgebäude bleiben bewusst mit Holz baubar; einige fortgeschrittene Gebäude benötigen zusätzlich Backstein oder Steinquader.
 
 Normale Produktionsstätten können **10 Einheiten lokalen Output** halten. Der Wald behält seine separate Grenze von **3 lokal liegenden Holz**. Produktionsinputs und Lagerbestände sind ganzzahlig. Nur lokale Produktionsoutputs dürfen durch Erfahrung Bruchteile enthalten. Jede Transportfahrt bewegt weiterhin exakt 1 Einheit.
 
