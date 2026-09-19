@@ -3,8 +3,11 @@ import type { Animal, Projectile, World } from "../simulation/model";
 import { pixel } from "./mapGeometry";
 
 const HARE_TEXTURE = "wildlife-hare";
+const BOAR_TEXTURE = "wildlife-boar";
 const HARE_WORLD_WIDTH = 10;
 const HARE_WORLD_HEIGHT = 7;
+const BOAR_WORLD_WIDTH = 14;
+const BOAR_WORLD_HEIGHT = 9;
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
 
@@ -63,6 +66,27 @@ const ensureHareTexture = (scene: Phaser.Scene): void => {
   g.destroy();
 };
 
+const ensureBoarTexture = (scene: Phaser.Scene): void => {
+  if (scene.textures.exists(BOAR_TEXTURE)) return;
+
+  const g = scene.add.graphics().setVisible(false);
+  g.fillStyle(0x6d5140, 1);
+  g.fillEllipse(30, 24, 34, 20);
+  g.fillEllipse(48, 23, 18, 15);
+  g.fillTriangle(44, 14, 47, 6, 51, 15);
+  g.fillTriangle(52, 15, 56, 8, 58, 17);
+  g.fillStyle(0x3f2d25, 1);
+  g.fillCircle(54, 20, 1.6);
+  g.fillCircle(58, 25, 2);
+  g.lineStyle(2.2, 0x4b362b, 1);
+  g.lineBetween(20, 32, 18, 38);
+  g.lineBetween(37, 32, 39, 38);
+  g.fillStyle(0xe8dcc8, 1);
+  g.fillTriangle(54, 28, 59, 30, 56, 24);
+  g.generateTexture(BOAR_TEXTURE, 66, 42);
+  g.destroy();
+};
+
 export function installWildlifeIndicators(scene: Phaser.Scene, world: World): void {
   const sceneWithCreate = scene as Phaser.Scene & { create?: () => void };
   const originalCreate = sceneWithCreate.create?.bind(scene);
@@ -70,6 +94,7 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
   sceneWithCreate.create = () => {
     originalCreate?.();
     ensureHareTexture(scene);
+    ensureBoarTexture(scene);
 
     const projectileGraphics = scene.add.graphics().setDepth(1760);
     const animalSprites = new Map<string, Phaser.GameObjects.Image>();
@@ -82,9 +107,13 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
         liveAnimals.add(animal.id);
         let sprite = animalSprites.get(animal.id);
         if (!sprite) {
+          const boar = animal.kind === "boar";
           sprite = scene.add
-            .image(0, 0, HARE_TEXTURE)
-            .setDisplaySize(HARE_WORLD_WIDTH, HARE_WORLD_HEIGHT)
+            .image(0, 0, boar ? BOAR_TEXTURE : HARE_TEXTURE)
+            .setDisplaySize(
+              boar ? BOAR_WORLD_WIDTH : HARE_WORLD_WIDTH,
+              boar ? BOAR_WORLD_HEIGHT : HARE_WORLD_HEIGHT,
+            )
             .setOrigin(0.5, 0.72)
             .setDepth(1750);
           animalSprites.set(animal.id, sprite);
