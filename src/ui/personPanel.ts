@@ -176,7 +176,6 @@ export function mountPersonPanel(world: World): void {
   let activeAlertFilter: PersonAlertFilter = "all";
   let alerts = personAlertMap(world);
   let searchQuery = "";
-  let navigationIds = world.people.map((person) => person.id);
   let inspectorSignature = "";
   let browserProfessionSignature = "";
   let staffPicker: StaffPickerDetail | undefined;
@@ -241,7 +240,6 @@ export function mountPersonPanel(world: World): void {
 
   const renderBrowserList = (): void => {
     const people = matchingPeople();
-    navigationIds = people.map((person) => person.id);
     if (staffPicker) {
       const free = people.filter(personIsFree);
       const assignedPeople = people.filter((person) => !personIsFree(person));
@@ -303,15 +301,6 @@ export function mountPersonPanel(world: World): void {
       if (sleep) sleep.textContent = String(displayNeed(person.sleep));
     }
   };
-  const currentNavigation = (): number[] => {
-    if (
-      selectedPersonId !== undefined &&
-      navigationIds.includes(selectedPersonId) &&
-      navigationIds.length
-    ) return navigationIds;
-    return world.people.map((person) => person.id);
-  };
-
   const renderInspector = (): void => {
     if (selectedPersonId === undefined || !browser.hidden) {
       inspector.hidden = true;
@@ -531,20 +520,12 @@ export function mountPersonPanel(world: World): void {
       window.dispatchEvent(new CustomEvent(PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT));
       return;
     }
-    const direction = target.closest<HTMLButtonElement>("[data-person-nav]")?.dataset.personNav;
-    if (!direction || selectedPersonId === undefined) return;
-    const ids = currentNavigation();
-    if (!ids.length) return;
-    const currentIndex = Math.max(0, ids.indexOf(selectedPersonId));
-    const delta = direction === "prev" ? -1 : 1;
-    requestPerson(ids[(currentIndex + delta + ids.length) % ids.length]!);
   });
 
   const onPersonSelected = (event: Event): void => {
     const personId = (event as CustomEvent<PersonSelectedDetail>).detail.id;
     closeBuildingPanel();
     selectedPersonId = personId;
-    if (!navigationIds.includes(personId)) navigationIds = world.people.map((person) => person.id);
     inspectorSignature = "";
     renderInspector();
   };
