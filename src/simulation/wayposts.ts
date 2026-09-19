@@ -19,6 +19,11 @@ export const WAYPOST_BUILD_CLEARANCE = 1;
 
 export const wayposts = (world: World): Waypost[] => world.wayposts ?? [];
 
+export const usesUnrestrictedGlobalPathfinding = (person: Person): boolean => {
+  const profession = person.profession as string | undefined;
+  return profession === "scout" || profession === "soldier";
+};
+
 type WaypostPlacementContext = {
   tiles: Map<string, Tile>;
   activeResourceCells: Set<string>;
@@ -264,11 +269,24 @@ export function findNavigationPath(
   return findPathViaWayposts(world, start, end, roadSpeedMultiplier);
 }
 
+
 const navigationTargetKey = (target: Hex): string => key(target);
 
 const resetNavigationFailures = (person: Person): void => {
   person.navigationFailureRevision = undefined;
   person.navigationFailedTargets = undefined;
+};
+
+const findUnrestrictedNavigationPath = (
+  world: World,
+  person: Person,
+  end: Hex,
+  roadSpeedMultiplier: number,
+): Hex[] | null => {
+  const path = findPath(world.tiles, person.position, end, roadSpeedMultiplier);
+  person.navigationBlocked = path ? undefined : true;
+  resetNavigationFailures(person);
+  return path;
 };
 
 export function findCandidateNavigationPath(
@@ -281,6 +299,8 @@ export function findCandidateNavigationPath(
     person.navigationBlocked = undefined;
     return [];
   }
+  if (usesUnrestrictedGlobalPathfinding(person))
+    return findUnrestrictedNavigationPath(world, person, end, roadSpeedMultiplier);
 
   const revision = world.waypostRevision ?? 0;
   if (person.navigationFailureRevision !== revision) {
@@ -318,6 +338,8 @@ export function findRequiredNavigationPath(
     resetNavigationFailures(person);
     return [];
   }
+  if (usesUnrestrictedGlobalPathfinding(person))
+    return findUnrestrictedNavigationPath(world, person, end, roadSpeedMultiplier);
 
   const revision = world.waypostRevision ?? 0;
   if (person.navigationFailureRevision !== revision) {

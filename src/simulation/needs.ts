@@ -12,6 +12,12 @@ import { CONFIG } from "./scenario";
 import { findRequiredNavigationPath } from "./wayposts";
 import { hexDistance } from "./spatial";
 import {
+  findLocalNeedPath,
+  findNeedReturnPath,
+  localNeedPathLeavesWaypostCoverage,
+  NEED_LOCAL_NAVIGATION_RADIUS,
+} from "./needNavigation";
+import {
   availableLooseGoodAmount,
   looseGoodStack,
   looseGoodStacks,
@@ -105,6 +111,17 @@ const decayHunger = (person: Person): void => {
 const routeTo = (world: World, person: Person, target: Hex, reason: PathReason = "hunger"): Hex[] | undefined =>
   performanceProfiler.withPathReason(reason, () => findRequiredNavigationPath(world, person, target, ROAD_SPEED_MULTIPLIER)) ?? undefined;
 
+const localRouteTo = (
+  world: World,
+  person: Person,
+  origin: Hex,
+  target: Hex,
+): Hex[] | undefined =>
+  performanceProfiler.withPathReason(
+    "hunger",
+    () => findLocalNeedPath(world, person, origin, target, ROAD_SPEED_MULTIPLIER),
+  ) ?? undefined;
+
 const sourceTie = (source: FoodSource): string => {
   if (source.kind === "building")
     return `${source.good === "bread" ? 0 : 1}:${source.source.id}`;
@@ -112,7 +129,12 @@ const sourceTie = (source: FoodSource): string => {
   return `3:${String(source.tile.r).padStart(5, "0")}:${String(source.tile.q).padStart(5, "0")}`;
 };
 
-const foodCandidate = (world: World, person: Person): FoodCandidate | undefined => {
+const foodCandidate = (
+  world: World,
+  person: Person,
+  origin?: Hex,
+  localOnly = false,
+): FoodCandidate | undefined => {
   const sources: FoodSource[] = [];
   for (const source of world.buildings) {
     for (const good of ["bread", "fish"] as const) {
@@ -139,12 +161,17 @@ const foodCandidate = (world: World, person: Person): FoodCandidate | undefined 
     if (tile.terrain !== "grass" || !tile.bush || !tile.bushAvailable || reservedBush(world, tile, person.id)) continue;
     sources.push({ kind: "bush", tile, target: tile, lowerBound: hexDistance(person.position, tile) / ROAD_SPEED_MULTIPLIER });
   }
-  sources.sort((a, b) => a.lowerBound - b.lowerBound || sourceTie(a).localeCompare(sourceTie(b)));
+  const eligibleSources = localOnly && origin
+    ? sources.filter((source) => hexDistance(origin, source.target) <= NEED_LOCAL_NAVIGATION_RADIUS)
+    : sources;
+  eligibleSources.sort((a, b) => a.lowerBound - b.lowerBound || sourceTie(a).localeCompare(sourceTie(b)));
   let best: FoodCandidate | undefined;
   let bestTie = "";
-  for (const source of sources) {
+  for (const source of eligibleSources) {
     if (best && source.lowerBound > best.cost + ACCUMULATOR_EPSILON) break;
-    const path = routeTo(world, person, source.target);
+    const path = localOnly && origin
+      ? localRouteTo(world, person, origin, source.target)
+      : routeTo(world, person, source.target);
     if (!path) continue;
     const cost = pathTravelCost(world.tiles, path, ROAD_SPEED_MULTIPLIER);
     const candidate: FoodCandidate = source.kind === "building"
@@ -191,11 +218,63 @@ const resumeTask = (world: World, person: Person, hungerState: HungerState): voi
   person.path = routeTo(world, person, target) ?? [];
 };
 
-const finishEating = (world: World, person: Person): void => {
-  const completedState = person.hungerState!;
+const completeEating = (world: World, person: Person, completedState: HungerState): void => {
   person.hungerState = undefined;
   person.hungerAccumulator = 0;
   resumeTask(world, person, completedState);
+};
+
+const finishEating = (world: World, person: Person): void => {
+  const completedState = person.hungerState!;
+  const origin = completedState.needOrigin;
+  if (
+    completedState.returnToNeedOrigin &&
+    origin &&
+    !same(person.position, origin)
+  ) {
+    const returnPath = findNeedReturnPath(
+      world,
+      person,
+      origin,
+      ROAD_SPEED_MULTIPLIER,
+    );
+    if (returnPath) {
+      completedState.foodSource = undefined;
+      completedState.foodGood = undefined;
+      completedState.foodLooseGood = undefined;
+      completedState.foodBush = undefined;
+      completedState.eatingUntilTick = undefined;
+      completedState.retryAfterTick = undefined;
+      completedState.returningToNeedOrigin = true;
+      person.path = returnPath;
+      person.movement = 0;
+      person.active = false;
+      return;
+    }
+  }
+  completeEating(world, person, completedState);
+};
+
+const ensureEatingReturn = (world: World, person: Person): void => {
+  const state = person.hungerState!;
+  const origin = state.needOrigin;
+  if (!state.returningToNeedOrigin || !origin) return;
+  if (same(person.position, origin)) {
+    completeEating(world, person, state);
+    return;
+  }
+  if (person.path.length > 0) {
+    person.active = false;
+    return;
+  }
+  const path = findNeedReturnPath(world, person, origin, ROAD_SPEED_MULTIPLIER);
+  if (!path) {
+    completeEating(world, person, state);
+    return;
+  }
+  person.path = path;
+  person.movement = 0;
+  person.active = false;
 };
 
 const consumeBuildingFood = (
@@ -260,7 +339,13 @@ const clearLooseFoodReservation = (world: World, state: HungerState): void => {
   state.foodLooseGood = undefined;
 };
 
-const assignFoodCandidate = (world: World, person: Person, state: HungerState, candidate: FoodCandidate | undefined): boolean => {
+const assignFoodCandidate = (
+  world: World,
+  person: Person,
+  state: HungerState,
+  candidate: FoodCandidate | undefined,
+  localNeedSearch = false,
+): boolean => {
   if (state.foodLooseGood && (candidate?.kind !== "looseFish" || candidate.stackId !== state.foodLooseGood))
     clearLooseFoodReservation(world, state);
 
@@ -272,6 +357,14 @@ const assignFoodCandidate = (world: World, person: Person, state: HungerState, c
     state.foodLooseGood = undefined;
     candidate = undefined;
   }
+  state.localNeedSearch = Boolean(candidate) && localNeedSearch;
+  state.returnToNeedOrigin = Boolean(
+    candidate &&
+    localNeedSearch &&
+    state.needOrigin &&
+    localNeedPathLeavesWaypostCoverage(world, state.needOrigin, candidate.path),
+  );
+  state.returningToNeedOrigin = undefined;
   state.retryAfterTick = candidate ? undefined : world.round + CONFIG.decisionIntervalTicks;
   state.eatingUntilTick = undefined;
   person.movement = 0;
@@ -282,11 +375,22 @@ const assignFoodCandidate = (world: World, person: Person, state: HungerState, c
 };
 
 const startEating = (world: World, person: Person): boolean => {
-  const candidate = foodCandidate(world, person);
-  person.hungerState = { resumeActive: person.active };
+  const origin = { ...person.position };
+  const localCandidate = foodCandidate(world, person, origin, true);
+  const candidate = localCandidate ?? foodCandidate(world, person, origin, false);
+  person.hungerState = {
+    resumeActive: person.active,
+    needOrigin: origin,
+  };
   person.active = false;
   person.movement = 0;
-  return assignFoodCandidate(world, person, person.hungerState, candidate);
+  return assignFoodCandidate(
+    world,
+    person,
+    person.hungerState,
+    candidate,
+    Boolean(localCandidate),
+  );
 };
 
 export const interruptEating = (world: World, person: Person): void => {
@@ -357,7 +461,10 @@ const restoreFoodRouteIfHijacked = (world: World, person: Person): void => {
   }
   const routeTarget = person.path.at(-1);
   if (routeTarget && same(routeTarget, target)) return;
-  const path = routeTo(world, person, target);
+  const state = person.hungerState!;
+  const path = state.localNeedSearch && state.needOrigin
+    ? localRouteTo(world, person, state.needOrigin, target)
+    : routeTo(world, person, target);
   if (!path) return;
   person.path = path;
   person.movement = 0;
@@ -377,7 +484,9 @@ const ensureFoodRoute = (world: World, person: Person): void => {
     const targetPosition = selectedTargetPosition(target);
     if (same(person.position, targetPosition)) { beginEating(world, person); return; }
     state.eatingUntilTick = undefined;
-    const path = routeTo(world, person, targetPosition);
+    const path = state.localNeedSearch && state.needOrigin
+      ? localRouteTo(world, person, state.needOrigin, targetPosition)
+      : routeTo(world, person, targetPosition);
     if (path) { person.path = path; person.movement = 0; person.active = false; return; }
     state.foodSource = undefined;
     state.foodGood = undefined;
@@ -386,13 +495,22 @@ const ensureFoodRoute = (world: World, person: Person): void => {
   }
   state.eatingUntilTick = undefined;
   if (state.retryAfterTick !== undefined && world.round < state.retryAfterTick) { person.active = false; return; }
-  assignFoodCandidate(world, person, state, foodCandidate(world, person));
+  const origin = state.needOrigin ?? { ...person.position };
+  const localCandidate = foodCandidate(world, person, origin, true);
+  assignFoodCandidate(
+    world,
+    person,
+    state,
+    localCandidate ?? foodCandidate(world, person, origin, false),
+    Boolean(localCandidate),
+  );
 };
 
 /** Starts or completes the timed eating phase on the exact movement tick a food source is reached. */
 export function resolveFoodArrivals(world: World): void {
   for (const person of world.people) {
     if (!person.hungerState) continue;
+    if (person.hungerState.returningToNeedOrigin) continue;
     restoreFoodRouteIfHijacked(world, person);
     const state = person.hungerState;
     const target = performanceProfiler.profileFeature(
@@ -439,7 +557,11 @@ export function advanceHungerTick(world: World): void {
   for (const person of world.people) {
     decayHunger(person);
     if (person.manualMoveTarget) continue;
-    if (person.hungerState) { ensureFoodRoute(world, person); continue; }
+    if (person.hungerState) {
+      if (person.hungerState.returningToNeedOrigin) ensureEatingReturn(world, person);
+      else ensureFoodRoute(world, person);
+      continue;
+    }
     if (person.hunger! <= CRITICAL_HUNGER_THRESHOLD) { startEating(world, person); continue; }
     if (person.hunger! <= WANTS_TO_EAT_THRESHOLD && atTaskBoundary(person)) startEating(world, person);
   }
