@@ -730,8 +730,8 @@ function initThree(): void {
     const axeHandle = box(0.16, 1.65, 0.16, axeHandleMaterial);
     axeHandle.position.y = -0.55;
     axe.add(axeHandle);
-    const axeHead = box(0.78, 0.38, 0.22, axeHeadMaterial);
-    axeHead.position.set(0.24, -1.25, 0);
+    const axeHead = box(0.22, 0.38, 0.78, axeHeadMaterial);
+    axeHead.position.set(0, -1.25, -0.24);
     axe.add(axeHead);
     rightArm.add(axe);
 
