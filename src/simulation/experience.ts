@@ -72,7 +72,7 @@ export function currentProfession(w: World, p: Person): Profession | undefined {
   if (p.profession) return p.profession;
   if (p.builder) return "builder";
   if (p.woodcutter) return "woodcutter";
-  if (p.fisher) return "fisher";
+  if (p.fisher) return "fisher";\n  if (p.hunter) return "hunter";
   if (p.extractor === "clay") return "clayDigger";
   if (p.extractor === "stone") return "stonecutter";
   if (!p.assignment) return undefined;
@@ -85,7 +85,7 @@ export function currentProfession(w: World, p: Person): Profession | undefined {
 
 export const PROFESSION_LABELS: Record<Profession, string> = {
   woodcutter: "Abbauer Holz",
-  fisher: "Fischer",
+  fisher: "Fischer",\n  hunter: "Jäger",
   scout: "Kundschafter",
   builder: "Bauarbeiter",
   carrier: "Träger",
