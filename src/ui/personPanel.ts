@@ -284,8 +284,6 @@ export function mountPersonPanel(world: World): void {
     const activity = personActivityLabel(person);
     const home = homeLabel(world, person);
     const cargo = cargoLabel(person);
-    const ids = currentNavigation();
-    const index = Math.max(0, ids.indexOf(person.id));
     const signature = [
       person.id,
       professionText,
@@ -296,29 +294,21 @@ export function mountPersonPanel(world: World): void {
       activity,
       home,
       cargo,
-      ids.join(","),
     ].join("|");
     if (signature === inspectorSignature && !inspector.hidden) return;
     inspectorSignature = signature;
     inspector.hidden = false;
     inspector.innerHTML = `
       <header class="person-panel-header person-inspector-header">
-        <div>
+        <button class="person-context-toggle" type="button" data-person-action="open-context">
+          <span aria-hidden="true">▦</span><span>Aktionen</span>
+        </button>
+        <div class="person-inspector-identity">
           <small>${escapeHtml(professionText)}</small>
           <strong>${escapeHtml(personName(person.id))}</strong>
         </div>
-        <div class="person-inspector-actions">
-          <button class="person-context-toggle" type="button" data-person-action="open-context">
-            <span aria-hidden="true">▦</span><span>Aktionen</span>
-          </button>
-          <button class="person-inspector-close" type="button" data-person-action="close-inspector" aria-label="Person schließen">×</button>
-        </div>
+        <button class="person-inspector-close" type="button" data-person-action="close-inspector" aria-label="Person schließen">×</button>
       </header>
-      <div class="person-inspector-nav">
-        <button type="button" data-person-nav="prev" aria-label="Vorherige Person">←</button>
-        <span>${index + 1} / ${ids.length}</span>
-        <button type="button" data-person-nav="next" aria-label="Nächste Person">→</button>
-      </div>
       <div class="person-needs">
         <div class="person-need-row">
           <span>Hunger</span>
