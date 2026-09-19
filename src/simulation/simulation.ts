@@ -38,6 +38,8 @@ import { syncManualMoveOrders } from "./personCommands";
 import { syncScoutWaypostTasks } from "./scouting";
 import { measureResourcePerformance } from "../debug/resourcePerformance";
 import { performanceProfiler } from "../debug/performanceProfiler";
+import { advanceWildlife } from "./wildlife";
+import { advanceHunting } from "./hunting";
 
 const RESOURCE_DROP_RADIUS = GRID_REFINEMENT;
 
@@ -361,6 +363,8 @@ export function tick(world: World): void {
   );
   syncManualMoveOrders(world);
   coreTick(world);
+  advanceWildlife(world);
+  advanceHunting(world);
   syncScoutWaypostTasks(world);
   syncManualMoveOrders(world);
   performanceProfiler.profileFeature("foodArrivals", () => resolveFoodArrivals(world));
