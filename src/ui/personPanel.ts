@@ -18,6 +18,7 @@ const BUILDING_SELECTED_EVENT = "poc-building-selected";
 const TILE_SELECTED_EVENT = "poc-tile-selected";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
+const PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT = "poc-person-context-toggle-requested";
 
 type PersonSelectedDetail = { id: number };
 type PersonFilter = "all" | "free" | Profession;
@@ -306,22 +307,29 @@ export function mountPersonPanel(world: World): void {
           <small>${escapeHtml(professionText)}</small>
           <strong>${escapeHtml(personName(person.id))}</strong>
         </div>
-        <button type="button" data-person-action="close-inspector" aria-label="Person schließen">×</button>
+        <div class="person-inspector-actions">
+          <button class="person-context-toggle" type="button" data-person-action="open-context">
+            <span aria-hidden="true">▦</span><span>Aktionen</span>
+          </button>
+          <button class="person-inspector-close" type="button" data-person-action="close-inspector" aria-label="Person schließen">×</button>
+        </div>
       </header>
       <div class="person-inspector-nav">
         <button type="button" data-person-nav="prev" aria-label="Vorherige Person">←</button>
         <span>${index + 1} / ${ids.length}</span>
         <button type="button" data-person-nav="next" aria-label="Nächste Person">→</button>
       </div>
-      <div class="person-need-row">
-        <span>Hunger</span>
-        <div class="person-meter"><i style="width:${hunger}%"></i></div>
-        <strong>${hunger}</strong>
-      </div>
-      <div class="person-need-row sleep">
-        <span>Schlaf</span>
-        <div class="person-meter"><i style="width:${sleep}%"></i></div>
-        <strong>${sleep}</strong>
+      <div class="person-needs">
+        <div class="person-need-row">
+          <span>Hunger</span>
+          <div class="person-meter"><i style="width:${hunger}%"></i></div>
+          <strong>${hunger}</strong>
+        </div>
+        <div class="person-need-row sleep">
+          <span>Schlaf</span>
+          <div class="person-meter"><i style="width:${sleep}%"></i></div>
+          <strong>${sleep}</strong>
+        </div>
       </div>
       <dl class="person-facts">
         <div><dt>Aktuell</dt><dd>${escapeHtml(activity)}</dd></div>
@@ -424,6 +432,10 @@ export function mountPersonPanel(world: World): void {
     const action = target.closest<HTMLButtonElement>("[data-person-action]")?.dataset.personAction;
     if (action === "close-inspector") {
       window.dispatchEvent(new CustomEvent(PERSON_SELECTION_CLEAR_REQUESTED_EVENT));
+      return;
+    }
+    if (action === "open-context") {
+      window.dispatchEvent(new CustomEvent(PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT));
       return;
     }
     if (action === "open-browser") {
