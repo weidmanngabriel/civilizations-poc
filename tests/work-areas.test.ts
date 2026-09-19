@@ -369,3 +369,24 @@ test("moving a fisher flag invalidates a fishing spot outside the new area", () 
   if (fisher.fishingSpot)
     assert.equal(hexDistance(fisher.workArea!.center, fisher.fishingSpot) <= WORK_AREA_RADIUS, true);
 });
+
+
+test("moving a work flag outside the worker area still requires global waypost travel", () => {
+  const world = createWorld(1);
+  assert.equal(changeWoodcutters(world, 1), true);
+  tick(world);
+  const worker = woodcutters(world)[0]!;
+  const oldCenter = { ...worker.workArea!.center };
+  const farTile = world.tiles
+    .filter((tile) => tile.terrain === "grass")
+    .find((tile) => hexDistance(tile, oldCenter) > WORK_AREA_RADIUS + 5);
+  assert.ok(farTile);
+
+  world.wayposts = [];
+  world.waypostRevision = 0;
+  assert.equal(setWorkAreaCenter(world, worker.id, farTile), true);
+
+  assert.deepEqual(worker.workArea!.center, { q: farTile.q, r: farTile.r });
+  assert.equal(worker.path.length, 0);
+  assert.equal(worker.navigationBlocked, true);
+});
