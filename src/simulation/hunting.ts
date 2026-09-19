@@ -227,6 +227,15 @@ function advanceHunter(world: World, hunter: Person): void {
     return;
   }
 
+  if (
+    hunter.huntTarget ||
+    hunter.huntAimTarget ||
+    hunter.huntLootTarget ||
+    hunter.huntLootQueue?.length ||
+    hunter.outdoorCarry
+  )
+    clearNavigationBlocked(hunter);
+
   if (hunter.outdoorCarry) {
     clearAim(hunter);
     if (routeOutdoorCarryToFlag(world, hunter, true))
@@ -252,6 +261,7 @@ function advanceHunter(world: World, hunter: Person): void {
     return;
   }
 
+  clearNavigationBlocked(hunter);
   const distance = hexDistance(hunter.position, target.position);
   if (distance > HUNTER_BOW.range) {
     if (!hunter.path.length) routeIntoRange(world, hunter, target);
