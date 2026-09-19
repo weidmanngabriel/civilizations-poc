@@ -260,3 +260,80 @@ test("meat restores the same sixty hunger points as fish", () => {
   assert.equal(person.hunger, 80);
   assert.equal(world.looseGoods?.some((candidate) => candidate.id === stack.id), false);
 });
+
+
+test("boars are solitary even when a larger group size is requested", () => {
+  const world = createWorld(0);
+  const home = centralGrass(world);
+  const group = spawnAnimalGroup(world, "boar", home, 3)!;
+  const members = world.animals!.filter((animal) => animal.groupId === group.id);
+
+  assert.equal(members.length, 1);
+  assert.equal(members[0]!.kind, "boar");
+});
+
+test("a killed boar yields meat and leather that the hunter carries to the flag one by one", () => {
+  const world = createWorld(1);
+  const hunter = world.people[0]!;
+  const home = centralGrass(world);
+  hunter.position = { ...home };
+  assert.equal(setPersonProfession(world, hunter.id, "hunter"), true);
+
+  const group = spawnAnimalGroup(world, "boar", home, 1)!;
+  const boar = world.animals!.find((animal) => animal.groupId === group.id)!;
+  boar.position = { ...home };
+  boar.path = [];
+
+  world.rngState = 1972;
+  advanceHunting(world);
+  world.round = 2 * CONFIG.simulationHz;
+  advanceHunting(world);
+  world.round = world.projectiles![0]!.impactAtTick;
+  advanceHunting(world);
+
+  assert.equal(world.animals?.some((animal) => animal.id === boar.id), false);
+  const meat = world.looseGoods?.find((stack) => stack.good === "meat");
+  const leather = world.looseGoods?.find((stack) => stack.good === "leather");
+  assert.ok(meat);
+  assert.ok(leather);
+  assert.equal(meat!.reserved, 1);
+  assert.equal(leather!.reserved, 1);
+  assert.equal(hunter.huntLootTarget, meat!.id);
+  assert.deepEqual(hunter.huntLootQueue, [leather!.id]);
+
+  hunter.position = { ...meat!.position };
+  hunter.path = [];
+  advanceHunting(world);
+  world.round += CONFIG.simulationHz;
+  advanceHunting(world);
+  assert.equal(hunter.outdoorCarry, "meat");
+
+  hunter.position = { ...hunter.workArea!.center };
+  hunter.path = [];
+  advanceHunting(world);
+  assert.equal(hunter.outdoorCarry, undefined);
+  assert.equal(hunter.huntLootTarget, leather!.id);
+  assert.equal(hunter.huntLootQueue, undefined);
+  assert.equal(leather!.reserved, 1);
+
+  hunter.position = { ...leather!.position };
+  hunter.path = [];
+  advanceHunting(world);
+  world.round += CONFIG.simulationHz;
+  advanceHunting(world);
+  assert.equal(hunter.outdoorCarry, "leather");
+
+  hunter.position = { ...hunter.workArea!.center };
+  hunter.path = [];
+  advanceHunting(world);
+
+  assert.equal(hunter.outdoorCarry, undefined);
+  assert.equal(hunter.huntLootTarget, undefined);
+  assert.equal(hunter.huntLootQueue, undefined);
+  assert.ok(world.looseGoods?.some(
+    (stack) => stack.good === "meat" && hexDistance(stack.position, hunter.workArea!.center) <= 5,
+  ));
+  assert.ok(world.looseGoods?.some(
+    (stack) => stack.good === "leather" && hexDistance(stack.position, hunter.workArea!.center) <= 5,
+  ));
+});
