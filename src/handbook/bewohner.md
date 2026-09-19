@@ -46,7 +46,7 @@ In fertigen Gebäuden siehst du die zugewiesenen Personen direkt bei ihrer Rolle
 
 Jäger arbeiten wie andere Außenberufe mit einer persönlichen Arbeitsflagge, besitzen aber einen deutlich größeren Jagdbereich. Sie verfolgen Kleinwild bis in Bogenschussweite, bleiben dann kurz zum Zielen stehen und schießen erst danach. Hat das Zielen bereits begonnen, wird der Schuss auch dann noch ausgeführt, wenn das Tier währenddessen wieder weiterläuft. Pfeile bleiben nach dem Einschlag noch eine Weile sichtbar.
 
-Erlegt ein Jäger einen Hasen, holt er zuerst die entstandene Fleischkeule und trägt sie zurück zu seiner Fahne, bevor er weiterjagt. Dort bleibt das Fleisch als normale lose Ware liegen und kann eingelagert oder gegessen werden. Mit steigender Berufserfahrung treffen Jäger zuverlässiger; Erfahrung erhalten sie nur für tatsächlich erlegtes Wild.
+Erlegt ein Jäger einen Hasen, trägt er die entstandene Fleischkeule zu seiner Fahne. Wildschweine liefern Fleisch und Leder. Der Jäger kann nur eine Beute auf einmal tragen und läuft deshalb nach der ersten Ablage zurück, um die zweite zu holen. Erst wenn alle Beute an der Fahne liegt, jagt er weiter. Fleisch kann eingelagert oder gegessen werden; Leder bleibt als normale Ware für spätere Verarbeitung verfügbar. Mit steigender Berufserfahrung treffen Jäger zuverlässiger; Erfahrung erhalten sie nur für tatsächlich erlegtes Wild.
 
 Ein fliehendes Tier ist deutlich schwerer zu treffen. Nach einem Schuss flieht die ganze Tiergruppe kurz auseinander und sammelt sich danach mit der Zeit wieder.
 
