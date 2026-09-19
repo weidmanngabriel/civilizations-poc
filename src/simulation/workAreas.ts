@@ -535,18 +535,20 @@ export function syncWorkAreas(world: World): void {
 
     const node = workAreaNavigationNode(person)!;
     const outsideLocalNode = !node.contains(person.position);
+    const hunterGlobalTask = hunter && Boolean(
+      person.huntTarget ||
+      person.huntAimTarget ||
+      person.huntLootTarget ||
+      person.huntLootQueue?.length ||
+      person.outdoorCarry
+    );
+    if (hunterGlobalTask) clearNavigationBlocked(person);
     const externalPriority = Boolean(
       person.hungerState ||
       person.sleepState ||
       person.manualMoveTarget ||
       (storageCarrier && person.trip?.picked) ||
-      (hunter && Boolean(
-        person.huntTarget ||
-        person.huntAimTarget ||
-        person.huntLootTarget ||
-        person.huntLootQueue?.length ||
-        person.outdoorCarry
-      )),
+      hunterGlobalTask
     );
     if (outsideLocalNode && !externalPriority) {
       if (!person.path.length) {
