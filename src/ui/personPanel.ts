@@ -22,6 +22,7 @@ const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT = "poc-person-context-toggle-requested";
 const PERSON_STAFF_PICKER_REQUESTED_EVENT = "poc-person-staff-picker-requested";
+const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
 const BUILDING_SELECTION_REQUESTED_EVENT = "poc-building-selection-requested";
 
 type PersonSelectedDetail = { id: number };
@@ -142,6 +143,7 @@ export function mountPersonPanel(world: World): void {
       <button type="button" data-person-filter="all" aria-pressed="true">Alle</button>
       <button type="button" data-person-filter="free" aria-pressed="false">Frei</button>
       ${(Object.entries(PROFESSION_LABELS) as [Profession, string][])
+        .sort((a, b) => a[1].localeCompare(b[1], "de"))
         .map(([profession, label]) => `<button type="button" data-person-filter="${profession}" aria-pressed="false">${label}</button>`)
         .join("")}
     </div>
@@ -192,6 +194,15 @@ export function mountPersonPanel(world: World): void {
 
   const personIsFree = (person: Person): boolean => professionOf(world, person) === undefined;
 
+  const staffPickerPriority = (person: Person): number => {
+    if (!staffPicker) return 0;
+    const requiredProfession = staffPickerProfession();
+    const profession = professionOf(world, person);
+    if (requiredProfession && profession === requiredProfession && !person.assignment) return 0;
+    if (!profession) return 1;
+    return 2;
+  };
+
   const matchingPeople = (): Person[] => {
     const query = searchQuery.trim().toLocaleLowerCase("de-DE");
     return world.people
@@ -217,8 +228,8 @@ export function mountPersonPanel(world: World): void {
       })
       .sort((a, b) => {
         if (staffPicker) {
-          const freeDelta = Number(personIsFree(b)) - Number(personIsFree(a));
-          if (freeDelta) return freeDelta;
+          const priority = staffPickerPriority(a) - staffPickerPriority(b);
+          if (priority) return priority;
         }
         return personName(a.id).localeCompare(personName(b.id), "de");
       });
@@ -241,13 +252,15 @@ export function mountPersonPanel(world: World): void {
   const renderBrowserList = (): void => {
     const people = matchingPeople();
     if (staffPicker) {
-      const free = people.filter(personIsFree);
-      const assignedPeople = people.filter((person) => !personIsFree(person));
+      const matchingProfession = people.filter((person) => staffPickerPriority(person) === 0);
+      const free = people.filter((person) => staffPickerPriority(person) === 1);
+      const others = people.filter((person) => staffPickerPriority(person) === 2);
       summary.textContent = `${people.length} geeignete Personen`;
       list.innerHTML = people.length
         ? [
+            matchingProfession.length ? `<div class="person-picker-group"><strong>Passender Beruf</strong><small>Noch ohne Arbeitsplatz</small></div>${matchingProfession.map(personListButton).join("")}` : "",
             free.length ? `<div class="person-picker-group"><strong>Frei</strong><small>Noch ohne Beruf</small></div>${free.map(personListButton).join("")}` : "",
-            assignedPeople.length ? `<div class="person-picker-group"><strong>Andere Personen</strong><small>Bereits mit Beruf oder Aufgabe</small></div>${assignedPeople.map(personListButton).join("")}` : "",
+            others.length ? `<div class="person-picker-group"><strong>Andere Personen</strong><small>Beruf oder Arbeitsplatz wird geändert</small></div>${others.map(personListButton).join("")}` : "",
           ].join("")
         : `<div class="person-empty-state">Keine geeignete Person gefunden.</div>`;
     } else {
@@ -430,6 +443,7 @@ export function mountPersonPanel(world: World): void {
     toggle.setAttribute("aria-expanded", String(open));
     toggle.classList.toggle("active", open);
     if (open) {
+      window.dispatchEvent(new CustomEvent(UI_MENU_OPENED_EVENT, { detail: { menu: "people" } }));
       closeConflictingMenus();
       renderBrowserMode();
       renderBrowserList();
