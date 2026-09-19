@@ -4,7 +4,7 @@
 
 Bewohner arbeiten weitgehend selbstständig, sobald sie eine Aufgabe haben. Sie suchen ihren Arbeitsplatz, holen benötigte Waren und setzen ihre Arbeit fort, sobald die Voraussetzungen passen.
 
-Hunger und Müdigkeit können Arbeit unterbrechen. Beide Bedürfnisse sinken bewusst langsam, damit auch längere Versorgungswege im frühen Spiel planbar bleiben. Bewohner kümmern sich schon frühzeitig um Essen oder Schlaf, bevor eine Warnung erscheint. Brot sättigt am stärksten, Fisch liegt dazwischen und Beeren sättigen weniger. Fisch kann aus einem Lager oder direkt von einem Fischstapel gegessen werden. Beim Schlafen erholt ein Haus deutlich besser als ein Platz unter Baum oder Busch, und Schlafen auf freiem Boden hilft am wenigsten. Hunger und Schlaf können nie über ihren vollen Wert hinaus steigen. Beim Schlafen bleibt ihre Arbeitszuweisung bestehen; danach setzen sie ihre Aufgabe fort.
+Hunger und Müdigkeit können Arbeit unterbrechen. Beide Bedürfnisse sinken bewusst langsam, damit auch längere Versorgungswege im frühen Spiel planbar bleiben. Bewohner kümmern sich schon frühzeitig um Essen oder Schlaf, bevor eine Warnung erscheint. Brot sättigt am stärksten, Fisch und Fleisch liegen dazwischen und Beeren sättigen weniger. Fisch und Fleisch können aus einem Lager oder direkt von einem passenden Bodenstapel gegessen werden. Beim Schlafen erholt ein Haus deutlich besser als ein Platz unter Baum oder Busch, und Schlafen auf freiem Boden hilft am wenigsten. Hunger und Schlaf können nie über ihren vollen Wert hinaus steigen. Beim Schlafen bleibt ihre Arbeitszuweisung bestehen; danach setzen sie ihre Aufgabe fort.
 
 ## Versorgung und Wegfindung
 
@@ -44,7 +44,9 @@ In fertigen Gebäuden siehst du die zugewiesenen Personen direkt bei ihrer Rolle
 
 ## Jäger
 
-Jäger arbeiten wie andere Außenberufe mit einer persönlichen Arbeitsflagge, besitzen aber einen deutlich größeren Jagdbereich. Sie suchen dort selbständig nach Kleinwild und schießen mit dem Bogen. Mit steigender Berufserfahrung treffen sie zuverlässiger; Erfahrung erhalten sie nur für tatsächlich erlegtes Wild.
+Jäger arbeiten wie andere Außenberufe mit einer persönlichen Arbeitsflagge, besitzen aber einen deutlich größeren Jagdbereich. Sie verfolgen Kleinwild bis in Bogenschussweite, bleiben dann kurz zum Zielen stehen und schießen erst danach. Hat das Zielen bereits begonnen, wird der Schuss auch dann noch ausgeführt, wenn das Tier währenddessen wieder weiterläuft. Pfeile bleiben nach dem Einschlag noch eine Weile sichtbar.
+
+Erlegt ein Jäger einen Hasen, holt er zuerst die entstandene Fleischkeule und trägt sie zurück zu seiner Fahne, bevor er weiterjagt. Dort bleibt das Fleisch als normale lose Ware liegen und kann eingelagert oder gegessen werden. Mit steigender Berufserfahrung treffen Jäger zuverlässiger; Erfahrung erhalten sie nur für tatsächlich erlegtes Wild.
 
 Ein fliehendes Tier ist deutlich schwerer zu treffen. Nach einem Schuss flieht die ganze Tiergruppe kurz auseinander und sammelt sich danach mit der Zeit wieder.
 
