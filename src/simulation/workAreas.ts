@@ -266,20 +266,6 @@ function enforceFisher(world: World, person: Person): void {
       routeOutdoorCarryToFlag(world, person);
       return;
     }
-    if (!same(person.position, area.center)) {
-      const node = workAreaNavigationNode(person)!;
-      person.path =
-        findLocalNavigationPath(
-          world,
-          person,
-          node,
-          area.center,
-          CONFIG.roadSpeedMultiplier,
-        ) ?? [];
-      person.movement = 0;
-      person.active = false;
-      return;
-    }
     if (!planLocalFishingSpot(world, person))
       area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
     return;
