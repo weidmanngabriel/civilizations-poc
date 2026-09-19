@@ -272,7 +272,8 @@ export interface Projectile {
   hit: boolean;
   rewardProfession?: Profession;
 }
-\nexport interface World {
+
+export interface World {
   round: number;
   nextId: number;
   nextBuildingId: number;
