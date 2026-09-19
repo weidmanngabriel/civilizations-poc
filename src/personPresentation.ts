@@ -26,6 +26,10 @@ export const personActivityLabel = (person: Person): string => {
     return "Sucht Angelplatz";
   }
   if (person.hunter) {
+    if (person.outdoorCarry === "meat") return "Trägt Fleisch zur Flagge";
+    if (person.huntLootTarget)
+      return person.path.length ? "Holt Fleisch" : "Hebt Fleisch auf";
+    if (person.huntAimTarget) return "Zielt";
     if (person.path.length) return "Verfolgt Wild";
     if (person.huntTarget) return "Jagt";
     return "Sucht Wild";
