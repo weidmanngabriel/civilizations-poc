@@ -7,6 +7,7 @@ import troubleshootingMarkdown from "../handbook/probleme.md?raw";
 
 const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
+const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
 
 type HandbookPage = {
   id: string;
@@ -140,6 +141,7 @@ export function mountHandbook(): void {
     toggle.setAttribute("aria-expanded", String(open));
     toggle.classList.toggle("active", open);
     if (open) {
+      window.dispatchEvent(new CustomEvent(UI_MENU_OPENED_EVENT, { detail: { menu: "handbook" } }));
       const buildPanel = document.querySelector<HTMLElement>("#build-menu-panel");
       if (buildPanel && !buildPanel.hidden)
         document.querySelector<HTMLButtonElement>("#build-menu-close")?.click();
