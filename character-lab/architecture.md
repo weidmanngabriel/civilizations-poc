@@ -15,7 +15,7 @@ v1 besitzt:
 - `head`: yaw und pitch
 - `leftArm`, `rightArm`: pitch ohne künstliche Winkelgrenze
 - `leftLeg`, `rightLeg`: pitch
-- `torso`: pitch um den Hüftpunkt; die Bewegung nimmt Kopf und Arme als gemeinsamen Oberkörper mit
+- `torso`: pitch und yaw um den Hüftpunkt; beide Bewegungen nehmen Kopf und Arme als gemeinsamen Oberkörper mit
 
 Winkel werden in Grad gespeichert. Sie sind absolute lokale Winkel relativ zum neutralen Parent-Transform.
 
@@ -54,7 +54,7 @@ Three.js rendert:
 - Bodenraster zur Orientierung,
 - einen Character-Root für die Drehung der gesamten Figur.
 
-Arme und Beine rotieren an Schulter/Hüfte nur vorwärts/rückwärts. Der Kopf rotiert lokal um yaw/pitch. Gelenkwinkel werden als endliche Werte validiert, aber nicht geclamped.
+Arme und Beine rotieren an Schulter/Hüfte nur vorwärts/rückwärts. Der Kopf rotiert lokal um yaw/pitch; der Oberkörper unterstützt pitch und yaw am Hüftpunkt. Gelenkwinkel werden als endliche Werte validiert, aber nicht geclamped.
 
 ## Oberfläche
 
@@ -120,14 +120,14 @@ The Character Lab supports a deterministic capture mode through query parameters
 
 `window.characterLab` exposes `captureFrame(progress)` and `captureFrames(progressValues)`. These use the same animation state as the UI and return PNG data URLs after an explicit render.
 
-`scripts/capture-character-lab.mjs` serves the dedicated Character-Lab production build from `dist-character-lab` locally and keeps one headless Chrome session open through the DevTools protocol. It writes 21 evenly spaced overview PNGs, a dense 25-frame diagnostic burst spanning the first complete axe downstroke (2.5%–9.5% progress), plus a low-resolution 640×480 WebM sampled from real rendered animation states. The dense burst is the primary review source for determining fast motion direction; reviewers should read it as one ordered sequence rather than judging isolated poses. The default video uses 8 fps and VP9 with a high CRF so review remains quick and small. CI uploads PNG and WebM together as a `character-lab-review-<sha>` workflow artifact. This artifact is the preferred input for automated or agent-led visual review.
+`scripts/capture-character-lab.mjs` serves the dedicated Character-Lab production build from `dist-character-lab` locally and keeps one headless Chrome session open through the DevTools protocol. It writes 21 evenly spaced overview PNGs, six dense diagnostic bursts around the six axe strikes, plus a low-resolution 640×480 WebM sampled from real rendered animation states. Each burst is the primary review source for determining the local strike direction at its work position; reviewers should read each burst as an ordered sequence rather than judging isolated poses. The default video uses 8 fps and VP9 with a high CRF so review remains quick and small. CI uploads PNG and WebM together as a `character-lab-review-<sha>` workflow artifact. This artifact is the preferred input for automated or agent-led visual review.
 
 
 ### Woodcut motion
 
 The block character's local forward direction is `-Z`. Woodcut root yaw is therefore authored from each work position toward the tree center: about 180° at the south position, 60° at north-east and -60° at north-west, with continuous inward-facing values during the sidesteps.
 
-Each chop keeps both the raised pose and impact on the local forward/tree side. The axe arm travels from roughly 155° (overhead) down to roughly 48° (forward/downward), so the visible path is top-down toward the imaginary trunk rather than an upward or outward swing. Torso and root motion add weight transfer toward the center.
+Each work-position yaw is derived from the current root position and the tree center instead of being manually guessed. Each chop keeps both the raised pose and impact on the local forward/tree side. The right arm travels from an overhead backswing down to a forward/downward impact while torso yaw twists away during the backswing and through the strike during impact. The left arm stays forward as a counterbalance and one leg sits slightly behind during the raised pose. Torso pitch, torso yaw and root motion combine to carry weight toward the center.
 
 ## Dedicated CI/build pipeline
 
