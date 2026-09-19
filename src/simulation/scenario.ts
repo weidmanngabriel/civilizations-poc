@@ -488,6 +488,9 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     spawnAnimalGroup(world, "hare", scaledAt(10, 6), 4);
     spawnAnimalGroup(world, "hare", scaledAt(24, 14), 4);
     spawnAnimalGroup(world, "hare", scaledAt(33, 18), 4);
+    spawnAnimalGroup(world, "boar", scaledAt(16, 5), 1);
+    spawnAnimalGroup(world, "boar", scaledAt(29, 17), 1);
+    spawnAnimalGroup(world, "boar", scaledAt(37, 6), 1);
   }
   return attachNeeds(attachSleep(world));
 }

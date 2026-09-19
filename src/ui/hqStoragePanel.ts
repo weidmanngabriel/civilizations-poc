@@ -15,6 +15,7 @@ const GOODS: Record<Good, string> = {
   bread: "Brot",
   fish: "Fisch",
   meat: "Fleisch",
+  leather: "Leder",
   clay: "Lehm",
   rubble: "Bruchstein",
   brick: "Backstein",
