@@ -203,6 +203,14 @@ export function planFarmWorker(w: World, p: Person, farm: Building): boolean {
   }
   clearNavigationBlocked(p);
 
+  if (!same(p.position, farm.position)) {
+    const path = routeTo(w, p, farm, farm.position);
+    p.path = path ?? [];
+    p.movement = 0;
+    p.active = false;
+    return Boolean(path);
+  }
+
   const ripeFields = farmFields(w, farm.id).filter((field) => field.fieldStage === 4);
   const incomingWheat = w.people.filter(
     (person) => person.trip?.target === farm.id && person.trip.good === "wheat",
