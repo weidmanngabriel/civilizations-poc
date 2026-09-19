@@ -1,8 +1,6 @@
 import type { World } from "../simulation/model";
-import {
-  supportsWorkArea,
-  WORK_AREA_RADIUS_WORLD_TILES,
-} from "../simulation/simulation";
+import { supportsWorkArea } from "../simulation/simulation";
+import { GRID_REFINEMENT } from "../simulation/spatial";
 import {
   WORK_AREA_CHANGED_EVENT,
   WORK_AREA_MODE_EVENT,
@@ -41,7 +39,7 @@ export function installWorkAreaControls(world: World): void {
     const isActive = modePersonId === person.id;
     const label = isActive
       ? "🚩 Karte antippen · Abbrechen"
-      : `🚩 Arbeitsflagge versetzen · ${WORK_AREA_RADIUS_WORLD_TILES} Kacheln`;
+      : `🚩 Arbeitsflagge versetzen · ${((person.workArea?.radius ?? 0) / GRID_REFINEMENT).toLocaleString("de-DE")} Kacheln`;
     button.type = "button";
     button.className = "person-open-list";
     button.dataset.workAreaControl = "true";
