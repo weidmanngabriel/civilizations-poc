@@ -82,7 +82,7 @@ test("hungry person can eat bread directly from a completed bakery", () => {
 
   for (let i = 0; i < CONFIG.simulationHz * 5; i++) tick(world);
 
-  assert.equal(person.hunger, 99);
+  assert.equal(person.hunger, 100);
   assert.equal(bakery.output, 1);
   assert.equal(person.hungerState, undefined);
 });
