@@ -10,7 +10,7 @@ Das Character Lab ist ein eigenständiges Browser-Tool zum Erstellen, Prüfen un
 - Animation und Gameplay bleiben getrennt. Das Tool kennt keine Berufe, Produktionszeiten oder Simulationsregeln.
 - Animationen verwenden normierten Fortschritt von 0 bis 1 statt fester Sekunden.
 - Keyframes speichern absolute lokale Gelenkwinkel, keine relativen Rotationsbefehle.
-- Gelenkgrenzen sind Teil der Character-Definition und werden beim Bearbeiten, Laden und Abspielen immer erzwungen.
+- Die Character-Definition legt verfügbare Bewegungsachsen und Neutralwinkel fest. Pose-Winkel werden nicht künstlich begrenzt oder geclamped; Animationen dürfen jeden endlichen Winkelwert verwenden.
 - Die Darstellung soll mit einer orthografischen isometrischen Kamera funktionieren.
 - Der erste Referenzcharakter bleibt bewusst blockig und technisch simpel.
 - Import und Export müssen menschenlesbares JSON verwenden.
