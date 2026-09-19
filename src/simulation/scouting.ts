@@ -10,7 +10,7 @@ import {
   placeWaypost,
 } from "./wayposts";
 
-export const SCOUT_WAYPOST_BUILD_DURATION_TICKS = 5 * CONFIG.simulationHz;
+export const SCOUT_WAYPOST_BUILD_DURATION_TICKS = 1 * CONFIG.simulationHz;
 
 const cancelScoutWaypostTask = (person: Person): void => {
   person.scoutWaypostTask = undefined;

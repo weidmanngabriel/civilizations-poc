@@ -36,7 +36,7 @@ const idleAnchor = (world: World, person: Person): Hex | undefined => {
   if ((person.woodcutter || person.fisher || person.extractor) && person.workArea) return person.workArea.center;
   const assignedBuilding = workplace(world, person);
   if (assignedBuilding) return assignedBuilding.position;
-  return world.buildings.find((building) => building.id === "hq" && !building.retired)?.position;
+  return undefined;
 };
 
 const recipeInputAmount = (building: Building, good: Good): number => {

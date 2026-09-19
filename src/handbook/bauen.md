@@ -21,4 +21,4 @@ Zusammengehörige Gebäude sollten möglichst nahe beieinander liegen. Lange Weg
 Gebäude können wieder abgerissen werden. Personen im Gebäude brechen ihre aktuelle Tätigkeit sofort ab und erscheinen wieder draußen.
 
 
-Wegweiser gehören nicht zum Baumenü. Weise einem Bewohner den Beruf **Kundschafter** zu und wähle bei ihm die Aktion **Wegweiser**. Nach der Zielwahl läuft er selbst dorthin und errichtet den Wegweiser in fünf simulierten Sekunden. Dafür werden keine Waren benötigt. Wegweiser kannst du anschließend direkt auf der Karte auswählen und über ihr Menü wieder abreißen; dadurch verschwinden auch ihre Verbindungen zu anderen Wegweisern.
+Wegweiser gehören nicht zum Baumenü. Weise einem Bewohner den Beruf **Kundschafter** zu und wähle bei ihm die Aktion **Wegweiser**. Nach der Zielwahl läuft er selbst dorthin und errichtet den Wegweiser in einer simulierten Sekunde. Dafür werden keine Waren benötigt. Wegweiser kannst du anschließend direkt auf der Karte auswählen und über ihr Menü wieder abreißen; dadurch verschwinden auch ihre Verbindungen zu anderen Wegweisern.
