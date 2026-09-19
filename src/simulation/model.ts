@@ -1,4 +1,4 @@
-export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "meat" | "clay" | "rubble" | "brick" | "stoneBlock";
+export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "meat" | "leather" | "clay" | "rubble" | "brick" | "stoneBlock";
 export type BuildingId = string;
 export type WaypostId = string;
 export type BuildingKind = "hq" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "stonemason" | "warehouse" | "house";
@@ -200,8 +200,10 @@ export interface Person {
   huntAimTarget?: AnimalId;
   /** Simulation tick when the current stationary aiming cycle completes. */
   huntAimUntilTick?: number;
-  /** Reserved meat stack that this hunter must collect before hunting again. */
+  /** Reserved loot stack that this hunter must collect before hunting again. */
   huntLootTarget?: LooseGoodStackId;
+  /** Additional reserved loot stacks collected in order after the current one. */
+  huntLootQueue?: LooseGoodStackId[];
   /** Simulation tick when the one-second ground pickup completes. */
   huntLootPickupUntilTick?: number;
   /** Earliest simulation tick at which another ranged attack may start. */
@@ -247,7 +249,7 @@ export interface Person {
 }
 export type AnimalId = string;
 export type AnimalGroupId = string;
-export type AnimalKind = "hare";
+export type AnimalKind = "hare" | "boar";
 export interface AnimalGroup {
   id: AnimalGroupId;
   kind: AnimalKind;
