@@ -16,6 +16,10 @@ export type AnimalBehaviorProfile = {
   homeWeight: number;
   flockWeight: number;
   randomWeight: number;
+  groupTargetWeight: number;
+  groupTargetIntervalTicks: number;
+  groupTargetMinDistance: number;
+  groupTargetMaxDistance: number;
 };
 
 export const ANIMAL_BEHAVIOR: Record<AnimalKind, AnimalBehaviorProfile> = {
@@ -28,9 +32,13 @@ export const ANIMAL_BEHAVIOR: Record<AnimalKind, AnimalBehaviorProfile> = {
     fleePathMinSteps: 6,
     fleePathMaxSteps: 10,
     movementMultiplier: 1.35,
-    homeWeight: 0.3,
-    flockWeight: 0.55,
-    randomWeight: 0.15,
+    homeWeight: 0.28,
+    flockWeight: 0.5,
+    randomWeight: 0.12,
+    groupTargetWeight: 0.1,
+    groupTargetIntervalTicks: 30 * SIMULATION_HZ,
+    groupTargetMinDistance: 10,
+    groupTargetMaxDistance: 15,
   },
 };
 
@@ -79,10 +87,13 @@ export function spawnAnimalGroup(
   const home = nearestValidSpawn(world, requestedHome);
   if (!home || size <= 0) return undefined;
 
+  const profile = ANIMAL_BEHAVIOR[kind];
   const group: AnimalGroup = {
     id: nextAnimalGroupId(world),
     kind,
     home: { ...home },
+    target: { ...home },
+    nextTargetTick: world.round + profile.groupTargetIntervalTicks,
   };
   groupList(world).push(group);
 
@@ -97,7 +108,6 @@ export function spawnAnimalGroup(
 
   for (let i = 0; i < size; i += 1) {
     const spawn = candidates[i % Math.max(1, candidates.length)] ?? home;
-    const profile = ANIMAL_BEHAVIOR[kind];
     animalList(world).push({
       id: nextAnimalId(world),
       kind,
@@ -132,17 +142,20 @@ const weightedTarget = (
   const group = groupList(world).find((candidate) => candidate.id === animal.groupId);
   const center = animalGroupCenter(world, animal.groupId) ?? animal.position;
   const home = group?.home ?? animal.position;
+  const groupTarget = group?.target ?? center;
   const randomQ = randomFraction(world) * 2 - 1;
   const randomR = randomFraction(world) * 2 - 1;
   const q =
     animal.position.q +
     (center.q - animal.position.q) * profile.flockWeight +
     (home.q - animal.position.q) * profile.homeWeight +
+    (groupTarget.q - animal.position.q) * profile.groupTargetWeight +
     randomQ * GRID_REFINEMENT * profile.randomWeight;
   const r =
     animal.position.r +
     (center.r - animal.position.r) * profile.flockWeight +
     (home.r - animal.position.r) * profile.homeWeight +
+    (groupTarget.r - animal.position.r) * profile.groupTargetWeight +
     randomR * GRID_REFINEMENT * profile.randomWeight;
   return { q: Math.round(q), r: Math.round(r) };
 };
@@ -248,7 +261,30 @@ function advanceAnimalMovement(world: World, animal: Animal): void {
   }
 }
 
+function chooseGroupTarget(world: World, group: AnimalGroup): void {
+  const profile = ANIMAL_BEHAVIOR[group.kind];
+  const center = animalGroupCenter(world, group.id) ?? group.home;
+  const candidates = world.tiles.filter(
+    (tile) =>
+      validAnimalTile(world, tile) &&
+      hexDistance(center, tile) >= profile.groupTargetMinDistance &&
+      hexDistance(center, tile) <= profile.groupTargetMaxDistance,
+  );
+  const chosen = candidates.length
+    ? candidates[randomInt(world, 0, candidates.length - 1)]
+    : undefined;
+  group.target = chosen ? { q: chosen.q, r: chosen.r } : { ...center };
+  group.nextTargetTick = world.round + profile.groupTargetIntervalTicks;
+}
+
+function advanceAnimalGroups(world: World): void {
+  for (const group of groupList(world)) {
+    if ((group.nextTargetTick ?? 0) <= world.round) chooseGroupTarget(world, group);
+  }
+}
+
 export function advanceWildlife(world: World): void {
+  advanceAnimalGroups(world);
   for (const animal of animalList(world)) {
     const fleeing = animalIsFleeing(world, animal);
     if (!fleeing && animal.fleeingUntilTick !== undefined) {
