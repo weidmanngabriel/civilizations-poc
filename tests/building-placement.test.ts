@@ -4,6 +4,8 @@ import type { BuildableBuildingKind } from "../src/simulation/model";
 import { createWorld } from "../src/simulation/scenario";
 import { hexDistance, same } from "../src/simulation/hex";
 import { placeLooseGood } from "../src/simulation/looseGoods";
+import { buildingInteractionAt } from "../src/buildings/buildingDefinitionRegistry";
+import { WAYPOST_ORIENTATION_RADIUS } from "../src/simulation/wayposts";
 import {
   buildingFootprint,
   buildWithFootprint,
@@ -53,6 +55,29 @@ test("valid anchor enumeration matches the authoritative placement rule", () => 
     valid.length,
     world.tiles.filter((position) => canPlaceBuilding(world, position, "warehouse")).length,
   );
+});
+
+test("buildings require their entrance to be inside any placed waypost radius", () => {
+  const world = createWorld();
+  const origin = findValidOrigin(world, "warehouse");
+  const entrance = buildingInteractionAt("warehouse", origin);
+
+  world.wayposts = [];
+  assert.equal(canPlaceBuilding(world, origin, "warehouse"), false);
+  assert.equal(validBuildingAnchors(world, "warehouse").length, 0);
+
+  world.wayposts = [{
+    id: "isolated-waypost",
+    position: {
+      q: entrance.q + Math.floor(WAYPOST_ORIENTATION_RADIUS) + 1,
+      r: entrance.r,
+    },
+    connections: [],
+  }];
+  assert.equal(canPlaceBuilding(world, origin, "warehouse"), false);
+
+  world.wayposts[0]!.position = { ...entrance };
+  assert.equal(canPlaceBuilding(world, origin, "warehouse"), true);
 });
 
 test("buildable buildings occupy multiple tiles and keep a two-micro-cell clearance", () => {
