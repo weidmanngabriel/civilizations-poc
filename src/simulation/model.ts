@@ -1,7 +1,7 @@
-export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "meat" | "leather" | "clay" | "rubble" | "brick" | "stoneBlock";
+export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "meat" | "leather" | "shoes" | "clay" | "rubble" | "brick" | "stoneBlock";
 export type BuildingId = string;
 export type WaypostId = string;
-export type BuildingKind = "hq" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "stonemason" | "warehouse" | "house";
+export type BuildingKind = "hq" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "stonemason" | "tailor" | "warehouse" | "house";
 export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "field" | "house">;
 export type NaturalResourceId = string;
 export type NaturalResourceKind = "forest" | "clay" | "stone";
@@ -24,7 +24,8 @@ export type Profession =
   | "clayDigger"
   | "stonecutter"
   | "potter"
-  | "stonemason";
+  | "stonemason"
+  | "tailor";
 export interface Hex {
   q: number;
   r: number;
