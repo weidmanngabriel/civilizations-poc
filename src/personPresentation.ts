@@ -25,6 +25,11 @@ export const personActivityLabel = (person: Person): string => {
     if (person.fishingWaitUntilTick !== undefined) return "Angelt";
     return "Sucht Angelplatz";
   }
+  if (person.hunter) {
+    if (person.path.length) return "Verfolgt Wild";
+    if (person.huntTarget) return "Jagt";
+    return "Sucht Wild";
+  }
   if (person.idleTarget) return person.path.length ? "Unterwegs" : "Wartet";
   if (person.active) return "Arbeitet";
   if (person.path.length) return "Unterwegs";
