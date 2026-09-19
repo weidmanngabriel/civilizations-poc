@@ -5,48 +5,34 @@
   "parts": {
     "head": {
       "pitch": {
-        "min": -60,
-        "max": 60,
         "neutral": 0
       },
       "yaw": {
-        "min": -90,
-        "max": 90,
         "neutral": 0
       }
     },
     "leftArm": {
       "pitch": {
-        "min": -150,
-        "max": 150,
         "neutral": 0
       }
     },
     "rightArm": {
       "pitch": {
-        "min": -150,
-        "max": 150,
         "neutral": 0
       }
     },
     "leftLeg": {
       "pitch": {
-        "min": -60,
-        "max": 60,
         "neutral": 0
       }
     },
     "rightLeg": {
       "pitch": {
-        "min": -60,
-        "max": 60,
         "neutral": 0
       }
     },
     "torso": {
       "pitch": {
-        "min": -22,
-        "max": 22,
         "neutral": 0
       }
     }
