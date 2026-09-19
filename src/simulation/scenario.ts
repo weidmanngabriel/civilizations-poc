@@ -37,7 +37,7 @@ export const CONFIG = {
   spatialScale: GRID_REFINEMENT,
   baseMovementTilesPerSecond: BASE_MOVEMENT_TILES_PER_SECOND,
   movementPerTick: (BASE_MOVEMENT_TILES_PER_SECOND * GRID_REFINEMENT) / 60,
-  roadSpeedMultiplier: 1.3,
+  roadSpeedMultiplier: 1.3,\n  equipmentSpeedMultiplier: 1.3,\n  woodenToolDurabilityActions: 30,\n  shoesDurabilityMicrotiles: 2500,
   trafficThreshold: 8,
   trafficWindowTicks: 32 * 60,
   carryCapacity: 1,
