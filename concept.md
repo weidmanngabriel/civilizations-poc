@@ -200,7 +200,8 @@ Das Kontextmenü besitzt dauerhaft **16 feste Slots** als hohles Quadrat ohne Ec
 Der erste verbindliche Aktionssatz ist:
 
 - oben: **Beruf**, **Arbeitsplatz**, **Wohnung**, **Arbeitsbereich**;
-- rechts: **Bewegen**, **Essen**, **Schlafen**;
+- rechts: **Bewegen**, **Essen**, **Schlafen** sowie kontextabhängig **Wegweiser**;
+- unten rechts: **Ausrüstung** als gemeinsames Zuweisungsmenü für die aktuell unterstützten Ausrüstungstypen;
 - alle übrigen Slots bleiben vorerst leer.
 
 Arbeitsbereich erscheint nur bei Personen mit persönlicher Arbeitsflagge. Arbeitsplatz und Wohnung wechseln in einen Karten-Auswahlmodus, in dem nur gültige Ziele hervorgehoben werden. Bewegen wartet auf eine Zielzelle. Direkte Bewegungsbefehle haben bis zur Ankunft Vorrang vor normaler Autonomie; danach setzt die Person ihre reguläre Tätigkeit fort. Ein bewusst ausgelöster Ess- oder Schlafbefehl startet die bereits vorhandene Bedürfnislogik sofort. Eine zugewiesene Wohnung wird beim Schlafen gegenüber anderen Häusern bevorzugt.
