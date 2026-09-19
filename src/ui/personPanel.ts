@@ -350,7 +350,7 @@ export function mountPersonPanel(world: World): void {
     inspector.innerHTML = `
       <header class="person-panel-header person-inspector-header">
         <button class="person-context-toggle" type="button" data-person-action="open-context">
-          <span aria-hidden="true">▦</span><span>Aktionen</span>
+          <span class="person-context-toggle-icon" aria-hidden="true"></span><span>Aktionen</span>
         </button>
         <div class="person-inspector-identity">
           <small>${escapeHtml(professionText)}</small>
