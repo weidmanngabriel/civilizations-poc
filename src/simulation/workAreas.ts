@@ -496,10 +496,6 @@ function enforceResourceWorker(world: World, person: Person): void {
 
 function enforceStorageCarrier(world: World, person: Person): void {
   const area = person.workArea!;
-  if (person.huntTarget) {
-    const target = world.animals?.find((animal) => animal.id === person.huntTarget);
-    if (!target || !workAreaContains(person, target.position)) person.huntTarget = undefined;
-  }
   if (person.trip && !person.trip.picked) {
     const sourcePosition = tripSourcePosition(world, person);
     if (!sourcePosition || hexDistance(area.center, sourcePosition) > area.radius) {
@@ -579,6 +575,10 @@ export function setWorkAreaCenter(world: World, personId: number, center: Hex): 
     person.path = [];
     person.movement = 0;
     person.active = false;
+  }
+  if (person.huntTarget) {
+    const target = world.animals?.find((animal) => animal.id === person.huntTarget);
+    if (!target || !workAreaContains(person, target.position)) person.huntTarget = undefined;
   }
   if (person.trip && !person.trip.picked) {
     const sourcePosition = tripSourcePosition(world, person);
