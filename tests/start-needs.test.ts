@@ -137,3 +137,20 @@ test("an HQ carrier collects nearby production output into HQ inventory", () => 
   assert.equal(hq.inventory?.wood, 1);
   assert.equal(source.output, 0);
 });
+
+test("hunger decay is half speed for idle, walking and active work", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+
+  for (let i = 0; i < 8; i += 1) advanceHungerTick(world);
+  assert.equal(person.hunger, 99);
+
+  person.path = [{ q: person.position.q + 1, r: person.position.r }];
+  for (let i = 0; i < 4; i += 1) advanceHungerTick(world);
+  assert.equal(person.hunger, 98);
+
+  person.path = [];
+  person.progress = 1;
+  for (let i = 0; i < 2; i += 1) advanceHungerTick(world);
+  assert.equal(person.hunger, 97);
+});
