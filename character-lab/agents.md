@@ -24,3 +24,8 @@ Das Character Lab ist ein eigenständiges Browser-Tool zum Erstellen, Prüfen un
 Für Änderungen gelten zusätzlich die Workflow-Regeln aus der Root-`agents.md`: temporärer Branch, PR, Tests/Build und Squash-Merge auf `main`.
 
 Vor jeder Implementierung in diesem Unterprojekt zuerst diese Datei und `architecture.md` lesen. Bei Änderungen am Funktionsumfang zusätzlich `concept.md` lesen.
+
+
+## Animation review workflow
+
+For meaningful animation changes, use the automated Character Lab review export instead of judging only from JSON. CI runs `npm run capture:character-lab -- woodcut 21` and uploads the resulting PNG sequence as a workflow artifact. Review representative and transition frames before considering animation work complete. Keep capture mode deterministic and free of editor overlays.
