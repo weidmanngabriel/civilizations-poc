@@ -62,10 +62,9 @@ test("reachable wayposts connect between 3.5 and 7 world tiles and support netwo
 });
 
 
-test("normal navigation visibly routes through connected wayposts when both ends are oriented", () => {
+test("same and neighboring waypost areas use direct local A* without signpost checkpoints", () => {
   const world = createDefaultGameWorld();
   const first = wayposts(world)[0]!;
-
   const secondTile = world.tiles
     .filter((tile) => tile.terrain === "grass")
     .filter((tile) => {
@@ -82,21 +81,88 @@ test("normal navigation visibly routes through connected wayposts when both ends
     .find((tile) => hexDistance(tile, first.position) === 1);
   const end = world.tiles
     .filter((tile) => tile.terrain === "grass")
-    .find((tile) => hexDistance(tile, second.position) === 1 && hexDistance(tile, first.position) > WAYPOST_ORIENTATION_RADIUS_WORLD_TILES * GRID_REFINEMENT);
+    .find(
+      (tile) =>
+        hexDistance(tile, second.position) === 1 &&
+        hexDistance(tile, first.position) > WAYPOST_ORIENTATION_RADIUS_WORLD_TILES * GRID_REFINEMENT,
+    );
   assert.ok(start);
   assert.ok(end);
 
-  const path = findNavigationPath(world, start, end);
-  assert.ok(path);
+  const direct = findPath(world.tiles, start, end);
+  const routed = findNavigationPath(world, start, end);
+  assert.ok(direct);
+  assert.ok(routed);
+  assert.deepEqual(routed.map(key), direct.map(key));
+});
 
-  const firstIndex = path.findIndex(
-    (position) => position.q === first.position.q && position.r === first.position.r,
+test("three or more wayposts constrain a corridor without requiring signpost cells", () => {
+  const world = createDefaultGameWorld();
+  const first = wayposts(world)[0]!;
+  const secondTile = world.tiles
+    .filter((tile) => tile.terrain === "grass")
+    .filter((tile) => {
+      const distance = hexDistance(first.position, tile);
+      return distance >= 4 * GRID_REFINEMENT && distance <= 5 * GRID_REFINEMENT;
+    })
+    .find((tile) => canPlaceWaypost(world, tile));
+  assert.ok(secondTile);
+  const second = placeWaypost(world, secondTile);
+  assert.ok(second);
+
+  const thirdTile = world.tiles
+    .filter((tile) => tile.terrain === "grass")
+    .filter((tile) => {
+      const fromSecond = hexDistance(second.position, tile);
+      return (
+        fromSecond >= 4 * GRID_REFINEMENT &&
+        fromSecond <= 5 * GRID_REFINEMENT &&
+        hexDistance(first.position, tile) > WAYPOST_MAX_CONNECTION_DISTANCE_WORLD_TILES * GRID_REFINEMENT
+      );
+    })
+    .find((tile) => canPlaceWaypost(world, tile));
+  assert.ok(thirdTile);
+  const third = placeWaypost(world, thirdTile);
+  assert.ok(third);
+  assert.ok(second.connections?.includes(third.id));
+
+  const start = world.tiles
+    .filter((tile) => tile.terrain === "grass")
+    .find((tile) => hexDistance(tile, first.position) === 1);
+  const end = world.tiles
+    .filter((tile) => tile.terrain === "grass")
+    .find(
+      (tile) =>
+        hexDistance(tile, third.position) === 1 &&
+        hexDistance(tile, second.position) > WAYPOST_ORIENTATION_RADIUS_WORLD_TILES * GRID_REFINEMENT,
+    );
+  assert.ok(start);
+  assert.ok(end);
+
+  const tileMap = tileIndex(world.tiles);
+  for (const post of [first, second, third]) {
+    const tile = tileMap.get(key(post.position));
+    assert.ok(tile);
+    tile.buildingBlocking = true;
+  }
+
+  const routed = findNavigationPath(world, start, end);
+  assert.ok(routed, "the route should remain possible when exact signpost cells are unavailable");
+  for (const post of [first, second, third]) {
+    assert.equal(
+      routed.some((position) => key(position) === key(post.position)),
+      false,
+      "signpost cells must not be mandatory checkpoints",
+    );
+  }
+  assert.ok(
+    routed.every((position) =>
+      [first, second, third].some(
+        (post) => hexDistance(position, post.position) <= WAYPOST_ORIENTATION_RADIUS_WORLD_TILES * GRID_REFINEMENT,
+      ),
+    ),
+    "long routes should stay inside the selected high-level waypost corridor",
   );
-  const secondIndex = path.findIndex(
-    (position) => position.q === second.position.q && position.r === second.position.r,
-  );
-  assert.ok(firstIndex >= 0, "route should pass through the entry waypost");
-  assert.ok(secondIndex > firstIndex, "route should then pass through the connected exit waypost");
 });
 
 
