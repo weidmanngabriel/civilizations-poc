@@ -134,6 +134,7 @@ export function spawnAnimalGroup(
   };
   groupList(world).push(group);
 
+  const spawnCount = kind === "boar" ? 1 : size;
   const candidates = world.tiles
     .filter((tile) => validAnimalTile(world, tile) && hexDistance(tile, home) <= GRID_REFINEMENT)
     .sort(
@@ -144,7 +145,7 @@ export function spawnAnimalGroup(
     );
   const chosenSpawns: Hex[] = [];
 
-  for (let i = 0; i < size; i += 1) {
+  for (let i = 0; i < spawnCount; i += 1) {
     const spawn =
       candidates.find((candidate) =>
         chosenSpawns.every(
