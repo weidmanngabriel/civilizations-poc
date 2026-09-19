@@ -1,5 +1,5 @@
 import type { Hex, Person, Tile, Waypost, World } from "./model";
-import { findPath, hexDistance, key, pathTravelCost, same, tileIndex, walkable } from "./hex";
+import { findPath, hexDistance, key, neighbors, pathTravelCost, same, tileIndex, walkable } from "./hex";
 import { GRID_REFINEMENT } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
 
@@ -15,6 +15,7 @@ export const WAYPOST_MIN_DISTANCE =
   WAYPOST_MIN_DISTANCE_WORLD_TILES * GRID_REFINEMENT;
 export const WAYPOST_MAX_CONNECTION_DISTANCE =
   WAYPOST_MAX_CONNECTION_DISTANCE_WORLD_TILES * GRID_REFINEMENT;
+export const WAYPOST_BUILD_CLEARANCE = 1;
 
 export const wayposts = (world: World): Waypost[] => world.wayposts ?? [];
 
@@ -22,6 +23,7 @@ type WaypostPlacementContext = {
   tiles: Map<string, Tile>;
   activeResourceCells: Set<string>;
   looseGoodCells: Set<string>;
+  buildingClearanceCells: Set<string>;
 };
 
 const waypostPlacementContext = (world: World): WaypostPlacementContext => ({
@@ -32,6 +34,13 @@ const waypostPlacementContext = (world: World): WaypostPlacementContext => ({
       .flatMap((resource) => naturalResourceFootprint(resource).map(key)),
   ),
   looseGoodCells: new Set((world.looseGoods ?? []).map((stack) => key(stack.position))),
+  buildingClearanceCells: new Set(
+    world.buildings
+      .filter((building) => !building.retired)
+      .flatMap((building) => building.footprint ?? [building.position])
+      .flatMap((position) => [position, ...neighbors(position)])
+      .map(key),
+  ),
 });
 
 const canPlaceWaypostWithContext = (
@@ -44,6 +53,7 @@ const canPlaceWaypostWithContext = (
     return false;
   if (tile.bush || context.activeResourceCells.has(key(position))) return false;
   if (context.looseGoodCells.has(key(position))) return false;
+  if (context.buildingClearanceCells.has(key(position))) return false;
   return wayposts(world).every(
     (waypost) => hexDistance(waypost.position, position) >= WAYPOST_MIN_DISTANCE,
   );
@@ -88,6 +98,18 @@ export function placeWaypost(world: World, position: Hex): Waypost | undefined {
   connectNewWaypost(world, created);
   world.waypostRevision = (world.waypostRevision ?? 0) + 1;
   return created;
+}
+
+export function removeWaypost(world: World, id: string): boolean {
+  const posts = world.wayposts;
+  if (!posts) return false;
+  const index = posts.findIndex((post) => post.id === id);
+  if (index < 0) return false;
+  posts.splice(index, 1);
+  for (const post of posts)
+    post.connections = (post.connections ?? []).filter((connectionId) => connectionId !== id);
+  world.waypostRevision = (world.waypostRevision ?? 0) + 1;
+  return true;
 }
 
 const initialWaypostCandidate = (world: World): Hex | undefined => {
