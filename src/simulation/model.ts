@@ -248,6 +248,8 @@ export interface AnimalGroup {
   target?: Hex;
   /** Tick when a new group target should be chosen. */
   nextTargetTick?: number;
+  /** Last preferred migration direction, used to avoid random 180° turns at every target update. */
+  migrationDirection?: Hex;
 }
 export interface Animal {
   id: AnimalId;

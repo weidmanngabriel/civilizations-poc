@@ -15,6 +15,19 @@ import {
 const firstGrass = (world: ReturnType<typeof createWorld>) =>
   world.tiles.find((tile) => tile.terrain === "grass" && !tile.resourceBlocking && !tile.buildingBlocking)!;
 
+const centralGrass = (world: ReturnType<typeof createWorld>) => {
+  const qMid = Math.round((Math.min(...world.tiles.map((tile) => tile.q)) + Math.max(...world.tiles.map((tile) => tile.q))) / 2);
+  const rMid = Math.round((Math.min(...world.tiles.map((tile) => tile.r)) + Math.max(...world.tiles.map((tile) => tile.r))) / 2);
+  return world.tiles
+    .filter((tile) => tile.terrain === "grass" && !tile.resourceBlocking && !tile.buildingBlocking)
+    .sort(
+      (a, b) =>
+        hexDistance(a, { q: qMid, r: rMid }) - hexDistance(b, { q: qMid, r: rMid }) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0]!;
+};
+
 test("hunter hit chance scales with experience and fleeing halves it", () => {
   const world = createWorld(1);
   const hunter = world.people[0]!;
@@ -111,4 +124,27 @@ test("hare groups spawn loosely and never share a micro-cell while roaming", () 
     const positions = members.map((animal) => `${animal.position.q},${animal.position.r}`);
     assert.equal(new Set(positions).size, positions.length);
   }
+});
+
+
+test("hare group migration develops sustained drift over several minutes", () => {
+  const world = createWorld(0);
+  const home = centralGrass(world);
+  const group = spawnAnimalGroup(world, "hare", home, 4)!;
+  const startCenter = animalGroupCenter(world, group.id)!;
+  let maxDistance = 0;
+
+  for (let tick = 0; tick < 4 * 60 * CONFIG.simulationHz; tick += 1) {
+    world.round += 1;
+    advanceWildlife(world);
+    if (tick % CONFIG.simulationHz === 0) {
+      const center = animalGroupCenter(world, group.id)!;
+      maxDistance = Math.max(maxDistance, hexDistance(startCenter, center));
+    }
+  }
+
+  assert.ok(
+    maxDistance >= 12,
+    `expected migrating group center to leave the spawn area, max distance was ${maxDistance}`,
+  );
 });
