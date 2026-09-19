@@ -193,7 +193,11 @@ function startFishingCycle(world: World, person: Person): void {
   person.active = true;
 }
 
-export function routeOutdoorCarryToFlag(world: World, person: Person): boolean {
+export function routeOutdoorCarryToFlag(
+  world: World,
+  person: Person,
+  unrestrictedGlobal = false,
+): boolean {
   const area = person.workArea;
   const good = person.outdoorCarry;
   if (!area || !good) return true;
@@ -205,8 +209,16 @@ export function routeOutdoorCarryToFlag(world: World, person: Person): boolean {
   }
 
   if (!same(person.position, area.center)) {
-    const node = workAreaNavigationNode(person)!;
-    const path = findLocalNavigationPath(world, person, node, area.center, CONFIG.roadSpeedMultiplier);
+    const path = unrestrictedGlobal
+      ? findPath(world.tiles, person.position, area.center, CONFIG.roadSpeedMultiplier)
+      : findLocalNavigationPath(
+          world,
+          person,
+          workAreaNavigationNode(person)!,
+          area.center,
+          CONFIG.roadSpeedMultiplier,
+        );
+    if (unrestrictedGlobal) clearNavigationBlocked(person);
     if (!path) {
       person.active = false;
       area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
@@ -528,7 +540,13 @@ export function syncWorkAreas(world: World): void {
       person.sleepState ||
       person.manualMoveTarget ||
       (storageCarrier && person.trip?.picked) ||
-      (hunter && Boolean(person.huntLootTarget || person.outdoorCarry)),
+      (hunter && Boolean(
+        person.huntTarget ||
+        person.huntAimTarget ||
+        person.huntLootTarget ||
+        person.huntLootQueue?.length ||
+        person.outdoorCarry
+      )),
     );
     if (outsideLocalNode && !externalPriority) {
       if (!person.path.length) {
