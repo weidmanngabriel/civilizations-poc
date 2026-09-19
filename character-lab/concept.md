@@ -25,6 +25,7 @@ v1 liefert zwei Beispielanimationen:
 
 - `idle`
 - `walk`
+- `woodcut`: etwa zehn Sekunden Vorschau; die Figur arbeitet an drei Positionen rund um einen imaginären Baum und führt an jeder Position zwei Axtschläge aus.
 
 ## Bedienung
 
@@ -64,3 +65,8 @@ Eine externe API oder ein eigenes Agent-Protokoll ist bewusst v2. Das Datenforma
 - Asset-Export ins Hauptspiel,
 - Netzwerk-API,
 - Gameplay-Events in Animationen.
+
+
+### Holzhacken-Preset
+
+Das v1-Preset `woodcut` demonstriert erstmals Root-Bewegung und ein Werkzeug. Der Charakter läuft zwischen drei Arbeitspositionen um einen imaginären Baum herum und hackt an jeder Position zweimal. Der eigentliche Zuschlag nutzt `easeIn`, damit die Bewegung zum Auftreffpunkt beschleunigt; der Rückzug und die Lauf-/Umsetzbewegungen verwenden `easeInOut`. Die Axt ist ein einfacher blockiger Prop am rechten Arm.
