@@ -15,7 +15,7 @@ Beim Aufheben loser Bodenware bleibt ein Bewohner eine simulierte Sekunde am War
 
 ## Wegweiser
 
-Neue Wegweiser werden von **Kundschaftern** errichtet. Wähle einen Bewohner, gib ihm den Beruf Kundschafter und starte in seinem Aktionsmenü **Wegweiser**. Sobald der Platzierungsmodus offen ist, siehst du alle aktuell gültigen Zielstellen hervorgehoben. Nach der Bestätigung läuft der Kundschafter selbst dorthin und baut fünf simulierte Sekunden lang. Der Wegweiser kostet keine Waren. Beim Start steht bereits ein erster Wegweiser ungefähr eine Weltkachel vor dem Hauptquartier.
+Neue Wegweiser werden von **Kundschaftern** errichtet. Wähle einen Bewohner, gib ihm den Beruf Kundschafter und starte in seinem Aktionsmenü **Wegweiser**. Sobald der Platzierungsmodus offen ist, siehst du alle aktuell gültigen Zielstellen hervorgehoben. Nach der Bestätigung läuft der Kundschafter selbst dorthin und baut eine simulierte Sekunde lang. Der Wegweiser kostet keine Waren. Beim Start steht bereits ein erster Wegweiser ungefähr eine Weltkachel vor dem Hauptquartier.
 
 Ein Wegweiser dient Bewohnern zur Orientierung in einem Bereich von **3,5 Weltkacheln**. Neue Wegweiser brauchen mindestens denselben Abstand von **3,5 Weltkacheln**. Erreichbare Wegweiser verbinden sich automatisch, wenn sie zwischen **3,5 und 7 Weltkacheln** voneinander entfernt sind.
 
