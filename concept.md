@@ -83,6 +83,8 @@ Damit können Bewohner ein Gebäude an einer bewusst definierten Stelle erreiche
 
 Gebäude brauchen ihren vollständigen Grundriss plus einen freien Ring von zwei Mikrozellen rundherum. Für registrierte Gebäudetypen kommt der Grundriss aus der aktuellen Editor-Definition; für noch nicht registrierte Typen gilt die derzeitige codebasierte Form.
 
+Zusätzlich darf ein Gebäude nur gebaut werden, wenn sein **Eingang innerhalb des 3,5-Weltkachel-Radius mindestens eines platzierten Wegweisers** liegt. Es genügt jeder Wegweiser; er muss nicht mit einem anderen Wegweiser verbunden sein. Damit können bewusst mehrere voneinander getrennte Logistiknetze bestehen, etwa auf unterschiedlichen Inseln.
+
 Natürliche Ressourcen dürfen weder den Grundriss noch diesen Freiraum schneiden. Lose Waren dürfen im Freiraum liegen bleiben, aber nicht unter dem eigentlichen Gebäudegrundriss.
 
 Beim Abriss wird die komplette belegte Fläche wieder frei. Eine zuvor überbaute Straße kehrt nicht zurück; die Fläche wird wie bisher zu Gras.
