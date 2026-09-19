@@ -19,6 +19,11 @@ export const WAYPOST_BUILD_CLEARANCE = 1;
 
 export const wayposts = (world: World): Waypost[] => world.wayposts ?? [];
 
+export const usesUnrestrictedGlobalPathfinding = (person: Person): boolean => {
+  const profession = person.profession as string | undefined;
+  return profession === "scout" || profession === "soldier";
+};
+
 type WaypostPlacementContext = {
   tiles: Map<string, Tile>;
   activeResourceCells: Set<string>;
@@ -264,6 +269,16 @@ export function findNavigationPath(
   return findPathViaWayposts(world, start, end, roadSpeedMultiplier);
 }
 
+const findPersonNavigationPath = (
+  world: World,
+  person: Person,
+  end: Hex,
+  roadSpeedMultiplier: number,
+): Hex[] | null =>
+  usesUnrestrictedGlobalPathfinding(person)
+    ? findPath(world.tiles, person.position, end, roadSpeedMultiplier)
+    : findNavigationPath(world, person.position, end, roadSpeedMultiplier);
+
 const navigationTargetKey = (target: Hex): string => key(target);
 
 const resetNavigationFailures = (person: Person): void => {
@@ -294,7 +309,7 @@ export function findCandidateNavigationPath(
     return null;
   }
 
-  const path = findNavigationPath(world, person.position, end, roadSpeedMultiplier);
+  const path = findPersonNavigationPath(world, person, end, roadSpeedMultiplier);
   if (path) {
     person.navigationBlocked = undefined;
     return path;
@@ -331,7 +346,7 @@ export function findRequiredNavigationPath(
     return null;
   }
 
-  const path = findNavigationPath(world, person.position, end, roadSpeedMultiplier);
+  const path = findPersonNavigationPath(world, person, end, roadSpeedMultiplier);
   if (path) {
     person.navigationBlocked = undefined;
     resetNavigationFailures(person);
