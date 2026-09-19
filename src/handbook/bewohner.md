@@ -6,7 +6,7 @@ Hunger und Müdigkeit können Arbeit unterbrechen. Beide Bedürfnisse sinken bew
 
 Wenn Bewohner in einem Gebäude arbeiten, essen oder schlafen, sind sie draußen nicht sichtbar. Name und Tätigkeit werden dort ebenfalls ausgeblendet. Hast du die Person bereits ausgewählt, bleibt nur der Auswahlmarker am Eingang sichtbar. Beim Verlassen erscheint die Person wieder am Eingang.
 
-Hat jemand gerade nichts zu tun, wartet er in der Nähe des passenden Ortes: freie Bewohner beim Hauptquartier, Abbauer bei ihrer Arbeitsflagge und zugewiesene Arbeiter bei ihrem Gebäude. Sie verteilen sich dabei auf freie Standplätze.
+Hat jemand gerade nichts zu tun, bleibt ein freier Bewohner einfach dort stehen, wo er sich gerade befindet. Abbauer warten weiterhin bei ihrer Arbeitsflagge und zugewiesene Arbeiter bei ihrem Gebäude. Diese arbeitsbezogenen Wartepositionen verteilen sich auf freie Standplätze.
 
 Über **Personen** im linken Menü findest du alle Bewohner. Dort kannst du suchen, nach Aufgaben filtern und direkt zu einer Person springen.
 
