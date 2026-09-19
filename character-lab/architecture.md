@@ -8,12 +8,12 @@ Das Character Lab ist eine eigenständige Vite-Seite unter `/character-lab/`. Es
 
 ### Character Definition
 
-`character.json` beschreibt die verfügbaren Körperteile, ihre Hierarchie und die erlaubten Bewegungsachsen samt Grenzen.
+`character.json` beschreibt die verfügbaren Körperteile, ihre Hierarchie, die verfügbaren Bewegungsachsen und deren Neutralwinkel. Es gibt keine künstlichen Gelenkgrenzen.
 
 v1 besitzt:
 
 - `head`: yaw und pitch
-- `leftArm`, `rightArm`: pitch; der größere ±150°-Bereich erlaubt Werkzeugbewegungen über Schulter-/Kopfhöhe
+- `leftArm`, `rightArm`: pitch ohne künstliche Winkelgrenze
 - `leftLeg`, `rightLeg`: pitch
 - `torso`: pitch um den Hüftpunkt; die Bewegung nimmt Kopf und Arme als gemeinsamen Oberkörper mit
 
@@ -54,7 +54,7 @@ Three.js rendert:
 - Bodenraster zur Orientierung,
 - einen Character-Root für die Drehung der gesamten Figur.
 
-Arme und Beine rotieren an Schulter/Hüfte nur vorwärts/rückwärts. Der Kopf rotiert lokal um yaw/pitch. Die Gelenkgrenzen werden zentral geclamped.
+Arme und Beine rotieren an Schulter/Hüfte nur vorwärts/rückwärts. Der Kopf rotiert lokal um yaw/pitch. Gelenkwinkel werden als endliche Werte validiert, aber nicht geclamped.
 
 ## Oberfläche
 
@@ -78,7 +78,7 @@ Die UI benutzt dieselben Funktionen wie die Browser-API. Dadurch gibt es keinen 
 - `play()`
 - `pause()`
 
-Alle Mutationen validieren und clampen Eingaben. Die API ist bewusst lokal und synchron/Promise-frei, soweit kein Dateidialog beteiligt ist.
+Alle Mutationen validieren Eingaben. Pose-Winkel und Root-Motion werden nicht künstlich geclamped; nur semantisch begrenzte UI-Werte wie Timeline-Fortschritt und Zoom bleiben begrenzt. Die API ist bewusst lokal und synchron/Promise-frei, soweit kein Dateidialog beteiligt ist.
 
 ## Dateien
 
@@ -125,8 +125,9 @@ The Character Lab supports a deterministic capture mode through query parameters
 
 ### Woodcut motion
 
-The woodcut preset uses torso pitch around the hip joint to transfer weight into the axe swing. Each chop starts with the axe raised above/behind the shoulder and accelerates diagonally downward toward the imaginary trunk; the impact pose stays in front of the body instead of continuing upward from below. Root position shifts slightly backward during the wind-up and toward the imaginary tree at impact. Walking between work positions is authored as an inward-facing sidestep with continuous negative yaw values, preventing long rotational interpolation around the 0°/360° boundary.
+The block character's local forward direction is `-Z`. Woodcut root yaw is therefore authored from each work position toward the tree center: about 180° at the south position, 60° at north-east and -60° at north-west, with continuous inward-facing values during the sidesteps.
 
+Each chop keeps both the raised pose and impact on the local forward/tree side. The axe arm travels from roughly 155° (overhead) down to roughly 48° (forward/downward), so the visible path is top-down toward the imaginary trunk rather than an upward or outward swing. Torso and root motion add weight transfer toward the center.
 
 ## Dedicated CI/build pipeline
 
