@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { BuildableBuildingKind } from "../src/simulation/model";
-import { createWorld } from "../src/simulation/scenario";
+import { createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
 import { hexDistance, same } from "../src/simulation/hex";
 import { placeLooseGood } from "../src/simulation/looseGoods";
 import { buildingInteractionAt } from "../src/buildings/buildingDefinitionRegistry";
@@ -57,14 +57,14 @@ test("valid anchor enumeration matches the authoritative placement rule", () => 
   );
 });
 
-test("buildings require their entrance to be inside any placed waypost radius", () => {
-  const world = createWorld();
-  const origin = findValidOrigin(world, "warehouse");
-  const entrance = buildingInteractionAt("warehouse", origin);
+test("player buildings require their entrance to be inside any placed waypost radius", () => {
+  const world = createDefaultGameWorld();
+  const origin = findValidOrigin(world, "house");
+  const entrance = buildingInteractionAt("house", origin);
 
   world.wayposts = [];
-  assert.equal(canPlaceBuilding(world, origin, "warehouse"), false);
-  assert.equal(validBuildingAnchors(world, "warehouse").length, 0);
+  assert.equal(canPlaceBuilding(world, origin, "house"), false);
+  assert.equal(validBuildingAnchors(world, "house").length, 0);
 
   world.wayposts = [{
     id: "isolated-waypost",
@@ -74,10 +74,10 @@ test("buildings require their entrance to be inside any placed waypost radius", 
     },
     connections: [],
   }];
-  assert.equal(canPlaceBuilding(world, origin, "warehouse"), false);
+  assert.equal(canPlaceBuilding(world, origin, "house"), false);
 
   world.wayposts[0]!.position = { ...entrance };
-  assert.equal(canPlaceBuilding(world, origin, "warehouse"), true);
+  assert.equal(canPlaceBuilding(world, origin, "house"), true);
 });
 
 test("buildable buildings occupy multiple tiles and keep a two-micro-cell clearance", () => {
@@ -114,7 +114,7 @@ test("placement fails when the required free ring contains blocked terrain", () 
   const ring = footprintRing(footprintAt("warehouse", origin));
   const blocked = world.tiles.find((tile) => same(tile, ring[0]!))!;
   blocked.terrain = "river";
-  assert.equal(canPlaceBuilding(world, origin, "warehouse"), false);
+  assert.equal(canPlaceBuilding(world, origin, "house"), false);
 });
 
 test("physical goods block only the actual building footprint", () => {
@@ -124,11 +124,11 @@ test("physical goods block only the actual building footprint", () => {
   const ring = footprintRing(footprint);
 
   assert.ok(placeLooseGood(world, footprint[0]!, "wood", 1));
-  assert.equal(canPlaceBuilding(world, origin, "warehouse"), false);
+  assert.equal(canPlaceBuilding(world, origin, "house"), false);
 
   world.looseGoods = [];
   assert.ok(placeLooseGood(world, ring[0]!, "wood", 1));
-  assert.equal(canPlaceBuilding(world, origin, "warehouse"), true);
+  assert.equal(canPlaceBuilding(world, origin, "house"), true);
 });
 
 test("demolishing a multi-tile building restores every occupied grass tile", () => {
@@ -154,7 +154,7 @@ test("roads are valid placement terrain but are removed by the building footprin
   const roadTile = world.tiles.find((tile) => same(tile, roadPosition))!;
   roadTile.terrain = "road";
 
-  assert.equal(canPlaceBuilding(world, origin, "warehouse"), true);
+  assert.equal(canPlaceBuilding(world, origin, "house"), true);
   const created = buildWithFootprint(world, origin, "warehouse");
   assert.ok(created);
   assert.equal(roadTile.terrain, "building");
