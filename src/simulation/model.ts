@@ -1,4 +1,4 @@
-export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "clay" | "rubble" | "brick" | "stoneBlock";
+export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "meat" | "clay" | "rubble" | "brick" | "stoneBlock";
 export type BuildingId = string;
 export type WaypostId = string;
 export type BuildingKind = "hq" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "stonemason" | "warehouse" | "house";
@@ -145,8 +145,8 @@ export interface HungerState {
   returningToNeedOrigin?: boolean;
   foodSource?: BuildingId;
   /** Food kind reserved at a building source. */
-  foodGood?: "bread" | "fish";
-  /** Reserved loose fish stack used as a direct food source. */
+  foodGood?: "bread" | "fish" | "meat";
+  /** Reserved loose food stack used as a direct food source. */
   foodLooseGood?: LooseGoodStackId;
   foodBush?: Hex;
   retryAfterTick?: number;
@@ -196,6 +196,14 @@ export interface Person {
   hunter?: boolean;
   /** Current wild-animal target for autonomous hunting. */
   huntTarget?: AnimalId;
+  /** Target locked for the current stationary aiming cycle. */
+  huntAimTarget?: AnimalId;
+  /** Simulation tick when the current stationary aiming cycle completes. */
+  huntAimUntilTick?: number;
+  /** Reserved meat stack that this hunter must collect before hunting again. */
+  huntLootTarget?: LooseGoodStackId;
+  /** Simulation tick when the one-second ground pickup completes. */
+  huntLootPickupUntilTick?: number;
   /** Earliest simulation tick at which another ranged attack may start. */
   nextRangedAttackTick?: number;
   /** Current shoreline cell used for the active or next fishing cycle. */
@@ -275,6 +283,10 @@ export interface Projectile {
   targetPosition: Hex;
   startedAtTick: number;
   impactAtTick: number;
+  /** First tick on which impact effects were resolved. */
+  resolvedAtTick?: number;
+  /** Tick after which the impacted projectile is removed from the world. */
+  expiresAtTick?: number;
   hit: boolean;
   rewardProfession?: Profession;
 }
