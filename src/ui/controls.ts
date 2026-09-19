@@ -71,6 +71,7 @@ const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
   well: "Brunnen",
   pottery: "Töpferei",
   stonemason: "Steinmetzhütte",
+  tailor: "Näherei",
 };
 
 const SORTED_BUILDING_KINDS = (Object.keys(BUILDING_NAMES) as BuildableBuildingKind[])

@@ -86,6 +86,7 @@ const SHAPES: Record<PlaceableBuildingKind, BuildingPlacementShape> = {
   well: COMPACT_SHAPE,
   pottery: COMPACT_SHAPE,
   stonemason: COMPACT_SHAPE,
+  tailor: COMPACT_SHAPE,
 };
 
 export const footprintFromShape = (shape: BuildingPlacementShape, anchorPosition: Hex): Hex[] =>

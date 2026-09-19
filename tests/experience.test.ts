@@ -44,6 +44,12 @@ test("advanced professions require 10 XP in their predecessor profession", () =>
   assert.equal(canLearnProfession(person, "stonemason"), true);
   assert.equal(setPersonProfession(world, person.id, "stonemason"), true);
   assert.equal(person.profession, "stonemason");
+
+  const hunter = createWorld(1).people[0]!;
+  hunter.experience = { hunter: 9 };
+  assert.equal(canLearnProfession(hunter, "tailor"), false);
+  awardProfessionExperience(hunter, "hunter");
+  assert.equal(canLearnProfession(hunter, "tailor"), true);
 });
 
 test("profession chains use the direct predecessor experience", () => {
