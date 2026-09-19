@@ -10,7 +10,9 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "tsx --test tests/*.test.ts",
     "dev:character-lab": "vite --host 0.0.0.0 --open /civilizations-poc/character-lab/",
-    "capture:character-lab": "node scripts/capture-character-lab.mjs"
+    "capture:character-lab": "node scripts/capture-character-lab.mjs",
+    "build:character-lab": "tsc --noEmit -p tsconfig.character-lab.json && vite build --config vite.character-lab.config.ts",
+    "preview:character-lab": "vite preview --config vite.character-lab.config.ts --host 0.0.0.0"
   },
   "repository": {
     "type": "git",
