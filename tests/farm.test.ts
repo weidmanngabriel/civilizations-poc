@@ -223,3 +223,39 @@ test("farmer waits to harvest while farm output is full", () => {
   assert.equal(farmer.farmTask, undefined);
   assert.equal(farmer.trip, undefined);
 });
+
+
+test("farmers use the farm as a local navigation node without global wayposts", () => {
+  const w = createWorld();
+  const { farm, farmer } = finishedFarm(w);
+  w.wayposts = [];
+  w.waypostRevision = 0;
+
+  tick(w);
+
+  assert.ok(farmer.farmTask, "farmer should plan local field work inside the farm area");
+  assert.equal(farmer.navigationBlocked, undefined);
+  assert.ok(distance(farmer.farmTask!.target, farm.position) <= CONFIG.farmFieldRadius + 8);
+});
+
+test("farmers outside the farm work area still require the global waypost network", () => {
+  const w = createWorld();
+  const { farm, farmer } = finishedFarm(w);
+  const farTile = w.tiles
+    .filter((tile) => tile.terrain === "grass")
+    .find((tile) => distance(tile, farm.position) > CONFIG.farmFieldRadius + 10);
+  assert.ok(farTile);
+
+  farmer.position = { q: farTile.q, r: farTile.r };
+  farmer.path = [];
+  farmer.active = true;
+  farmer.farmTask = undefined;
+  w.wayposts = [];
+  w.waypostRevision = 0;
+
+  tick(w);
+
+  assert.equal(farmer.farmTask, undefined);
+  assert.equal(farmer.path.length, 0);
+  assert.equal(farmer.navigationBlocked, true);
+});
