@@ -13,7 +13,7 @@ Der Referenzcharakter ist bewusst blockig:
 - zwei quaderförmige Arme,
 - zwei quaderförmige Beine.
 
-Arme und Beine bewegen sich nur vorwärts/rückwärts. Der Kopf kann bis zu den in `character.json` definierten Grenzen nach links/rechts und oben/unten drehen.
+Arme und Beine bewegen sich nur vorwärts/rückwärts. Der Kopf kann lokal nach links/rechts und oben/unten drehen. Das Lab begrenzt Gelenkwinkel nicht künstlich; die Character-Definition legt nur verfügbare Achsen und Neutralwinkel fest.
 
 ## Posen und Animationen
 
@@ -36,7 +36,7 @@ Die Website bietet:
 - feste acht Blickrichtungen,
 - Zoom,
 - Auswahl eines Körperteils,
-- Slider für erlaubte Gelenkachsen,
+- freie numerische Winkelsteuerung für die verfügbaren Gelenkachsen,
 - Fortschrittsregler von 0 bis 100 %,
 - wählbare Interpolation (Linear, Ease In, Ease Out, Ease In/Out),
 - Keyframe an aktueller Position setzen/löschen,
@@ -69,8 +69,7 @@ Eine externe API oder ein eigenes Agent-Protokoll ist bewusst v2. Das Datenforma
 
 ### Holzhacken-Preset
 
-Das v1-Preset `woodcut` demonstriert erstmals Root-Bewegung und ein Werkzeug. Der Charakter läuft zwischen drei Arbeitspositionen um einen imaginären Baum herum und hackt an jeder Position zweimal. Der eigentliche Zuschlag beginnt mit der Axt oberhalb/hinter der Schulter und läuft diagonal nach unten zum imaginären Stamm; er nutzt `easeIn`, damit die Bewegung zum Auftreffpunkt beschleunigt; der Rückzug und die Lauf-/Umsetzbewegungen verwenden `easeInOut`. Die Axt ist ein einfacher blockiger Prop am rechten Arm.
-
+Das v1-Preset `woodcut` demonstriert Root-Bewegung und ein Werkzeug. Der Charakter läuft zwischen drei Arbeitspositionen um einen imaginären Baum herum und hackt an jeder Position zweimal. An jeder Position ist der Körper zum Mittelpunkt ausgerichtet. Der Zuschlag beginnt mit der Axt über der Schulter und führt diagonal von oben nach unten **zum Baum hin**; der Rückzug hebt die Axt wieder an. Der Zuschlag nutzt `easeIn`, die Rückzug- und Umsetzbewegungen `easeInOut`. Die Axt ist ein einfacher blockiger Prop am rechten Arm.
 
 ## Visual review exports
 
