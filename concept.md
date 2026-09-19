@@ -117,13 +117,13 @@ Wird ein Gebäude abgerissen, werden davon abhängige Tätigkeiten sofort beende
 
 Holzfäller, Lehmgräber, Steinbrecher, Fischer sowie Lager- und HQ-Träger besitzen einen lokalen Arbeitsbereich mit persönlicher Flagge. Der gemeinsame Radius beträgt **2,5 Weltkacheln**.
 
-Abbauer wählen nur passende freie Rohstoffquellen innerhalb ihrer Flagge. **Jede einzelne abgebaute Einheit** wird vom Abbauer persönlich zur eigenen Arbeitsflagge getragen und erst dort als lose Ware gestapelt; erst danach arbeitet er weiter. Bei vollen Stapeln entstehen weitere Stapel möglichst dicht an der Flagge. Lager-/HQ-Träger holen nur Nicht-Lager-Quellen innerhalb ihrer Flagge. Wird eine Flagge verschoben, wird ein noch nicht abgeholtes Ziel außerhalb des neuen Bereichs verworfen; bereits getragene Ware wird noch zur aktuellen persönlichen Flagge gebracht.
+Abbauer wählen nur passende freie Rohstoffquellen innerhalb ihrer Flagge. Die Flagge funktioniert für ihren Besitzer als persönlicher lokaler Navigations-Node: befindet sich die Person bereits im Arbeitsbereich, werden Wege zu dort liegenden Arbeitszielen direkt lokal berechnet. Wird die Flagge so versetzt, dass die Person außerhalb des neuen Bereichs steht, muss sie den neuen Bereich zunächst regulär über das globale Wegweisernetz erreichen. **Jede einzelne abgebaute Einheit** wird vom Abbauer persönlich zur eigenen Arbeitsflagge getragen und erst dort als lose Ware gestapelt; erst danach arbeitet er weiter. Bei vollen Stapeln entstehen weitere Stapel möglichst dicht an der Flagge. Lager-/HQ-Träger holen nur Nicht-Lager-Quellen innerhalb ihrer Flagge. Wird eine Flagge verschoben, wird ein noch nicht abgeholtes Ziel außerhalb des neuen Bereichs verworfen; bereits getragene Ware wird noch zur aktuellen persönlichen Flagge gebracht.
 
 Produktions-Träger behalten ihre bedarfsgetriebene Beschaffung. Arbeitsflaggen und Wegweiser bleiben getrennte Systeme.
 
 ## Wegweiser
 
-Beim Spielstart steht ungefähr eine Weltkachel vor dem Hauptquartier ein erster Wegweiser. Weitere Wegweiser werden über das Baumenü platziert. Bereits beim Öffnen des Platzierungsmodus werden alle aktuell gültigen Positionen hervorgehoben. Auf dem Desktop folgt der Ghost der Maus und Linksklick platziert; Rechtsklick, Escape oder „Abbrechen“ beendet den Modus. Auf Touch wählt ein Tap die Position, Ziehen verschiebt weiter die Karte und „Platzieren“ bestätigt.
+Beim Spielstart steht ungefähr eine Weltkachel vor dem Hauptquartier ein erster Wegweiser. Weitere Wegweiser werden über das Baumenü platziert. Bereits beim Öffnen des Platzierungsmodus werden alle aktuell gültigen Positionen hervorgehoben. Auf dem Desktop folgt der Ghost der Maus und Linksklick platziert; Rechtsklick, Escape oder „Abbrechen“ beendet den Modus. Auf Touch wählt ein Tap die Position, Ziehen verschiebt weiter die Karte und „Platzieren“ bestätigt. Der Wegweiser selbst und die sechs direkt angrenzenden Mikrozellen dürfen nicht von einem Gebäudegrundriss belegt werden. Wegweiser können angeklickt und über ihr eigenes Menü wieder abgerissen werden; ihre Verbindungen werden dabei entfernt.
 
 Jeder Wegweiser besitzt einen **Orientierungsradius von 3,5 Weltkacheln**. Der Mindestabstand zwischen zwei Wegweisern entspricht demselben Radius, also **3,5 Weltkacheln**. Die maximale direkte Verbindungsdistanz ist doppelt so groß, also **7 Weltkacheln**. Damit verbinden sich erreichbare Wegweiser bei einem Abstand von 3,5 bis 7 Weltkacheln.
 
@@ -139,11 +139,13 @@ Sobald ein Fischer seinen Angelplatz erreicht, beginnt ein **fünf Sekunden lang
 
 Die Fangchance beträgt bei null Berufserfahrung **30 %** und steigt linear bis auf **80 %** bei voller Fischererfahrung. **Nur ein erfolgreicher Fang** zählt als abgeschlossene Berufsaktion und erhöht die Fischer-Erfahrung um einen Punkt; ein erfolgloser Fangversuch gibt keine Erfahrung.
 
-Bei Erfolg trägt der Fischer genau **einen Fisch** persönlich zu seiner Arbeitsflagge. Erst dort wird der Fisch als physische lose Ware gestapelt und kann anschließend von geeigneten Trägern eingesammelt werden. **Jeder vollständig eingeholte Angelvorgang ist eine Aufgabengrenze:** Ist der Fischer dann hungrig, kümmert er sich zuerst um Essen, unabhängig davon, ob der Versuch erfolgreich war. Ein bereits gefangener Fisch bleibt dabei bei ihm und wird nach dem Essen zur Arbeitsflagge gebracht.
+Bei Erfolg trägt der Fischer genau **einen Fisch** persönlich zu seiner Arbeitsflagge. Erst dort wird der Fisch als physische lose Ware gestapelt und kann anschließend von geeigneten Trägern eingesammelt werden. Nach einem Fehlfang muss er dagegen nicht zur Flagge zurückkehren, sondern darf direkt einen weiteren Angelplatz innerhalb seines lokalen Bereichs ansteuern. **Jeder vollständig eingeholte Angelvorgang ist eine Aufgabengrenze:** Ist der Fischer dann hungrig, kümmert er sich zuerst um Essen, unabhängig davon, ob der Versuch erfolgreich war. Ein bereits gefangener Fisch bleibt dabei bei ihm und wird nach dem Essen zur Arbeitsflagge gebracht.
 
 ## Farmen und Felder
 
-Die bestehenden Farmregeln bleiben unverändert. Ein Acker belegt vollständig seine feine Rasterfläche und darf beim Säen keine natürliche Ressource oder lose Ware überschreiben. Bereits reservierte Feldflächen und besetzte Zellen bleiben ebenfalls tabu.
+Die Farm übernimmt für ihren Farmer dieselbe Rolle wie eine lokale Arbeitsflagge, ohne dass dafür eine sichtbare persönliche Flagge existiert. Die Farm ist der lokale Navigations-Node; die Felder liegen in ihrem Arbeitsumfeld. Die Anreise von außerhalb dieses Bereichs benötigt das globale Wegweisernetz. Innerhalb des Farmbereichs läuft die Arbeitsnavigation lokal. Nach Säen oder Düngen kehrt der Farmer zuerst zur Farm zurück, bevor er eine neue Aufgabe beginnt. Nach einer Ernte bringt er den Weizen ohnehin zur Farm zurück.
+
+Ein Acker belegt vollständig seine feine Rasterfläche und darf beim Säen keine natürliche Ressource oder lose Ware überschreiben. Bereits reservierte Feldflächen und besetzte Zellen bleiben ebenfalls tabu.
 
 Wird eine Farm abgerissen, verschwinden ihre aktiven Felder und die belegten Zellen werden wieder zu Gras.
 
