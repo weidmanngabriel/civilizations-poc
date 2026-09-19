@@ -13,7 +13,7 @@ Das Character Lab ist eine eigenständige Vite-Seite unter `/character-lab/`. Es
 v1 besitzt:
 
 - `head`: yaw und pitch
-- `leftArm`, `rightArm`: pitch
+- `leftArm`, `rightArm`: pitch; der größere ±150°-Bereich erlaubt Werkzeugbewegungen über Schulter-/Kopfhöhe
 - `leftLeg`, `rightLeg`: pitch
 - `torso`: pitch um den Hüftpunkt; die Bewegung nimmt Kopf und Arme als gemeinsamen Oberkörper mit
 
