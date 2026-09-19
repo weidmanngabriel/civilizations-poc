@@ -190,3 +190,37 @@ main.merchant-target-mode .build-menu-shell {
     margin-top: 60px;
   }
 }
+
+.game-menu-runtime {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 9px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid rgb(255 255 255 / 12%);
+}
+
+.game-menu-runtime #autoplay,
+.game-menu-runtime #debug-toggle {
+  width: 100%;
+  min-height: 44px;
+}
+
+.game-menu-runtime .speed-control {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-menu-runtime .speed-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.game-menu-runtime .speed-buttons button {
+  min-width: 0;
+  min-height: 38px;
+  padding-inline: 4px;
+}
