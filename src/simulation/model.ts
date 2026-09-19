@@ -134,6 +134,14 @@ export interface FarmTask {
   outputMultiplier?: number;
 }
 export interface HungerState {
+  /** Position where this autonomous need search started. */
+  needOrigin?: Hex;
+  /** True while the current food target was selected through local need navigation. */
+  localNeedSearch?: boolean;
+  /** Return to needOrigin after eating because the local route left waypost coverage. */
+  returnToNeedOrigin?: boolean;
+  /** Eating is complete and the person is walking back to needOrigin. */
+  returningToNeedOrigin?: boolean;
   foodSource?: BuildingId;
   /** Food kind reserved at a building source. */
   foodGood?: "bread" | "fish";
@@ -147,6 +155,14 @@ export interface HungerState {
 }
 export type SleepLocationKind = "house" | "nature" | "ground";
 export interface SleepState {
+  /** Position where this autonomous need search started. */
+  needOrigin?: Hex;
+  /** True while the current sleep target was selected through local need navigation. */
+  localNeedSearch?: boolean;
+  /** Return to needOrigin after sleeping because the local route left waypost coverage. */
+  returnToNeedOrigin?: boolean;
+  /** Sleeping is complete and the person is walking back to needOrigin. */
+  returningToNeedOrigin?: boolean;
   kind: SleepLocationKind;
   target: Hex;
   progress: number;
