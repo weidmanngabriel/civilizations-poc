@@ -120,9 +120,22 @@ The Character Lab supports a deterministic capture mode through query parameters
 
 `window.characterLab` exposes `captureFrame(progress)` and `captureFrames(progressValues)`. These use the same animation state as the UI and return PNG data URLs after an explicit render.
 
-`scripts/capture-character-lab.mjs` serves the production build locally and keeps one headless Chrome session open through the DevTools protocol. It writes 21 evenly spaced PNGs plus a low-resolution 640×480 WebM sampled from real rendered animation states. The default video uses 8 fps and VP9 with a high CRF so review remains quick and small. CI uploads PNG and WebM together as a `character-lab-review-<sha>` workflow artifact. This artifact is the preferred input for automated or agent-led visual review.
+`scripts/capture-character-lab.mjs` serves the dedicated Character-Lab production build from `dist-character-lab` locally and keeps one headless Chrome session open through the DevTools protocol. It writes 21 evenly spaced PNGs plus a low-resolution 640×480 WebM sampled from real rendered animation states. The default video uses 8 fps and VP9 with a high CRF so review remains quick and small. CI uploads PNG and WebM together as a `character-lab-review-<sha>` workflow artifact. This artifact is the preferred input for automated or agent-led visual review.
 
 
 ### Woodcut motion
 
 The woodcut preset uses torso pitch around the hip joint to transfer weight into the axe swing. Root position shifts slightly backward during the wind-up and toward the imaginary tree at impact. Walking between work positions is authored as an inward-facing sidestep with continuous negative yaw values, preventing long rotational interpolation around the 0°/360° boundary.
+
+
+## Dedicated CI/build pipeline
+
+Character Lab visual review is isolated from the main game deployment workflow. `.github/workflows/character-lab-review.yml` is triggered only by Character-Lab/review-tooling changes (or manually).
+
+The review workflow uses:
+- `tsconfig.character-lab.json` to type-check only Character Lab plus its shared PWA helper,
+- `vite.character-lab.config.ts` to build only `character-lab/index.html` into `dist-character-lab`,
+- `npm run preview:character-lab` to serve that dedicated output during capture,
+- ffmpeg only inside the review workflow.
+
+The main `deploy.yml` has no ffmpeg installation, no animation capture and no review-artifact upload.

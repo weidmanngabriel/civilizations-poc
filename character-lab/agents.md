@@ -28,4 +28,4 @@ Vor jeder Implementierung in diesem Unterprojekt zuerst diese Datei und `archite
 
 ## Animation review workflow
 
-For meaningful animation changes, use the automated Character Lab review export instead of judging only from JSON. CI runs `npm run capture:character-lab -- woodcut 21` and uploads both the resulting PNG sequence and a low-resolution WebM as one workflow artifact. Review representative/transition frames **and** the video motion before considering animation work complete. Keep capture mode deterministic and free of editor overlays.
+For meaningful animation changes, use the automated Character Lab review export instead of judging only from JSON. The separate `Character Lab visual review` workflow builds only Character Lab, then runs `npm run capture:character-lab -- woodcut 21` and uploads both the resulting PNG sequence and a low-resolution WebM as one workflow artifact. Review representative/transition frames **and** the video motion before considering animation work complete. Keep capture mode deterministic and free of editor overlays.

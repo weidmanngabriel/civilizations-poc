@@ -236,7 +236,7 @@ All other unchanged systems remain documented in [`architecture-detail.md`](./ar
 
 Vite builds both the game root and `building-editor/index.html`. GitHub Pages publishes both from the same `dist` artifact.
 
-Per `agents.md`, implementation work happens on a temporary branch and is transferred to `main` as one final squash commit. The single GitHub Actions workflow validates pull requests targeting `main` with `npm test` and `npm run build` but skips Pages setup, artifact upload and deployment for pull-request events. After the squash merge, the push to `main` repeats tests and the production build and deploys GitHub Pages only if both succeed.
+Per `agents.md`, implementation work happens on a temporary branch and is transferred to `main` as one final squash commit. The main `deploy.yml` workflow validates pull requests targeting `main` with `npm test` and `npm run build` but skips Pages setup, artifact upload and deployment for pull-request events. After the squash merge, the push to `main` repeats tests and the production build and deploys GitHub Pages only if both succeed. Character-Lab visual review is intentionally not part of this pipeline.
 
 
 ## Character Lab
@@ -248,4 +248,4 @@ Das Lab rendert mit der über Vite gebündelten Projektabhängigkeit Three.js ei
 Import, Export, UI und die Browser-Automatisierung `window.characterLab` verwenden denselben validierten Steuerkern. Das Character Lab installiert außerdem denselben PWA-/Versionscheck wie die Haupt-App und zeigt neue Deployments bewusst nur als manuellen Reload-Hinweis an. Eine externe Netzwerk-API ist bewusst nicht Teil von v1. Die lokale Unterprojekt-Dokumentation in `character-lab/agents.md`, `character-lab/architecture.md` und `character-lab/concept.md` ist für Änderungen an diesem Tool zusätzlich verbindlich.
 
 
-Character Lab CI additionally produces deterministic PNG review frames and a compact 640×480 WebM from the built site using headless Chrome. These are uploaded together as workflow artifacts so animation changes can be inspected as both exact poses and continuous motion without coupling review tooling to the game runtime.
+Character Lab visual review runs in the separate `.github/workflows/character-lab-review.yml` pipeline. It uses the dedicated `build:character-lab` Vite/TypeScript configuration and therefore does not build or test the main game. The workflow installs ffmpeg only in that job, produces deterministic PNG review frames plus a compact 640×480 WebM, and uploads them together as a workflow artifact. Path filters keep this review pipeline from running for unrelated gameplay changes.
