@@ -40,16 +40,16 @@ test("sleep decays slower while idle than walking or working", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
 
-  for (let i = 0; i < 8 * 60; i += 1) advanceSleepTick(world);
+  for (let i = 0; i < 16 * 60; i += 1) advanceSleepTick(world);
   assert.equal(person.sleep, 99);
 
   person.path = [{ q: person.position.q + 1, r: person.position.r }];
-  for (let i = 0; i < 4 * 60; i += 1) advanceSleepTick(world);
+  for (let i = 0; i < 8 * 60; i += 1) advanceSleepTick(world);
   assert.equal(person.sleep, 98);
 
   person.path = [];
   person.progress = 1;
-  for (let i = 0; i < 2 * 60; i += 1) advanceSleepTick(world);
+  for (let i = 0; i < 4 * 60; i += 1) advanceSleepTick(world);
   assert.equal(person.sleep, 97);
 });
 
