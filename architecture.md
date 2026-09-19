@@ -29,7 +29,7 @@ The deterministic simulation stays independent from Phaser. Presentation reads s
 
 `src/simulation/simulation.ts` is the public simulation entry point and wraps/re-exports core behavior. `simulationCore.ts` is a scheduling/work-area facade around the historical core implementation in `simulationCoreEngine.ts`.
 
-Autonomous target selection is event-driven where possible. Hunger, missing work and related fallback decisions use the existing one-second cadence instead of replanning every simulation tick. Generic path rerouting follows the currently authoritative task state rather than profession-specific fallback behavior; for fishing, an existing `fishingSpot` remains the movement target until that task state changes.
+Autonomous target selection is event-driven where possible. Hunger, missing work and related fallback decisions use the existing one-second cadence instead of replanning every simulation tick. Hunger and sleep decay use the reduced early-game balance: their previous decay rate is halved while thresholds and recovery values remain unchanged. Generic path rerouting follows the currently authoritative task state rather than profession-specific fallback behavior; for fishing, an existing `fishingSpot` remains the movement target until that task state changes. Active routes are not recalculated merely because a road is created, removed or becomes organically established; road-cost changes apply when the next route is planned.
 
 ## Fine-grid spatial model
 
