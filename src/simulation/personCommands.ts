@@ -100,7 +100,7 @@ export function setPersonProfession(
 
   person.profession = profession;
   if (profession === "woodcutter") person.woodcutter = true;
-  else if (profession === "fisher") person.fisher = true;
+  else if (profession === "fisher") person.fisher = true;\n  else if (profession === "hunter") person.hunter = true;
   else if (profession === "clayDigger") person.extractor = "clay";
   else if (profession === "stonecutter") person.extractor = "stone";
   else if (profession === "builder") person.builder = true;
