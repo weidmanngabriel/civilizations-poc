@@ -17,15 +17,15 @@
     },
     "leftArm": {
       "pitch": {
-        "min": -80,
-        "max": 80,
+        "min": -150,
+        "max": 150,
         "neutral": 0
       }
     },
     "rightArm": {
       "pitch": {
-        "min": -80,
-        "max": 80,
+        "min": -150,
+        "max": 150,
         "neutral": 0
       }
     },

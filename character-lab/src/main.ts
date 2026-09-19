@@ -98,11 +98,11 @@ const WOODCUT: AnimationDefinition = {
   keyframes: [
     // Position A: two weighted chops. Small root shifts add a visible transfer of weight.
     { progress: 0.000, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.00, "root.yaw": 0, "torso.pitch": 2 } },
-    { progress: 0.035, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.06, "root.yaw": 0, "torso.pitch": -16, "head.pitch": -7, "rightArm.pitch": -78, "leftArm.pitch": -48, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
-    { progress: 0.080, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.88, "root.yaw": 0, "torso.pitch": 19, "head.pitch": 12, "rightArm.pitch": 72, "leftArm.pitch": 42, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
-    { progress: 0.115, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.94, "root.yaw": 0, "torso.pitch": 7, "head.pitch": 5, "rightArm.pitch": 34, "leftArm.pitch": 18 } },
-    { progress: 0.145, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.06, "root.yaw": 0, "torso.pitch": -16, "head.pitch": -7, "rightArm.pitch": -78, "leftArm.pitch": -48, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
-    { progress: 0.190, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.88, "root.yaw": 0, "torso.pitch": 19, "head.pitch": 12, "rightArm.pitch": 72, "leftArm.pitch": 42, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.035, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.06, "root.yaw": 0, "torso.pitch": -13, "head.pitch": -5, "rightArm.pitch": 142, "leftArm.pitch": 112, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.080, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.88, "root.yaw": 0, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": -48, "leftArm.pitch": -28, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.115, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.94, "root.yaw": 0, "torso.pitch": 7, "head.pitch": 5, "rightArm.pitch": -18, "leftArm.pitch": -8 } },
+    { progress: 0.145, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.06, "root.yaw": 0, "torso.pitch": -13, "head.pitch": -5, "rightArm.pitch": 142, "leftArm.pitch": 112, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.190, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.88, "root.yaw": 0, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": -48, "leftArm.pitch": -28, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
     { progress: 0.220, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.00, "root.yaw": 0, "torso.pitch": 2 } },
 
     // Sidestep around the tree while mostly facing inward. Negative yaw avoids long 300° spins.
@@ -113,11 +113,11 @@ const WOODCUT: AnimationDefinition = {
     { progress: 0.380, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.70, "root.z": 1.00, "root.yaw": -120, "torso.pitch": 2 } },
 
     // Position B: repeat the same weighted two-chop rhythm.
-    { progress: 0.405, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.75, "root.z": 1.03, "root.yaw": -120, "torso.pitch": -16, "head.pitch": -7, "rightArm.pitch": -78, "leftArm.pitch": -48, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
-    { progress: 0.445, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.60, "root.z": 0.94, "root.yaw": -120, "torso.pitch": 19, "head.pitch": 12, "rightArm.pitch": 72, "leftArm.pitch": 42, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
-    { progress: 0.475, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.65, "root.z": 0.97, "root.yaw": -120, "torso.pitch": 7, "head.pitch": 5, "rightArm.pitch": 34, "leftArm.pitch": 18 } },
-    { progress: 0.505, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.75, "root.z": 1.03, "root.yaw": -120, "torso.pitch": -16, "head.pitch": -7, "rightArm.pitch": -78, "leftArm.pitch": -48, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
-    { progress: 0.545, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.60, "root.z": 0.94, "root.yaw": -120, "torso.pitch": 19, "head.pitch": 12, "rightArm.pitch": 72, "leftArm.pitch": 42, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.405, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.75, "root.z": 1.03, "root.yaw": -120, "torso.pitch": -13, "head.pitch": -5, "rightArm.pitch": 142, "leftArm.pitch": 112, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.445, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.60, "root.z": 0.94, "root.yaw": -120, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": -48, "leftArm.pitch": -28, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.475, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.65, "root.z": 0.97, "root.yaw": -120, "torso.pitch": 7, "head.pitch": 5, "rightArm.pitch": -18, "leftArm.pitch": -8 } },
+    { progress: 0.505, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.75, "root.z": 1.03, "root.yaw": -120, "torso.pitch": -13, "head.pitch": -5, "rightArm.pitch": 142, "leftArm.pitch": 112, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.545, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.60, "root.z": 0.94, "root.yaw": -120, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": -48, "leftArm.pitch": -28, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
     { progress: 0.580, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.70, "root.z": 1.00, "root.yaw": -120, "torso.pitch": 2 } },
 
     // Continue the sidestep around the back while keeping the tree as the visual focus.
@@ -128,11 +128,11 @@ const WOODCUT: AnimationDefinition = {
     { progress: 0.740, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.70, "root.z": 1.00, "root.yaw": -240, "torso.pitch": 2 } },
 
     // Position C: two final chops and a short settle.
-    { progress: 0.765, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.75, "root.z": 1.03, "root.yaw": -240, "torso.pitch": -16, "head.pitch": -7, "rightArm.pitch": -78, "leftArm.pitch": -48, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
-    { progress: 0.805, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.60, "root.z": 0.94, "root.yaw": -240, "torso.pitch": 19, "head.pitch": 12, "rightArm.pitch": 72, "leftArm.pitch": 42, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
-    { progress: 0.835, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.65, "root.z": 0.97, "root.yaw": -240, "torso.pitch": 7, "head.pitch": 5, "rightArm.pitch": 34, "leftArm.pitch": 18 } },
-    { progress: 0.865, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.75, "root.z": 1.03, "root.yaw": -240, "torso.pitch": -16, "head.pitch": -7, "rightArm.pitch": -78, "leftArm.pitch": -48, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
-    { progress: 0.905, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.60, "root.z": 0.94, "root.yaw": -240, "torso.pitch": 19, "head.pitch": 12, "rightArm.pitch": 72, "leftArm.pitch": 42, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.765, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.75, "root.z": 1.03, "root.yaw": -240, "torso.pitch": -13, "head.pitch": -5, "rightArm.pitch": 142, "leftArm.pitch": 112, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.805, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.60, "root.z": 0.94, "root.yaw": -240, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": -48, "leftArm.pitch": -28, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.835, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.65, "root.z": 0.97, "root.yaw": -240, "torso.pitch": 7, "head.pitch": 5, "rightArm.pitch": -18, "leftArm.pitch": -8 } },
+    { progress: 0.865, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.75, "root.z": 1.03, "root.yaw": -240, "torso.pitch": -13, "head.pitch": -5, "rightArm.pitch": 142, "leftArm.pitch": 112, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.905, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.60, "root.z": 0.94, "root.yaw": -240, "torso.pitch": 15, "head.pitch": 9, "rightArm.pitch": -48, "leftArm.pitch": -28, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
     { progress: 0.950, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.70, "root.z": 1.00, "root.yaw": -240, "torso.pitch": 5, "rightArm.pitch": 20, "leftArm.pitch": 10 } },
     { progress: 1.000, pose: { ...NEUTRAL_POSE, "root.x": -1.70, "root.z": 1.00, "root.yaw": -240, "torso.pitch": 2 } },
   ],
