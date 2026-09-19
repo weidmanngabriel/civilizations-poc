@@ -117,11 +117,13 @@ export function mountControls(w: World, renderMap: () => void): void {
           : "Bauarbeiter";
   const workerLabel = (b: Building) =>
     b.kind === "farm" ? "Farmer"
-      : b.kind === "mill" ? "Müller"
-        : b.kind === "bakery" ? "Bäcker"
-          : b.kind === "pottery" ? "Töpfer"
-            : b.kind === "stonemason" ? "Steinmetz"
-              : "Arbeiter";
+      : b.kind === "sawmill" ? "Sägewerker"
+        : b.kind === "carpenter" ? "Schreiner"
+          : b.kind === "mill" ? "Müller"
+            : b.kind === "bakery" ? "Bäcker"
+              : b.kind === "pottery" ? "Töpfer"
+                : b.kind === "stonemason" ? "Steinmetz"
+                  : "Arbeiter";
   const buildingHeading = (b: Building) => `${buildingIcon(b.kind)}<span>${b.name}</span>`;
   const goodLabel = (good: Good) => `<span class="good-label"><span aria-hidden="true">${GOOD_ICONS[good]}</span><span>${GOODS[good]}</span></span>`;
   const personIcon = (personId: number) => {
@@ -325,7 +327,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
     selectionPanel.hidden = false;
     if (b.kind === "hq") {
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Sammelpunkt. Berufe und Arbeitsplätze werden direkt an einzelnen Bewohnern zugewiesen.</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> ohne Beruf</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><p class="status" data-field="status"></p>`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Sammelpunkt. Berufe und Arbeitsplätze werden direkt an einzelnen Bewohnern zugewiesen.</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> ohne Beruf</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><div class="building-staff">${staffSection(b, "carrier", b.carriers)}</div><p class="status" data-field="status"></p>`;
       updateSelectionLiveState();
       return;
     }
