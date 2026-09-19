@@ -4,6 +4,7 @@ import { hunterHitChance, advanceHunting } from "../src/simulation/hunting";
 import { setPersonProfession } from "../src/simulation/personCommands";
 import { createWorld, CONFIG } from "../src/simulation/scenario";
 import { HUNTER_WORK_AREA_RADIUS } from "../src/simulation/workAreas";
+import { hexDistance } from "../src/simulation/spatial";
 import {
   advanceWildlife,
   frightenAnimalGroup,
@@ -74,4 +75,20 @@ test("hunter gains experience only when the projectile actually kills wildlife",
 
   assert.equal(world.animals?.length, 0);
   assert.equal(hunter.experience?.hunter, 1);
+});
+
+
+test("wildlife groups pick a gentle migration target every thirty seconds", () => {
+  const world = createWorld(0);
+  const home = firstGrass(world);
+  const group = spawnAnimalGroup(world, "hare", home, 3)!;
+  const centerBefore = { ...home };
+
+  group.nextTargetTick = world.round;
+  advanceWildlife(world);
+
+  assert.ok(group.target);
+  const distance = hexDistance(centerBefore, group.target!);
+  assert.ok(distance >= 10 && distance <= 15);
+  assert.equal(group.nextTargetTick, 30 * CONFIG.simulationHz);
 });
