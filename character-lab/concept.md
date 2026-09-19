@@ -13,7 +13,7 @@ Der Referenzcharakter ist bewusst blockig:
 - zwei quaderförmige Arme,
 - zwei quaderförmige Beine.
 
-Arme und Beine bewegen sich nur vorwärts/rückwärts. Der Kopf kann lokal nach links/rechts und oben/unten drehen. Das Lab begrenzt Gelenkwinkel nicht künstlich; die Character-Definition legt nur verfügbare Achsen und Neutralwinkel fest.
+Arme und Beine bewegen sich nur vorwärts/rückwärts. Der Kopf kann lokal nach links/rechts und oben/unten drehen. Der Torso kann am Hüftpunkt nach vorn/hinten kippen und sich seitlich eindrehen. Das Lab begrenzt Gelenkwinkel nicht künstlich; die Character-Definition legt nur verfügbare Achsen und Neutralwinkel fest.
 
 ## Posen und Animationen
 
@@ -69,7 +69,7 @@ Eine externe API oder ein eigenes Agent-Protokoll ist bewusst v2. Das Datenforma
 
 ### Holzhacken-Preset
 
-Das v1-Preset `woodcut` demonstriert Root-Bewegung und ein Werkzeug. Der Charakter läuft zwischen drei Arbeitspositionen um einen imaginären Baum herum und hackt an jeder Position zweimal. An jeder Position ist der Körper zum Mittelpunkt ausgerichtet. Der Zuschlag beginnt mit der Axt über der Schulter und führt diagonal von oben nach unten **zum Baum hin**; der Rückzug hebt die Axt wieder an. Der Zuschlag nutzt `easeIn`, die Rückzug- und Umsetzbewegungen `easeInOut`. Die Axt ist ein einfacher blockiger Prop am rechten Arm und lokal um 180° gedreht, damit Kopf/Schneidenseite beim Überkopf-Abwärtsschlag zum Baum zeigt.
+Das v1-Preset `woodcut` demonstriert Root-Bewegung und ein Werkzeug. Der Charakter läuft zwischen drei Arbeitspositionen um einen imaginären Baum herum und hackt an jeder Position zweimal. An jeder Position wird die Körperausrichtung aus der aktuellen Position zum Mittelpunkt berechnet. Der Zuschlag beginnt mit eingedrehtem Oberkörper und der Axt rechts hinten/oben, während der linke Arm vor dem Körper bleibt. Beim Schlag dreht und kippt der Oberkörper nach vorn; der rechte Arm führt die Axt diagonal von oben nach unten **zum Baum hin**, gefolgt von einem kurzen Follow-through und dem Rückzug. Der Zuschlag nutzt `easeIn`, die Rückzug- und Umsetzbewegungen `easeInOut`. Die Axt ist ein einfacher blockiger Prop am rechten Arm und lokal um 180° gedreht, damit Kopf/Schneidenseite beim Überkopf-Abwärtsschlag zum Baum zeigt.
 
 ## Visual review exports
 
@@ -80,4 +80,4 @@ Character Lab animation changes produce a review frame sequence in CI. The defau
 
 Das `woodcut`-Beispiel nutzt den Oberkörper aktiv: Beim Ausholen geht der Oberkörper leicht zurück, der Schlag nimmt Oberkörper und Kopf nach vorn mit und die Figur verlagert ihr Gewicht sichtbar in Richtung des imaginären Baums. Zwischen den drei Schlagpositionen bewegt sie sich als seitlicher, zum Baum orientierter Schritt mit mehreren Beinphasen statt als einfache lineare Verschiebung.
 
-Der automatisierte Review exportiert zusätzlich zu den PNG-Einzelbildern ein kleines 640×480-WebM des vollständigen Ablaufs. Das Video dient der Prüfung von Rhythmus, Beschleunigung und Übergängen; die PNGs bleiben für exakte Pose- und Werkzeugkontrolle erhalten.
+Der automatisierte Review exportiert zusätzlich zu den 21 Übersichtsframes dichte Bildfolgen rund um jeden der sechs Schläge sowie ein kleines 640×480-WebM des vollständigen Ablaufs. Das Video dient der Prüfung von Rhythmus, Beschleunigung und Übergängen; die Burst-Frames bleiben für exakte Schlagrichtung, Pose- und Werkzeugkontrolle erhalten.
