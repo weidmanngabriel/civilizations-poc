@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createDefaultGameWorld } from "../src/simulation/scenario";
-import { changeWoodcutters } from "../src/simulation/simulation";
+import { CONFIG, createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
+import { changeWoodcutters, tick } from "../src/simulation/simulation";
 import {
   WAYPOST_MAX_CONNECTION_DISTANCE_WORLD_TILES,
   WAYPOST_MIN_DISTANCE_WORLD_TILES,
@@ -13,7 +13,7 @@ import {
   placeWaypost,
   wayposts,
 } from "../src/simulation/wayposts";
-import { findPath, hexDistance } from "../src/simulation/hex";
+import { findPath, hexDistance, key, neighbors, tileIndex, walkable } from "../src/simulation/hex";
 import { GRID_REFINEMENT } from "../src/simulation/spatial";
 
 test("player world starts with one HQ waypost and coupled balance constants", () => {
@@ -210,4 +210,49 @@ test("new extractor assignments cannot bypass the waypost network", () => {
     false,
     "worker must not receive a direct path to the unreachable forest",
   );
+});
+
+
+test("a newly formed road does not replace an active route", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const tiles = tileIndex(world.tiles);
+  const first = neighbors(person.position)
+    .map((position) => tiles.get(key(position)))
+    .find((tile) => tile && walkable(tile));
+  assert.ok(first);
+
+  const goal = neighbors(first)
+    .map((position) => tiles.get(key(position)))
+    .find((tile) => tile && walkable(tile) && hexDistance(person.position, tile) === 2);
+  assert.ok(goal);
+
+  const detour = neighbors(first)
+    .map((position) => tiles.get(key(position)))
+    .find((tile) =>
+      tile &&
+      walkable(tile) &&
+      key(tile) !== key(person.position) &&
+      key(tile) !== key(goal) &&
+      hexDistance(tile, goal) === 1
+    );
+  assert.ok(detour);
+
+  person.idleTarget = { q: goal.q, r: goal.r };
+  person.path = [
+    { q: first.q, r: first.r },
+    { q: detour.q, r: detour.r },
+    { q: goal.q, r: goal.r },
+  ];
+  person.movement = 1;
+  first.trafficTicks = Array.from(
+    { length: CONFIG.trafficThreshold - 1 },
+    () => world.round,
+  );
+
+  tick(world);
+
+  assert.equal(first.terrain, "road");
+  assert.deepEqual(person.path[0], { q: detour.q, r: detour.r });
+  assert.deepEqual(person.path.at(-1), { q: goal.q, r: goal.r });
 });
