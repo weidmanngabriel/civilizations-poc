@@ -1,8 +1,14 @@
 # Bauen
 
+## Gebäude platzieren
+
 Gebäude werden über das Baumenü ausgewählt und anschließend direkt auf der Karte platziert. Am Desktop bewegst du den Ghost mit der Maus und baust mit Linksklick; abbrechen kannst du über „Abbrechen“ oder `Esc`. Auf Touch verschiebt ein kurzer Tap den Ghost, Ziehen bewegt die Karte und „Bauen“ bestätigt die Position.
 
+## Freischaltungen
+
 Neue Gebäude werden nach und nach durch Berufserfahrung und bereits aufgebaute Produktionsketten verfügbar. Im Technologiebaum siehst du, was schon bekannt ist und welche Entwicklung noch fehlt.
+
+## Baufläche und Wegweiser
 
 Ein Gebäude braucht seinen vollständigen Grundriss und einen kleinen freien Bereich darum. Natürliche Ressourcen dürfen diesen Platz nicht schneiden. Warenhaufen dürfen neben einem Gebäude liegen, aber nicht unter seinem eigentlichen Grundriss.
 
@@ -10,15 +16,23 @@ Außerdem muss der Eingang des Gebäudes im Radius eines Wegweisers liegen. Dabe
 
 Wiese und Wege zählen grundsätzlich als Baufläche. Ein überbauter Weg verschwindet dauerhaft.
 
+## Baustellen und Bauarbeiter
+
 Nach der Platzierung entsteht zunächst eine Baustelle. Bauarbeiter beschaffen benötigte Materialien und kümmern sich selbstständig um erreichbare Baustellen.
 
 Bauarbeiter bleiben während der Arbeit an einer Baustelle sichtbar. Erst ein fertig gebautes Gebäude besitzt einen Innenraum, in dem Bewohner bei passenden Tätigkeiten ausgeblendet werden.
 
+## Personal und Hinweise
+
 Sobald ein Gebäude fertig ist und einen Arbeiter braucht, erscheint ein Hinweis in der Gebäudeübersicht. Tippe oder klicke den Eintrag beziehungsweise das Ausrufezeichen am Gebäude, um direkt dorthin zu springen und die Personalzuweisung zu öffnen. Der Hinweis verschwindet, sobald ein Arbeiter zugewiesen ist.
+
+## Planung und Abriss
 
 Zusammengehörige Gebäude sollten möglichst nahe beieinander liegen. Lange Wege bremsen Produktion und Versorgung.
 
 Gebäude können wieder abgerissen werden. Personen im Gebäude brechen ihre aktuelle Tätigkeit sofort ab und erscheinen wieder draußen.
 
+
+## Wegweiser bauen
 
 Wegweiser gehören nicht zum Baumenü. Weise einem Bewohner den Beruf **Kundschafter** zu und wähle bei ihm die Aktion **Wegweiser**. Nach der Zielwahl läuft er selbst dorthin und errichtet den Wegweiser in einer simulierten Sekunde. Dafür werden keine Waren benötigt. Wegweiser kannst du anschließend direkt auf der Karte auswählen und über ihr Menü wieder abreißen; dadurch verschwinden auch ihre Verbindungen zu anderen Wegweisern.
