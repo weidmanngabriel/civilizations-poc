@@ -237,3 +237,12 @@ All other unchanged systems remain documented in [`architecture-detail.md`](./ar
 Vite builds both the game root and `building-editor/index.html`. GitHub Pages publishes both from the same `dist` artifact.
 
 Per `agents.md`, implementation work happens on a temporary branch and is transferred to `main` as one final squash commit. The single GitHub Actions workflow validates pull requests targeting `main` with `npm test` and `npm run build` but skips Pages setup, artifact upload and deployment for pull-request events. After the squash merge, the push to `main` repeats tests and the production build and deploys GitHub Pages only if both succeed.
+
+
+## Character Lab
+
+`character-lab/` ist eine eigenständige Vite-Unterseite zur Erprobung einer späteren 3D-Bewohnerdarstellung. Sie ist bewusst nicht mit Phaser oder der autoritativen Simulation gekoppelt.
+
+Das Lab rendert mit Three.js einen einfachen blockigen Referenzcharakter über eine orthografische isometrische Kamera. Körperteile hängen an festen lokalen Pivots; erlaubte Rotationsachsen und Winkelgrenzen liegen in der Character-Definition. Animationen sind JSON-Daten mit normiertem Fortschritt von 0 bis 1 und absoluten lokalen Gelenkwinkeln. Zwischen Keyframes wird linear interpoliert.
+
+Import, Export, UI und die Browser-Automatisierung `window.characterLab` verwenden denselben validierten Steuerkern. Eine externe Netzwerk-API ist bewusst nicht Teil von v1. Die lokale Unterprojekt-Dokumentation in `character-lab/agents.md`, `character-lab/architecture.md` und `character-lab/concept.md` ist für Änderungen an diesem Tool zusätzlich verbindlich.

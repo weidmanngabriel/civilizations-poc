@@ -8,7 +8,8 @@
     "validate:building-assets": "node scripts/validate-building-assets.mjs",
     "build": "npm run validate:building-assets && tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "tsx --test tests/*.test.ts",
+    "dev:character-lab": "vite --host 0.0.0.0 --open /civilizations-poc/character-lab/"
   },
   "repository": {
     "type": "git",

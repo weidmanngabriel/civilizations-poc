@@ -178,6 +178,7 @@ export default defineConfig({
       input: {
         game: resolve(process.cwd(), "index.html"),
         buildingEditor: resolve(process.cwd(), "building-editor", "index.html"),
+        characterLab: resolve(process.cwd(), "character-lab", "index.html"),
       },
     },
   },
