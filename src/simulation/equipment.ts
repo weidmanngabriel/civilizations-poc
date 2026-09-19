@@ -7,8 +7,8 @@ export const EQUIPMENT_DEFINITIONS: Record<EquipmentGood, {
   icon: string;
   durability: number;
 }> = {
-  woodenTool: { slot: "tool", label: "Holzwerkzeug", icon: "🛠️", durability: 30 },
-  shoes: { slot: "shoes", label: "Schuhe", icon: "👞", durability: 2500 },
+  woodenTool: { slot: "tool", label: "Holzwerkzeug", icon: "🛠️", durability: CONFIG.woodenToolDurabilityActions },
+  shoes: { slot: "shoes", label: "Schuhe", icon: "👞", durability: CONFIG.shoesDurabilityMicrotiles },
 };
 
 const storageBuilding = (building: Building): boolean =>
@@ -97,10 +97,10 @@ export function maintainEquipment(world: World): void {
 }
 
 export const equipmentWorkSpeedMultiplier = (person: Person): number =>
-  equipmentForSlot(person, "tool")?.good === "woodenTool" ? 1.3 : 1;
+  equipmentForSlot(person, "tool")?.good === "woodenTool" ? CONFIG.equipmentSpeedMultiplier : 1;
 
 export const equipmentMovementSpeedMultiplier = (person: Person): number =>
-  equipmentForSlot(person, "shoes")?.good === "shoes" ? 1.3 : 1;
+  equipmentForSlot(person, "shoes")?.good === "shoes" ? CONFIG.equipmentSpeedMultiplier : 1;
 
 export function recordToolWork(world: World, person: Person, effectiveProgress: number): void {
   const item = equipmentForSlot(person, "tool");
