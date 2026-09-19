@@ -1,6 +1,6 @@
 import type { Animal, AnimalGroup, AnimalKind, Hex, World } from "./model";
 import { key, neighbors, tileIndex, walkable } from "./hex";
-import { CONFIG } from "./scenario";
+import { SIMULATION_HZ } from "./timing";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { randomFraction, randomInt } from "./random";
 
@@ -20,11 +20,11 @@ export type AnimalBehaviorProfile = {
 
 export const ANIMAL_BEHAVIOR: Record<AnimalKind, AnimalBehaviorProfile> = {
   hare: {
-    normalMoveMinTicks: 4 * CONFIG.simulationHz,
-    normalMoveMaxTicks: 8 * CONFIG.simulationHz,
+    normalMoveMinTicks: 4 * SIMULATION_HZ,
+    normalMoveMaxTicks: 8 * SIMULATION_HZ,
     normalPathMinSteps: 4,
     normalPathMaxSteps: 8,
-    fleeTicks: 5 * CONFIG.simulationHz,
+    fleeTicks: 5 * SIMULATION_HZ,
     fleePathMinSteps: 6,
     fleePathMaxSteps: 10,
     movementMultiplier: 1.35,
@@ -232,7 +232,8 @@ export const animalIsFleeing = (world: World, animal: Animal): boolean =>
 function advanceAnimalMovement(world: World, animal: Animal): void {
   const profile = ANIMAL_BEHAVIOR[animal.kind];
   if (!animal.path.length) return;
-  animal.movement += CONFIG.movementPerTick * profile.movementMultiplier;
+  animal.movement +=
+    ((2.5 / 3) * GRID_REFINEMENT / SIMULATION_HZ) * profile.movementMultiplier;
   let moves = 0;
   while (animal.path.length && animal.movement + 1e-9 >= 1 && moves < 4) {
     const next = animal.path.shift()!;
