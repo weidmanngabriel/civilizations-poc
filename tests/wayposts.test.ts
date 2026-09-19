@@ -219,7 +219,7 @@ test("a newly formed road does not replace an active route", () => {
   const tiles = tileIndex(world.tiles);
   const first = neighbors(person.position)
     .map((position) => tiles.get(key(position)))
-    .find((tile) => tile && walkable(tile));
+    .find((tile) => tile?.terrain === "grass" && walkable(tile));
   assert.ok(first);
 
   const goal = neighbors(first)
