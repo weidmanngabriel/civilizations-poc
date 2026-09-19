@@ -527,7 +527,8 @@ export function syncWorkAreas(world: World): void {
       person.hungerState ||
       person.sleepState ||
       person.manualMoveTarget ||
-      (storageCarrier && person.trip?.picked),
+      (storageCarrier && person.trip?.picked) ||
+      (hunter && Boolean(person.huntLootTarget || person.outdoorCarry)),
     );
     if (outsideLocalNode && !externalPriority) {
       if (!person.path.length) {
