@@ -3,6 +3,23 @@ import type { Building, Person, Profession, World } from "./model";
 export const professionExperience = (p: Person, profession: Profession): number =>
   p.experience?.[profession] ?? 0;
 
+export const PROFESSION_XP_REQUIREMENTS: Partial<
+  Record<Profession, { profession: Profession; experience: number }>
+> = {
+  sawmillWorker: { profession: "woodcutter", experience: 10 },
+  carpenter: { profession: "sawmillWorker", experience: 10 },
+  potter: { profession: "clayDigger", experience: 10 },
+  stonemason: { profession: "stonecutter", experience: 10 },
+  miller: { profession: "farmer", experience: 10 },
+  baker: { profession: "miller", experience: 10 },
+};
+
+export function canLearnProfession(p: Person, profession: Profession): boolean {
+  const requirement = PROFESSION_XP_REQUIREMENTS[profession];
+  return !requirement ||
+    professionExperience(p, requirement.profession) >= requirement.experience;
+}
+
 /**
  * Legacy compatibility hook for the old time-based simulation core.
  * XP is now awarded by the public simulation wrapper only when an action completes.
