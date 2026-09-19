@@ -390,3 +390,59 @@ test("moving a work flag outside the worker area still requires global waypost t
   assert.equal(worker.path.length, 0);
   assert.equal(worker.navigationBlocked, true);
 });
+
+
+test("an extractor with no remaining local target returns to the work flag", () => {
+  const world = createWorld(1);
+  assert.equal(changeWoodcutters(world, 1), true);
+  tick(world);
+  const worker = woodcutters(world)[0]!;
+  const center = { ...worker.workArea!.center };
+  const target = world.naturalResources.find(
+    (resource) => resource.id === worker.resourceTarget,
+  )!;
+  worker.position = { ...target.position };
+  worker.path = [];
+  worker.resourceTarget = undefined;
+  worker.active = false;
+  for (const resource of world.naturalResources) {
+    if (
+      resource.kind === "forest" &&
+      hexDistance(center, resource.position) <= WORK_AREA_RADIUS
+    ) {
+      resource.remaining = 0;
+      resource.depleted = true;
+    }
+  }
+  worker.workArea!.retryAfterTick = undefined;
+
+  tick(world);
+
+  if (!same(worker.position, center)) {
+    assert.ok(worker.path.length > 0);
+    assert.equal(same(worker.path.at(-1)!, center), true);
+  }
+});
+
+test("a failed fishing cycle returns the fisher to the work flag before replanning", () => {
+  const world = createWorld(1);
+  assert.equal(changeFishers(world, 1), true);
+  const fisher = fishers(world)[0]!;
+  const spot = { ...fisher.fishingSpot! };
+  const center = { ...fisher.workArea!.center };
+  fisher.position = spot;
+  fisher.path = [];
+  fisher.active = false;
+  fisher.hunger = 100;
+  world.rngState = 1000;
+
+  tick(world);
+  const waitUntil = fisher.fishingWaitUntilTick!;
+  while (world.round < waitUntil) tick(world);
+
+  assert.equal(fisher.outdoorCarry, undefined);
+  if (!same(spot, center)) {
+    assert.ok(fisher.path.length > 0);
+    assert.equal(same(fisher.path.at(-1)!, center), true);
+  }
+});
