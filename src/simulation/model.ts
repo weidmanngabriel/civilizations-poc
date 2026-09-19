@@ -231,7 +231,42 @@ export interface Person {
   navigationFailedTargets?: string[];
   trip?: Trip;
 }
-export interface World {
+export type AnimalId = string;
+export type AnimalGroupId = string;
+export type AnimalKind = "hare";
+export interface AnimalGroup {
+  id: AnimalGroupId;
+  kind: AnimalKind;
+  home: Hex;
+}
+export interface Animal {
+  id: AnimalId;
+  kind: AnimalKind;
+  groupId: AnimalGroupId;
+  position: Hex;
+  path: Hex[];
+  movement: number;
+  nextMoveTick: number;
+  fleeingUntilTick?: number;
+  fleeFrom?: Hex;
+}
+export type ProjectileKind = "arrow";
+export type RangedEntityRef =
+  | { kind: "person"; id: number }
+  | { kind: "animal"; id: AnimalId };
+export interface Projectile {
+  id: string;
+  kind: ProjectileKind;
+  source: RangedEntityRef;
+  target: RangedEntityRef;
+  start: Hex;
+  targetPosition: Hex;
+  startedAtTick: number;
+  impactAtTick: number;
+  hit: boolean;
+  rewardProfession?: Profession;
+}
+\nexport interface World {
   round: number;
   nextId: number;
   nextBuildingId: number;
