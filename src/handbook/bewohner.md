@@ -38,6 +38,12 @@ Nicht passende Aktionen erscheinen im Kontextmenü gar nicht. Ein Arbeitsbereich
 
 Hat ein Bewohner ein Wohnhaus zugewiesen, versucht er beim Schlafen zuerst dieses Haus zu nutzen.
 
+## Ausrüstung
+
+Bewohner können aktuell **Holzwerkzeug** und **Schuhe** tragen. Öffne bei einer Person **Aktionen → Ausrüstung**, um vorhandene Ausrüstung manuell zuzuweisen. In der Person-Detailansicht siehst du dafür die Slots **Werkzeug** und **Schuhe** samt Zustand.
+
+Schuhe machen Bewohner beim Gehen schneller. Holzwerkzeug beschleunigt ihre produktive Arbeit, auch auf Baustellen. Beide Gegenstände verschleißen. Nach einer manuellen Zuweisung versucht der Bewohner bei vollständigem Verschleiß automatisch denselben Ausrüstungstyp aus dem Hauptquartier oder einem Lager nachzurüsten. Legst du den Gegenstand in der Person-Detailansicht manuell ab, endet diese automatische Neuausrüstung.
+
 ## Personal in Gebäuden
 
 In fertigen Gebäuden siehst du die zugewiesenen Personen direkt bei ihrer Rolle. Tippe oder klicke auf einen Namen, um sofort zu dieser Person zu springen. Ist ein Platz frei, öffnet **Geeignete Personen** eine passende Auswahlliste. Freie Bewohner ohne Beruf stehen dort zuerst. Wählst du jemanden, der bereits einen anderen Beruf oder Arbeitsplatz hat, musst du den Wechsel bestätigen. Personal wird nicht mehr über Plus/Minus-Regler automatisch zugewiesen.
@@ -46,7 +52,7 @@ In fertigen Gebäuden siehst du die zugewiesenen Personen direkt bei ihrer Rolle
 
 Jäger arbeiten wie andere Außenberufe mit einer persönlichen Arbeitsflagge, besitzen aber einen deutlich größeren Jagdbereich. Neue Beute erkennen sie nur innerhalb dieses Bereichs. Haben sie ein Tier bereits ins Visier genommen, verfolgen sie es aber auch über die Grenze hinaus, bis die Jagd beendet ist. Für diese Verfolgung und für den Rücktransport der Beute brauchen sie keine Wegweiserverbindung zur Arbeitsflagge. Sie verfolgen Kleinwild bis in Bogenschussweite, bleiben dann kurz zum Zielen stehen und schießen erst danach. Hat das Zielen bereits begonnen, wird der Schuss auch dann noch ausgeführt, wenn das Tier währenddessen wieder weiterläuft. Pfeile bleiben nach dem Einschlag noch eine Weile sichtbar.
 
-Erlegt ein Jäger einen Hasen, trägt er die entstandene Fleischkeule zu seiner Fahne. Wildschweine liefern Fleisch und Leder. Der Jäger kann nur eine Beute auf einmal tragen und läuft deshalb nach der ersten Ablage zurück, um die zweite zu holen. Isst er das abgelegte Fleisch zwischendurch selbst, setzt er danach die Bergung fort und holt die noch reservierte Beute. Erst wenn alle Beute an der Fahne liegt, jagt er weiter. Fleisch kann eingelagert oder gegessen werden; Leder bleibt als normale Ware für spätere Verarbeitung verfügbar. Mit steigender Berufserfahrung treffen Jäger zuverlässiger; Erfahrung erhalten sie nur für tatsächlich erlegtes Wild. Mit 10 Jäger-Erfahrungspunkten kann ein Bewohner den Beruf **Näher** lernen. Dadurch wird auch die **Näherei** freigeschaltet. Dort wird aus einer Einheit Leder ein Paar Schuhe. Schuhe sind derzeit eine normale Ware und werden noch nicht ausgerüstet.
+Erlegt ein Jäger einen Hasen, trägt er die entstandene Fleischkeule zu seiner Fahne. Wildschweine liefern Fleisch und Leder. Der Jäger kann nur eine Beute auf einmal tragen und läuft deshalb nach der ersten Ablage zurück, um die zweite zu holen. Isst er das abgelegte Fleisch zwischendurch selbst, setzt er danach die Bergung fort und holt die noch reservierte Beute. Erst wenn alle Beute an der Fahne liegt, jagt er weiter. Fleisch kann eingelagert oder gegessen werden; Leder bleibt als normale Ware für spätere Verarbeitung verfügbar. Mit steigender Berufserfahrung treffen Jäger zuverlässiger; Erfahrung erhalten sie nur für tatsächlich erlegtes Wild. Mit 10 Jäger-Erfahrungspunkten kann ein Bewohner den Beruf **Näher** lernen. Dadurch wird auch die **Näherei** freigeschaltet. Dort wird aus einer Einheit Leder ein Paar Schuhe.
 
 Ein fliehendes Tier ist deutlich schwerer zu treffen. Nach einem Schuss flieht die ganze Tiergruppe kurz auseinander und sammelt sich danach mit der Zeit wieder.
 
