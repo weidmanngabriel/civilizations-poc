@@ -111,7 +111,7 @@ Each keyframe may optionally define `interpolation`. That value controls only th
 
 Animations may also specify `previewDurationMs`. This is only the Character-Lab playback duration; normalized progress remains 0..1 and gameplay duration stays outside the animation asset.
 
-The current v1 tool prop is a simple axe attached directly to the right-arm hierarchy. It is shown by the bundled `woodcut` preset and follows the arm automatically.
+The current v1 tool prop is a simple axe attached directly to the right-arm hierarchy. It is shown by the bundled `woodcut` preset and follows the arm automatically. The axe group is rotated 180° around its local Y axis because the prop's modeled forward side is opposite the arm/character forward convention; this keeps the axe head facing the tree throughout the overhead downstroke.
 
 
 ## Automated visual review
