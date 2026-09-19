@@ -8,7 +8,6 @@ const TILE_SELECTED_EVENT = "poc-tile-selected";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
-const WAYPOST_PLACEMENT_REQUESTED_EVENT = "poc-waypost-placement-requested";
 const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
 
 const BUILDING_NAMES: Record<PlaceableBuildingKind, string> = {
@@ -64,13 +63,6 @@ export function mountBuildMenu(world: World): void {
         <button id="build-menu-close" type="button" aria-label="Baumenü schließen">×</button>
       </div>
       <div class="build-menu-list">
-        <button class="build-menu-item" type="button" data-place-waypost>
-          <span class="build-menu-building-icon" aria-hidden="true">🪧</span>
-          <span class="build-menu-building-copy">
-            <strong>Wegweiser</strong>
-            <span class="build-menu-cost">Verkehrsnetz erweitern</span>
-          </span>
-        </button>
         ${SORTED_BUILDING_KINDS
           .map(
             (kind) => `
@@ -114,13 +106,6 @@ export function mountBuildMenu(world: World): void {
 
   menu.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
-    const waypostButton = target.closest<HTMLButtonElement>("button[data-place-waypost]");
-    if (waypostButton) {
-      window.dispatchEvent(new CustomEvent(WAYPOST_PLACEMENT_REQUESTED_EVENT));
-      setOpen(false);
-      return;
-    }
-
     const button = target.closest<HTMLButtonElement>("button[data-build-kind]");
     if (!button || button.hidden) return;
     const kind = button.dataset.buildKind as PlaceableBuildingKind;
