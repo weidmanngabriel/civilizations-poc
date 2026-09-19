@@ -1,4 +1,5 @@
 import "./style.css";
+import characterDefinitionJson from "./character.json";
 
 type Axis = "pitch" | "yaw";
 type PartId = "head" | "leftArm" | "rightArm" | "leftLeg" | "rightLeg";
@@ -16,18 +17,7 @@ type CharacterDefinition = {
   parts: Record<PartId, Partial<Record<Axis, JointBound>>>;
 };
 
-const CHARACTER: CharacterDefinition = {
-  parts: {
-    head: {
-      pitch: { min: -60, max: 60, neutral: 0 },
-      yaw: { min: -90, max: 90, neutral: 0 },
-    },
-    leftArm: { pitch: { min: -80, max: 80, neutral: 0 } },
-    rightArm: { pitch: { min: -80, max: 80, neutral: 0 } },
-    leftLeg: { pitch: { min: -60, max: 60, neutral: 0 } },
-    rightLeg: { pitch: { min: -60, max: 60, neutral: 0 } },
-  },
-};
+const CHARACTER = characterDefinitionJson as unknown as CharacterDefinition;
 
 const NEUTRAL_POSE: Pose = {
   "head.pitch": 0,
