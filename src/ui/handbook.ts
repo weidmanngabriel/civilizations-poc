@@ -15,6 +15,11 @@ type HandbookPage = {
   content: string;
 };
 
+type HandbookSection = {
+  id: string;
+  title: string;
+};
+
 const PAGES: HandbookPage[] = [
   { id: "welcome", title: "Willkommen", content: welcomeMarkdown },
   { id: "residents", title: "Bewohner", content: residentsMarkdown },
@@ -35,10 +40,24 @@ const escapeHtml = (value: string): string =>
 const renderInlineMarkdown = (value: string): string =>
   escapeHtml(value).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 
+const stripInlineMarkdown = (value: string): string => value.replace(/\*\*(.+?)\*\*/g, "$1");
+
+export const getHandbookSections = (source: string): HandbookSection[] =>
+  source
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("## "))
+    .map((line, index) => ({
+      id: `handbook-section-${index + 1}`,
+      title: stripInlineMarkdown(line.slice(3)),
+    }));
+
 export const renderHandbookMarkdown = (source: string): string => {
   const lines = source.trim().split(/\r?\n/);
   const html: string[] = [];
   let listItems: string[] = [];
+  let sectionIndex = 0;
 
   const flushList = () => {
     if (!listItems.length) return;
@@ -59,7 +78,10 @@ export const renderHandbookMarkdown = (source: string): string => {
     }
     if (line.startsWith("## ")) {
       flushList();
-      html.push(`<h2>${renderInlineMarkdown(line.slice(3))}</h2>`);
+      sectionIndex += 1;
+      html.push(
+        `<h2 id="handbook-section-${sectionIndex}">${renderInlineMarkdown(line.slice(3))}</h2>`,
+      );
       continue;
     }
     if (line.startsWith("- ")) {
@@ -115,22 +137,62 @@ export function mountHandbook(): void {
               </button>`,
           ).join("")}
         </nav>
-        <article class="handbook-content" tabindex="-1"></article>
+        <div class="handbook-content-shell">
+          <article class="handbook-content" tabindex="-1"></article>
+          <div class="handbook-quicknav">
+            <button
+              class="handbook-quicknav-toggle"
+              type="button"
+              aria-label="Abschnitte dieser Seite"
+              aria-expanded="false"
+              aria-controls="handbook-quicknav-menu"
+            >
+              <span aria-hidden="true">☰</span>
+            </button>
+            <nav
+              id="handbook-quicknav-menu"
+              class="handbook-quicknav-menu"
+              aria-label="Abschnitte dieser Seite"
+              hidden
+            >
+              <strong>Auf dieser Seite</strong>
+              <div class="handbook-quicknav-links"></div>
+            </nav>
+          </div>
+        </div>
       </div>
     </div>`;
   main.append(overlay);
 
   const content = overlay.querySelector<HTMLElement>(".handbook-content")!;
   const close = overlay.querySelector<HTMLButtonElement>("#handbook-close")!;
+  const quickNav = overlay.querySelector<HTMLElement>(".handbook-quicknav")!;
+  const quickNavToggle = overlay.querySelector<HTMLButtonElement>(".handbook-quicknav-toggle")!;
+  const quickNavMenu = overlay.querySelector<HTMLElement>(".handbook-quicknav-menu")!;
+  const quickNavLinks = overlay.querySelector<HTMLElement>(".handbook-quicknav-links")!;
   const pageButtons = Array.from(
     overlay.querySelectorAll<HTMLButtonElement>("[data-handbook-page]"),
   );
   let activePageId = PAGES[0]!.id;
 
+  const setQuickNavOpen = (open: boolean) => {
+    quickNavMenu.hidden = !open;
+    quickNavToggle.setAttribute("aria-expanded", String(open));
+  };
+
   const renderPage = (pageId: string) => {
     const page = PAGES.find((candidate) => candidate.id === pageId) ?? PAGES[0]!;
     activePageId = page.id;
     content.innerHTML = renderHandbookMarkdown(page.content);
+    const sections = getHandbookSections(page.content);
+    quickNavLinks.innerHTML = sections
+      .map(
+        (section) =>
+          `<button type="button" data-handbook-section="${section.id}">${escapeHtml(section.title)}</button>`,
+      )
+      .join("");
+    quickNav.hidden = sections.length === 0;
+    setQuickNavOpen(false);
     for (const button of pageButtons)
       button.setAttribute("aria-pressed", String(button.dataset.handbookPage === page.id));
     content.scrollTop = 0;
@@ -152,10 +214,33 @@ export function mountHandbook(): void {
 
   toggle.addEventListener("click", () => setOpen(overlay.hidden));
   close.addEventListener("click", () => setOpen(false));
+  quickNavToggle.addEventListener("click", () => {
+    setQuickNavOpen(quickNavMenu.hidden);
+  });
   overlay.addEventListener("click", (event) => {
     if (event.target === overlay) setOpen(false);
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-handbook-page]");
-    if (button?.dataset.handbookPage) renderPage(button.dataset.handbookPage);
+
+    const target = event.target as HTMLElement;
+    const pageButton = target.closest<HTMLButtonElement>("[data-handbook-page]");
+    if (pageButton?.dataset.handbookPage) {
+      renderPage(pageButton.dataset.handbookPage);
+      return;
+    }
+
+    const sectionButton = target.closest<HTMLButtonElement>("[data-handbook-section]");
+    if (sectionButton?.dataset.handbookSection) {
+      const heading = content.querySelector<HTMLElement>(`#${sectionButton.dataset.handbookSection}`);
+      if (heading) {
+        content.scrollTo({
+          top: Math.max(0, heading.offsetTop - 12),
+          behavior: "smooth",
+        });
+      }
+      setQuickNavOpen(false);
+      return;
+    }
+
+    if (!target.closest(".handbook-quicknav")) setQuickNavOpen(false);
   });
   document.querySelector<HTMLButtonElement>("#build-menu-toggle")?.addEventListener("click", () => {
     if (!overlay.hidden) setOpen(false);
@@ -163,7 +248,12 @@ export function mountHandbook(): void {
   window.addEventListener(BUILD_MODE_EVENT, () => setOpen(false));
   window.addEventListener(MERCHANT_TARGET_MODE_EVENT, () => setOpen(false));
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !overlay.hidden) setOpen(false);
+    if (event.key !== "Escape" || overlay.hidden) return;
+    if (!quickNavMenu.hidden) {
+      setQuickNavOpen(false);
+      return;
+    }
+    setOpen(false);
   });
 
   renderPage(activePageId);
