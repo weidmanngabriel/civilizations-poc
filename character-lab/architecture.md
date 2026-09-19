@@ -101,3 +101,14 @@ v1 hält den Code bewusst kompakt. Erst wenn Modellvarianten oder weitere Assett
 Das Character Lab verwendet denselben `installPwaSupport()`-Mechanismus wie die Haupt-App. Der gemeinsame Service Worker bleibt auf `/civilizations-poc/` gescoped. Das Lab prüft über das uncached `version.json` beim Start, beim Wieder-Sichtbarwerden, nach Wiederherstellung der Netzwerkverbindung und alle fünf Minuten auf einen neueren Build.
 
 Bei einer Abweichung wird derselbe manuelle Update-Banner wie in der Haupt-App angezeigt. Das Lab lädt nicht automatisch neu, damit eine laufende Bearbeitung nicht ungefragt verloren geht. Der Nutzer löst Aktualisierung und Reload explizit über „Neu laden“ aus.
+
+
+## Root motion, tools and segment easing
+
+Animation poses may additionally contain `root.x`, `root.z` and `root.yaw`. These values move and rotate the animated character inside the Character Lab scene while the manual preview rotation remains a separate outer transform.
+
+Each keyframe may optionally define `interpolation`. That value controls only the segment from that keyframe to the next one and overrides the animation-level default. This allows work motions to use different timing curves inside one animation, for example `easeIn` for an accelerating axe strike and `easeInOut` for the recovery.
+
+Animations may also specify `previewDurationMs`. This is only the Character-Lab playback duration; normalized progress remains 0..1 and gameplay duration stays outside the animation asset.
+
+The current v1 tool prop is a simple axe attached directly to the right-arm hierarchy. It is shown by the bundled `woodcut` preset and follows the arm automatically.
