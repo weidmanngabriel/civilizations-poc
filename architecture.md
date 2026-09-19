@@ -98,7 +98,7 @@ Activating another editor-authored runtime building now consists only of replaci
 
 `src/simulation/buildingPlacement.ts` remains authoritative for placement legality. For registered kinds it uses the editor footprint; otherwise it uses the current hard-coded shape table. The placement clearance is a compact ring of two micro-cells around whichever footprint is authoritative.
 
-Every placeable building additionally requires its gameplay interaction coordinate / entrance to lie within the **3.5 coarse-world-tile orientation radius of at least one placed waypost**. Connectivity of that waypost to any other waypost is deliberately irrelevant: separate logistics networks may exist, for example on different islands. This rule is enforced by the same authoritative placement predicate used by both placement highlights and construction.
+Every placeable building additionally requires its gameplay interaction coordinate / entrance to lie within the **3.5 coarse-world-tile orientation radius of at least one placed waypost**. Connectivity of that waypost to any other waypost is deliberately irrelevant: separate logistics networks may exist, for example on different islands. This rule is enforced by the same authoritative placement predicate used by both placement highlights and construction. Neutral low-level test worlds that deliberately omit the waypost subsystem retain unrestricted placement semantics.
 
 Active natural-resource footprints reserve both the building footprint and the two-micro-cell clearance ring. Loose goods block only the actual footprint because they remain walkable and may stay in the surrounding clearance area.
 
