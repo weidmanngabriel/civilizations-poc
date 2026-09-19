@@ -132,7 +132,7 @@ async function capturePng(client, filename) {
 await rm(outputDir, { recursive: true, force: true });
 await mkdir(videoFrameDir, { recursive: true });
 
-const preview = spawn("npm", ["run", "preview", "--", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
+const preview = spawn("npm", ["run", "preview:character-lab", "--", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
   cwd: root,
   stdio: "inherit",
 });
