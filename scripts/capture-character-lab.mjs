@@ -6,6 +6,9 @@ import os from "node:os";
 const preset = process.argv[2] ?? "woodcut";
 const reviewFrameCount = Math.max(2, Number.parseInt(process.argv[3] ?? "21", 10) || 21);
 const videoFps = 8;
+const motionBurstFrameCount = 25;
+const motionBurstStart = 0.025;
+const motionBurstEnd = 0.095;
 const root = process.cwd();
 const outputDir = path.join(root, "character-lab", "review-output", preset);
 const videoFrameDir = path.join(outputDir, ".video-frames");
@@ -191,6 +194,15 @@ try {
     await capturePng(client, path.join(outputDir, `frame-${String(percent).padStart(3, "0")}.png`));
   }
 
+  // Dense diagnostic burst around the first complete chop. Unlike the 21 overview
+  // frames, these samples are close enough together to establish motion direction.
+  for (let index = 0; index < motionBurstFrameCount; index += 1) {
+    const local = index / (motionBurstFrameCount - 1);
+    const progress = motionBurstStart + (motionBurstEnd - motionBurstStart) * local;
+    await renderProgress(client, progress);
+    await capturePng(client, path.join(outputDir, `chop-burst-${String(index).padStart(2, "0")}.png`));
+  }
+
   const stateResult = await client.send("Runtime.evaluate", {
     expression: "window.characterLab.getState().animation.previewDurationMs ?? 1800",
     returnByValue: true,
@@ -223,7 +235,7 @@ try {
   if (encode.status !== 0) throw new Error("ffmpeg failed to encode Character Lab WebM.");
 
   await rm(videoFrameDir, { recursive: true, force: true });
-  console.log(`Captured ${reviewFrameCount} review PNGs and ${durationMs / 1000}s WebM at ${videoFps} fps to ${outputDir}`);
+  console.log(`Captured ${reviewFrameCount} overview PNGs, ${motionBurstFrameCount} dense chop frames, and ${durationMs / 1000}s WebM at ${videoFps} fps to ${outputDir}`);
 } finally {
   client?.close();
   if (chrome && chrome.exitCode === null) {
