@@ -13,7 +13,7 @@ import {
   definitionFootprintAt,
   definitionFootprintForBuilding,
 } from "../buildings/buildingDefinitionRegistry";
-import { key, neighbors, tileIndex } from "./hex";
+import { hexDistance, key, neighbors, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 import { buildAt, notifyConstructionSiteAdded, removeBuilding } from "./simulation";
 import { isBuildingUnlocked } from "./technology";
@@ -21,6 +21,7 @@ import { refinedCellCluster } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
 import { looseGoodStacks } from "./looseGoods";
 import { BUILDING_CONSTRUCTION_REQUIREMENTS } from "./constructionRules";
+import { WAYPOST_ORIENTATION_RADIUS } from "./wayposts";
 
 export type BuildingPlacementShape = {
   cells: Hex[];
@@ -144,6 +145,7 @@ type PlacementLookup = {
   occupiedResources: Set<string>;
   looseGoods: Set<string>;
   people: Set<string>;
+  wayposts: Hex[];
 };
 
 const createPlacementLookup = (world: World): PlacementLookup => ({
@@ -155,6 +157,7 @@ const createPlacementLookup = (world: World): PlacementLookup => ({
   ),
   looseGoods: new Set(looseGoodStacks(world).map((stack) => key(stack.position))),
   people: new Set(world.people.map((person) => key(person.position))),
+  wayposts: (world.wayposts ?? []).map((waypost) => waypost.position),
 });
 
 const freePlacementTile = (
@@ -177,6 +180,15 @@ const canPlaceWithLookup = (
   anchorPosition: Hex,
   kind: PlaceableBuildingKind,
 ): boolean => {
+  const entrance = buildingInteractionAt(kind, anchorPosition);
+  if (
+    !lookup.wayposts.some(
+      (waypostPosition) =>
+        hexDistance(waypostPosition, entrance) <= WAYPOST_ORIENTATION_RADIUS,
+    )
+  )
+    return false;
+
   const footprint = footprintAt(kind, anchorPosition);
   if (!footprint.every((position) => freePlacementTile(lookup, position, true))) return false;
   if (!clearanceAt(kind, anchorPosition).every((position) => freePlacementTile(lookup, position, false))) return false;
