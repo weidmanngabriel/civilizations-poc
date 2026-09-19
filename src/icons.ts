@@ -11,6 +11,7 @@ export const GOOD_ICONS: Record<Good, string> = {
   fish: "🐟",
   meat: "🍖",
   leather: "🟫",
+  shoes: "👞",
   clay: "🟤",
   rubble: "🪨",
   brick: "🧱",
@@ -31,6 +32,7 @@ export const BUILDING_SVG: Partial<Record<BuildingKind, string>> = {
   bakery: svg('<path d="M4 20V9l8-5 8 5v11H4Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 20v-6c0-3 2-5 5-5s5 2 5 5v6M8 15h8" fill="none" stroke="currentColor" stroke-width="1.8"/>'),
   well: svg('<path d="M5 9h14M7 9v11m10-11v11M4 20h16M8 9l4-5 4 5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 12h4v5h-4z" fill="none" stroke="currentColor" stroke-width="1.5"/>'),
   pottery: svg('<path d="M8 5h8M9 5c0 3-2 4-2 8 0 4 2 6 5 6s5-2 5-6c0-4-2-5-2-8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 11h8" stroke="currentColor" stroke-width="1.4"/>'),
+  tailor: svg('<path d="M6 17c3-1 5-3 7-7 1 3 3 5 5 6-3 2-7 3-12 1Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 17v2h11v-3" fill="none" stroke="currentColor" stroke-width="1.5"/>'),
   stonemason: svg('<path d="M4 19h16M6 19l2-7h8l2 7M9 12l1-5h4l1 5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m5 7 5-3 2 3" fill="none" stroke="currentColor" stroke-width="1.5"/>'),
 };
 
