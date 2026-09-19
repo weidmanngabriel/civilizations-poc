@@ -10,7 +10,7 @@ Abgebaute Waren bleiben sichtbar in der Welt liegen, bis sie abgeholt werden.
 
 ## Kleinwild
 
-Hasen leben in kleinen Gruppen und bewegen sich nur gelegentlich einige Schritte. Eine Gruppe wandert mit der Zeit langsam durch ihr Gebiet, während jedes Tier seinen eigenen kleinen Hoppelweg nimmt und locker bei den anderen bleibt. Werden sie beschossen, fliehen die Tiere einzeln auseinander und finden danach nach und nach wieder zusammen.
+Hasen leben in kleinen Gruppen und bewegen sich nur gelegentlich einige Schritte. Eine Gruppe wandert mit der Zeit langsam durch ihr Gebiet, während jedes Tier seinen eigenen kleinen Hoppelweg nimmt und locker bei den anderen bleibt. Die Tiere halten dabei Abstand und bleiben nicht auf derselben Stelle übereinander stehen. Werden sie beschossen, fliehen die Tiere einzeln auseinander und finden danach nach und nach wieder zusammen.
 
 ## Entstehende Wege
 

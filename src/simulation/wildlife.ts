@@ -20,6 +20,11 @@ export type AnimalBehaviorProfile = {
   groupTargetIntervalTicks: number;
   groupTargetMinDistance: number;
   groupTargetMaxDistance: number;
+  /** Comfortable individual spacing inside the group, in micro-cells. */
+  separationDistance: number;
+  /** Beyond this distance, attraction back toward the flock center resumes. */
+  flockRejoinDistance: number;
+  separationWeight: number;
 };
 
 export const ANIMAL_BEHAVIOR: Record<AnimalKind, AnimalBehaviorProfile> = {
@@ -32,13 +37,16 @@ export const ANIMAL_BEHAVIOR: Record<AnimalKind, AnimalBehaviorProfile> = {
     fleePathMinSteps: 6,
     fleePathMaxSteps: 10,
     movementMultiplier: 1.35,
-    homeWeight: 0.28,
-    flockWeight: 0.5,
-    randomWeight: 0.12,
-    groupTargetWeight: 0.1,
+    homeWeight: 0.08,
+    flockWeight: 0.18,
+    randomWeight: 0.48,
+    groupTargetWeight: 0.2,
     groupTargetIntervalTicks: 30 * SIMULATION_HZ,
     groupTargetMinDistance: 10,
     groupTargetMaxDistance: 15,
+    separationDistance: 2,
+    flockRejoinDistance: 5,
+    separationWeight: 0.85,
   },
 };
 
@@ -105,9 +113,20 @@ export function spawnAnimalGroup(
         a.q - b.q ||
         a.r - b.r,
     );
+  const chosenSpawns: Hex[] = [];
 
   for (let i = 0; i < size; i += 1) {
-    const spawn = candidates[i % Math.max(1, candidates.length)] ?? home;
+    const spawn =
+      candidates.find((candidate) =>
+        chosenSpawns.every(
+          (chosen) => hexDistance(candidate, chosen) >= profile.separationDistance,
+        ),
+      ) ??
+      candidates.find((candidate) =>
+        chosenSpawns.every((chosen) => key(candidate) !== key(chosen)),
+      ) ??
+      home;
+    chosenSpawns.push({ q: spawn.q, r: spawn.r });
     animalList(world).push({
       id: nextAnimalId(world),
       kind,
@@ -143,19 +162,38 @@ const weightedTarget = (
   const center = animalGroupCenter(world, animal.groupId) ?? animal.position;
   const home = group?.home ?? animal.position;
   const groupTarget = group?.target ?? center;
+  const members = animalGroupMembers(world, animal.groupId).filter(
+    (candidate) => candidate.id !== animal.id,
+  );
+  const centerDistance = hexDistance(animal.position, center);
+  const flockWeight =
+    centerDistance > profile.flockRejoinDistance ? profile.flockWeight : 0;
+
+  let separationQ = 0;
+  let separationR = 0;
+  for (const member of members) {
+    const distance = hexDistance(animal.position, member.position);
+    if (distance <= 0 || distance > profile.separationDistance) continue;
+    const pressure = (profile.separationDistance + 1 - distance) / profile.separationDistance;
+    separationQ += Math.sign(animal.position.q - member.position.q) * pressure;
+    separationR += Math.sign(animal.position.r - member.position.r) * pressure;
+  }
+
   const randomQ = randomFraction(world) * 2 - 1;
   const randomR = randomFraction(world) * 2 - 1;
   const q =
     animal.position.q +
-    (center.q - animal.position.q) * profile.flockWeight +
+    (center.q - animal.position.q) * flockWeight +
     (home.q - animal.position.q) * profile.homeWeight +
     (groupTarget.q - animal.position.q) * profile.groupTargetWeight +
+    separationQ * GRID_REFINEMENT * profile.separationWeight +
     randomQ * GRID_REFINEMENT * profile.randomWeight;
   const r =
     animal.position.r +
-    (center.r - animal.position.r) * profile.flockWeight +
+    (center.r - animal.position.r) * flockWeight +
     (home.r - animal.position.r) * profile.homeWeight +
     (groupTarget.r - animal.position.r) * profile.groupTargetWeight +
+    separationR * GRID_REFINEMENT * profile.separationWeight +
     randomR * GRID_REFINEMENT * profile.randomWeight;
   return { q: Math.round(q), r: Math.round(r) };
 };
@@ -174,30 +212,60 @@ const fleeTarget = (world: World, animal: Animal, steps: number): Hex => {
   };
 };
 
+const occupiedAnimalCells = (world: World, exceptId?: string): Set<string> =>
+  new Set(
+    animalList(world)
+      .filter((candidate) => candidate.id !== exceptId)
+      .map((candidate) => key(candidate.position)),
+  );
+
+const reservedAnimalEndpoints = (world: World, exceptId?: string): Set<string> =>
+  new Set(
+    animalList(world)
+      .filter((candidate) => candidate.id !== exceptId && candidate.path.length)
+      .map((candidate) => key(candidate.path[candidate.path.length - 1]!)),
+  );
+
 function zigZagPath(
   world: World,
-  start: Hex,
+  animal: Animal,
   target: Hex,
   stepCount: number,
 ): Hex[] {
   const tiles = tileIndex(world.tiles);
+  const occupied = occupiedAnimalCells(world, animal.id);
+  const reserved = reservedAnimalEndpoints(world, animal.id);
   const path: Hex[] = [];
-  let current = { ...start };
+  let current = { ...animal.position };
   let previous: Hex | undefined;
 
-  for (let step = 0; step < stepCount; step += 1) {
+  const candidateScore = (candidate: Hex): number => {
+    const nearestOther = animalList(world)
+      .filter((other) => other.id !== animal.id && other.groupId === animal.groupId)
+      .reduce(
+        (nearest, other) => Math.min(nearest, hexDistance(candidate, other.position)),
+        Number.POSITIVE_INFINITY,
+      );
+    const crowdPenalty =
+      nearestOther < ANIMAL_BEHAVIOR[animal.kind].separationDistance
+        ? (ANIMAL_BEHAVIOR[animal.kind].separationDistance - nearestOther + 1) * 3
+        : 0;
+    return (
+      hexDistance(candidate, target) +
+      crowdPenalty +
+      (randomFraction(world) - 0.5) * 2.4
+    );
+  };
+
+  const appendBestStep = (): boolean => {
     const candidates = neighbors(current)
       .filter((candidate) => {
         const tile = tiles.get(key(candidate));
         return Boolean(tile && walkable(tile) && tile.terrain !== "building");
       })
       .filter((candidate) => !previous || candidate.q !== previous.q || candidate.r !== previous.r)
-      .map((candidate) => ({
-        candidate,
-        score:
-          hexDistance(candidate, target) +
-          (randomFraction(world) - 0.5) * 2.4,
-      }))
+      .filter((candidate) => !occupied.has(key(candidate)))
+      .map((candidate) => ({ candidate, score: candidateScore(candidate) }))
       .sort(
         (a, b) =>
           a.score - b.score ||
@@ -205,18 +273,35 @@ function zigZagPath(
           a.candidate.r - b.candidate.r,
       );
     const next = candidates[0]?.candidate;
-    if (!next) break;
+    if (!next) return false;
     path.push({ ...next });
     previous = current;
     current = { ...next };
+    return true;
+  };
+
+  for (let step = 0; step < stepCount; step += 1)
+    if (!appendBestStep()) break;
+
+  // A hare must not finish on an occupied/reserved cell. If its planned stop
+  // would overlap another hare, it keeps hopping until a free endpoint exists.
+  let extensionSteps = 0;
+  while (
+    path.length &&
+    (occupied.has(key(path[path.length - 1]!)) || reserved.has(key(path[path.length - 1]!))) &&
+    extensionSteps < 4
+  ) {
+    if (!appendBestStep()) break;
+    extensionSteps += 1;
   }
+
   return path;
 }
 
 function planNormalMovement(world: World, animal: Animal): void {
   const profile = ANIMAL_BEHAVIOR[animal.kind];
   const steps = randomInt(world, profile.normalPathMinSteps, profile.normalPathMaxSteps);
-  animal.path = zigZagPath(world, animal.position, weightedTarget(world, animal, profile), steps);
+  animal.path = zigZagPath(world, animal, weightedTarget(world, animal, profile), steps);
   animal.movement = 0;
   animal.nextMoveTick =
     world.round + randomInt(world, profile.normalMoveMinTicks, profile.normalMoveMaxTicks);
@@ -225,7 +310,7 @@ function planNormalMovement(world: World, animal: Animal): void {
 function planFleeMovement(world: World, animal: Animal): void {
   const profile = ANIMAL_BEHAVIOR[animal.kind];
   const steps = randomInt(world, profile.fleePathMinSteps, profile.fleePathMaxSteps);
-  animal.path = zigZagPath(world, animal.position, fleeTarget(world, animal, steps), steps);
+  animal.path = zigZagPath(world, animal, fleeTarget(world, animal, steps), steps);
   animal.movement = 0;
 }
 
@@ -249,12 +334,20 @@ function advanceAnimalMovement(world: World, animal: Animal): void {
     ((2.5 / 3) * GRID_REFINEMENT / SIMULATION_HZ) * profile.movementMultiplier;
   let moves = 0;
   while (animal.path.length && animal.movement + 1e-9 >= 1 && moves < 4) {
-    const next = animal.path.shift()!;
-    if (!validAnimalTile(world, next)) {
+    const next = animal.path[0]!;
+    const occupied = animalList(world).some(
+      (candidate) =>
+        candidate.id !== animal.id &&
+        candidate.position.q === next.q &&
+        candidate.position.r === next.r,
+    );
+    if (!validAnimalTile(world, next) || occupied) {
       animal.path = [];
       animal.movement = 0;
+      animal.nextMoveTick = world.round;
       return;
     }
+    animal.path.shift();
     animal.movement = Math.max(0, animal.movement - 1);
     animal.position = { ...next };
     moves += 1;
