@@ -75,3 +75,10 @@ Das v1-Preset `woodcut` demonstriert erstmals Root-Bewegung und ein Werkzeug. De
 ## Visual review exports
 
 Character Lab animation changes produce a review frame sequence in CI. The default review renders 21 evenly spaced frames of `woodcut` from 0 % through 100 %. These images are diagnostic artifacts, not runtime game assets. They are intended to make animation problems such as tool alignment, abrupt pose changes, foot sliding and incorrect character orientation inspectable without manually recording the browser.
+
+
+### Dynamischer Holzfäller
+
+Das `woodcut`-Beispiel nutzt den Oberkörper aktiv: Beim Ausholen geht der Oberkörper leicht zurück, der Schlag nimmt Oberkörper und Kopf nach vorn mit und die Figur verlagert ihr Gewicht sichtbar in Richtung des imaginären Baums. Zwischen den drei Schlagpositionen bewegt sie sich als seitlicher, zum Baum orientierter Schritt mit mehreren Beinphasen statt als einfache lineare Verschiebung.
+
+Der automatisierte Review exportiert zusätzlich zu den PNG-Einzelbildern ein kleines 640×480-WebM des vollständigen Ablaufs. Das Video dient der Prüfung von Rhythmus, Beschleunigung und Übergängen; die PNGs bleiben für exakte Pose- und Werkzeugkontrolle erhalten.
