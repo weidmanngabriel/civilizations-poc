@@ -23,6 +23,7 @@ const isBusy = (person: Person): boolean =>
     person.woodcutter ||
     person.extractor ||
     person.fisher ||
+    person.hunter ||
     person.navigationBlocked ||
     person.progress > 0
   );

@@ -84,6 +84,12 @@ const targetForHunter = (world: World, hunter: Person): Animal | undefined => {
         a.id.localeCompare(b.id),
     )[0];
   hunter.huntTarget = target?.id;
+  if (target) {
+    hunter.idleTarget = undefined;
+    hunter.path = [];
+    hunter.movement = 0;
+    hunter.active = false;
+  }
   return target;
 };
 

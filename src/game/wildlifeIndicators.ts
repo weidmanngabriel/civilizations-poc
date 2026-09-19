@@ -4,8 +4,8 @@ import { pixel } from "./mapGeometry";
 
 const HARE_TEXTURE = "wildlife-hare";
 const BOAR_TEXTURE = "wildlife-boar";
-const HARE_WORLD_WIDTH = 10;
-const HARE_WORLD_HEIGHT = 7;
+const HARE_WORLD_WIDTH = 5;
+const HARE_WORLD_HEIGHT = 3.5;
 const BOAR_WORLD_WIDTH = 14;
 const BOAR_WORLD_HEIGHT = 9;
 
@@ -143,8 +143,8 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
         const ux = dx / length;
         const uy = dy / length;
         const impacted = projectile.resolvedAtTick !== undefined;
-        const half = impacted ? 3.4 : 3;
-        projectileGraphics.lineStyle(1.05, 0x4c3827, 1);
+        const half = impacted ? 1.7 : 1.5;
+        projectileGraphics.lineStyle(0.525, 0x4c3827, 1);
         projectileGraphics.lineBetween(
           point.x - ux * half,
           point.y - uy * half,
@@ -157,12 +157,12 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
         const py = ux;
         projectileGraphics.fillStyle(0x66513c, 1);
         projectileGraphics.fillTriangle(
-          tipX + ux * 1.7,
-          tipY + uy * 1.7,
-          tipX - ux * 0.5 + px * 1.15,
-          tipY - uy * 0.5 + py * 1.15,
-          tipX - ux * 0.5 - px * 1.15,
-          tipY - uy * 0.5 - py * 1.15,
+          tipX + ux * 0.85,
+          tipY + uy * 0.85,
+          tipX - ux * 0.25 + px * 0.575,
+          tipY - uy * 0.25 + py * 0.575,
+          tipX - ux * 0.25 - px * 0.575,
+          tipY - uy * 0.25 - py * 0.575,
         );
       }
     };
