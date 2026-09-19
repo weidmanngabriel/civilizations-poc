@@ -42,7 +42,8 @@ Die Website bietet:
 - Wiedergabe/Pause,
 - Animation als JSON importieren,
 - Animation als JSON exportieren,
-- Reset auf Beispielanimationen.
+- Reset auf Beispielanimationen,
+- Hinweis „Neue Version verfügbar“ mit manuellem Neu-laden-Button, wenn ein neuer Deploy erkannt wurde.
 
 ## KI-Nutzbarkeit
 

@@ -1,6 +1,7 @@
 import "./style.css";
 import * as THREE from "three";
 import characterDefinitionJson from "./character.json";
+import { installPwaSupport } from "../../src/pwa";
 
 type Axis = "pitch" | "yaw";
 type PartId = "head" | "leftArm" | "rightArm" | "leftLeg" | "rightLeg";
@@ -707,4 +708,5 @@ renderKeyframes();
 setProgress(0);
 setCharacterYaw(characterYaw);
 setZoom(zoom);
+installPwaSupport();
 initThree();
