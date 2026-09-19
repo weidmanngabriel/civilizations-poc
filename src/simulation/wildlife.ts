@@ -54,6 +54,28 @@ export const ANIMAL_BEHAVIOR: Record<AnimalKind, AnimalBehaviorProfile> = {
     homeReturnDistance: 30,
     migrationInertiaWeight: 0.7,
   },
+  boar: {
+    normalMoveMinTicks: 4 * SIMULATION_HZ,
+    normalMoveMaxTicks: 8 * SIMULATION_HZ,
+    normalPathMinSteps: 4,
+    normalPathMaxSteps: 8,
+    fleeTicks: 5 * SIMULATION_HZ,
+    fleePathMinSteps: 6,
+    fleePathMaxSteps: 10,
+    movementMultiplier: 1.35,
+    homeWeight: 0.16,
+    flockWeight: 0.18,
+    randomWeight: 0.4,
+    groupTargetWeight: 0.32,
+    groupTargetIntervalTicks: 30 * SIMULATION_HZ,
+    groupTargetMinDistance: 10,
+    groupTargetMaxDistance: 15,
+    separationDistance: 2,
+    flockRejoinDistance: 5,
+    separationWeight: 0.85,
+    homeReturnDistance: 30,
+    migrationInertiaWeight: 0.7,
+  },
 };
 
 const animalList = (world: World): Animal[] => world.animals ?? (world.animals = []);
