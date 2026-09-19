@@ -47,7 +47,14 @@ import {
   type PerformanceFeature,
 } from "../debug/performanceProfiler";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
-import { naturalResourceFootprint } from "./naturalResources";\nimport {\n  equipmentMovementSpeedMultiplier,\n  equipmentWorkSpeedMultiplier,\n  maintainEquipment,\n  recordShoeTravel,\n  recordToolWork,\n} from "./equipment";
+import { naturalResourceFootprint } from "./naturalResources";
+import {
+  equipmentMovementSpeedMultiplier,
+  equipmentWorkSpeedMultiplier,
+  maintainEquipment,
+  recordShoeTravel,
+  recordToolWork,
+} from "./equipment";
 import { interruptSleep } from "./sleep";
 import {
   availableLooseGoodAmount,
