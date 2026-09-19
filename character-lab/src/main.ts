@@ -721,7 +721,7 @@ function initThree(): void {
     hairTop.position.y = 1.18;
     headPivot.add(hairTop);
 
-    function limbPivot(parent: THREE.Group, x: number, y: number, length: number, mat: unknown, isArm: boolean) {
+    function limbPivot(parent: { add(object: unknown): void }, x: number, y: number, length: number, mat: unknown, isArm: boolean) {
       const pivot = new THREE.Group();
       pivot.position.set(x, y, 0);
       parent.add(pivot);
