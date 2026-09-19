@@ -2,15 +2,11 @@ import type { Hex, Person, World } from "./model";
 import { findPath, hexDistance } from "./hex";
 import {
   WAYPOST_ORIENTATION_RADIUS,
+  usesUnrestrictedGlobalPathfinding,
   wayposts,
 } from "./wayposts";
 
 export const NEED_LOCAL_NAVIGATION_RADIUS = WAYPOST_ORIENTATION_RADIUS;
-
-export const usesUnrestrictedGlobalPathfinding = (person: Person): boolean => {
-  const profession = person.profession as string | undefined;
-  return profession === "scout" || profession === "soldier";
-};
 
 export const isInsideWaypostCoverage = (world: World, position: Hex): boolean =>
   world.wayposts !== undefined &&
