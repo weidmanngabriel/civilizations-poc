@@ -10,8 +10,6 @@ import type {
 import {
   assigned,
   building,
-  builders,
-  clayDiggers,
   changePopulation,
   freePeople,
   GOODS,
@@ -22,9 +20,6 @@ import {
   tick,
   totalWarehouseStock,
   warehouseStock,
-  woodcutters,
-  fishers,
-  stonecutters,
 } from "../simulation/simulation";
 import {
   currentProfession,
@@ -151,14 +146,6 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
     return "👤";
   };
-  const roleLimit = (b: Building, role: Role): number => {
-    if (isUnderConstruction(b)) return 0;
-    if (role === "builder") return 0;
-    if (role === "worker") return b.workers;
-    if (role === "carrier") return b.carriers;
-    return b.kind === "warehouse" ? (b.merchants ?? 0) : 0;
-  };
-
   function updateBuildPlacementConfirm(): void {
     buildPlacementConfirm.disabled = !(
       buildPlacementKind &&
@@ -178,7 +165,7 @@ export function mountControls(w: World, renderMap: () => void): void {
         <span class="staff-person-icon" aria-hidden="true">${personIcon(person.id)}</span>
         <span class="staff-person-copy">
           <strong>${escapeHtml(personName(person.id))}</strong>
-          <small>${escapeHtml(personActivityLabel(person))}</small>
+          <small data-field="staff-activity-${person.id}">${escapeHtml(personActivityLabel(person))}</small>
         </span>
         <span class="staff-person-open" aria-hidden="true">›</span>
       </button>`).join("");
@@ -268,6 +255,10 @@ export function mountControls(w: World, renderMap: () => void): void {
       setField("output", `${formatOutputAmount(b.output)}/${CONFIG.outputCapacity}`);
     }
 
+    for (const role of ["worker", "carrier", "merchant"] as const) {
+      for (const person of assigned(w, b.id, role))
+        setField(`staff-activity-${person.id}`, personActivityLabel(person));
+    }
   };
 
   function renderSelectionPanel(): void {
@@ -382,10 +373,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const refreshLiveState = () => {
     document.querySelector("#metrics")!.innerHTML = `<div><small>👥 BEV.</small><strong>${w.people.length}</strong></div><div><small>👤 FREI</small><strong>${freePeople(w).length}</strong></div><div><small>${GOOD_ICONS.wheat} WEIZEN</small><strong>${formatWholeAmount(totalWarehouseStock(w, "wheat"))}</strong></div><div><small>${GOOD_ICONS.bread} BROT</small><strong>${formatWholeAmount(totalWarehouseStock(w, "bread"))}</strong></div>`;
-    if (!selectedTile) {
-      if (selectedBuildingId && !selectionPanel.hidden) renderSelectionPanel();
-      else updateSelectionLiveState();
-    }
+    if (!selectedTile) updateSelectionLiveState();
     updateBuildPlacementConfirm();
     renderMap();
   };
