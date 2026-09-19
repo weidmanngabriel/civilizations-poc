@@ -11,6 +11,7 @@ export type Role = "worker" | "carrier" | "merchant" | "builder";
 export type Profession =
   | "woodcutter"
   | "fisher"
+  | "scout"
   | "builder"
   | "carrier"
   | "merchant"
@@ -169,6 +170,8 @@ export interface Person {
   home?: BuildingId;
   /** Temporary direct movement order; normal autonomous work resumes after arrival. */
   manualMoveTarget?: Hex;
+  /** Explicit scout order to walk to a target and erect a waypost there. */
+  scoutWaypostTask?: { target: Hex; buildProgress: number };
   merchantRoute?: MerchantRoute;
   farmTask?: FarmTask;
   woodcutter?: boolean;

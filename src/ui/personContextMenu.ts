@@ -23,6 +23,7 @@ const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT = "poc-person-context-toggle-requested";
 const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
+const WAYPOST_PLACEMENT_REQUESTED_EVENT = "poc-waypost-placement-requested";
 
 type ActionId =
   | "profession"
@@ -31,7 +32,8 @@ type ActionId =
   | "workarea"
   | "move"
   | "eat"
-  | "sleep";
+  | "sleep"
+  | "waypost";
 
 type Action = {
   id: ActionId;
@@ -48,6 +50,7 @@ const ACTIONS: Action[] = [
   { id: "move", slot: 5, icon: "👣", label: "Bewegen" },
   { id: "eat", slot: 6, icon: "🍞", label: "Essen" },
   { id: "sleep", slot: 7, icon: "💤", label: "Schlafen" },
+  { id: "waypost", slot: 8, icon: "🪧", label: "Wegweiser" },
 ];
 
 const isEditableTarget = (target: EventTarget | null): boolean => {
@@ -101,6 +104,7 @@ export function mountPersonContextMenu(world: World): void {
     if (action.id === "workarea") return supportsWorkArea(person);
     if (action.id === "eat") return (person.hunger ?? 100) < 100;
     if (action.id === "sleep") return (person.sleep ?? 100) < 100;
+    if (action.id === "waypost") return currentProfession(world, person) === "scout";
     return true;
   };
 
@@ -176,6 +180,13 @@ export function mountPersonContextMenu(world: World): void {
     if (action === "workplace") return beginMode("workplace");
     if (action === "home") return beginMode("home");
     if (action === "move") return beginMode("move");
+    if (action === "waypost") {
+      setMenuOpen(false);
+      window.dispatchEvent(new CustomEvent(WAYPOST_PLACEMENT_REQUESTED_EVENT, {
+        detail: { personId: person.id },
+      }));
+      return;
+    }
     if (action === "workarea") {
       setMenuOpen(false);
       window.dispatchEvent(new CustomEvent(WORK_AREA_MODE_EVENT, {

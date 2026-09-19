@@ -69,6 +69,7 @@ const stopCurrentWork = (world: World, person: Person): boolean => {
   person.fishingWaterTarget = undefined;
   person.fishingStartedAtTick = undefined;
   person.fishingWaitUntilTick = undefined;
+  person.scoutWaypostTask = undefined;
   person.extractor = undefined;
   person.resourceTarget = undefined;
   person.builder = undefined;

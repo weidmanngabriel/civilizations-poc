@@ -15,6 +15,7 @@ const isBusy = (person: Person): boolean =>
   Boolean(
     needDue(person) ||
     person.manualMoveTarget ||
+    person.scoutWaypostTask ||
     person.trip ||
     person.farmTask ||
     person.outdoorCarry ||
