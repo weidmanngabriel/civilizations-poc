@@ -21,7 +21,7 @@ Ein Wegweiser dient Bewohnern zur Orientierung in einem Bereich von **3,5 Weltka
 
 Für jede Verbindung erscheint am Pfosten ein eigenes Richtungsschild zum verbundenen Wegweiser. Dadurch erkennst du direkt, wie das Netz weiterführt.
 
-Auf dem Desktop zeigt die Maus zuerst den Ghost; Linksklick wählt das Ziel und Rechtsklick oder Escape bricht ab. Auf Touch setzt ein Tap nur die Vorschau, Ziehen verschiebt die Karte und der Bestätigungsbutton erteilt den Auftrag. Kundschafter dürfen für diesen Auftrag auch über die aktuelle Reichweite des Wegweisernetzes hinauslaufen, damit sie das Netz erweitern können.
+Auf dem Desktop zeigt die Maus zuerst den Ghost; Linksklick wählt das Ziel und Rechtsklick oder Escape bricht ab. Auf Touch setzt ein Tap nur die Vorschau, Ziehen verschiebt die Karte und der Bestätigungsbutton erteilt den Auftrag. Kundschafter sind nicht an das Wegweisernetz gebunden und dürfen frei über begehbares Terrain laufen. Dadurch können sie das Netz auch in bisher nicht erschlossene Gebiete erweitern.
 
 Bewohner nutzen das Wegweisernetz für längere Navigation verpflichtend, müssen die Wegweiser selbst aber nicht betreten. Bei ein oder zwei beteiligten Wegweiser-Nodes wird der konkrete Weg direkt lokal berechnet; bei längeren Reisen begrenzt die gewählte Node-Kette den Suchkorridor. Persönliche Arbeitsflaggen und Farmen bilden lokale Arbeits-Nodes: erst nach der globalen Anreise in deren Bereich läuft die eigentliche Arbeit lokal. Farmer kehren zwischen abgeschlossenen Feldaufgaben zur Farm zurück; Fischer kehren nur mit einem erfolgreichen Fang zur Flagge zurück. Gibt es keine gültige Route, bleibt die Person stehen und zeigt einen gelben Hinweis. Erst wenn sich das Wegweisernetz ändert, wird ein zuvor gescheitertes Ziel erneut geprüft.
 
