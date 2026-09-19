@@ -1,4 +1,4 @@
-import type { Person, Profession, World } from "../simulation/model";
+import type { EquipmentGood, Person, Profession, World } from "../simulation/model";
 import { canLearnProfession, currentProfession, PROFESSION_LABELS } from "../simulation/experience";
 import {
   canChangePersonProfession,
@@ -15,6 +15,7 @@ import {
   type PersonCommandMode,
 } from "../game/personCommandInteraction";
 import { WORK_AREA_MODE_EVENT } from "../game/workAreaInteraction";
+import { assignEquipment, EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentStock } from "../simulation/equipment";
 
 const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
@@ -24,6 +25,7 @@ const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT = "poc-person-context-toggle-requested";
 const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
 const WAYPOST_PLACEMENT_REQUESTED_EVENT = "poc-waypost-placement-requested";
+export const PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT = "poc-person-equipment-picker-requested";
 
 type ActionId =
   | "profession"
@@ -33,7 +35,8 @@ type ActionId =
   | "move"
   | "eat"
   | "sleep"
-  | "waypost";
+  | "waypost"
+  | "equipment";
 
 type Action = {
   id: ActionId;
@@ -51,6 +54,7 @@ const ACTIONS: Action[] = [
   { id: "eat", slot: 6, icon: "🍞", label: "Essen" },
   { id: "sleep", slot: 7, icon: "💤", label: "Schlafen" },
   { id: "waypost", slot: 8, icon: "🪧", label: "Wegweiser" },
+  { id: "equipment", slot: 9, icon: "🎒", label: "Ausrüstung" },
 ];
 
 const isEditableTarget = (target: EventTarget | null): boolean => {
@@ -70,8 +74,9 @@ export function mountPersonContextMenu(world: World): void {
   menu.innerHTML = `
     <div class="person-context-frame" role="menu"></div>
     <div class="person-context-picker" hidden>
-      <header><strong>Beruf wählen</strong><button type="button" data-context-close-picker aria-label="Berufsauswahl schließen">×</button></header>
+      <header><strong data-context-picker-title>Auswahl</strong><button type="button" data-context-close-picker aria-label="Auswahl schließen">×</button></header>
       <div class="person-context-professions"></div>
+      <div class="person-context-equipment" hidden></div>
     </div>`;
   main.append(menu);
 
@@ -86,6 +91,8 @@ export function mountPersonContextMenu(world: World): void {
   const frame = menu.querySelector<HTMLElement>(".person-context-frame")!;
   const picker = menu.querySelector<HTMLElement>(".person-context-picker")!;
   const professionList = menu.querySelector<HTMLElement>(".person-context-professions")!;
+  const equipmentList = menu.querySelector<HTMLElement>(".person-context-equipment")!;
+  const pickerTitle = menu.querySelector<HTMLElement>("[data-context-picker-title]")!;
   const overlayTitle = modeOverlay.querySelector<HTMLElement>("strong")!;
   const overlayHint = modeOverlay.querySelector<HTMLElement>("span")!;
 
@@ -123,6 +130,9 @@ export function mountPersonContextMenu(world: World): void {
   const renderProfessionPicker = (): void => {
     const person = selectedPerson();
     if (!person) return;
+    pickerTitle.textContent = "Beruf wählen";
+    professionList.hidden = false;
+    equipmentList.hidden = true;
     const current = currentProfession(world, person);
     professionList.innerHTML = [
       `<button type="button" data-profession="" aria-pressed="${current === undefined}">👤 Frei</button>`,
@@ -133,6 +143,25 @@ export function mountPersonContextMenu(world: World): void {
           `<button type="button" data-profession="${profession}" aria-pressed="${current === profession}">${label}</button>`,
         ),
     ].join("");
+  };
+
+  const renderEquipmentPicker = (): void => {
+    const person = selectedPerson();
+    if (!person) return;
+    pickerTitle.textContent = "Ausrüstung zuweisen";
+    professionList.hidden = true;
+    equipmentList.hidden = false;
+    const goods: EquipmentGood[] = ["woodenTool", "shoes"];
+    equipmentList.innerHTML = goods.map((good) => {
+      const definition = EQUIPMENT_DEFINITIONS[good];
+      const equipped = equipmentForSlot(person, definition.slot)?.good === good;
+      const available = equipmentStock(world, good);
+      return `<button type="button" data-equipment-good="${good}" aria-pressed="${equipped}" ${available <= 0 && !equipped ? "disabled" : ""}>
+        <span aria-hidden="true">${definition.icon}</span>
+        <strong>${definition.label}</strong>
+        <small>${equipped ? "Zugewiesen" : `${available} verfügbar`}</small>
+      </button>`;
+    }).join("");
   };
 
   const setMenuOpen = (open: boolean): void => {
@@ -177,6 +206,11 @@ export function mountPersonContextMenu(world: World): void {
       picker.hidden = false;
       return;
     }
+    if (action === "equipment") {
+      renderEquipmentPicker();
+      picker.hidden = false;
+      return;
+    }
     if (action === "workplace") return beginMode("workplace");
     if (action === "home") return beginMode("home");
     if (action === "move") return beginMode("move");
@@ -212,9 +246,20 @@ export function mountPersonContextMenu(world: World): void {
       picker.hidden = true;
       return;
     }
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-profession]");
     const person = selectedPerson();
-    if (!button || !person) return;
+    if (!person) return;
+    const equipmentButton = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-equipment-good]");
+    if (equipmentButton) {
+      const good = equipmentButton.dataset.equipmentGood as EquipmentGood;
+      if (!assignEquipment(world, person.id, good)) return;
+      setMenuOpen(false);
+      window.dispatchEvent(new CustomEvent(PERSON_SELECTION_REQUESTED_EVENT, {
+        detail: { id: person.id, focus: false },
+      }));
+      return;
+    }
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-profession]");
+    if (!button) return;
     const profession = button.dataset.profession as Profession | "";
     if (!setPersonProfession(world, person.id, profession || undefined)) return;
     setMenuOpen(false);
@@ -249,6 +294,13 @@ export function mountPersonContextMenu(world: World): void {
       }));
   });
   window.addEventListener(PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT, () => setMenuOpen(menu.hidden));
+  window.addEventListener(PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT, (event) => {
+    const personId = (event as CustomEvent<{ personId: number }>).detail.personId;
+    selectedPersonId = personId;
+    setMenuOpen(true);
+    renderEquipmentPicker();
+    picker.hidden = false;
+  });
   window.addEventListener(UI_MENU_OPENED_EVENT, () => setMenuOpen(false));
   window.addEventListener(BUILD_MODE_EVENT, () => setMenuOpen(false));
   window.addEventListener(MERCHANT_TARGET_MODE_EVENT, () => setMenuOpen(false));
