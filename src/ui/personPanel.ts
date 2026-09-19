@@ -40,6 +40,7 @@ const ALERT_META: Record<PersonAlertSeverity, { icon: string; label: string }> =
 const PROFESSION_ICONS: Record<Profession, string> = {
   woodcutter: "🪓",
   fisher: "🎣",
+  hunter: "🏹",
   scout: "🧭",
   builder: "🔨",
   carrier: "📦",

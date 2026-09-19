@@ -457,6 +457,7 @@ export class MainScene extends Phaser.Scene {
   private personMarker(p: Person): string {
     if (p.woodcutter) return "🪓";
     if (p.fisher) return "🎣";
+    if (p.hunter) return "🏹";
     if (p.extractor === "clay") return "🟤";
     if (p.extractor === "stone") return "⛏️";
     if (p.builder) return "🔨";

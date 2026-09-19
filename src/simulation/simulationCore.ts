@@ -57,6 +57,7 @@ const freePerson = (world: World): Person | undefined =>
       !candidate.assignment &&
       !candidate.woodcutter &&
       !candidate.fisher &&
+      !candidate.hunter &&
       !candidate.extractor &&
       !candidate.builder,
   );

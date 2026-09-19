@@ -65,6 +65,9 @@ const stopCurrentWork = (world: World, person: Person): boolean => {
   person.farmTask = undefined;
   person.woodcutter = undefined;
   person.fisher = undefined;
+  person.hunter = undefined;
+  person.huntTarget = undefined;
+  person.nextRangedAttackTick = undefined;
   person.fishingSpot = undefined;
   person.fishingWaterTarget = undefined;
   person.fishingStartedAtTick = undefined;
@@ -101,6 +104,7 @@ export function setPersonProfession(
   person.profession = profession;
   if (profession === "woodcutter") person.woodcutter = true;
   else if (profession === "fisher") person.fisher = true;
+  else if (profession === "hunter") person.hunter = true;
   else if (profession === "clayDigger") person.extractor = "clay";
   else if (profession === "stonecutter") person.extractor = "stone";
   else if (profession === "builder") person.builder = true;

@@ -22,6 +22,11 @@ import {
 
 export const WORK_AREA_RADIUS_WORLD_TILES = 2.5;
 export const WORK_AREA_RADIUS = WORK_AREA_RADIUS_WORLD_TILES * GRID_REFINEMENT;
+export const HUNTER_WORK_AREA_RADIUS_WORLD_TILES = WORK_AREA_RADIUS_WORLD_TILES * 2;
+export const HUNTER_WORK_AREA_RADIUS = HUNTER_WORK_AREA_RADIUS_WORLD_TILES * GRID_REFINEMENT;
+
+const workAreaRadiusFor = (person: Person): number =>
+  person.hunter ? HUNTER_WORK_AREA_RADIUS : WORK_AREA_RADIUS;
 
 const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "wheat", "flour", "water", "bread", "fish", "clay", "rubble", "brick", "stoneBlock"];
 const FISHING_WAIT_TICKS = 5 * CONFIG.simulationHz;
@@ -34,7 +39,7 @@ const storageCarrierWorkplace = (world: World, person: Person): Building | undef
     (building.kind === "warehouse" || building.kind === "hq"));
 };
 
-export const supportsWorkArea = (person: Person): boolean => Boolean(person.woodcutter || person.fisher || person.extractor || person.workArea);
+export const supportsWorkArea = (person: Person): boolean => Boolean(person.woodcutter || person.fisher || person.hunter || person.extractor || person.workArea);
 export const workAreaContains = (person: Person, position: Hex): boolean =>
   Boolean(person.workArea && hexDistance(person.workArea.center, position) <= person.workArea.radius);
 
@@ -59,7 +64,7 @@ function defaultWorkAreaCenter(world: World, person: Person): Hex {
 export function ensureWorkArea(world: World, person: Person, preferredCenter?: Hex): void {
   if (person.workArea) return;
   const center = preferredCenter ?? defaultWorkAreaCenter(world, person);
-  person.workArea = { center: { q: center.q, r: center.r }, radius: WORK_AREA_RADIUS };
+  person.workArea = { center: { q: center.q, r: center.r }, radius: workAreaRadiusFor(person) };
 }
 
 export function clearWorkArea(person: Person): void { person.workArea = undefined; }
@@ -510,8 +515,9 @@ export function syncWorkAreas(world: World): void {
   for (const person of world.people) {
     const resourceWorker = Boolean(person.woodcutter || person.extractor);
     const fisher = Boolean(person.fisher);
+    const hunter = Boolean(person.hunter);
     const storageCarrier = Boolean(storageCarrierWorkplace(world, person));
-    if (!resourceWorker && !fisher && !storageCarrier) { clearWorkArea(person); continue; }
+    if (!resourceWorker && !fisher && !hunter && !storageCarrier) { clearWorkArea(person); continue; }
     if (resourceWorker && !person.workArea && !initializeResourceWorker(world, person)) continue;
     ensureWorkArea(world, person);
 
@@ -540,17 +546,17 @@ export function syncWorkAreas(world: World): void {
 
     if (resourceWorker) enforceResourceWorker(world, person);
     else if (fisher) enforceFisher(world, person);
-    else enforceStorageCarrier(world, person);
+    else if (!hunter) enforceStorageCarrier(world, person);
   }
 }
 
 export function setWorkAreaCenter(world: World, personId: number, center: Hex): boolean {
   const person = world.people.find((candidate) => candidate.id === personId);
-  const eligible = Boolean(person && (person.woodcutter || person.fisher || person.extractor || storageCarrierWorkplace(world, person)));
+  const eligible = Boolean(person && (person.woodcutter || person.fisher || person.hunter || person.extractor || storageCarrierWorkplace(world, person)));
   if (!person || !eligible) return false;
   if (!world.tiles.some((tile) => tile.q === center.q && tile.r === center.r)) return false;
   ensureWorkArea(world, person, center);
-  person.workArea = { center: { q: center.q, r: center.r }, radius: WORK_AREA_RADIUS };
+  person.workArea = { center: { q: center.q, r: center.r }, radius: workAreaRadiusFor(person) };
   if (person.resourceTarget) {
     const target = world.naturalResources.find((resource) => resource.id === person.resourceTarget);
     if (!target || !workAreaContains(person, target.position)) {
@@ -569,6 +575,10 @@ export function setWorkAreaCenter(world: World, personId: number, center: Hex): 
     person.path = [];
     person.movement = 0;
     person.active = false;
+  }
+  if (person.huntTarget) {
+    const target = world.animals?.find((animal) => animal.id === person.huntTarget);
+    if (!target || !workAreaContains(person, target.position)) person.huntTarget = undefined;
   }
   if (person.trip && !person.trip.picked) {
     const sourcePosition = tripSourcePosition(world, person);

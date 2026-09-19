@@ -20,6 +20,8 @@ import {
 } from "./spatial";
 import { hexDistance as fineHexDistance, key, tileIndex, walkable } from "./hex";
 import { ensureInitialWaypost } from "./wayposts";
+import { spawnAnimalGroup } from "./wildlife";
+import { SIMULATION_HZ } from "./timing";
 import {
   naturalResourceBlocksMovement,
   naturalResourceFootprint,
@@ -29,7 +31,7 @@ const BASE_MOVEMENT_TILES_PER_SECOND = 2.5 / 3;
 
 export const CONFIG = {
   population: 12,
-  simulationHz: 60,
+  simulationHz: SIMULATION_HZ,
   decisionIntervalTicks: 60,
   duration: 240,
   spatialScale: GRID_REFINEMENT,
@@ -469,6 +471,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     ...(suppliedStart ? { unlockedTechnologies: [...STARTING_TECHNOLOGIES] } : {}),
     buildings,
     naturalResources,
+    ...(suppliedStart ? { animals: [], animalGroups: [], projectiles: [] } : {}),
     ...(suppliedStart ? { wayposts: [] } : {}),
     tiles,
     people,
@@ -481,6 +484,10 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
       const position = startPositions[index];
       if (position) person.position = { ...position };
     }
+
+    spawnAnimalGroup(world, "hare", scaledAt(10, 6), 4);
+    spawnAnimalGroup(world, "hare", scaledAt(24, 14), 4);
+    spawnAnimalGroup(world, "hare", scaledAt(33, 18), 4);
   }
   return attachNeeds(attachSleep(world));
 }

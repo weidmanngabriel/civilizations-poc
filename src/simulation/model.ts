@@ -11,6 +11,7 @@ export type Role = "worker" | "carrier" | "merchant" | "builder";
 export type Profession =
   | "woodcutter"
   | "fisher"
+  | "hunter"
   | "scout"
   | "builder"
   | "carrier"
@@ -192,6 +193,11 @@ export interface Person {
   farmTask?: FarmTask;
   woodcutter?: boolean;
   fisher?: boolean;
+  hunter?: boolean;
+  /** Current wild-animal target for autonomous hunting. */
+  huntTarget?: AnimalId;
+  /** Earliest simulation tick at which another ranged attack may start. */
+  nextRangedAttackTick?: number;
   /** Current shoreline cell used for the active or next fishing cycle. */
   fishingSpot?: Hex;
   /** Adjacent water cell used by the visible fishing line/hook. */
@@ -231,12 +237,51 @@ export interface Person {
   navigationFailedTargets?: string[];
   trip?: Trip;
 }
+export type AnimalId = string;
+export type AnimalGroupId = string;
+export type AnimalKind = "hare";
+export interface AnimalGroup {
+  id: AnimalGroupId;
+  kind: AnimalKind;
+  home: Hex;
+}
+export interface Animal {
+  id: AnimalId;
+  kind: AnimalKind;
+  groupId: AnimalGroupId;
+  position: Hex;
+  path: Hex[];
+  movement: number;
+  nextMoveTick: number;
+  fleeingUntilTick?: number;
+  fleeFrom?: Hex;
+}
+export type ProjectileKind = "arrow";
+export type RangedEntityRef =
+  | { kind: "person"; id: number }
+  | { kind: "animal"; id: AnimalId };
+export interface Projectile {
+  id: string;
+  kind: ProjectileKind;
+  source: RangedEntityRef;
+  target: RangedEntityRef;
+  start: Hex;
+  targetPosition: Hex;
+  startedAtTick: number;
+  impactAtTick: number;
+  hit: boolean;
+  rewardProfession?: Profession;
+}
+
 export interface World {
   round: number;
   nextId: number;
   nextBuildingId: number;
   nextFieldId: number;
   nextWaypostId?: number;
+  nextAnimalId?: number;
+  nextAnimalGroupId?: number;
+  nextProjectileId?: number;
   /** Incremented whenever the waypost network changes, invalidating failed-route caches. */
   waypostRevision?: number;
   /** Loose-good ids are initialized lazily for compatibility with older fixtures. */
@@ -248,6 +293,11 @@ export interface World {
   people: Person[];
   buildings: Building[];
   naturalResources: NaturalResource[];
+  /** Extensible wildlife entities and their social groups. */
+  animals?: Animal[];
+  animalGroups?: AnimalGroup[];
+  /** In-flight ranged attacks; presentation interpolates these without owning combat state. */
+  projectiles?: Projectile[];
   wayposts?: Waypost[];
   /** Physical goods lying on map cells. Stacks are always walkable and never affect routing. */
   looseGoods?: LooseGoodStack[];
