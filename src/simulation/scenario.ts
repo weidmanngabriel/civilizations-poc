@@ -18,7 +18,7 @@ import {
   refinedCellCluster,
   scaleHex,
 } from "./spatial";
-import { key, tileIndex } from "./hex";
+import { hexDistance as fineHexDistance, key, tileIndex, walkable } from "./hex";
 import { ensureInitialWaypost } from "./wayposts";
 import {
   naturalResourceBlocksMovement,
@@ -75,6 +75,66 @@ const at = (col: number, row: number): Hex => ({
   q: col - Math.floor(row / 2),
   r: row,
 });
+
+const offsetColumn = (position: Hex): number =>
+  position.q + Math.floor(position.r / 2);
+
+const startingResidentPositions = (world: World, count: number): Hex[] => {
+  const hq = world.buildings.find((building) => building.kind === "hq" && !building.retired);
+  if (!hq || count <= 0) return [];
+
+  const tiles = tileIndex(world.tiles);
+  const buildingCells = new Set(
+    world.buildings
+      .filter((building) => !building.retired)
+      .flatMap((building) => building.footprint ?? [building.position])
+      .map(key),
+  );
+  const resourceCells = new Set(
+    world.naturalResources
+      .filter((resource) => !resource.depleted)
+      .flatMap((resource) => naturalResourceFootprint(resource).map(key)),
+  );
+  const waypostCells = new Set((world.wayposts ?? []).map((waypost) => key(waypost.position)));
+
+  const valid = (position: Hex): boolean => {
+    const tile = tiles.get(key(position));
+    return Boolean(
+      tile &&
+      (tile.terrain === "grass" || tile.terrain === "road") &&
+      walkable(tile) &&
+      !tile.bush &&
+      !buildingCells.has(key(position)) &&
+      !resourceCells.has(key(position)) &&
+      !waypostCells.has(key(position)),
+    );
+  };
+
+  const candidates = new Map<string, Hex>();
+  const baseCol = offsetColumn(hq.position);
+  const lateralOffsets = [0, -1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6];
+
+  // Prefer a compact fan a few micro-tiles south of the HQ entrance.
+  for (let rowOffset = 3; rowOffset <= 10; rowOffset += 1)
+    for (const colOffset of lateralOffsets) {
+      const candidate = at(baseCol + colOffset, hq.position.r + rowOffset);
+      if (valid(candidate)) candidates.set(key(candidate), candidate);
+    }
+
+  // Keep creation robust if the authored HQ or nearby terrain changes later.
+  const preferred = at(baseCol, hq.position.r + 5);
+  for (const tile of [...world.tiles]
+    .filter((tile) => valid(tile))
+    .sort(
+      (a, b) =>
+        fineHexDistance(a, preferred) - fineHexDistance(b, preferred) ||
+        a.r - b.r ||
+        a.q - b.q,
+    ))
+    candidates.set(key(tile), { q: tile.q, r: tile.r });
+
+  return [...candidates.values()].slice(0, count);
+};
 
 const scaledAt = (col: number, row: number): Hex => scaleHex(coarseAt(col, row));
 
@@ -414,7 +474,14 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     people,
   };
 
-  if (suppliedStart) ensureInitialWaypost(world);
+  if (suppliedStart) {
+    ensureInitialWaypost(world);
+    const startPositions = startingResidentPositions(world, people.length);
+    for (const [index, person] of people.entries()) {
+      const position = startPositions[index];
+      if (position) person.position = { ...position };
+    }
+  }
   return attachNeeds(attachSleep(world));
 }
 

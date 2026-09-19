@@ -27,7 +27,6 @@ test("registered HQ uses its authored entrance as runtime interaction position",
     setOf(hq.footprint ?? []),
     setOf(definitionFootprintForBuilding(hq) ?? []),
   );
-  assert.ok(world.people.every((person) => key(person.position) === key(hq.position)));
 });
 
 test("registered blocked cells block movement while the authored entrance stays walkable", () => {

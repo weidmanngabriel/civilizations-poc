@@ -192,11 +192,15 @@ export function wakeIdlePeople(world: World): void {
 }
 
 export function syncIdleBehavior(world: World): void {
-  const buildingCells = new Set(
-    world.buildings
-      .filter((building) => !building.retired)
-      .flatMap((building) => buildingFootprint(building).map(key)),
-  );
+  const activeBuildings = world.buildings.filter((building) => !building.retired);
+  const buildingByCell = new Map<string, Building>();
+  const buildingCells = new Set<string>();
+  for (const building of activeBuildings)
+    for (const position of buildingFootprint(building)) {
+      const positionKey = key(position);
+      buildingCells.add(positionKey);
+      buildingByCell.set(positionKey, building);
+    }
   const reserved = new Set<string>();
   for (const person of world.people) {
     if (person.idleTarget) reserved.add(key(person.idleTarget));
@@ -214,7 +218,9 @@ export function syncIdleBehavior(world: World): void {
       continue;
     }
 
-    const anchor = idleAnchor(world, person);
+    const anchor =
+      idleAnchor(world, person) ??
+      buildingByCell.get(key(person.position))?.position;
     if (!anchor) continue;
     if (person.idleTarget && same(person.position, person.idleTarget)) {
       person.active = true;

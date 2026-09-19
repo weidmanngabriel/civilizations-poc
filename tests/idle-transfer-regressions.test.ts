@@ -31,6 +31,13 @@ test("idle residents are shown as waiting instead of working", () => {
 test("generic rerouting leaves a free idle resident in place", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
+  const hq = world.buildings.find((building) => building.id === "hq")!;
+  const outside = world.tiles.find(
+    (tile) =>
+      tile.terrain === "grass" &&
+      (tile.q !== hq.position.q || tile.r !== hq.position.r),
+  )!;
+  person.position = { q: outside.q, r: outside.r };
   const idlePosition = { ...person.position };
 
   tick(world);
