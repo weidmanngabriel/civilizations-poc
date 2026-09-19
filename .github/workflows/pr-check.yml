@@ -1,7 +1,7 @@
-name: Temporary PR check
+name: Temporary branch check
 on:
-  pull_request:
-    branches: [main]
+  push:
+    branches: [agent/menu-and-candidate-ordering]
 permissions:
   contents: read
 jobs:
@@ -16,5 +16,3 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-
-# Trigger validation after PR creation.
