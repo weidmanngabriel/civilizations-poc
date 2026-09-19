@@ -193,6 +193,8 @@ Arbeitsbereich erscheint nur bei Personen mit persönlicher Arbeitsflagge. Arbei
 
 Beruf und Arbeitsplatz sind getrennte Entscheidungen. Ein Bewohner kann daher einen Beruf besitzen, ohne bereits einen passenden Arbeitsplatz zu haben. Berufserfahrung bleibt wie bisher personenbezogen erhalten.
 
+Gebäude weisen Personal **nicht mehr über Plus/Minus-Regler automatisch zu**. Stattdessen zeigen fertige Gebäude ihre vorhandenen Personalplätze je Rolle. Besetzte Plätze zeigen Name und aktuelle Tätigkeit als anklickbaren Personeneintrag; Tippen oder Klicken wählt diese konkrete Person und zentriert die Kamera auf sie. Ein freier Platz öffnet über **Geeignete Personen** die Personenübersicht in einem Zuweisungsmodus. Solange keine zusätzlichen Eignungsregeln existieren, stehen dort alle anderen Bewohner zur Auswahl; Bewohner ohne Beruf stehen zuerst, danach bereits beschäftigte Personen. Wird eine bereits beschäftigte Person gewählt, muss der Wechsel bestätigt werden.
+
 ## Darstellung, Zoom und Eingabe
 
 Bewohner bleiben ungefähr so groß wie eine Mikrozelle. Namen, Beruf/Tätigkeit und getragene Waren liegen in Weltkoordinaten und skalieren mit der Karte. Bewohner werden visuell vor natürlichen Ressourcen, Büschen und losen Waren dargestellt, damit sie beim Überqueren nicht von diesen verdeckt werden.
