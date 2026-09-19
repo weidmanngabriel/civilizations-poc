@@ -283,6 +283,8 @@ export interface Projectile {
   targetPosition: Hex;
   startedAtTick: number;
   impactAtTick: number;
+  /** Presentation lifetime after impact, persisted with the authoritative projectile. */
+  impactLifetimeTicks?: number;
   /** First tick on which impact effects were resolved. */
   resolvedAtTick?: number;
   /** Tick after which the impacted projectile is removed from the world. */
