@@ -209,6 +209,18 @@ Gebäude weisen Personal **nicht mehr über Plus/Minus-Regler automatisch zu**. 
 
 Auswahllisten werden nach sichtbarer Bezeichnung alphabetisch sortiert. **Wegweiser** ist kein Baumenü-Eintrag mehr, sondern eine kontextsensitive Aktion des Berufs **Kundschafter**. **Pause/Fortsetzen**, Simulationsgeschwindigkeit und **Debug** liegen im Spielmenü statt dauerhaft über der Karte. Das Personen-Kontextmenü schließt sich nach einer erfolgreich gestarteten Aktion sowie immer dann, wenn ein anderes Hauptmenü geöffnet wird.
 
+## Jäger und Kleinwild
+
+Der Jäger ist ein freier Außenberuf mit eigener Arbeitsflagge. Sein Arbeitsradius beträgt 5 Weltkacheln und ist damit doppelt so groß wie der Bereich eines normalen Abbauers oder Fischers. Er sucht innerhalb dieses Bereichs selbständig Kleinwild, nähert sich bis auf Bogenschussweite und verschießt sichtbare Pfeile.
+
+Die Trefferchance steigt mit der Jägererfahrung linear von 20 % auf 95 %. Wird auf ein bereits fliehendes Tier geschossen, gilt nur die Hälfte der normalen Trefferchance. Ein Treffer erlegt Kleinwild sofort. Jägererfahrung entsteht ausschließlich durch tatsächlich erlegtes Wild.
+
+Die erste Tierart sind Hasen. Sie leben in kleinen Gruppen mit einem gemeinsamen Heimatpunkt, bleiben aber einzelne Simulationsobjekte. Im Normalzustand bewegen sie sich alle 4–8 Sekunden einige Schritte in einem leicht zick-zack-förmigen Hoppelmuster. Ihre zufällige Bewegungsrichtung wird am stärksten zum aktuellen Zentrum der eigenen Gruppe, danach zum Heimatpunkt und zusätzlich durch Zufall beeinflusst. Dadurch bleiben Gruppen locker zusammen, ohne als starre Formation zu laufen.
+
+Wird ein Tier der Gruppe beschossen, fliehen alle lebenden Gruppenmitglieder für fünf Sekunden individuell vom Angriff weg. Während dieser Zeit gibt es keine Gruppensammelbewegung. Danach greift die normale Gewichtung wieder, sodass sich die Tiere mit der Zeit erneut sammeln.
+
+Tierarten und Fernangriffe sind bewusst allgemein modelliert. Weitere Tiere können eigene Bewegungs- und Fluchtparameter erhalten. Dieselbe Projektil-/Schussbasis soll später auch Fernkampfsoldaten tragen.
+
 ## Handbuch und Hilfe
 
 Das In-App-Handbuch bleibt eine einzige modale Oberfläche mit einer Hauptnavigation zwischen den Themen-Seiten. Innerhalb der aktuellen Seite gibt es zusätzlich eine kompakte Schnellnavigation: Ein runder Listen-Button öffnet die vorhandenen Abschnitte und springt per Klick oder Tap direkt zur gewählten Überschrift. Die zweite Navigationsebene wird aus den Abschnittsüberschriften des Handbuchtexts abgeleitet, damit Inhalt und Navigation nicht getrennt gepflegt werden müssen.
