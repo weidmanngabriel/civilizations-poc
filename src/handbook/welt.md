@@ -10,7 +10,7 @@ Abgebaute Waren bleiben sichtbar in der Welt liegen, bis sie abgeholt werden.
 
 ## Kleinwild
 
-Hasen leben in kleinen Gruppen und bewegen sich nur gelegentlich einige Schritte. Eine Gruppe wandert mit der Zeit durch ihr Gebiet und behält dabei meist für eine Weile eine grobe Wanderrichtung, während jedes Tier seinen eigenen kleinen Hoppelweg nimmt und locker bei den anderen bleibt. Die Tiere halten dabei Abstand und bleiben nicht auf derselben Stelle übereinander stehen. Werden sie beschossen, fliehen die Tiere einzeln auseinander und finden danach nach und nach wieder zusammen. Erlegte Hasen hinterlassen Fleisch als sichtbare Bodenware, die der erfolgreiche Jäger zu seiner Arbeitsflagge zurückträgt.
+Hasen leben in kleinen Gruppen und bewegen sich nur gelegentlich einige Schritte. Eine Gruppe wandert mit der Zeit durch ihr Gebiet und behält dabei meist für eine Weile eine grobe Wanderrichtung, während jedes Tier seinen eigenen kleinen Hoppelweg nimmt und locker bei den anderen bleibt. Die Tiere halten dabei Abstand und bleiben nicht auf derselben Stelle übereinander stehen. Werden sie beschossen, fliehen die Tiere einzeln auseinander und finden danach nach und nach wieder zusammen. Wildschweine laufen nach derselben Grundlogik durch die Landschaft, sind aber immer Einzelgänger. Erlegte Hasen hinterlassen Fleisch; Wildschweine hinterlassen Fleisch und Leder. Der erfolgreiche Jäger trägt die Beute einzeln zu seiner Arbeitsflagge zurück.
 
 ## Entstehende Wege
 
