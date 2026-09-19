@@ -15,7 +15,7 @@ v1 besitzt:
 - `head`: yaw und pitch
 - `leftArm`, `rightArm`: pitch
 - `leftLeg`, `rightLeg`: pitch
-- `torso`: keine editierbare Rotation in v1
+- `torso`: pitch um den Hüftpunkt; die Bewegung nimmt Kopf und Arme als gemeinsamen Oberkörper mit
 
 Winkel werden in Grad gespeichert. Sie sind absolute lokale Winkel relativ zum neutralen Parent-Transform.
 
@@ -120,4 +120,9 @@ The Character Lab supports a deterministic capture mode through query parameters
 
 `window.characterLab` exposes `captureFrame(progress)` and `captureFrames(progressValues)`. These use the same animation state as the UI and return PNG data URLs after an explicit render.
 
-`scripts/capture-character-lab.mjs` serves the production build locally, opens capture URLs with the Chrome binary available on the GitHub runner and writes 21 evenly spaced PNGs for the selected preset. CI uploads those PNGs as a `character-lab-review-<sha>` workflow artifact. This artifact is the preferred input for automated or agent-led visual review.
+`scripts/capture-character-lab.mjs` serves the production build locally and keeps one headless Chrome session open through the DevTools protocol. It writes 21 evenly spaced PNGs plus a low-resolution 640×480 WebM sampled from real rendered animation states. The default video uses 8 fps and VP9 with a high CRF so review remains quick and small. CI uploads PNG and WebM together as a `character-lab-review-<sha>` workflow artifact. This artifact is the preferred input for automated or agent-led visual review.
+
+
+### Woodcut motion
+
+The woodcut preset uses torso pitch around the hip joint to transfer weight into the axe swing. Root position shifts slightly backward during the wind-up and toward the imaginary tree at impact. Walking between work positions is authored as an inward-facing sidestep with continuous negative yaw values, preventing long rotational interpolation around the 0°/360° boundary.

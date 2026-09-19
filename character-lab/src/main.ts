@@ -4,7 +4,7 @@ import characterDefinitionJson from "./character.json";
 import { installPwaSupport } from "../../src/pwa";
 
 type Axis = "pitch" | "yaw";
-type PartId = "head" | "leftArm" | "rightArm" | "leftLeg" | "rightLeg";
+type PartId = "head" | "torso" | "leftArm" | "rightArm" | "leftLeg" | "rightLeg";
 type Pose = Record<string, number>;
 type Keyframe = { progress: number; pose: Pose; interpolation?: Interpolation };
 type Interpolation = "linear" | "easeIn" | "easeOut" | "easeInOut";
@@ -27,6 +27,7 @@ const CHARACTER = characterDefinitionJson as unknown as CharacterDefinition;
 const NEUTRAL_POSE: Pose = {
   "head.pitch": 0,
   "head.yaw": 0,
+  "torso.pitch": 0,
   "leftArm.pitch": 0,
   "rightArm.pitch": 0,
   "leftLeg.pitch": 0,
@@ -95,38 +96,45 @@ const WOODCUT: AnimationDefinition = {
   interpolation: "easeInOut",
   previewDurationMs: 10_000,
   keyframes: [
-    // Position A: south of the imaginary tree, facing inward.
-    { progress: 0.00, pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2, "root.yaw": 0 } },
-    { progress: 0.04, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2, "root.yaw": 0, "rightArm.pitch": -75, "leftArm.pitch": -35 } },
-    { progress: 0.08, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2, "root.yaw": 0, "rightArm.pitch": 65, "leftArm.pitch": 30 } },
-    { progress: 0.13, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2, "root.yaw": 0, "rightArm.pitch": -75, "leftArm.pitch": -35 } },
-    { progress: 0.17, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2, "root.yaw": 0, "rightArm.pitch": 65, "leftArm.pitch": 30 } },
-    { progress: 0.22, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2, "root.yaw": 0 } },
+    // Position A: two weighted chops. Small root shifts add a visible transfer of weight.
+    { progress: 0.000, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.00, "root.yaw": 0, "torso.pitch": 2 } },
+    { progress: 0.035, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.06, "root.yaw": 0, "torso.pitch": -16, "head.pitch": -7, "rightArm.pitch": -78, "leftArm.pitch": -48, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.080, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.88, "root.yaw": 0, "torso.pitch": 19, "head.pitch": 12, "rightArm.pitch": 72, "leftArm.pitch": 42, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.115, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.94, "root.yaw": 0, "torso.pitch": 7, "head.pitch": 5, "rightArm.pitch": 34, "leftArm.pitch": 18 } },
+    { progress: 0.145, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.06, "root.yaw": 0, "torso.pitch": -16, "head.pitch": -7, "rightArm.pitch": -78, "leftArm.pitch": -48, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.190, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -1.88, "root.yaw": 0, "torso.pitch": 19, "head.pitch": 12, "rightArm.pitch": 72, "leftArm.pitch": 42, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.220, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": -2.00, "root.yaw": 0, "torso.pitch": 2 } },
 
-    // Walk clockwise around the tree to position B.
-    { progress: 0.27, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.8, "root.z": -1.45, "root.yaw": 300, "leftArm.pitch": 24, "rightArm.pitch": -24, "leftLeg.pitch": -30, "rightLeg.pitch": 30 } },
-    { progress: 0.32, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.35, "root.z": -0.55, "root.yaw": 270, "leftArm.pitch": -24, "rightArm.pitch": 24, "leftLeg.pitch": 30, "rightLeg.pitch": -30 } },
-    { progress: 0.38, pose: { ...NEUTRAL_POSE, "root.x": 1.7, "root.z": 1.0, "root.yaw": 240 } },
+    // Sidestep around the tree while mostly facing inward. Negative yaw avoids long 300° spins.
+    { progress: 0.250, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.42, "root.z": -1.96, "root.yaw": -14, "torso.pitch": -2, "leftArm.pitch": 15, "rightArm.pitch": -8, "leftLeg.pitch": -28, "rightLeg.pitch": 28 } },
+    { progress: 0.280, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.88, "root.z": -1.78, "root.yaw": -30, "torso.pitch": 3, "leftArm.pitch": -15, "rightArm.pitch": 8, "leftLeg.pitch": 28, "rightLeg.pitch": -28 } },
+    { progress: 0.310, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.28, "root.z": -1.42, "root.yaw": -46, "torso.pitch": -2, "leftArm.pitch": 15, "rightArm.pitch": -8, "leftLeg.pitch": -28, "rightLeg.pitch": 28 } },
+    { progress: 0.340, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.58, "root.z": -0.78, "root.yaw": -72, "torso.pitch": 3, "leftArm.pitch": -15, "rightArm.pitch": 8, "leftLeg.pitch": 28, "rightLeg.pitch": -28 } },
+    { progress: 0.380, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.70, "root.z": 1.00, "root.yaw": -120, "torso.pitch": 2 } },
 
-    // Position B: two chops.
-    { progress: 0.42, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.7, "root.z": 1.0, "root.yaw": 240, "rightArm.pitch": -75, "leftArm.pitch": -35 } },
-    { progress: 0.46, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.7, "root.z": 1.0, "root.yaw": 240, "rightArm.pitch": 65, "leftArm.pitch": 30 } },
-    { progress: 0.51, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.7, "root.z": 1.0, "root.yaw": 240, "rightArm.pitch": -75, "leftArm.pitch": -35 } },
-    { progress: 0.55, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.7, "root.z": 1.0, "root.yaw": 240, "rightArm.pitch": 65, "leftArm.pitch": 30 } },
-    { progress: 0.58, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.7, "root.z": 1.0, "root.yaw": 240 } },
+    // Position B: repeat the same weighted two-chop rhythm.
+    { progress: 0.405, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.75, "root.z": 1.03, "root.yaw": -120, "torso.pitch": -16, "head.pitch": -7, "rightArm.pitch": -78, "leftArm.pitch": -48, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.445, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.60, "root.z": 0.94, "root.yaw": -120, "torso.pitch": 19, "head.pitch": 12, "rightArm.pitch": 72, "leftArm.pitch": 42, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.475, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.65, "root.z": 0.97, "root.yaw": -120, "torso.pitch": 7, "head.pitch": 5, "rightArm.pitch": 34, "leftArm.pitch": 18 } },
+    { progress: 0.505, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": 1.75, "root.z": 1.03, "root.yaw": -120, "torso.pitch": -16, "head.pitch": -7, "rightArm.pitch": -78, "leftArm.pitch": -48, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.545, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.60, "root.z": 0.94, "root.yaw": -120, "torso.pitch": 19, "head.pitch": 12, "rightArm.pitch": 72, "leftArm.pitch": 42, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.580, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.70, "root.z": 1.00, "root.yaw": -120, "torso.pitch": 2 } },
 
-    // Continue around the back of the tree to position C.
-    { progress: 0.63, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.0, "root.z": 1.65, "root.yaw": 205, "leftArm.pitch": 24, "rightArm.pitch": -24, "leftLeg.pitch": -30, "rightLeg.pitch": 30 } },
-    { progress: 0.68, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0, "root.z": 2.0, "root.yaw": 180, "leftArm.pitch": -24, "rightArm.pitch": 24, "leftLeg.pitch": 30, "rightLeg.pitch": -30 } },
-    { progress: 0.74, pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120 } },
+    // Continue the sidestep around the back while keeping the tree as the visual focus.
+    { progress: 0.610, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 1.42, "root.z": 1.40, "root.yaw": -136, "torso.pitch": -2, "leftArm.pitch": 15, "rightArm.pitch": -8, "leftLeg.pitch": -28, "rightLeg.pitch": 28 } },
+    { progress: 0.640, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.92, "root.z": 1.78, "root.yaw": -153, "torso.pitch": 3, "leftArm.pitch": -15, "rightArm.pitch": 8, "leftLeg.pitch": 28, "rightLeg.pitch": -28 } },
+    { progress: 0.670, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": 0.28, "root.z": 2.00, "root.yaw": -174, "torso.pitch": -2, "leftArm.pitch": 15, "rightArm.pitch": -8, "leftLeg.pitch": -28, "rightLeg.pitch": 28 } },
+    { progress: 0.700, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -0.55, "root.z": 1.92, "root.yaw": -196, "torso.pitch": 3, "leftArm.pitch": -15, "rightArm.pitch": 8, "leftLeg.pitch": 28, "rightLeg.pitch": -28 } },
+    { progress: 0.740, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.70, "root.z": 1.00, "root.yaw": -240, "torso.pitch": 2 } },
 
-    // Position C: two final chops.
-    { progress: 0.78, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120, "rightArm.pitch": -75, "leftArm.pitch": -35 } },
-    { progress: 0.82, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120, "rightArm.pitch": 65, "leftArm.pitch": 30 } },
-    { progress: 0.87, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120, "rightArm.pitch": -75, "leftArm.pitch": -35 } },
-    { progress: 0.91, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120, "rightArm.pitch": 65, "leftArm.pitch": 30 } },
-    { progress: 0.96, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120 } },
-    { progress: 1.00, pose: { ...NEUTRAL_POSE, "root.x": -1.7, "root.z": 1.0, "root.yaw": 120 } },
+    // Position C: two final chops and a short settle.
+    { progress: 0.765, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.75, "root.z": 1.03, "root.yaw": -240, "torso.pitch": -16, "head.pitch": -7, "rightArm.pitch": -78, "leftArm.pitch": -48, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.805, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.60, "root.z": 0.94, "root.yaw": -240, "torso.pitch": 19, "head.pitch": 12, "rightArm.pitch": 72, "leftArm.pitch": 42, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.835, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.65, "root.z": 0.97, "root.yaw": -240, "torso.pitch": 7, "head.pitch": 5, "rightArm.pitch": 34, "leftArm.pitch": 18 } },
+    { progress: 0.865, interpolation: "easeIn", pose: { ...NEUTRAL_POSE, "root.x": -1.75, "root.z": 1.03, "root.yaw": -240, "torso.pitch": -16, "head.pitch": -7, "rightArm.pitch": -78, "leftArm.pitch": -48, "leftLeg.pitch": 7, "rightLeg.pitch": -7 } },
+    { progress: 0.905, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.60, "root.z": 0.94, "root.yaw": -240, "torso.pitch": 19, "head.pitch": 12, "rightArm.pitch": 72, "leftArm.pitch": 42, "leftLeg.pitch": -7, "rightLeg.pitch": 7 } },
+    { progress: 0.950, interpolation: "easeInOut", pose: { ...NEUTRAL_POSE, "root.x": -1.70, "root.z": 1.00, "root.yaw": -240, "torso.pitch": 5, "rightArm.pitch": 20, "leftArm.pitch": 10 } },
+    { progress: 1.000, pose: { ...NEUTRAL_POSE, "root.x": -1.70, "root.z": 1.00, "root.yaw": -240, "torso.pitch": 2 } },
   ],
 };
 
@@ -212,6 +220,7 @@ app.innerHTML = `
           <label for="part">Körperteil</label>
           <select id="part">
             <option value="head">Kopf</option>
+            <option value="torso">Oberkörper</option>
             <option value="leftArm">Linker Arm</option>
             <option value="rightArm">Rechter Arm</option>
             <option value="leftLeg">Linkes Bein</option>
@@ -694,13 +703,17 @@ function initThree(): void {
       return new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), mat);
     }
 
+    const upperBody = new THREE.Group();
+    upperBody.position.set(0, 2.48, 0);
+    motionRoot.add(upperBody);
+
     const torso = box(1.5, 2.1, 0.75, shirt);
-    torso.position.y = 3.55;
-    motionRoot.add(torso);
+    torso.position.y = 1.07;
+    upperBody.add(torso);
 
     const headPivot = new THREE.Group();
-    headPivot.position.set(0, 4.75, 0);
-    motionRoot.add(headPivot);
+    headPivot.position.set(0, 2.27, 0);
+    upperBody.add(headPivot);
     const head = box(1.25, 1.25, 1.15, material);
     head.position.y = 0.62;
     headPivot.add(head);
@@ -708,20 +721,20 @@ function initThree(): void {
     hairTop.position.y = 1.18;
     headPivot.add(hairTop);
 
-    function limbPivot(x: number, y: number, length: number, mat: unknown, isArm: boolean) {
+    function limbPivot(parent: { add(object: unknown): void }, x: number, y: number, length: number, mat: unknown, isArm: boolean) {
       const pivot = new THREE.Group();
       pivot.position.set(x, y, 0);
-      motionRoot.add(pivot);
+      parent.add(pivot);
       const limb = box(isArm ? 0.48 : 0.58, length, isArm ? 0.48 : 0.62, mat);
       limb.position.y = -length / 2;
       pivot.add(limb);
       return pivot;
     }
 
-    const leftArm = limbPivot(-1.0, 4.35, 2.05, material, true);
-    const rightArm = limbPivot(1.0, 4.35, 2.05, material, true);
-    const leftLeg = limbPivot(-0.42, 2.48, 2.45, trousers, false);
-    const rightLeg = limbPivot(0.42, 2.48, 2.45, trousers, false);
+    const leftArm = limbPivot(upperBody, -1.0, 1.87, 2.05, material, true);
+    const rightArm = limbPivot(upperBody, 1.0, 1.87, 2.05, material, true);
+    const leftLeg = limbPivot(motionRoot, -0.42, 2.48, 2.45, trousers, false);
+    const rightLeg = limbPivot(motionRoot, 0.42, 2.48, 2.45, trousers, false);
 
     const axeHandleMaterial = new THREE.MeshStandardMaterial({ color: 0x70482a, roughness: 1, metalness: 0 });
     const axeHeadMaterial = new THREE.MeshStandardMaterial({ color: 0x6b7378, roughness: 0.75, metalness: 0.25 });
@@ -736,6 +749,7 @@ function initThree(): void {
     rightArm.add(axe);
 
     renderPose = (pose) => {
+      upperBody.rotation.x = THREE.MathUtils.degToRad(pose["torso.pitch"] ?? 0);
       headPivot.rotation.x = THREE.MathUtils.degToRad(pose["head.pitch"] ?? 0);
       headPivot.rotation.y = THREE.MathUtils.degToRad(pose["head.yaw"] ?? 0);
       leftArm.rotation.x = THREE.MathUtils.degToRad(pose["leftArm.pitch"] ?? 0);
