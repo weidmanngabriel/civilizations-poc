@@ -1,9 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { BuildableBuildingKind } from "../src/simulation/model";
-import { createWorld } from "../src/simulation/scenario";
+import type { PlaceableBuildingKind } from "../src/simulation/model";
+import { createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
 import { hexDistance, same } from "../src/simulation/hex";
 import { placeLooseGood } from "../src/simulation/looseGoods";
+import { buildingInteractionAt } from "../src/buildings/buildingDefinitionRegistry";
+import { WAYPOST_ORIENTATION_RADIUS } from "../src/simulation/wayposts";
 import {
   buildingFootprint,
   buildWithFootprint,
@@ -17,7 +19,7 @@ import {
 
 const findValidOrigin = (
   world: ReturnType<typeof createWorld>,
-  kind: BuildableBuildingKind,
+  kind: PlaceableBuildingKind,
 ) => {
   const tile = world.tiles.find((candidate) => canPlaceBuilding(world, candidate, kind));
   assert.ok(tile, "expected a valid building position");
@@ -53,6 +55,29 @@ test("valid anchor enumeration matches the authoritative placement rule", () => 
     valid.length,
     world.tiles.filter((position) => canPlaceBuilding(world, position, "warehouse")).length,
   );
+});
+
+test("player buildings require their entrance to be inside any placed waypost radius", () => {
+  const world = createDefaultGameWorld();
+  const origin = findValidOrigin(world, "house");
+  const entrance = buildingInteractionAt("house", origin);
+
+  world.wayposts = [];
+  assert.equal(canPlaceBuilding(world, origin, "house"), false);
+  assert.equal(validBuildingAnchors(world, "house").length, 0);
+
+  world.wayposts = [{
+    id: "isolated-waypost",
+    position: {
+      q: entrance.q + Math.floor(WAYPOST_ORIENTATION_RADIUS) + 1,
+      r: entrance.r,
+    },
+    connections: [],
+  }];
+  assert.equal(canPlaceBuilding(world, origin, "house"), false);
+
+  world.wayposts[0]!.position = { ...entrance };
+  assert.equal(canPlaceBuilding(world, origin, "house"), true);
 });
 
 test("buildable buildings occupy multiple tiles and keep a two-micro-cell clearance", () => {
