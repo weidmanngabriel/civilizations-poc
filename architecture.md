@@ -174,6 +174,8 @@ Direct person control is represented as explicit person state rather than a para
 
 The first slot mapping is intentionally sparse: 1 profession, 2 workplace, 3 home, 4 work area, 5 move, 6 eat, 7 sleep. Unavailable slots are omitted from rendering instead of being disabled, and future actions must reuse the remaining fixed positions rather than repacking existing actions.
 
+Building staffing UI no longer calls the legacy automatic `changeAssignment` controls. `src/ui/controls.ts` renders each building role as explicit occupied or empty staff slots. Occupied slots dispatch the existing person-selection request so map focus and the person inspector use the normal selection path. Empty slots dispatch a staff-picker request consumed by `src/ui/personPanel.ts`; that panel temporarily switches into a candidate mode, orders profession-free people first, then the remaining people, and uses `setPersonProfession` plus `setPersonWorkplace` for the chosen person. The older simulation assignment helpers remain available to internal/test code but are no longer a player-facing staffing path.
+
 ## Rendering and interaction
 
 Rendering stays decoupled from simulation ticks. `IncrementalMainScene` caches map/person presentation state; natural resources, loose goods, work-area flags and registered building sprites are presentation layers over authoritative simulation state. The person layer is rendered above natural resources, bushes and loose goods so residents remain visually readable while crossing resource visuals.
