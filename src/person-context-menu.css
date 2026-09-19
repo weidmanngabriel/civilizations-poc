@@ -133,7 +133,8 @@
   font-size: 18px;
 }
 
-.person-context-professions {
+.person-context-professions,
+.person-context-equipment {
   min-height: 0;
   overflow: auto;
   display: grid;
@@ -141,16 +142,36 @@
   gap: 6px;
 }
 
-.person-context-professions button {
+.person-context-equipment[hidden] {
+  display: none;
+}
+
+.person-context-professions button,
+.person-context-equipment button {
   min-height: 42px;
   padding: 7px 8px;
   border-radius: 9px;
   font-size: 10px;
 }
 
-.person-context-professions button[aria-pressed="true"] {
+.person-context-professions button[aria-pressed="true"],
+.person-context-equipment button[aria-pressed="true"] {
   border-color: rgb(243 211 106 / 78%);
   background: rgb(243 211 106 / 18%);
+}
+
+.person-context-equipment button {
+  display: grid;
+  place-items: center;
+  gap: 3px;
+}
+
+.person-context-equipment button > span {
+  font-size: 22px;
+}
+
+.person-context-equipment button > small {
+  opacity: .68;
 }
 
 .person-command-overlay {
@@ -227,7 +248,8 @@
     bottom: 13%;
   }
 
-  .person-context-professions {
+  .person-context-professions,
+  .person-context-equipment {
     grid-template-columns: 1fr;
   }
 
