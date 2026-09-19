@@ -14,6 +14,7 @@ import {
   gainProfessionExperience,
   productionMultiplier,
 } from "./experience";
+import { equipmentWorkSpeedMultiplier, recordToolWork } from "./equipment";
 
 const randomIndex = (w: World, length: number): number => {
   w.rngState = (Math.imul(w.rngState, 1664525) + 1013904223) >>> 0;
@@ -314,11 +315,13 @@ export function advanceFarmSystem(w: World): number[] {
     const currentStage = field.fieldStage;
     if (currentStage === undefined || currentStage >= 4) continue;
     const fertilizer = activeFertilizers.get(field.id);
-    field.fieldGrowthProgress = (field.fieldGrowthProgress ?? 0) + (fertilizer ? 3 : 1);
+    const fertilizerSpeed = fertilizer ? equipmentWorkSpeedMultiplier(fertilizer) : 1;
+    field.fieldGrowthProgress = (field.fieldGrowthProgress ?? 0) + (fertilizer ? 3 * fertilizerSpeed : 1);
     if (fertilizer) {
       gainProfessionExperience(fertilizer, "farmer");
-      fertilizer.farmTask!.progress++;
+      fertilizer.farmTask!.progress += fertilizerSpeed;
       fertilizer.progress = fertilizer.farmTask!.progress;
+      recordToolWork(w, fertilizer, fertilizerSpeed);
     }
     if (field.fieldGrowthProgress < CONFIG.fieldStageDurationTicks) continue;
     field.fieldStage = (currentStage + 1) as 2 | 3 | 4;
@@ -364,8 +367,10 @@ export function advanceFarmSystem(w: World): number[] {
     }
 
     gainProfessionExperience(p, "farmer");
-    task.progress++;
+    const workSpeed = equipmentWorkSpeedMultiplier(p);
+    task.progress += workSpeed;
     p.progress = task.progress;
+    recordToolWork(w, p, workSpeed);
     if (task.progress < CONFIG.farmActionDurationTicks) continue;
 
     if (task.kind === "sow") {

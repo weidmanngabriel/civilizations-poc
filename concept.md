@@ -179,7 +179,7 @@ Zusätzlich koppelt die Gebäudeprogression an die tatsächlich aufgebaute Produ
 
 Freischaltungen sind dauerhaft. Wird die auslösende Produktionsstätte später abgerissen, bleibt das bereits bekannte Gebäude verfügbar. Wohnhaus und Farm sind von Anfang an verfügbar; der Brunnen nicht mehr.
 
-Die Näherei verarbeitet **1 Leder zu 1 Paar Schuhen**. Leder stammt derzeit aus der Wildschweinjagd. Schuhe sind zunächst eine normale physische Ware; ein Ausrüstungs- oder Geschwindigkeitsbonus ist noch nicht Teil des aktuellen Systems.
+Die Näherei verarbeitet **1 Leder zu 1 Paar Schuhen**. Leder stammt derzeit aus der Wildschweinjagd. Bewohner besitzen jetzt die Ausrüstungsslots **Werkzeug** und **Schuhe**. Aktuell können ausschließlich **Holzwerkzeug** und **Schuhe** manuell zugewiesen werden. Schuhe erhöhen die Gehgeschwindigkeit um **30 %** und halten **2.500 Microtiles** Wegstrecke. Holzwerkzeug erhöht die Geschwindigkeit produktiver Arbeit einschließlich Bauen, Ressourcenabbau, Produktion, Farmarbeit und Angeln um **30 %** und hält **30 Arbeitsvorgänge**. Nach einer manuellen Zuweisung merkt sich die Person den Ausrüstungstyp und rüstet nach vollständigem Verschleiß automatisch denselben Typ aus einem Lager oder dem Hauptquartier nach, sobald Bestand verfügbar ist. Wird ein Slot in der Person-Detailansicht manuell abgelegt, endet diese automatische Neuausrüstung. Das Kontextmenü bietet nur Zuweisung; Ablegen erfolgt ausschließlich in der Detailansicht. Die Struktur ist bewusst um weitere spätere Slots wie Rüstung erweiterbar.
 
 ## Gebäudehinweise
 
@@ -200,7 +200,8 @@ Das Kontextmenü besitzt dauerhaft **16 feste Slots** als hohles Quadrat ohne Ec
 Der erste verbindliche Aktionssatz ist:
 
 - oben: **Beruf**, **Arbeitsplatz**, **Wohnung**, **Arbeitsbereich**;
-- rechts: **Bewegen**, **Essen**, **Schlafen**;
+- rechts: **Bewegen**, **Essen**, **Schlafen** sowie kontextabhängig **Wegweiser**;
+- unten rechts: **Ausrüstung** als gemeinsames Zuweisungsmenü für die aktuell unterstützten Ausrüstungstypen;
 - alle übrigen Slots bleiben vorerst leer.
 
 Arbeitsbereich erscheint nur bei Personen mit persönlicher Arbeitsflagge. Arbeitsplatz und Wohnung wechseln in einen Karten-Auswahlmodus, in dem nur gültige Ziele hervorgehoben werden. Bewegen wartet auf eine Zielzelle. Direkte Bewegungsbefehle haben bis zur Ankunft Vorrang vor normaler Autonomie; danach setzt die Person ihre reguläre Tätigkeit fort. Ein bewusst ausgelöster Ess- oder Schlafbefehl startet die bereits vorhandene Bedürfnislogik sofort. Eine zugewiesene Wohnung wird beim Schlafen gegenüber anderen Häusern bevorzugt.
@@ -241,7 +242,7 @@ Die Karte lässt sich per Mausrad und Pinch von 0,7× bis 10× zoomen. Gebäude-
 
 Räumliche Objekte werden weiterhin kompakt über ihre logische Position gespeichert; abgeleitete Tile- und Footprint-Snapshots werden nicht persistiert. Für registrierte Gebäudetypen werden Grundriss, visueller Anker und blockierte Zellen beim Laden aus der **aktuellen** Registry-Definition rekonstruiert.
 
-Die aktuelle Save-Version ist **3**. Die Version des visuellen Building-Schemas ist davon unabhängig. Frühere Save-Versionen oder ältere Datenformen werden bis v1 nicht migriert oder durch besondere Kompatibilitätslogik unterstützt.
+Die aktuelle Save-Version ist **4**. Die Version des visuellen Building-Schemas ist davon unabhängig. Frühere Save-Versionen oder ältere Datenformen werden bis v1 nicht migriert oder durch besondere Kompatibilitätslogik unterstützt.
 
 ## Noch offene spätere Produktentscheidungen
 

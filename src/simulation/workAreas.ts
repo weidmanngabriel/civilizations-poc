@@ -10,6 +10,7 @@ import {
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { awardProfessionExperience, professionExperience } from "./experience";
 import { startEatingAfterCompletedAction } from "./needs";
+import { equipmentWorkSpeedMultiplier, recordToolWork } from "./equipment";
 import {
   availableLooseGoodAmount,
   findLooseGoodDropPosition,
@@ -28,7 +29,7 @@ export const HUNTER_WORK_AREA_RADIUS = HUNTER_WORK_AREA_RADIUS_WORLD_TILES * GRI
 const workAreaRadiusFor = (person: Person): number =>
   person.hunter ? HUNTER_WORK_AREA_RADIUS : WORK_AREA_RADIUS;
 
-const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "wheat", "flour", "water", "bread", "fish", "meat", "leather", "clay", "rubble", "brick", "stoneBlock"];
+const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "shoes", "wheat", "flour", "water", "bread", "fish", "meat", "leather", "clay", "rubble", "brick", "stoneBlock"];
 const FISHING_WAIT_TICKS = 5 * CONFIG.simulationHz;
 const isComplete = (building: Building): boolean => !building.construction || building.construction.complete;
 
@@ -189,7 +190,7 @@ function startFishingCycle(world: World, person: Person): void {
   }
   person.fishingWaterTarget = { ...waterTarget };
   person.fishingStartedAtTick = world.round;
-  person.fishingWaitUntilTick = world.round + FISHING_WAIT_TICKS;
+  person.fishingWaitUntilTick = world.round + Math.ceil(FISHING_WAIT_TICKS / equipmentWorkSpeedMultiplier(person));
   person.active = true;
 }
 
@@ -246,6 +247,7 @@ export function routeOutdoorCarryToFlag(
 }
 
 function finishFishingCycle(world: World, person: Person): void {
+  recordToolWork(world, person, CONFIG.duration);
   const caught = nextRandomFraction(world) < fishingCatchChance(person);
   if (caught) awardProfessionExperience(person, "fisher");
   person.fishingWaterTarget = undefined;

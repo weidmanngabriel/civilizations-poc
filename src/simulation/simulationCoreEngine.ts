@@ -48,6 +48,13 @@ import {
 } from "../debug/performanceProfiler";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
+import {
+  equipmentMovementSpeedMultiplier,
+  equipmentWorkSpeedMultiplier,
+  maintainEquipment,
+  recordShoeTravel,
+  recordToolWork,
+} from "./equipment";
 import { interruptSleep } from "./sleep";
 import {
   availableLooseGoodAmount,
@@ -986,6 +993,7 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
       wood: 0,
       plank: 0,
       woodenTool: 0,
+      shoes: 0,
       wheat: 0,
       flour: 0,
       water: 0,
@@ -1132,7 +1140,8 @@ function movePeople(w: World): void {
     if (logisticsProfession) gainProfessionExperience(p, logisticsProfession);
     p.movement +=
       CONFIG.movementPerTick *
-      (logisticsProfession ? logisticsSpeedMultiplier(p, logisticsProfession) : 1);
+      (logisticsProfession ? logisticsSpeedMultiplier(p, logisticsProfession) : 1) *
+      equipmentMovementSpeedMultiplier(p);
     let moves = 0;
     while (p.path.length && moves < 4) {
       const next = p.path[0]!;
@@ -1142,6 +1151,7 @@ function movePeople(w: World): void {
       p.movement = Math.max(0, p.movement - cost);
       p.path.shift();
       p.position = { ...next };
+      recordShoeTravel(w, p, 1);
       recordTraffic(w, tile, resourceCells);
       moves++;
     }
@@ -1159,7 +1169,7 @@ function advanceNaturalResourceExtraction(
     const resource = w.naturalResources.find((candidate) => candidate.id === p.resourceTarget);
     if (!resource || resource.depleted || !same(p.position, resource.position)) continue;
     const profession = naturalResourceProfession(resource);
-    const speed = extractionSpeedMultiplier(p, profession);
+    const speed = extractionSpeedMultiplier(p, profession) * equipmentWorkSpeedMultiplier(p);
     if (
       p.progress === 0 &&
       !needDueBeforeNewTask(p) &&
@@ -1167,7 +1177,10 @@ function advanceNaturalResourceExtraction(
       resource.output < naturalOutputCapacity(resource)
     ) p.progress = speed;
     else if (p.progress > 0) p.progress += speed;
-    if (p.progress > 0) gainProfessionExperience(p, profession);
+    if (p.progress > 0) {
+      gainProfessionExperience(p, profession);
+      recordToolWork(w, p, speed);
+    }
     if (p.progress >= CONFIG.duration) {
       resource.output += 1;
       resource.remaining--;
@@ -1193,8 +1206,10 @@ function advanceConstruction(w: World): void {
     const construction = site.construction!;
     let progressThisTick = 0;
     for (const p of activeBuilders) {
-      progressThisTick += productionMultiplier(p, "builder");
+      const builderProgress = productionMultiplier(p, "builder") * equipmentWorkSpeedMultiplier(p);
+      progressThisTick += builderProgress;
       gainProfessionExperience(p, "builder");
+      recordToolWork(w, p, builderProgress);
     }
     construction.progress += progressThisTick;
     for (const p of activeBuilders) p.progress = construction.progress;
@@ -1355,7 +1370,7 @@ export function tick(w: World): void {
       if (p.assignment.role === "worker" && recipe) {
         const profession = workerProfession(b);
         const outputHasSpace = outputOccupied(w, b) < outputCapacityFor(b);
-        const workSpeed = 1;
+        const workSpeed = equipmentWorkSpeedMultiplier(p);
         if (
           p.progress === 0 &&
           !needDueBeforeNewTask(p) &&
@@ -1365,7 +1380,10 @@ export function tick(w: World): void {
           clearWorkRetry(p);
           p.progress = workSpeed;
         } else if (p.progress > 0) p.progress += workSpeed;
-        if (p.progress > 0 && profession) gainProfessionExperience(p, profession);
+        if (p.progress > 0) {
+          if (profession) gainProfessionExperience(p, profession);
+          recordToolWork(w, p, workSpeed);
+        }
         if (p.progress >= recipe.duration) {
           consumeRecipeInputs(b);
           const multiplier = profession ? productionMultiplier(p, profession) : 1;
@@ -1382,6 +1400,7 @@ export function tick(w: World): void {
     measureFeature("planningResourceCleanup", () =>
       retireDepletedResources(w, newlyDepletedResources),
     );
+  if (regularDecisionTick) maintainEquipment(w);
   if (regularDecisionTick)
     measureFeature("planningIdlePools", () => {
       assignWaitingWoodcutters(w, w.round === 1);

@@ -585,3 +585,72 @@ main.merchant-target-mode .person-inspector {
 .person-staff-picker .person-list-item {
   border-color: rgb(243 211 106 / 18%);
 }
+
+.person-equipment {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid rgb(255 255 255 / 10%);
+  display: grid;
+  gap: 6px;
+}
+
+.person-equipment > small {
+  font-size: 9px;
+  letter-spacing: .12em;
+  opacity: .62;
+}
+
+.person-equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.person-equipment-slot {
+  min-width: 0;
+  min-height: 54px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  text-align: left;
+}
+
+.person-equipment-slot > span:first-child {
+  font-size: 20px;
+}
+
+.person-equipment-slot > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.person-equipment-slot strong,
+.person-equipment-slot small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-equipment-slot strong {
+  font-size: 10px;
+}
+
+.person-equipment-slot small {
+  font-size: 8px;
+  opacity: .7;
+}
+
+.person-equipment-slot.empty {
+  border-style: dashed;
+  opacity: .78;
+}
+
+@media (max-width: 700px) {
+  .person-equipment-slot {
+    min-height: 48px;
+  }
+}

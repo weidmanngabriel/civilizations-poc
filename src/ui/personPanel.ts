@@ -1,4 +1,4 @@
-import type { BuildingId, Person, Profession, Role, World } from "../simulation/model";
+import type { BuildingId, EquipmentSlot, Person, Profession, Role, World } from "../simulation/model";
 import {
   canLearnProfession,
   currentProfession,
@@ -12,6 +12,8 @@ import { GOOD_ICONS } from "../icons";
 import { personActivityLabel } from "../personPresentation";
 import { personAlertMap, type PersonAlertSeverity } from "./personAlerts";
 import { setPersonProfession, setPersonWorkplace } from "../simulation/personCommands";
+import { EQUIPMENT_DEFINITIONS, equipmentForSlot, unequipSlot } from "../simulation/equipment";
+import { PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT } from "./personContextMenu";
 
 const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
@@ -340,6 +342,18 @@ export function mountPersonPanel(world: World): void {
     const activity = personActivityLabel(person);
     const home = homeLabel(world, person);
     const cargo = cargoLabel(person);
+    const tool = equipmentForSlot(person, "tool");
+    const shoes = equipmentForSlot(person, "shoes");
+    const equipmentSlot = (slot: EquipmentSlot): string => {
+      const item = equipmentForSlot(person, slot);
+      const good = slot === "tool" ? "woodenTool" : "shoes";
+      const definition = EQUIPMENT_DEFINITIONS[good];
+      if (!item) return `<button type="button" class="person-equipment-slot empty" data-equipment-slot="${slot}"><span aria-hidden="true">${definition.icon}</span><span><strong>${slot === "tool" ? "Werkzeug" : "Schuhe"}</strong><small>Zuweisen</small></span></button>`;
+      const condition = slot === "tool"
+        ? `${Math.max(0, Math.ceil(item.durability))}/${definition.durability} Einsätze`
+        : `${Math.max(0, Math.ceil(item.durability))}/${definition.durability} Microtiles`;
+      return `<button type="button" class="person-equipment-slot" data-equipment-slot="${slot}"><span aria-hidden="true">${definition.icon}</span><span><strong>${definition.label}</strong><small>${condition} · Ablegen</small></span></button>`;
+    };
     const signature = [
       person.id,
       professionText,
@@ -350,6 +364,10 @@ export function mountPersonPanel(world: World): void {
       activity,
       home,
       cargo,
+      tool?.good ?? "",
+      tool?.durability ?? "",
+      shoes?.good ?? "",
+      shoes?.durability ?? "",
     ].join("|");
     if (signature === inspectorSignature && !inspector.hidden) return;
     inspectorSignature = signature;
@@ -383,7 +401,14 @@ export function mountPersonPanel(world: World): void {
         <div><dt>Wohnung</dt><dd>${escapeHtml(home)}</dd></div>
         <div><dt>Erfahrung</dt><dd>${experience === undefined ? "—" : `${experience} %`}</dd></div>
         <div><dt>Getragen</dt><dd>${cargo}</dd></div>
-      </dl>`;
+      </dl>
+      <section class="person-equipment">
+        <small>AUSRÜSTUNG</small>
+        <div class="person-equipment-grid">
+          ${equipmentSlot("tool")}
+          ${equipmentSlot("shoes")}
+        </div>
+      </section>`;
   };
 
   const resetBrowserFilters = (): void => {
@@ -540,6 +565,22 @@ export function mountPersonPanel(world: World): void {
     }
     if (action === "open-context") {
       window.dispatchEvent(new CustomEvent(PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT));
+      return;
+    }
+    const equipmentButton = target.closest<HTMLButtonElement>("[data-equipment-slot]");
+    if (equipmentButton && selectedPersonId !== undefined) {
+      const slot = equipmentButton.dataset.equipmentSlot as EquipmentSlot;
+      const person = world.people.find((candidate) => candidate.id === selectedPersonId);
+      if (!person) return;
+      if (equipmentForSlot(person, slot)) {
+        unequipSlot(world, person.id, slot);
+        inspectorSignature = "";
+        renderInspector();
+      } else {
+        window.dispatchEvent(new CustomEvent(PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT, {
+          detail: { personId: person.id },
+        }));
+      }
       return;
     }
   });

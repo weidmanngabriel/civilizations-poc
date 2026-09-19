@@ -22,7 +22,7 @@ import { createDefaultGameWorld } from "./scenario";
 import { refinedCellCluster } from "./spatial";
 
 export const SAVE_FORMAT = "civilizations-save";
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export type SavedActivity =
   | "idle"
