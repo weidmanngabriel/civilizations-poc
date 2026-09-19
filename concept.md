@@ -179,7 +179,7 @@ Die drei Stufen sind direkt in der Personenübersicht filterbar und werden zusä
 
 ## Direkte Personensteuerung
 
-Bewohner werden einzeln ausgewählt. Die normale Auswahl zeigt nur kompakte Personeninformationen; die eigentlichen Befehle liegen in einem separaten Kontextmenü. Auf Mobile bleibt dieses Personen-Flyout bewusst kompakt und ohne internes Scrollen: der Aktionsbutton sitzt direkt oben bei Name und Schließen, Bedürfnisse und Stammdaten werden platzsparend gruppiert. Am Desktop öffnet die **Leertaste** dieses Menü, zusätzlich steht auf allen Eingabegeräten der sichtbare Aktionsbutton zur Verfügung.
+Bewohner werden einzeln ausgewählt. Die normale Auswahl zeigt nur kompakte Personeninformationen; die eigentlichen Befehle liegen in einem separaten Kontextmenü. Auf Mobile bleibt dieses Personen-Flyout bewusst kompakt und ohne internes Scrollen: es sitzt direkt am unteren Bildschirmrand, der Aktionsbutton steht links oben, Schließen rechts oben und die Stammdaten bleiben einzeilig ohne Umbruch. Die Pfeilnavigation zwischen Personen ist dort nicht Teil des Flyouts. Am Desktop öffnet die **Leertaste** dieses Menü, zusätzlich steht auf allen Eingabegeräten der sichtbare Aktionsbutton zur Verfügung.
 
 Das Kontextmenü besitzt dauerhaft **16 feste Slots** als hohles Quadrat ohne Ecken. Nicht verfügbare Aktionen werden nicht ausgegraut, sondern gar nicht angezeigt; ihre Position bleibt leer, damit spätere Aktionen ergänzt werden können, ohne gelernte Positionen zu verschieben.
 
