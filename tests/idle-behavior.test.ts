@@ -78,19 +78,24 @@ test("an idle production worker waits outside the assigned workplace", () => {
 });
 
 
-test("a fresh idle world advances without sending residents toward the HQ", () => {
-  const world = createWorld();
+test("an idle resident already outside buildings is not sent toward the HQ", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const hq = world.buildings.find((building) => building.id === "hq")!;
+  const footprint = new Set(buildingFootprint(hq).map(key));
+  const outside = world.tiles.find(
+    (tile) => tile.terrain === "grass" && !footprint.has(key(tile)),
+  )!;
+  person.position = { q: outside.q, r: outside.r };
   const beforeRound = world.round;
-  const positions = world.people.map((person) => ({ ...person.position }));
+  const position = { ...person.position };
 
   tick(world);
 
   assert.equal(world.round, beforeRound + 1);
-  for (const [index, person] of world.people.entries()) {
-    assert.equal(person.idleTarget, undefined);
-    assert.equal(person.path.length, 0);
-    assert.deepEqual(person.position, positions[index]);
-  }
+  assert.equal(person.idleTarget, undefined);
+  assert.equal(person.path.length, 0);
+  assert.deepEqual(person.position, position);
 });
 
 test("a new player world starts residents spread south of the HQ outside its footprint", () => {
