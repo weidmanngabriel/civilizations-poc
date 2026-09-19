@@ -93,3 +93,22 @@ test("wildlife groups pick a gentle migration target every thirty seconds", () =
   assert.ok(distance >= 10 && distance <= 15);
   assert.equal(group.nextTargetTick, 30 * CONFIG.simulationHz);
 });
+
+
+test("hare groups spawn loosely and never share a micro-cell while roaming", () => {
+  const world = createWorld(0);
+  const home = firstGrass(world);
+  const group = spawnAnimalGroup(world, "hare", home, 4)!;
+  const members = world.animals!.filter((animal) => animal.groupId === group.id);
+
+  for (let i = 0; i < members.length; i += 1)
+    for (let j = i + 1; j < members.length; j += 1)
+      assert.ok(hexDistance(members[i]!.position, members[j]!.position) >= 2);
+
+  for (let tick = 0; tick < 45 * CONFIG.simulationHz; tick += 1) {
+    world.round += 1;
+    advanceWildlife(world);
+    const positions = members.map((animal) => `${animal.position.q},${animal.position.r}`);
+    assert.equal(new Set(positions).size, positions.length);
+  }
+});
