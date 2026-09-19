@@ -61,7 +61,7 @@ test("local hunger may leave waypost coverage and returns to the need origin", (
   assert.deepEqual(person.hungerState?.needOrigin, origin);
   assert.equal(person.hungerState?.localNeedSearch, true);
   assert.equal(person.hungerState?.returnToNeedOrigin, true);
-  assert.deepEqual(person.path.at(-1), bush);
+  assert.deepEqual(person.path.at(-1), { q: bush.q, r: bush.r });
 
   person.position = { q: bush.q, r: bush.r };
   person.path = [];
