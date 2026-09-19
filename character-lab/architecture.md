@@ -111,7 +111,7 @@ Each keyframe may optionally define `interpolation`. That value controls only th
 
 Animations may also specify `previewDurationMs`. This is only the Character-Lab playback duration; normalized progress remains 0..1 and gameplay duration stays outside the animation asset.
 
-The current v1 tool prop is a simple axe attached directly to the right-arm hierarchy. It is shown by the bundled `woodcut` preset and follows the arm automatically.
+The current v1 tool prop is a simple axe attached directly to the right-arm hierarchy. It is shown by the bundled `woodcut` preset and follows the arm automatically. The axe group is rotated 180° around its local Y axis because the prop's modeled forward side is opposite the arm/character forward convention; this keeps the axe head facing the tree throughout the overhead downstroke.
 
 
 ## Automated visual review
@@ -120,7 +120,7 @@ The Character Lab supports a deterministic capture mode through query parameters
 
 `window.characterLab` exposes `captureFrame(progress)` and `captureFrames(progressValues)`. These use the same animation state as the UI and return PNG data URLs after an explicit render.
 
-`scripts/capture-character-lab.mjs` serves the dedicated Character-Lab production build from `dist-character-lab` locally and keeps one headless Chrome session open through the DevTools protocol. It writes 21 evenly spaced PNGs plus a low-resolution 640×480 WebM sampled from real rendered animation states. The default video uses 8 fps and VP9 with a high CRF so review remains quick and small. CI uploads PNG and WebM together as a `character-lab-review-<sha>` workflow artifact. This artifact is the preferred input for automated or agent-led visual review.
+`scripts/capture-character-lab.mjs` serves the dedicated Character-Lab production build from `dist-character-lab` locally and keeps one headless Chrome session open through the DevTools protocol. It writes 21 evenly spaced overview PNGs, a dense 25-frame diagnostic burst spanning the first complete axe downstroke (2.5%–9.5% progress), plus a low-resolution 640×480 WebM sampled from real rendered animation states. The dense burst is the primary review source for determining fast motion direction; reviewers should read it as one ordered sequence rather than judging isolated poses. The default video uses 8 fps and VP9 with a high CRF so review remains quick and small. CI uploads PNG and WebM together as a `character-lab-review-<sha>` workflow artifact. This artifact is the preferred input for automated or agent-led visual review.
 
 
 ### Woodcut motion

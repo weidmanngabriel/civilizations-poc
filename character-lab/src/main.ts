@@ -733,6 +733,10 @@ function initThree(): void {
     const axeHeadMaterial = new THREE.MeshStandardMaterial({ color: 0x6b7378, roughness: 0.75, metalness: 0.25 });
     const axe = new THREE.Group();
     axe.position.set(0, -1.95, 0.18);
+    // The arm pivot and the axe prop have opposite "forward" conventions.
+    // Rotate the complete tool half a turn so an overhead arm downstroke presents
+    // the axe head toward the tree instead of visually tracing an upward strike.
+    axe.rotation.y = Math.PI;
     const axeHandle = box(0.16, 1.65, 0.16, axeHandleMaterial);
     axeHandle.position.y = -0.55;
     axe.add(axeHandle);
