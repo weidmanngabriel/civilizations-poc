@@ -69,7 +69,7 @@ Eine externe API oder ein eigenes Agent-Protokoll ist bewusst v2. Das Datenforma
 
 ### Holzhacken-Preset
 
-Das v1-Preset `woodcut` demonstriert Root-Bewegung und ein Werkzeug. Der Charakter läuft zwischen drei Arbeitspositionen um einen imaginären Baum herum und hackt an jeder Position zweimal. An jeder Position ist der Körper zum Mittelpunkt ausgerichtet. Der Zuschlag beginnt mit der Axt über der Schulter und führt diagonal von oben nach unten **zum Baum hin**; der Rückzug hebt die Axt wieder an. Der Zuschlag nutzt `easeIn`, die Rückzug- und Umsetzbewegungen `easeInOut`. Die Axt ist ein einfacher blockiger Prop am rechten Arm.
+Das v1-Preset `woodcut` demonstriert Root-Bewegung und ein Werkzeug. Der Charakter läuft zwischen drei Arbeitspositionen um einen imaginären Baum herum und hackt an jeder Position zweimal. An jeder Position ist der Körper zum Mittelpunkt ausgerichtet. Der Zuschlag beginnt mit der Axt über der Schulter und führt diagonal von oben nach unten **zum Baum hin**; der Rückzug hebt die Axt wieder an. Der Zuschlag nutzt `easeIn`, die Rückzug- und Umsetzbewegungen `easeInOut`. Die Axt ist ein einfacher blockiger Prop am rechten Arm und lokal um 180° gedreht, damit Kopf/Schneidenseite beim Überkopf-Abwärtsschlag zum Baum zeigt.
 
 ## Visual review exports
 
