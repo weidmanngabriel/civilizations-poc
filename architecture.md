@@ -118,6 +118,14 @@ The simulation stores the current fishing spot, adjacent water target, cycle sta
 
 A successful cast sets exactly one `fish` unit as outdoor cargo on the fisherman. The fisherman carries that unit back to the personal work flag, where it becomes a normal loose-good stack. Completing a fishing cycle is also an explicit hunger task boundary: at or below the normal eat threshold, the fisher starts food planning immediately after reeling in, whether the cast succeeded or failed. A caught fish remains in `outdoorCarry` during that interruption and is routed to the work flag after eating. Natural-resource extractors use the same one-unit outdoor-cargo state: every completed wood, clay or rubble unit is carried to the worker's personal flag before becoming loose ground stock. This keeps the work flag as the authoritative outdoor collection point without introducing a second logistics system.
 
+## Wildlife, hunting and ranged attacks
+
+Wildlife is authoritative simulation state in `World.animals` and `World.animalGroups`. Species behavior is isolated in `src/simulation/wildlife.ts`; the first species is the hare, but movement cadence, flock/home attraction, flight duration and speed are species data rather than hunter-specific branches. Hare groups keep a home point while every animal moves independently. Normal movement starts every 4–8 simulated seconds and uses short zig-zag paths. A shot makes every surviving member of the attacked group flee independently for five simulated seconds; after that, flock-center attraction is stronger than home attraction, so scattered groups gradually gather again.
+
+Hunters are outdoor workers with a personal flag. Their radius is 5 coarse world tiles / 25 micro-cells, exactly twice the normal extractor/fisher radius. They autonomously select wildlife only inside that area and use the normal person path system to move into bow range.
+
+Ranged attacks are separated from hunting in `src/simulation/rangedCombat.ts`. A ranged attack creates an authoritative projectile containing source/target entity references, launch/impact ticks, projectile kind and the already resolved hit roll. Presentation only interpolates the projectile. This is intentionally reusable for later ranged soldiers: hunter targeting and XP stay in `hunting.ts`, while projectile timing and attack transport remain generic. Hunter bow accuracy scales linearly from 20% at 0 experience to 95% at 100 experience; firing at an already fleeing animal multiplies that chance by 0.5. Hunter experience is awarded only when a projectile actually kills wildlife.
+
 ## Profession qualification
 
 Profession XP and qualification rules are centralized in `src/simulation/experience.ts`. Basic professions are always selectable. Advanced production professions require 10 XP in their direct predecessor profession: woodcutter → sawmill worker → carpenter, clay digger → potter, stonecutter → stonemason, and farmer → miller → baker.
