@@ -244,6 +244,10 @@ export interface AnimalGroup {
   id: AnimalGroupId;
   kind: AnimalKind;
   home: Hex;
+  /** Soft migration target shared by the group. Individuals only bias slightly toward it. */
+  target?: Hex;
+  /** Tick when a new group target should be chosen. */
+  nextTargetTick?: number;
 }
 export interface Animal {
   id: AnimalId;
