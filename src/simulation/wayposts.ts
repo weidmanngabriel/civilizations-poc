@@ -127,21 +127,74 @@ export function ensureInitialWaypost(world: World): Waypost | undefined {
   return candidate ? placeWaypost(world, candidate) : undefined;
 }
 
-type Segment = { path: Hex[]; cost: number };
+type WaypostChainEntry = {
+  id: string;
+  cost: number;
+  previousId?: string;
+};
 
-const localSegment = (
-  world: World,
+const orientedWayposts = (posts: Waypost[], position: Hex): Waypost[] =>
+  posts.filter(
+    (post) => hexDistance(position, post.position) <= WAYPOST_ORIENTATION_RADIUS,
+  );
+
+const findWaypostChain = (
+  posts: Waypost[],
   start: Hex,
   end: Hex,
-  roadSpeedMultiplier: number,
-): Segment | undefined => {
-  if (same(start, end)) return { path: [], cost: 0 };
-  const path = findPath(world.tiles, start, end, roadSpeedMultiplier);
-  if (!path) return undefined;
-  return {
-    path,
-    cost: pathTravelCost(world.tiles, path, roadSpeedMultiplier),
-  };
+): Waypost[] | null => {
+  const startPosts = orientedWayposts(posts, start);
+  const goalIds = new Set(orientedWayposts(posts, end).map((post) => post.id));
+  if (!startPosts.length || !goalIds.size) return null;
+
+  const byId = new Map(posts.map((post) => [post.id, post]));
+  const best = new Map<string, WaypostChainEntry>();
+  const queue: WaypostChainEntry[] = startPosts.map((post) => ({
+    id: post.id,
+    cost: hexDistance(start, post.position),
+  }));
+  let goal: WaypostChainEntry | undefined;
+
+  while (queue.length) {
+    queue.sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id));
+    const current = queue.shift()!;
+    if ((best.get(current.id)?.cost ?? Number.POSITIVE_INFINITY) <= current.cost) continue;
+    best.set(current.id, current);
+
+    const currentPost = byId.get(current.id);
+    if (!currentPost) continue;
+
+    if (goalIds.has(current.id)) {
+      const withExit = {
+        ...current,
+        cost: current.cost + hexDistance(currentPost.position, end),
+      };
+      if (!goal || withExit.cost < goal.cost) goal = withExit;
+    }
+
+    if (goal && current.cost >= goal.cost) continue;
+
+    for (const nextId of currentPost.connections ?? []) {
+      const next = byId.get(nextId);
+      if (!next) continue;
+      const nextCost = current.cost + hexDistance(currentPost.position, next.position);
+      if ((best.get(nextId)?.cost ?? Number.POSITIVE_INFINITY) <= nextCost) continue;
+      queue.push({ id: nextId, cost: nextCost, previousId: current.id });
+    }
+  }
+
+  if (!goal) return null;
+
+  const chain: Waypost[] = [];
+  let currentId: string | undefined = goal.id;
+  while (currentId) {
+    const post = byId.get(currentId);
+    const entry = best.get(currentId);
+    if (!post || !entry) return null;
+    chain.unshift(post);
+    currentId = entry.previousId;
+  }
+  return chain;
 };
 
 export function findPathViaWayposts(
@@ -152,83 +205,28 @@ export function findPathViaWayposts(
 ): Hex[] | null {
   if (same(start, end)) return [];
 
-  const posts = wayposts(world);
-  const startPosts = posts.filter(
-    (post) => hexDistance(start, post.position) <= WAYPOST_ORIENTATION_RADIUS,
+  const chain = findWaypostChain(wayposts(world), start, end);
+  if (!chain) return null;
+
+  // Same-area and directly neighboring waypost areas are deliberately treated as
+  // local travel. The wayposts authorize the trip but are not physical checkpoints.
+  if (chain.length <= 2)
+    return findPath(world.tiles, start, end, roadSpeedMultiplier);
+
+  // Longer journeys use the high-level graph to choose a narrow search corridor.
+  // A* may cross anywhere inside the selected waypost areas; no signpost cell is a
+  // mandatory waypoint.
+  return findPath(
+    world.tiles,
+    start,
+    end,
+    roadSpeedMultiplier,
+    (tile) =>
+      chain.some(
+        (post) =>
+          hexDistance(tile, post.position) <= WAYPOST_ORIENTATION_RADIUS,
+      ),
   );
-  const goalPosts = new Set(
-    posts
-      .filter((post) => hexDistance(end, post.position) <= WAYPOST_ORIENTATION_RADIUS)
-      .map((post) => post.id),
-  );
-  if (!startPosts.length || !goalPosts.size) return null;
-
-  const byId = new Map(posts.map((post) => [post.id, post]));
-  const segmentCache = new Map<string, Segment | undefined>();
-  const segmentBetween = (a: Waypost, b: Waypost): Segment | undefined => {
-    const cacheKey = `${a.id}->${b.id}`;
-    if (segmentCache.has(cacheKey)) return segmentCache.get(cacheKey);
-    const segment = localSegment(world, a.position, b.position, roadSpeedMultiplier);
-    segmentCache.set(cacheKey, segment);
-    return segment;
-  };
-
-  type Entry = { id: string; cost: number; path: Hex[] };
-  const queue: Entry[] = [];
-  for (const post of startPosts) {
-    const segment = localSegment(world, start, post.position, roadSpeedMultiplier);
-    if (!segment) continue;
-    queue.push({ id: post.id, cost: segment.cost, path: segment.path });
-  }
-  if (!queue.length) return null;
-
-  const best = new Map<string, number>();
-  let bestGoal: { cost: number; path: Hex[] } | undefined;
-
-  while (queue.length) {
-    queue.sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id));
-    const current = queue.shift()!;
-    if ((best.get(current.id) ?? Number.POSITIVE_INFINITY) <= current.cost) continue;
-    best.set(current.id, current.cost);
-
-    if (bestGoal && current.cost >= bestGoal.cost) continue;
-    const currentPost = byId.get(current.id);
-    if (!currentPost) continue;
-
-    if (goalPosts.has(current.id)) {
-      const finalSegment = localSegment(
-        world,
-        currentPost.position,
-        end,
-        roadSpeedMultiplier,
-      );
-      if (finalSegment) {
-        const goalCost = current.cost + finalSegment.cost;
-        if (!bestGoal || goalCost < bestGoal.cost) {
-          bestGoal = {
-            cost: goalCost,
-            path: [...current.path, ...finalSegment.path],
-          };
-        }
-      }
-    }
-
-    for (const nextId of currentPost.connections ?? []) {
-      const next = byId.get(nextId);
-      if (!next) continue;
-      const segment = segmentBetween(currentPost, next);
-      if (!segment) continue;
-      const nextCost = current.cost + segment.cost;
-      if ((best.get(nextId) ?? Number.POSITIVE_INFINITY) <= nextCost) continue;
-      queue.push({
-        id: nextId,
-        cost: nextCost,
-        path: [...current.path, ...segment.path],
-      });
-    }
-  }
-
-  return bestGoal?.path ?? null;
 }
 
 export function findNavigationPath(

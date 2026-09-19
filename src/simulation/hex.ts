@@ -156,6 +156,7 @@ export function findPath(
   start: Hex,
   end: Hex,
   roadSpeedMultiplier = 1.3,
+  canVisit?: (tile: Tile) => boolean,
 ): Hex[] | null {
   return profilePath(() => {
     const index = tileIndex(tiles);
@@ -195,10 +196,11 @@ export function findPath(
       }
 
       for (const next of neighbors(current)) {
-        const tile = index.get(key(next));
-        if (!tile || !walkable(tile)) continue;
-        const nextDistance = currentDistance + movementCost(tile, roadSpeedMultiplier);
         const nextKey = key(next);
+        const tile = index.get(nextKey);
+        if (!tile || !walkable(tile)) continue;
+        if (canVisit && !canVisit(tile) && !targetKeys.has(nextKey)) continue;
+        const nextDistance = currentDistance + movementCost(tile, roadSpeedMultiplier);
         const knownDistance = distances.get(nextKey);
         if (knownDistance !== undefined && knownDistance <= nextDistance + 1e-9) continue;
         distances.set(nextKey, nextDistance);
