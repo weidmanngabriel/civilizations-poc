@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { hunterHitChance, advanceHunting } from "../src/simulation/hunting";
 import { commandEat, resolveFoodArrivals } from "../src/simulation/needs";
-import { placeLooseGood } from "../src/simulation/looseGoods";
+import { placeLooseGood, reserveLooseGood } from "../src/simulation/looseGoods";
 import { setPersonProfession } from "../src/simulation/personCommands";
 import { createWorld, CONFIG } from "../src/simulation/scenario";
 import {
@@ -347,6 +347,86 @@ test("a killed boar yields meat and leather that the hunter carries to the flag 
   ));
 });
 
+
+test("hunter discards a stale idle route when acquiring prey", () => {
+  const world = createWorld(1);
+  const hunter = world.people[0]!;
+  const home = centralGrass(world);
+  hunter.position = { ...home };
+  assert.equal(setPersonProfession(world, hunter.id, "hunter"), true);
+
+  const preyTile = world.tiles
+    .filter((tile) => tile.terrain === "grass" && !tile.resourceBlocking && !tile.buildingBlocking)
+    .sort(
+      (a, b) =>
+        Math.abs(hexDistance(home, a) - 12) - Math.abs(hexDistance(home, b) - 12) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0]!;
+  const staleIdleTarget = world.tiles
+    .filter((tile) => tile.terrain === "grass" && !tile.resourceBlocking && !tile.buildingBlocking)
+    .sort(
+      (a, b) =>
+        Math.abs(hexDistance(home, a) - 30) - Math.abs(hexDistance(home, b) - 30) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0]!;
+  const group = spawnAnimalGroup(world, "hare", preyTile, 1)!;
+  const hare = world.animals!.find((animal) => animal.groupId === group.id)!;
+  hare.position = { ...preyTile };
+  hare.path = [];
+
+  hunter.idleTarget = { ...staleIdleTarget };
+  hunter.path = [{ ...staleIdleTarget }];
+
+  advanceHunting(world);
+
+  assert.equal(hunter.huntTarget, hare.id);
+  assert.equal(hunter.idleTarget, undefined);
+  const routeEnd = hunter.path.at(-1);
+  assert.ok(
+    !routeEnd ||
+    routeEnd.q !== staleIdleTarget.q ||
+    routeEnd.r !== staleIdleTarget.r,
+  );
+});
+
+test("hunter resumes reserved leather after eating deposited boar meat", () => {
+  const world = createWorld(1);
+  const hunter = world.people[0]!;
+  const flag = centralGrass(world);
+  hunter.position = { ...flag };
+  assert.equal(setPersonProfession(world, hunter.id, "hunter"), true);
+  hunter.workArea!.center = { ...flag };
+
+  const leatherTile = world.tiles
+    .filter((tile) => tile.terrain === "grass" && !tile.resourceBlocking && !tile.buildingBlocking)
+    .sort(
+      (a, b) =>
+        Math.abs(hexDistance(flag, a) - 8) - Math.abs(hexDistance(flag, b) - 8) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0]!;
+  const meat = placeLooseGood(world, flag, "meat", 1)!;
+  const leather = placeLooseGood(world, leatherTile, "leather", 1)!;
+  assert.equal(reserveLooseGood(world, leather.id, 1), true);
+  hunter.huntLootTarget = leather.id;
+  hunter.hunger = 20;
+
+  assert.equal(commandEat(world, hunter.id), true);
+  assert.equal(hunter.hungerState?.foodLooseGood, meat.id);
+  resolveFoodArrivals(world);
+  assert.ok(hunter.hungerState?.eatingUntilTick !== undefined);
+
+  world.round = hunter.hungerState!.eatingUntilTick!;
+  resolveFoodArrivals(world);
+
+  assert.equal(hunter.hungerState, undefined);
+  assert.equal(hunter.huntLootTarget, leather.id);
+  assert.ok(hunter.path.length > 0);
+  assert.deepEqual(hunter.path.at(-1), leather.position);
+  assert.equal(leather.reserved, 1);
+});
 
 test("hunter keeps pursuing an acquired target outside the hunting area", () => {
   const world = createWorld(1);

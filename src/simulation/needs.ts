@@ -201,6 +201,8 @@ const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
   }
   if (person.outdoorCarry && person.workArea) return person.workArea.center;
   if (person.huntLootTarget) return looseGoodStack(world, person.huntLootTarget)?.position;
+  if (person.huntLootQueue?.length)
+    return looseGoodStack(world, person.huntLootQueue[0]!)?.position;
   if (person.resourceTarget) return world.naturalResources.find((resource) => resource.id === person.resourceTarget)?.position;
   if (person.fisher && person.fishingSpot) return person.fishingSpot;
   if (person.assignment) return world.buildings.find((building) => building.id === person.assignment!.building)?.position;
