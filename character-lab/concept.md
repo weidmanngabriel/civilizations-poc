@@ -30,7 +30,7 @@ v1 liefert zwei Beispielanimationen:
 
 Die Website bietet:
 
-- 3D-Vorschau,
+- kompakte, beim Scrollen sticky bleibende 3D-Vorschau,
 - 360°-Drehung des gesamten Charakters,
 - feste acht Blickrichtungen,
 - Zoom,

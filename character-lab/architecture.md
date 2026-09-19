@@ -2,7 +2,7 @@
 
 ## Abgrenzung
 
-Das Character Lab ist eine eigenständige Vite-Seite unter `/character-lab/`. Es nutzt Three.js ausschließlich für die 3D-Vorschau. Das Hauptspiel und Phaser sind nicht beteiligt.
+Das Character Lab ist eine eigenständige Vite-Seite unter `/character-lab/`. Es nutzt das als Projektabhängigkeit gebundelte Three.js ausschließlich für die 3D-Vorschau. Vite nimmt Three.js in den Build auf; zur Laufzeit gibt es keine CDN-Abhängigkeit. Das Hauptspiel und Phaser sind nicht beteiligt.
 
 ## Datenmodell
 
@@ -54,6 +54,10 @@ Three.js rendert:
 - einen Character-Root für die Drehung der gesamten Figur.
 
 Arme und Beine rotieren an Schulter/Hüfte nur vorwärts/rückwärts. Der Kopf rotiert lokal um yaw/pitch. Die Gelenkgrenzen werden zentral geclamped.
+
+## Oberfläche
+
+Die 3D-Vorschau liegt kompakt als sticky Bereich oberhalb der Editor-Regler. Beim Scrollen durch Timeline, Pose- und Ansichtssteuerung bleibt der Charakter sichtbar. Auf kleinen Displays wird die Vorschau weiter reduziert, ohne die grundlegende Touch-Bedienung zu entfernen.
 
 ## Steuerkern
 

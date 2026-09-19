@@ -1,4 +1,5 @@
 import "./style.css";
+import * as THREE from "three";
 import characterDefinitionJson from "./character.json";
 
 type Axis = "pitch" | "yaw";
@@ -514,11 +515,8 @@ window.characterLab = {
   pause,
 };
 
-async function initThree(): Promise<void> {
+function initThree(): void {
   try {
-    const threeUrl = "https://cdn.jsdelivr.net/npm/three@0.180.0/+esm";
-    const THREE = await import(/* @vite-ignore */ threeUrl);
-
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = false;
@@ -657,4 +655,4 @@ renderKeyframes();
 setProgress(0);
 setCharacterYaw(characterYaw);
 setZoom(zoom);
-void initThree();
+initThree();

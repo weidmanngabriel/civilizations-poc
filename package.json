@@ -24,7 +24,8 @@
   },
   "homepage": "https://github.com/weidmanngabriel/civilizations-poc#readme",
   "dependencies": {
-    "phaser": "^4.2.1"
+    "phaser": "^4.2.1",
+    "three": "0.180.0"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
