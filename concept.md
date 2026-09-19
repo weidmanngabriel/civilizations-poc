@@ -209,6 +209,10 @@ Gebäude weisen Personal **nicht mehr über Plus/Minus-Regler automatisch zu**. 
 
 Auswahllisten werden nach sichtbarer Bezeichnung alphabetisch sortiert. **Wegweiser** ist kein Baumenü-Eintrag mehr, sondern eine kontextsensitive Aktion des Berufs **Kundschafter**. **Pause/Fortsetzen**, Simulationsgeschwindigkeit und **Debug** liegen im Spielmenü statt dauerhaft über der Karte. Das Personen-Kontextmenü schließt sich nach einer erfolgreich gestarteten Aktion sowie immer dann, wenn ein anderes Hauptmenü geöffnet wird.
 
+## Handbuch und Hilfe
+
+Das In-App-Handbuch bleibt eine einzige modale Oberfläche mit einer Hauptnavigation zwischen den Themen-Seiten. Innerhalb der aktuellen Seite gibt es zusätzlich eine kompakte Schnellnavigation: Ein runder Listen-Button öffnet die vorhandenen Abschnitte und springt per Klick oder Tap direkt zur gewählten Überschrift. Die zweite Navigationsebene wird aus den Abschnittsüberschriften des Handbuchtexts abgeleitet, damit Inhalt und Navigation nicht getrennt gepflegt werden müssen.
+
 ## Darstellung, Zoom und Eingabe
 
 Bewohner bleiben ungefähr so groß wie eine Mikrozelle. Namen, Beruf/Tätigkeit und getragene Waren liegen in Weltkoordinaten und skalieren mit der Karte. Bewohner werden visuell vor natürlichen Ressourcen, Büschen und losen Waren dargestellt, damit sie beim Überqueren nicht von diesen verdeckt werden.
