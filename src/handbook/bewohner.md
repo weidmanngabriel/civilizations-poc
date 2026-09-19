@@ -24,6 +24,8 @@ Nicht passende Aktionen erscheinen im Kontextmenü gar nicht. Ein Arbeitsbereich
 
 Hat ein Bewohner ein Wohnhaus zugewiesen, versucht er beim Schlafen zuerst dieses Haus zu nutzen.
 
+In fertigen Gebäuden siehst du die zugewiesenen Personen direkt bei ihrer Rolle. Tippe oder klicke auf einen Namen, um sofort zu dieser Person zu springen. Ist ein Platz frei, öffnet **Geeignete Personen** eine passende Auswahlliste. Freie Bewohner ohne Beruf stehen dort zuerst. Wählst du jemanden, der bereits einen anderen Beruf oder Arbeitsplatz hat, musst du den Wechsel bestätigen. Personal wird nicht mehr über Plus/Minus-Regler automatisch zugewiesen.
+
 ## Fischer
 
 Fischer arbeiten ohne eigenes Gebäude an der Wasserkante. Jeder Fischer besitzt eine Arbeitsflagge, die sein Angelgebiet und seinen persönlichen Ablagepunkt festlegt. Beim Angeln siehst du die ausgeworfene Schnur am Wasser; nach dem Fangzyklus wird sie wieder eingeholt.
