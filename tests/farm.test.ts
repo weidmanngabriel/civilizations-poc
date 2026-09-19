@@ -259,3 +259,32 @@ test("farmers outside the farm work area still require the global waypost networ
   assert.equal(farmer.path.length, 0);
   assert.equal(farmer.navigationBlocked, true);
 });
+
+
+test("farmers return to the farm before starting another local task", () => {
+  const w = createWorld();
+  const { farm, farmer } = finishedFarm(w);
+  const field = addField(
+    w,
+    farm,
+    nearbyGrass(w, farm.position),
+    1,
+    CONFIG.fieldStageDurationTicks - 3,
+  );
+  farmer.position = { ...field.position };
+  farmer.path = [];
+  farmer.farmTask = {
+    kind: "fertilize",
+    target: { ...field.position },
+    fieldId: field.id,
+    progress: 0,
+  };
+
+  tick(w);
+  assert.equal(field.fieldStage, 2);
+  assert.equal(farmer.farmTask, undefined);
+
+  tick(w);
+  assert.ok(farmer.path.length > 0, "completed field work should route back to the farm");
+  assert.deepEqual(farmer.path.at(-1), farm.position);
+});
