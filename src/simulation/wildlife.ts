@@ -25,6 +25,10 @@ export type AnimalBehaviorProfile = {
   /** Beyond this distance, attraction back toward the flock center resumes. */
   flockRejoinDistance: number;
   separationWeight: number;
+  /** Home attraction applies only after the group has roamed this far away. */
+  homeReturnDistance: number;
+  /** Strength of directional persistence between consecutive group targets. */
+  migrationInertiaWeight: number;
 };
 
 export const ANIMAL_BEHAVIOR: Record<AnimalKind, AnimalBehaviorProfile> = {
@@ -37,16 +41,18 @@ export const ANIMAL_BEHAVIOR: Record<AnimalKind, AnimalBehaviorProfile> = {
     fleePathMinSteps: 6,
     fleePathMaxSteps: 10,
     movementMultiplier: 1.35,
-    homeWeight: 0.08,
+    homeWeight: 0.16,
     flockWeight: 0.18,
-    randomWeight: 0.48,
-    groupTargetWeight: 0.2,
+    randomWeight: 0.4,
+    groupTargetWeight: 0.32,
     groupTargetIntervalTicks: 30 * SIMULATION_HZ,
     groupTargetMinDistance: 10,
     groupTargetMaxDistance: 15,
     separationDistance: 2,
     flockRejoinDistance: 5,
     separationWeight: 0.85,
+    homeReturnDistance: 30,
+    migrationInertiaWeight: 0.7,
   },
 };
 
@@ -102,6 +108,7 @@ export function spawnAnimalGroup(
     home: { ...home },
     target: { ...home },
     nextTargetTick: world.round + profile.groupTargetIntervalTicks,
+    migrationDirection: { q: 0, r: 0 },
   };
   groupList(world).push(group);
 
@@ -181,17 +188,19 @@ const weightedTarget = (
 
   const randomQ = randomFraction(world) * 2 - 1;
   const randomR = randomFraction(world) * 2 - 1;
+  const homeWeight =
+    hexDistance(center, home) > profile.homeReturnDistance ? profile.homeWeight : 0;
   const q =
     animal.position.q +
     (center.q - animal.position.q) * flockWeight +
-    (home.q - animal.position.q) * profile.homeWeight +
+    (home.q - animal.position.q) * homeWeight +
     (groupTarget.q - animal.position.q) * profile.groupTargetWeight +
     separationQ * GRID_REFINEMENT * profile.separationWeight +
     randomQ * GRID_REFINEMENT * profile.randomWeight;
   const r =
     animal.position.r +
     (center.r - animal.position.r) * flockWeight +
-    (home.r - animal.position.r) * profile.homeWeight +
+    (home.r - animal.position.r) * homeWeight +
     (groupTarget.r - animal.position.r) * profile.groupTargetWeight +
     separationR * GRID_REFINEMENT * profile.separationWeight +
     randomR * GRID_REFINEMENT * profile.randomWeight;
@@ -354,19 +363,57 @@ function advanceAnimalMovement(world: World, animal: Animal): void {
   }
 }
 
+const normalizedDirection = (from: Hex, to: Hex): { q: number; r: number } => {
+  const dq = to.q - from.q;
+  const dr = to.r - from.r;
+  const length = Math.hypot(dq, dr);
+  return length > 0 ? { q: dq / length, r: dr / length } : { q: 0, r: 0 };
+};
+
 function chooseGroupTarget(world: World, group: AnimalGroup): void {
   const profile = ANIMAL_BEHAVIOR[group.kind];
   const center = animalGroupCenter(world, group.id) ?? group.home;
-  const candidates = world.tiles.filter(
-    (tile) =>
-      validAnimalTile(world, tile) &&
-      hexDistance(center, tile) >= profile.groupTargetMinDistance &&
-      hexDistance(center, tile) <= profile.groupTargetMaxDistance,
-  );
-  const chosen = candidates.length
-    ? candidates[randomInt(world, 0, candidates.length - 1)]
-    : undefined;
-  group.target = chosen ? { q: chosen.q, r: chosen.r } : { ...center };
+  const previousDirection = group.migrationDirection ?? { q: 0, r: 0 };
+  const homeDistance = hexDistance(center, group.home);
+
+  const candidates = world.tiles
+    .filter(
+      (tile) =>
+        validAnimalTile(world, tile) &&
+        hexDistance(center, tile) >= profile.groupTargetMinDistance &&
+        hexDistance(center, tile) <= profile.groupTargetMaxDistance,
+    )
+    .map((tile) => {
+      const direction = normalizedDirection(center, tile);
+      const inertia =
+        direction.q * previousDirection.q + direction.r * previousDirection.r;
+      const homeBias =
+        homeDistance > profile.homeReturnDistance
+          ? hexDistance(tile, group.home) - hexDistance(center, group.home)
+          : 0;
+      return {
+        tile,
+        score:
+          inertia * profile.migrationInertiaWeight -
+          Math.max(0, homeBias) * 0.08 +
+          (randomFraction(world) - 0.5) * 0.6,
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        a.tile.q - b.tile.q ||
+        a.tile.r - b.tile.r,
+    );
+
+  const chosen = candidates[0]?.tile;
+  if (chosen) {
+    const direction = normalizedDirection(center, chosen);
+    group.target = { q: chosen.q, r: chosen.r };
+    group.migrationDirection = { q: direction.q, r: direction.r };
+  } else {
+    group.target = { ...center };
+  }
   group.nextTargetTick = world.round + profile.groupTargetIntervalTicks;
 }
 
