@@ -20,6 +20,7 @@ const isBusy = (person: Person): boolean =>
     person.outdoorCarry ||
     person.resourceTarget ||
     person.fisher ||
+    person.navigationBlocked ||
     person.progress > 0
   );
 
