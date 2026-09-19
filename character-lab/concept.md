@@ -19,7 +19,7 @@ Arme und Beine bewegen sich nur vorwärts/rückwärts. Der Kopf kann bis zu den 
 
 Eine Pose besteht aus absoluten lokalen Gelenkwinkeln.
 
-Animationen bestehen aus Keyframes zwischen 0 % und 100 % Fortschritt. Der Editor interpoliert die Zwischenzustände. Die Animationsdatei enthält keine reale Dauer und keine Gameplay-Events.
+Animationen bestehen aus Keyframes zwischen 0 % und 100 % Fortschritt. Der Editor interpoliert die Zwischenzustände mit einer pro Animation wählbaren Kurve: linear, Ease In, Ease Out oder Ease In/Out. Ease In/Out ist der Standard für die Beispielanimationen und erzeugt weichere Richtungswechsel. Die Animationsdatei enthält keine reale Dauer und keine Gameplay-Events.
 
 v1 liefert zwei Beispielanimationen:
 
@@ -37,6 +37,7 @@ Die Website bietet:
 - Auswahl eines Körperteils,
 - Slider für erlaubte Gelenkachsen,
 - Fortschrittsregler von 0 bis 100 %,
+- wählbare Interpolation (Linear, Ease In, Ease Out, Ease In/Out),
 - Keyframe an aktueller Position setzen/löschen,
 - Wiedergabe/Pause,
 - Animation als JSON importieren,
