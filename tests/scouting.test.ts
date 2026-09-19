@@ -12,7 +12,7 @@ import {
   wayposts,
 } from "../src/simulation/wayposts";
 
-test("a scout erects a resource-free waypost after five simulated seconds", () => {
+test("a scout erects a resource-free waypost after one simulated second", () => {
   const world = createDefaultGameWorld();
   const scout = world.people.find(
     (person) => !person.profession && !person.builder && !person.woodcutter,
