@@ -1086,26 +1086,23 @@ export function setRoad(w: World, position: Hex, enabled: boolean): boolean {
     tile.terrain = "grass";
   }
   tile.trafficTicks = undefined;
-  for (const p of w.people) rerouteCurrentTask(w, p);
   return true;
 }
 
-function recordTraffic(w: World, tile: Tile, resourceCells: Set<string>): boolean {
-  if (tile.terrain !== "grass" || resourceCells.has(key(tile))) return false;
+function recordTraffic(w: World, tile: Tile, resourceCells: Set<string>): void {
+  if (tile.terrain !== "grass" || resourceCells.has(key(tile))) return;
   const cutoff = w.round - CONFIG.trafficWindowTicks + 1;
   const traffic = (tile.trafficTicks ?? []).filter((tick) => tick >= cutoff);
   traffic.push(w.round);
   if (traffic.length < CONFIG.trafficThreshold) {
     tile.trafficTicks = traffic;
-    return false;
+    return;
   }
   tile.terrain = "road";
   tile.trafficTicks = undefined;
-  return true;
 }
 
-function movePeople(w: World): boolean {
-  let roadCreated = false;
+function movePeople(w: World): void {
   const resourceCells = activeResourceCells(w);
   const tiles = tileIndex(w.tiles);
   for (const p of w.people) {
@@ -1132,11 +1129,10 @@ function movePeople(w: World): boolean {
       p.movement = Math.max(0, p.movement - cost);
       p.path.shift();
       p.position = { ...next };
-      if (recordTraffic(w, tile, resourceCells)) roadCreated = true;
+      recordTraffic(w, tile, resourceCells);
       moves++;
     }
   }
-  return roadCreated;
 }
 
 function advanceNaturalResourceExtraction(
@@ -1229,11 +1225,8 @@ export function tick(w: World): void {
     w.people.filter((p) => p.path.length > 0).map((p) => p.id),
   );
 
-  const roadCreated = measureFeature("movement", () => movePeople(w));
+  measureFeature("movement", () => movePeople(w));
   measureFeature("movementArrival", () => {
-    if (roadCreated) {
-      for (const p of w.people) rerouteCurrentTask(w, p);
-    }
     for (const p of w.people) {
       if (
         movingAtTickStart.has(p.id) &&

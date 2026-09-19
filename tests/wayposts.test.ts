@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createDefaultGameWorld } from "../src/simulation/scenario";
-import { changeWoodcutters } from "../src/simulation/simulation";
+import { CONFIG, createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
+import { changeWoodcutters, tick } from "../src/simulation/simulation";
 import {
   WAYPOST_MAX_CONNECTION_DISTANCE_WORLD_TILES,
   WAYPOST_MIN_DISTANCE_WORLD_TILES,
@@ -13,7 +13,7 @@ import {
   placeWaypost,
   wayposts,
 } from "../src/simulation/wayposts";
-import { findPath, hexDistance } from "../src/simulation/hex";
+import { findPath, hexDistance, key, neighbors, tileIndex, walkable } from "../src/simulation/hex";
 import { GRID_REFINEMENT } from "../src/simulation/spatial";
 
 test("player world starts with one HQ waypost and coupled balance constants", () => {
@@ -210,4 +210,71 @@ test("new extractor assignments cannot bypass the waypost network", () => {
     false,
     "worker must not receive a direct path to the unreachable forest",
   );
+});
+
+
+test("a newly formed road does not replace an active route", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const tiles = tileIndex(world.tiles);
+
+  let startTile;
+  let first;
+  let detour;
+  let goal;
+  for (const candidateStart of world.tiles) {
+    if (candidateStart.terrain !== "grass" || !walkable(candidateStart)) continue;
+    for (const candidateFirstPosition of neighbors(candidateStart)) {
+      const candidateFirst = tiles.get(key(candidateFirstPosition));
+      if (candidateFirst?.terrain !== "grass" || !walkable(candidateFirst)) continue;
+      const candidateGoal = neighbors(candidateFirst)
+        .map((position) => tiles.get(key(position)))
+        .find((tile) =>
+          tile?.terrain === "grass" &&
+          walkable(tile) &&
+          hexDistance(candidateStart, tile) === 2
+        );
+      if (!candidateGoal) continue;
+      const candidateDetour = neighbors(candidateFirst)
+        .map((position) => tiles.get(key(position)))
+        .find((tile) =>
+          tile?.terrain === "grass" &&
+          walkable(tile) &&
+          key(tile) !== key(candidateStart) &&
+          key(tile) !== key(candidateGoal) &&
+          hexDistance(tile, candidateGoal) === 1
+        );
+      if (!candidateDetour) continue;
+      startTile = candidateStart;
+      first = candidateFirst;
+      detour = candidateDetour;
+      goal = candidateGoal;
+      break;
+    }
+    if (startTile) break;
+  }
+
+  assert.ok(startTile);
+  assert.ok(first);
+  assert.ok(detour);
+  assert.ok(goal);
+
+  person.position = { q: startTile.q, r: startTile.r };
+  person.idleTarget = { q: goal.q, r: goal.r };
+  person.path = [
+    { q: first.q, r: first.r },
+    { q: detour.q, r: detour.r },
+    { q: goal.q, r: goal.r },
+  ];
+  person.movement = 1;
+  first.trafficTicks = Array.from(
+    { length: CONFIG.trafficThreshold - 1 },
+    () => world.round,
+  );
+
+  tick(world);
+
+  assert.equal(first.terrain, "road");
+  assert.deepEqual(person.path[0], { q: detour.q, r: detour.r });
+  assert.deepEqual(person.path.at(-1), { q: goal.q, r: goal.r });
 });

@@ -73,5 +73,5 @@ test("organic road creation does not pull a person out of a bakery while eating"
   while (world.round <= eatingUntilTick! && eater.hungerState) tick(world);
   assert.equal(eater.hungerState, undefined);
   assert.equal(bakery.output, 9);
-  assert.equal(eater.hunger, 99);
+  assert.equal(eater.hunger, 100);
 });
