@@ -23,20 +23,22 @@ test("free people wait on distinct positions outside the HQ", () => {
   }
 });
 
-test("an extractor without work waits around its personal work flag", () => {
+test("generic idle behavior leaves an extractor waiting at its personal work flag", () => {
   const world = createWorld();
   const person = world.people[0]!;
   person.woodcutter = true;
   person.workArea = { center: { q: 15, r: 10 }, radius: 12.5 };
+  person.position = { ...person.workArea.center };
   person.resourceTarget = undefined;
   person.path = [];
+  person.idleTarget = undefined;
   person.active = false;
 
   syncIdleBehavior(world);
 
-  assert.ok(person.idleTarget);
-  const distance = hexDistance(person.workArea.center, person.idleTarget!);
-  assert.ok(distance >= 2 && distance <= 4);
+  assert.equal(person.idleTarget, undefined);
+  assert.equal(person.path.length, 0);
+  assert.deepEqual(person.position, person.workArea.center);
 });
 
 test("an idle production worker waits outside the assigned workplace", () => {
