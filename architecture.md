@@ -226,4 +226,4 @@ All other unchanged systems remain documented in [`architecture-detail.md`](./ar
 
 Vite builds both the game root and `building-editor/index.html`. GitHub Pages publishes both from the same `dist` artifact.
 
-Per `agents.md`, implementation work happens on a temporary branch and is transferred to `main` as one final squash commit. The main deployment workflow runs tests before the production build and deploys only after both succeed.
+Per `agents.md`, implementation work happens on a temporary branch and is transferred to `main` as one final squash commit. The single GitHub Actions workflow validates pull requests targeting `main` with `npm test` and `npm run build` but skips Pages setup, artifact upload and deployment for pull-request events. After the squash merge, the push to `main` repeats tests and the production build and deploys GitHub Pages only if both succeed.
