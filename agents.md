@@ -26,9 +26,11 @@ Die Dokumentation soll so gepflegt werden, dass ein fähiger Agent die bestehend
 
 Änderungen werden während eines Runs auf einem **temporären Branch** umgesetzt. Zwischencommits auf diesem Branch sind erlaubt.
 
-Am Ende des Runs werden alle Änderungen **per Squash auf `main` übernommen**, sodass für die jeweilige Anpassung genau ein aussagekräftiger Commit auf `main` verbleibt. Dadurch wird die bestehende GitHub-Action nur einmal für den finalen Stand ausgelöst.
+Vor dem Merge wird ein Pull Request gegen `main` erstellt. Die GitHub-Action führt für Pull Requests automatisch `npm test` und `npm run build` aus, deployt dabei aber nicht. Erst nach einem erfolgreichen PR-Check wird der Branch per Squash übernommen.
 
-Nach dem Squash-Merge den Build-/Deploy-Status prüfen und konkrete Fehler bei Bedarf erneut über einen temporären Branch beheben und anschließend wieder als einzelnen Squash-Commit auf `main` übernehmen.
+Am Ende des Runs werden alle Änderungen **per Squash auf `main` übernommen**, sodass für die jeweilige Anpassung genau ein aussagekräftiger Commit auf `main` verbleibt.
+
+Der Push auf `main` startet Tests und Build erneut. Nur wenn beide erfolgreich sind, wird GitHub Pages deployt. Nach dem Squash-Merge den Build-/Deploy-Status prüfen. Konkrete Fehler werden bei Bedarf wieder auf einem neuen temporären Branch behoben und anschließend erneut als einzelner Squash-Commit auf `main` übernommen.
 
 ## Räumliches Referenzmodell
 
