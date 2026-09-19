@@ -6,10 +6,12 @@ type Axis = "pitch" | "yaw";
 type PartId = "head" | "leftArm" | "rightArm" | "leftLeg" | "rightLeg";
 type Pose = Record<string, number>;
 type Keyframe = { progress: number; pose: Pose };
+type Interpolation = "linear" | "easeIn" | "easeOut" | "easeInOut";
 type AnimationDefinition = {
   schema: "civilizations-character-animation";
   version: 1;
   id: string;
+  interpolation: Interpolation;
   keyframes: Keyframe[];
 };
 
@@ -33,6 +35,7 @@ const IDLE: AnimationDefinition = {
   schema: "civilizations-character-animation",
   version: 1,
   id: "idle",
+  interpolation: "easeInOut",
   keyframes: [
     { progress: 0, pose: { ...NEUTRAL_POSE } },
     { progress: 1, pose: { ...NEUTRAL_POSE } },
@@ -43,6 +46,7 @@ const WALK: AnimationDefinition = {
   schema: "civilizations-character-animation",
   version: 1,
   id: "walk",
+  interpolation: "easeInOut",
   keyframes: [
     {
       progress: 0,
@@ -104,6 +108,16 @@ app.innerHTML = `
         <div class="field">
           <label for="animation-id">ID</label>
           <input id="animation-id" type="text" value="walk" spellcheck="false" />
+        </div>
+        <div class="field">
+          <label for="interpolation">Interpolation</label>
+          <select id="interpolation">
+            <option value="linear">Linear</option>
+            <option value="easeIn">Ease In</option>
+            <option value="easeOut">Ease Out</option>
+            <option value="easeInOut" selected>Ease In / Out</option>
+          </select>
+          <p class="help">Bestimmt, wie weich zwischen zwei Keyframes beschleunigt und abgebremst wird.</p>
         </div>
         <div class="actions">
           <button class="secondary" id="example-idle">Idle laden</button>
@@ -172,6 +186,7 @@ const canvas = document.querySelector<HTMLCanvasElement>("#viewport")!;
 const progressInput = document.querySelector<HTMLInputElement>("#progress")!;
 const progressLabel = document.querySelector<HTMLElement>("#progress-label")!;
 const animationIdInput = document.querySelector<HTMLInputElement>("#animation-id")!;
+const interpolationSelect = document.querySelector<HTMLSelectElement>("#interpolation")!;
 const partSelect = document.querySelector<HTMLSelectElement>("#part")!;
 const jointControls = document.querySelector<HTMLDivElement>("#joint-controls")!;
 const keyframesEl = document.querySelector<HTMLDivElement>("#keyframes")!;
@@ -220,6 +235,24 @@ function sanitizePose(value: unknown): Pose {
   return result;
 }
 
+const INTERPOLATIONS = new Set<Interpolation>(["linear", "easeIn", "easeOut", "easeInOut"]);
+
+function sanitizeInterpolation(value: unknown): Interpolation {
+  return typeof value === "string" && INTERPOLATIONS.has(value as Interpolation)
+    ? value as Interpolation
+    : "linear";
+}
+
+function applyInterpolation(mode: Interpolation, value: number): number {
+  const t = clamp(value, 0, 1);
+  if (mode === "easeIn") return t * t * t;
+  if (mode === "easeOut") return 1 - Math.pow(1 - t, 3);
+  if (mode === "easeInOut") {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+  return t;
+}
+
 function sanitizeAnimation(value: unknown): AnimationDefinition {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Animation muss ein JSON-Objekt sein.");
   const raw = value as Record<string, unknown>;
@@ -246,7 +279,13 @@ function sanitizeAnimation(value: unknown): AnimationDefinition {
     if (previous && Math.abs(previous.progress - frame.progress) < 0.0001) deduped[deduped.length - 1] = frame;
     else deduped.push(frame);
   }
-  return { schema: "civilizations-character-animation", version: 1, id: raw.id, keyframes: deduped };
+  return {
+    schema: "civilizations-character-animation",
+    version: 1,
+    id: raw.id,
+    interpolation: sanitizeInterpolation(raw.interpolation),
+    keyframes: deduped,
+  };
 }
 
 function evaluateAnimation(animation: AnimationDefinition, at: number): Pose {
@@ -262,7 +301,7 @@ function evaluateAnimation(animation: AnimationDefinition, at: number): Pose {
     const b = frames[i + 1]!;
     if (t < a.progress || t > b.progress) continue;
     const span = Math.max(0.000001, b.progress - a.progress);
-    const local = (t - a.progress) / span;
+    const local = applyInterpolation(animation.interpolation, (t - a.progress) / span);
     const result: Pose = {};
     for (const key of Object.keys(NEUTRAL_POSE)) {
       const av = a.pose[key] ?? NEUTRAL_POSE[key] ?? 0;
@@ -344,6 +383,7 @@ function deleteKeyframe(at = progress): void {
 function loadAnimation(animation: unknown): void {
   currentAnimation = sanitizeAnimation(animation);
   animationIdInput.value = currentAnimation.id;
+  interpolationSelect.value = currentAnimation.interpolation;
   pause();
   setProgress(0);
   setStatus(`Animation „${currentAnimation.id}“ geladen.`);
@@ -351,6 +391,7 @@ function loadAnimation(animation: unknown): void {
 
 function exportAnimation(): AnimationDefinition {
   currentAnimation.id = animationIdInput.value.trim() || "animation";
+  currentAnimation.interpolation = sanitizeInterpolation(interpolationSelect.value);
   return sanitizeAnimation(currentAnimation);
 }
 
@@ -442,6 +483,11 @@ zoomInput.addEventListener("input", () => setZoom(Number(zoomInput.value)));
 animationIdInput.addEventListener("input", () => {
   currentAnimation.id = animationIdInput.value.trim() || "animation";
 });
+interpolationSelect.addEventListener("change", () => {
+  currentAnimation.interpolation = sanitizeInterpolation(interpolationSelect.value);
+  setProgress(progress);
+  setStatus(`Interpolation: ${interpolationSelect.options[interpolationSelect.selectedIndex]?.text ?? currentAnimation.interpolation}`);
+});
 document.querySelector("#example-idle")!.addEventListener("click", () => loadAnimation(IDLE));
 document.querySelector("#example-walk")!.addEventListener("click", () => loadAnimation(WALK));
 document.querySelector("#import-animation")!.addEventListener("click", () => importInput.click());
@@ -482,6 +528,7 @@ type CharacterLabApi = {
   setPartAngle(part: PartId, axis: Axis, degrees: number): number;
   setCharacterYaw(degrees: number): void;
   setZoom(value: number): void;
+  setInterpolation(mode: Interpolation): void;
   loadAnimation(animation: unknown): void;
   exportAnimation(): AnimationDefinition;
   setKeyframe(progress?: number, pose?: Pose): void;
@@ -507,6 +554,11 @@ window.characterLab = {
   setPartAngle,
   setCharacterYaw,
   setZoom,
+  setInterpolation: (mode) => {
+    currentAnimation.interpolation = sanitizeInterpolation(mode);
+    interpolationSelect.value = currentAnimation.interpolation;
+    setProgress(progress);
+  },
   loadAnimation,
   exportAnimation: () => structuredClone(exportAnimation()),
   setKeyframe,
