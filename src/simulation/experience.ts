@@ -12,6 +12,7 @@ export const PROFESSION_XP_REQUIREMENTS: Partial<
   stonemason: { profession: "stonecutter", experience: 10 },
   miller: { profession: "farmer", experience: 10 },
   baker: { profession: "miller", experience: 10 },
+  tailor: { profession: "hunter", experience: 10 },
 };
 
 export function canLearnProfession(p: Person, profession: Profession): boolean {
@@ -65,6 +66,7 @@ export function workerProfession(building: Building): Profession | undefined {
   if (building.kind === "bakery") return "baker";
   if (building.kind === "pottery") return "potter";
   if (building.kind === "stonemason") return "stonemason";
+  if (building.kind === "tailor") return "tailor";
   return undefined;
 }
 
@@ -101,4 +103,5 @@ export const PROFESSION_LABELS: Record<Profession, string> = {
   stonecutter: "Abbauer Stein",
   potter: "Töpfer",
   stonemason: "Steinmetz",
+  tailor: "Näher",
 };
