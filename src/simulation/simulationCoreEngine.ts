@@ -1488,6 +1488,7 @@ export const GOODS: Record<Good, string> = {
   fish: "Fisch",
   meat: "Fleisch",
   leather: "Leder",
+  shoes: "Schuhe",
   clay: "Lehm",
   rubble: "Bruchstein",
   brick: "Backstein",
