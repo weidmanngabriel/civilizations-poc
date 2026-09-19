@@ -220,10 +220,6 @@
   font-size: 10px;
 }
 
-.person-inspector-header .person-context-toggle > span:first-child {
-  font-size: 15px;
-}
-
 .person-inspector-identity {
   min-width: 0;
   display: grid;
@@ -453,12 +449,6 @@ main.merchant-target-mode .person-inspector {
     grid-column: span 2;
   }
 
-  .person-open-list {
-    margin-top: 5px;
-    min-height: 32px;
-    font-size: 9px;
-  }
-
   .person-list-item {
     min-height: 62px;
   }
@@ -572,4 +562,26 @@ main.merchant-target-mode .person-inspector {
   .person-alert-filters button {
     min-height: 46px;
   }
+}
+
+.person-picker-group {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 4px 3px;
+  color: #f4f0df;
+}
+
+.person-picker-group strong {
+  font-size: 10px;
+}
+
+.person-picker-group small {
+  font-size: 8px;
+  opacity: 0.58;
+}
+
+.person-staff-picker .person-list-item {
+  border-color: rgb(243 211 106 / 18%);
 }
