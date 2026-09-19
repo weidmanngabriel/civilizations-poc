@@ -9,6 +9,7 @@ import {
   routeOutdoorCarryToFlag,
   workAreaContains,
 } from "./workAreas";
+import { clearNavigationBlocked } from "./wayposts";
 import {
   findLooseGoodDropPosition,
   looseGoodStack,
@@ -88,6 +89,7 @@ const targetForHunter = (world: World, hunter: Person): Animal | undefined => {
 
 const routeIntoRange = (world: World, hunter: Person, target: Animal): void => {
   const path = findPath(world.tiles, hunter.position, target.position, CONFIG.roadSpeedMultiplier);
+  clearNavigationBlocked(hunter);
   if (!path) {
     hunter.huntTarget = undefined;
     hunter.path = [];
@@ -139,6 +141,7 @@ function collectHuntLoot(world: World, hunter: Person): void {
     const retryAfter = hunter.workArea?.retryAfterTick;
     if (retryAfter !== undefined && world.round < retryAfter) return;
     const path = findPath(world.tiles, hunter.position, stack.position, CONFIG.roadSpeedMultiplier);
+    clearNavigationBlocked(hunter);
     if (!path) {
       hunter.active = false;
       if (hunter.workArea)
@@ -173,7 +176,7 @@ function collectHuntLoot(world: World, hunter: Person): void {
   hunter.path = [];
   hunter.movement = 0;
   hunter.active = false;
-  routeOutdoorCarryToFlag(world, hunter);
+  routeOutdoorCarryToFlag(world, hunter, true);
 }
 
 function startAiming(world: World, hunter: Person, target: Animal): void {
@@ -224,9 +227,18 @@ function advanceHunter(world: World, hunter: Person): void {
     return;
   }
 
+  if (
+    hunter.huntTarget ||
+    hunter.huntAimTarget ||
+    hunter.huntLootTarget ||
+    hunter.huntLootQueue?.length ||
+    hunter.outdoorCarry
+  )
+    clearNavigationBlocked(hunter);
+
   if (hunter.outdoorCarry) {
     clearAim(hunter);
-    if (routeOutdoorCarryToFlag(world, hunter))
+    if (routeOutdoorCarryToFlag(world, hunter, true))
       activateNextLootTarget(hunter);
     return;
   }
@@ -249,6 +261,7 @@ function advanceHunter(world: World, hunter: Person): void {
     return;
   }
 
+  clearNavigationBlocked(hunter);
   const distance = hexDistance(hunter.position, target.position);
   if (distance > HUNTER_BOW.range) {
     if (!hunter.path.length) routeIntoRange(world, hunter, target);
