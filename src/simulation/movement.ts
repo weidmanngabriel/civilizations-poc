@@ -1,6 +1,6 @@
 import type { Hex, Person, World } from "./model";
 import { key, movementCost, tileIndex } from "./hex";
-import { CONFIG } from "./scenario";\nimport { equipmentMovementSpeedMultiplier } from "./equipment";
+import { CONFIG } from "./scenario";
 
 /**
  * Continuous simulation position between the last reached tile centre and the
