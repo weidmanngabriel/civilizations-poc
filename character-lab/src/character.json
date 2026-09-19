@@ -34,6 +34,9 @@
     "torso": {
       "pitch": {
         "neutral": 0
+      },
+      "yaw": {
+        "neutral": 0
       }
     }
   }
