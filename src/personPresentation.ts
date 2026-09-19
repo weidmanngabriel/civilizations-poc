@@ -13,6 +13,8 @@ export const personActivityLabel = (person: Person): string => {
   if (person.trip?.picked) return `Transportiert ${GOODS[person.trip.good]}`;
   if (person.outdoorCarry) return `Trägt ${GOODS[person.outdoorCarry]} zur Flagge`;
   if (person.trip) return `Holt ${GOODS[person.trip.good]}`;
+  if (person.scoutWaypostTask)
+    return person.path.length ? "Geht zum Wegweiser" : "Errichtet Wegweiser";
   if (person.farmTask) {
     if (person.farmTask.kind === "harvest") return "Erntet";
     if (person.farmTask.kind === "fertilize") return "Düngt";
