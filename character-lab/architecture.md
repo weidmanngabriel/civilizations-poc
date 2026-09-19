@@ -125,7 +125,7 @@ The Character Lab supports a deterministic capture mode through query parameters
 
 ### Woodcut motion
 
-The woodcut preset uses torso pitch around the hip joint to transfer weight into the axe swing. Root position shifts slightly backward during the wind-up and toward the imaginary tree at impact. Walking between work positions is authored as an inward-facing sidestep with continuous negative yaw values, preventing long rotational interpolation around the 0°/360° boundary.
+The woodcut preset uses torso pitch around the hip joint to transfer weight into the axe swing. Each chop starts with the axe raised above/behind the shoulder and accelerates diagonally downward toward the imaginary trunk; the impact pose stays in front of the body instead of continuing upward from below. Root position shifts slightly backward during the wind-up and toward the imaginary tree at impact. Walking between work positions is authored as an inward-facing sidestep with continuous negative yaw values, preventing long rotational interpolation around the 0°/360° boundary.
 
 
 ## Dedicated CI/build pipeline
