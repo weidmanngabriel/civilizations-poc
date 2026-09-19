@@ -53,7 +53,7 @@ const NODES: TechNode[] = [
   { id: "gold", label: "⛏ Abbauer Gold", x: 640, y: 490, kind: "resource" },
   { id: "miller", label: "🌾 Müller", x: 640, y: 580, kind: "profession" },
   { id: "stockfarmer", label: "🐄 Viehzüchter", x: 640, y: 680, kind: "profession" },
-  { id: "tailor", label: "🧵 Schneider", x: 640, y: 760, kind: "profession" },
+  { id: "tailor", label: "🧵 Näher", x: 640, y: 760, kind: "profession" },
   { id: "warehouse", label: "Lager", subtitle: "Träger-Erfahrung", x: 640, y: 850, kind: "building" },
   { id: "merchant", label: "🛒 Händler", x: 640, y: 940, kind: "profession" },
 
@@ -64,7 +64,7 @@ const NODES: TechNode[] = [
   { id: "smith", label: "⚒ Schmied", x: 930, y: 400, kind: "profession" },
   { id: "mill", label: "Mühle", x: 930, y: 580, kind: "building" },
   { id: "cattle", label: "Viehhof", x: 930, y: 680, kind: "building" },
-  { id: "tailor1", label: "Schneiderei I", subtitle: "Schuhe", x: 930, y: 760, kind: "building" },
+  { id: "tailor1", label: "Näherei", subtitle: "Leder → Schuhe", x: 930, y: 760, kind: "building" },
 
   { id: "carp1", label: "Schreinerei", subtitle: "Holzwerkzeuge", x: 1210, y: 40, kind: "building" },
   { id: "pot2", label: "Töpferei II", subtitle: "Dachziegel", x: 1210, y: 130, kind: "building" },
@@ -72,7 +72,7 @@ const NODES: TechNode[] = [
   { id: "druid", label: "🧪 Druide", x: 1210, y: 310, kind: "profession" },
   { id: "mintworker", label: "🪙 Münzpräger", x: 1210, y: 430, kind: "profession" },
   { id: "baker", label: "🥖 Bäcker", x: 1210, y: 620, kind: "profession" },
-  { id: "tailor2", label: "Schneiderei II", subtitle: "Kleidung / Schutz", x: 1210, y: 760, kind: "building" },
+  { id: "tailor2", label: "Näherei II", subtitle: "später", x: 1210, y: 760, kind: "building" },
 
   { id: "carp2", label: "Schreinerei II", subtitle: "Möbel", x: 1490, y: 40, kind: "building" },
   { id: "pot3", label: "Töpferei III", subtitle: "Geschirr", x: 1490, y: 130, kind: "building" },
@@ -137,6 +137,7 @@ const BUILDING_NODES: Partial<Record<string, PlaceableBuildingKind>> = {
   bakery1: "bakery",
   pot1: "pottery",
   mason1: "stonemason",
+  tailor1: "tailor",
 };
 
 const BUILDING_LABELS: Record<PlaceableBuildingKind, string> = {
@@ -150,6 +151,7 @@ const BUILDING_LABELS: Record<PlaceableBuildingKind, string> = {
   well: "Brunnen",
   pottery: "Töpferei",
   stonemason: "Steinmetzhütte",
+  tailor: "Näherei",
 };
 
 const NODE_WIDTH = 210;
@@ -251,6 +253,7 @@ const nodeStatus = (world: World, nodeId: string): NodeStatus => {
   if (nodeId === "merchant") return professionAvailabilityStatus(world, "warehouse");
   if (nodeId === "potter") return professionAvailabilityStatus(world, "pottery");
   if (nodeId === "mason") return professionAvailabilityStatus(world, "stonemason");
+  if (nodeId === "tailor") return progressionStatus(world, "hunter", "tailor");
   if (nodeId === "baker") return professionAvailabilityStatus(world, "bakery");
 
   return { state: "planned", text: "◌ Noch nicht im Prototyp" };
