@@ -424,7 +424,7 @@ test("an extractor with no remaining local target returns to the work flag", () 
   }
 });
 
-test("a failed fishing cycle returns the fisher to the work flag before replanning", () => {
+test("a failed fishing cycle replans locally without returning to the work flag", () => {
   const world = createWorld(1);
   assert.equal(changeFishers(world, 1), true);
   const fisher = fishers(world)[0]!;
@@ -441,8 +441,11 @@ test("a failed fishing cycle returns the fisher to the work flag before replanni
   while (world.round < waitUntil) tick(world);
 
   assert.equal(fisher.outdoorCarry, undefined);
-  if (!same(spot, center)) {
-    assert.ok(fisher.path.length > 0);
-    assert.equal(same(fisher.path.at(-1)!, center), true);
-  }
+  assert.equal(
+    !same(spot, center) && fisher.path.length > 0
+      ? same(fisher.path.at(-1)!, center)
+      : false,
+    false,
+    "a failed cast should continue with local fishing instead of routing to the flag",
+  );
 });
