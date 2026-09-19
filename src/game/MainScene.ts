@@ -62,6 +62,7 @@ const goodColors: Record<Good, number> = {
   water: 0x77b9d4,
   bread: 0xb8793d,
   fish: 0x6fa7b8,
+  meat: 0xb85f55,
   clay: 0x9b6a4d,
   rubble: 0x8b8f8c,
   brick: 0xb55d42,
