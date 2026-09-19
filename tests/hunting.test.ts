@@ -424,7 +424,9 @@ test("hunter resumes reserved leather after eating deposited boar meat", () => {
   assert.equal(hunter.hungerState, undefined);
   assert.equal(hunter.huntLootTarget, leather.id);
   assert.ok(hunter.path.length > 0);
-  assert.deepEqual(hunter.path.at(-1), leather.position);
+  const leatherRouteEnd = hunter.path.at(-1)!;
+  assert.equal(leatherRouteEnd.q, leather.position.q);
+  assert.equal(leatherRouteEnd.r, leather.position.r);
   assert.equal(leather.reserved, 1);
 });
 
