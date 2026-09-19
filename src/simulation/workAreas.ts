@@ -29,7 +29,7 @@ export const HUNTER_WORK_AREA_RADIUS = HUNTER_WORK_AREA_RADIUS_WORLD_TILES * GRI
 const workAreaRadiusFor = (person: Person): number =>
   person.hunter ? HUNTER_WORK_AREA_RADIUS : WORK_AREA_RADIUS;
 
-const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "wheat", "flour", "water", "bread", "fish", "meat", "leather", "clay", "rubble", "brick", "stoneBlock"];
+const ALL_GOODS: Good[] = ["wood", "plank", "woodenTool", "shoes", "wheat", "flour", "water", "bread", "fish", "meat", "leather", "clay", "rubble", "brick", "stoneBlock"];
 const FISHING_WAIT_TICKS = 5 * CONFIG.simulationHz;
 const isComplete = (building: Building): boolean => !building.construction || building.construction.complete;
 
