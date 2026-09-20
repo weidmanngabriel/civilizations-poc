@@ -10,6 +10,7 @@ import type {
   NaturalResourceId,
   NaturalResourceKind,
   Person,
+  Recipe,
   Role,
   Tile,
   World,
