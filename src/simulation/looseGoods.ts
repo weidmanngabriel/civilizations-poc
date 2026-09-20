@@ -1,7 +1,7 @@
 import { key, neighbors, tileIndex } from "./hex";
 import { hexDistance } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
-import type { Good, Hex, LooseGoodStack, LooseGoodStackId, World } from "./model";
+import type { EquippedItem, Good, Hex, LooseGoodStack, LooseGoodStackId, World } from "./model";
 
 export const LOOSE_GOOD_STACK_CAPACITY = 3;
 
@@ -50,12 +50,22 @@ export const placeLooseGood = (
   position: Hex,
   good: Good,
   amount = 1,
+  equipmentItems: EquippedItem[] = [],
 ): LooseGoodStack | undefined => {
-  if (!Number.isInteger(amount) || amount <= 0) return undefined;
+  if (
+    !Number.isInteger(amount) ||
+    amount <= 0 ||
+    equipmentItems.length > amount ||
+    equipmentItems.some((item) => item.good !== good)
+  ) return undefined;
+
+  const clonedItems = equipmentItems.map((item) => ({ ...item }));
   const existing = looseGoodStackAt(world, position);
   if (existing) {
     if (existing.good !== good || existing.amount + amount > LOOSE_GOOD_STACK_CAPACITY) return undefined;
     existing.amount += amount;
+    if (clonedItems.length)
+      existing.equipmentItems = [...(existing.equipmentItems ?? []), ...clonedItems];
     return existing;
   }
   if (amount > LOOSE_GOOD_STACK_CAPACITY || !canPlaceLooseGoodAt(world, position, good)) return undefined;
@@ -69,6 +79,7 @@ export const placeLooseGood = (
     good,
     amount,
     reserved: 0,
+    ...(clonedItems.length ? { equipmentItems: clonedItems } : {}),
   };
   world.looseGoods!.push(stack);
   return stack;
@@ -98,20 +109,36 @@ export const releaseLooseGoodReservation = (
   return true;
 };
 
-export const pickupReservedLooseGood = (
+export type LooseGoodPickup = {
+  equipmentItems: EquippedItem[];
+};
+
+export const pickupReservedLooseGoodWithState = (
   world: World,
   id: LooseGoodStackId,
   amount = 1,
-): boolean => {
-  if (!Number.isInteger(amount) || amount <= 0) return false;
+): LooseGoodPickup | undefined => {
+  if (!Number.isInteger(amount) || amount <= 0) return undefined;
   const stack = looseGoodStack(world, id);
-  if (!stack || stack.reserved < amount || stack.amount < amount) return false;
+  if (!stack || stack.reserved < amount || stack.amount < amount) return undefined;
+
+  const equipmentItems = (stack.equipmentItems?.splice(0, amount) ?? [])
+    .map((item) => ({ ...item }));
+  if (stack.equipmentItems && stack.equipmentItems.length === 0)
+    stack.equipmentItems = undefined;
+
   stack.reserved -= amount;
   stack.amount -= amount;
   if (stack.amount === 0)
     world.looseGoods = looseGoodStacks(world).filter((candidate) => candidate.id !== id);
-  return true;
+  return { equipmentItems };
 };
+
+export const pickupReservedLooseGood = (
+  world: World,
+  id: LooseGoodStackId,
+  amount = 1,
+): boolean => Boolean(pickupReservedLooseGoodWithState(world, id, amount));
 
 /**
  * Find where an extractor should deposit one physical unit.
