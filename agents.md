@@ -26,11 +26,13 @@ Die Dokumentation soll so gepflegt werden, dass ein fähiger Agent die bestehend
 
 Änderungen werden während eines Runs auf einem **temporären Branch** umgesetzt. Zwischencommits auf diesem Branch sind erlaubt.
 
-Vor dem Merge wird ein Pull Request gegen `main` erstellt. Die GitHub-Action führt für Pull Requests automatisch `npm test` und `npm run build` aus, deployt dabei aber nicht. Erst nach einem erfolgreichen PR-Check wird der Branch per Squash übernommen.
+Vor dem Merge wird ein Pull Request gegen `main` erstellt. Pull-Request-Updates führen automatisch nur `npm test` aus. Dadurch können Zwischenstände und insbesondere Testoptimierungen schnell geprüft werden, ohne bei jedem Commit zusätzlich den Produktions-Build auszuführen. Der Workflow kann außerdem manuell mit der Validierungsstufe `test` gestartet werden, wenn bewusst nur die Tests benötigt werden.
+
+**Unmittelbar vor jedem Squash-Merge muss auf dem finalen PR-Head eine vollständige Validierung erfolgreich gelaufen sein.** Dazu wird derselbe Workflow entweder manuell mit der Validierungsstufe `full` gestartet oder der Pull Request geschlossen und wieder geöffnet; ein `reopened`-Lauf ist ausdrücklich als Full-Validation-Trigger definiert. Dieser Lauf muss sowohl `npm test` als auch `npm run build` erfolgreich abschließen. Nach diesem Full-Validation-Lauf dürfen vor dem Merge keine weiteren Commits mehr auf den Branch gelangen. Der Agent muss deshalb prüfen, dass der erfolgreich validierte Commit-SHA exakt dem zu mergenden PR-Head entspricht.
 
 Am Ende des Runs werden alle Änderungen **per Squash auf `main` übernommen**, sodass für die jeweilige Anpassung genau ein aussagekräftiger Commit auf `main` verbleibt.
 
-Der Push auf `main` startet Tests und Build erneut. Nur wenn beide erfolgreich sind, wird GitHub Pages deployt. Nach dem Squash-Merge den Build-/Deploy-Status prüfen. Konkrete Fehler werden bei Bedarf wieder auf einem neuen temporären Branch behoben und anschließend erneut als einzelner Squash-Commit auf `main` übernommen.
+Der Push auf `main` startet Tests und Build erneut. Nur wenn beide erfolgreich sind, wird GitHub Pages deployt. Manuelle Workflow-Läufe deployen grundsätzlich nicht. Nach dem Squash-Merge den Build-/Deploy-Status prüfen. Konkrete Fehler werden bei Bedarf wieder auf einem neuen temporären Branch behoben und anschließend erneut als einzelner Squash-Commit auf `main` übernommen.
 
 ## Räumliches Referenzmodell
 

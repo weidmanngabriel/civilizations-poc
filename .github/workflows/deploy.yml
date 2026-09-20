@@ -4,7 +4,17 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
+    inputs:
+      validation:
+        description: Validation depth
+        required: true
+        default: full
+        type: choice
+        options:
+          - test
+          - full
 permissions:
   contents: read
   pages: write
@@ -24,14 +34,15 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.validation == 'full') || (github.event_name == 'pull_request' && github.event.action == 'reopened')
       - uses: actions/configure-pages@v5
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'push'
       - uses: actions/upload-pages-artifact@v3
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'push'
         with:
           path: dist
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push'
     needs: build
     runs-on: ubuntu-latest
     environment:

@@ -1,19 +1,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createWorld, CONFIG } from "../src/simulation/scenario";
+import { CONFIG } from "../src/simulation/scenario";
 import { findLooseGoodDropPosition, placeLooseGood } from "../src/simulation/looseGoods";
 import {
   assigned,
   buildAt,
   changeAssignment,
-  changeWoodcutters,
-  naturalResource,
   tick,
-  woodcutters,
 } from "../src/simulation/simulation";
+import { createTestWorld } from "./testWorld";
 
 function activeSawmillWorker() {
-  const world = createWorld();
+  const world = createTestWorld({ width: 32, height: 24 });
   const sawmill = buildAt(world, { q: 7, r: 4 }, "sawmill")!;
   changeAssignment(world, sawmill.id, "worker", 1);
   const worker = assigned(world, sawmill.id, "worker")[0]!;
@@ -21,10 +19,7 @@ function activeSawmillWorker() {
   worker.path = [];
   worker.movement = 0;
   worker.active = true;
-  changeWoodcutters(world, 1);
-  const woodcutter = woodcutters(world)[0]!;
-  const forest = naturalResource(world, woodcutter.resourceTarget!);
-  const drop = findLooseGoodDropPosition(world, forest.position, "wood", CONFIG.spatialScale)!;
+  const drop = findLooseGoodDropPosition(world, { q: 10, r: 4 }, "wood", CONFIG.spatialScale)!;
   const stack = placeLooseGood(world, drop, "wood", 1)!;
   return { world, sawmill, worker, stack };
 }

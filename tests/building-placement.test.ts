@@ -48,7 +48,7 @@ test("building shapes can use an anchor anywhere inside an irregular footprint",
 });
 
 test("valid anchor enumeration matches the authoritative placement rule", () => {
-  const world = createWorld();
+  const world = createTestWorld({ width: 40, height: 30 });
   const valid = validBuildingAnchors(world, "warehouse");
   assert.ok(valid.length > 0);
   assert.ok(valid.every((position) => canPlaceBuilding(world, position, "warehouse")));
@@ -116,7 +116,7 @@ test("wayposts reserve their cell plus one neighboring micro-cell from building 
 });
 
 test("buildable buildings occupy multiple tiles and keep a two-micro-cell clearance", () => {
-  const world = createWorld();
+  const world = createTestWorld({ width: 40, height: 30 });
   const origin = findValidOrigin(world, "warehouse");
   const footprint = footprintAt("warehouse", origin);
   const ring = footprintRing(footprint);
@@ -144,7 +144,7 @@ test("buildable buildings occupy multiple tiles and keep a two-micro-cell cleara
 });
 
 test("placement fails when the required free ring contains blocked terrain", () => {
-  const world = createWorld();
+  const world = createTestWorld({ width: 40, height: 30 });
   const origin = findValidOrigin(world, "warehouse");
   const ring = footprintRing(footprintAt("warehouse", origin));
   const blocked = world.tiles.find((tile) => same(tile, ring[0]!))!;
@@ -153,7 +153,7 @@ test("placement fails when the required free ring contains blocked terrain", () 
 });
 
 test("physical goods block only the actual building footprint", () => {
-  const world = createWorld();
+  const world = createTestWorld({ width: 40, height: 30 });
   const origin = findValidOrigin(world, "warehouse");
   const footprint = footprintAt("warehouse", origin);
   const ring = footprintRing(footprint);
@@ -167,7 +167,7 @@ test("physical goods block only the actual building footprint", () => {
 });
 
 test("demolishing a multi-tile building restores every occupied grass tile", () => {
-  const world = createWorld();
+  const world = createTestWorld({ width: 40, height: 30 });
   const origin = findValidOrigin(world, "sawmill");
   const footprint = footprintAt("sawmill", origin);
   const created = buildWithFootprint(world, origin, "sawmill");
@@ -182,7 +182,7 @@ test("demolishing a multi-tile building restores every occupied grass tile", () 
 });
 
 test("roads are valid placement terrain but are removed by the building footprint", () => {
-  const world = createWorld();
+  const world = createTestWorld({ width: 40, height: 30 });
   const origin = findValidOrigin(world, "warehouse");
   const footprint = footprintAt("warehouse", origin);
   const roadPosition = footprint[1]!;
