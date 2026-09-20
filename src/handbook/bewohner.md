@@ -48,7 +48,7 @@ Abgelegte Schuhe und Werkzeuge verschwinden nicht. Gibt es ein Hauptquartier ode
 
 ## Personal in Gebäuden
 
-In fertigen Gebäuden siehst du die zugewiesenen Personen direkt bei ihrer Rolle. Tippe oder klicke auf einen Namen, um sofort zu dieser Person zu springen. Ist ein Platz frei, öffnet **Geeignete Personen** eine passende Auswahlliste. Freie Bewohner ohne Beruf stehen dort zuerst. Wählst du jemanden, der bereits einen anderen Beruf oder Arbeitsplatz hat, musst du den Wechsel bestätigen. Personal wird nicht mehr über Plus/Minus-Regler automatisch zugewiesen.
+In fertigen Gebäuden siehst du die zugewiesenen Personen direkt bei ihrer Rolle. Tippe oder klicke auf einen Namen, um sofort zu dieser Person zu springen. Ist ein Platz frei, öffnet **Geeignete Personen** eine große Auswahlliste über fast den ganzen Bildschirm. Auch Beruf- und Ausrüstungswahl nutzen diesen großzügigen Dialog, damit mehr Optionen gleichzeitig sichtbar sind. Freie Bewohner ohne Beruf stehen bei der Personalwahl zuerst. Wählst du jemanden, der bereits einen anderen Beruf oder Arbeitsplatz hat, musst du den Wechsel bestätigen. Personal wird nicht mehr über Plus/Minus-Regler automatisch zugewiesen.
 
 ## Jäger
 
