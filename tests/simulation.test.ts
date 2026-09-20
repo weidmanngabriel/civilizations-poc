@@ -246,7 +246,11 @@ test("production takes one configured cycle and awards XP after completion", () 
 });
 
 test("one woodcutter occupies one tree while physical wood is capped at three units", () => {
-  const w = createWorld();
+  const w = createTestWorld({
+    width: 32,
+    height: 24,
+    resources: [{ kind: "forest", offset: { q: 8, r: 0 } }],
+  });
   const { forest } = woodcutterAtForest(w);
   assert.equal(w.people.filter((person) => person.resourceTarget === forest.id).length, 1);
   rounds(w, CONFIG.duration * CONFIG.forestYield);
@@ -312,7 +316,12 @@ test("one physical unit cannot be claimed twice; carried cancellation returns it
 });
 
 test("population removal only removes truly free people at HQ; IDs stay unique", () => {
-  const w = createWorld(1);
+  const w = createTestWorld({
+    width: 32,
+    height: 24,
+    population: 1,
+    resources: [{ kind: "forest", offset: { q: 8, r: 0 } }],
+  });
   const hq = building(w, "hq");
   changeWoodcutters(w, 1);
   assert.equal(changePopulation(w, -1), false);
