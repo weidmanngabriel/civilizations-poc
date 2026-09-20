@@ -715,14 +715,18 @@ export class MainScene extends Phaser.Scene {
         window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())),
       );
 
-      const source = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const source = await new Promise<CanvasImageSource>((resolve) => {
         const renderer = this.game.renderer as unknown as {
-          snapshot(callback: (image: HTMLImageElement) => void): void;
+          snapshot?: (callback: (image: CanvasImageSource) => void) => void;
         };
+        if (!renderer.snapshot) {
+          resolve(this.game.canvas);
+          return;
+        }
         try {
           renderer.snapshot(resolve);
-        } catch (error) {
-          reject(error);
+        } catch {
+          resolve(this.game.canvas);
         }
       });
 
