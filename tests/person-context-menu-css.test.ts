@@ -15,4 +15,6 @@ test("person context menu keeps all sixteen orientation slots visible as placeho
   const source = readFileSync(new URL("../src/ui/personContextMenu.ts", import.meta.url), "utf8");
   assert.match(source, /Array\.from\(\{ length: 16 \}/);
   assert.match(css, /\.person-context-placeholder\s*\{[\s\S]*border:/);
+  assert.match(css, /\.person-context-placeholder\.slot-1\s*\{\s*grid-column:\s*2;\s*grid-row:\s*1;/);
+  assert.match(css, /\.person-context-placeholder\.slot-16\s*\{\s*grid-column:\s*1;\s*grid-row:\s*2;/);
 });
