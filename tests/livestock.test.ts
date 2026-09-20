@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { advanceHunting } from "../src/simulation/hunting";
+import type { Building } from "../src/simulation/model";
 import { setPersonProfession } from "../src/simulation/personCommands";
 import { createWorld } from "../src/simulation/scenario";
 import { buildWithFootprint, validBuildingAnchors } from "../src/simulation/buildingPlacement";
@@ -242,7 +243,7 @@ test("breeding skips a species that already has twelve owned animals", () => {
   world.animals = [];
   world.animalGroups = [];
   const breederPosition = grassNear(world, world.buildings[0]!.position, 7);
-  const breeder = {
+  const breeder: Building = {
     id: "livestockBreeder-limit",
     kind: "livestockBreeder" as const,
     name: "Viehzüchterei",
