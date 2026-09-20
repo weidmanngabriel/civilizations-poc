@@ -730,9 +730,17 @@ export class MainScene extends Phaser.Scene {
         }
       });
 
+      const sourceWidth = Math.max(1, this.game.canvas.width);
+      const sourceHeight = Math.max(1, this.game.canvas.height);
+      const maxThumbnailSide = 480;
+      const scale = Math.min(
+        maxThumbnailSide / sourceWidth,
+        maxThumbnailSide / sourceHeight,
+        1,
+      );
       const thumbnail = document.createElement("canvas");
-      thumbnail.width = 480;
-      thumbnail.height = 270;
+      thumbnail.width = Math.max(1, Math.round(sourceWidth * scale));
+      thumbnail.height = Math.max(1, Math.round(sourceHeight * scale));
       const context = thumbnail.getContext("2d");
       if (!context) throw new Error("Vorschaubild konnte nicht erzeugt werden.");
       context.drawImage(source, 0, 0, thumbnail.width, thumbnail.height);
