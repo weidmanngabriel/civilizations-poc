@@ -8,7 +8,7 @@ Hunger und Müdigkeit können Arbeit unterbrechen. Beide Bedürfnisse sinken bew
 
 ## Versorgung und Wegfindung
 
-Für Hunger und Schlaf sucht ein Bewohner zuerst lokal in einem Bereich, der ungefähr so groß ist wie die Reichweite eines Wegweisers. Dabei darf er auch kurz aus der Wegweiserabdeckung herauslaufen. Verlässt er auf diesem lokalen Versorgungsweg einen abgedeckten Bereich, kehrt er nach dem Essen oder Schlafen zuerst zu seinem Ausgangspunkt zurück und setzt danach seine Aufgabe fort. Findet er lokal nichts Passendes, nutzt er wieder das normale Wegweisernetz. Kundschafter sind grundsätzlich nicht an Wegweiser gebunden.
+Für Hunger und Schlaf sucht ein Bewohner zuerst lokal in einem Bereich, der ungefähr so groß ist wie die Reichweite eines Wegweisers. Dabei darf er auch kurz aus der Wegweiserabdeckung herauslaufen. Verlässt er auf diesem lokalen Versorgungsweg einen abgedeckten Bereich, kehrt er nach dem Essen oder Schlafen zuerst zu seinem Ausgangspunkt zurück und setzt danach seine Aufgabe fort. Findet er lokal nichts Passendes, nutzt er wieder das normale Wegweisernetz. Ein Jäger, der während einer freien Jagd außerhalb des Netzes hungrig wird, kehrt ohne lokale Nahrung zuerst direkt zu seiner Arbeitsflagge zurück und sucht erst von dort über das Wegweisernetz weiter. Kundschafter sind grundsätzlich nicht an Wegweiser gebunden.
 
 ## Aufenthalt in Gebäuden
 
@@ -51,6 +51,8 @@ In fertigen Gebäuden siehst du die zugewiesenen Personen direkt bei ihrer Rolle
 ## Jäger
 
 Jäger arbeiten wie andere Außenberufe mit einer persönlichen Arbeitsflagge, besitzen aber einen deutlich größeren Jagdbereich. Wird die Flagge versetzt und der Jäger steht noch außerhalb des neuen Jagdgebiets, muss er es zuerst über das normale Wegweisernetz erreichen. Erst dort sucht er neue Beute. Haben sie ein Tier bereits ins Visier genommen, verfolgen sie es aber auch über die Grenze hinaus, bis die Jagd beendet ist. Für diese laufende Verfolgung und für den Rücktransport der Beute brauchen sie keine Wegweiserverbindung zur Arbeitsflagge. Sie verfolgen Kleinwild bis in Bogenschussweite, bleiben dann kurz zum Zielen stehen und schießen erst danach. Hat das Zielen bereits begonnen, wird der Schuss auch dann noch ausgeführt, wenn das Tier währenddessen wieder weiterläuft. Pfeile bleiben nach dem Einschlag noch eine Weile sichtbar.
+
+Wird ein Jäger während der Verfolgung hungrig, darf er nahe Nahrung direkt nutzen. Findet er keine, kehrt er zuerst zur Arbeitsflagge zurück und sucht von dort regulär nach Essen. Nach dem Essen setzt er sein bestehendes Jagd- oder Beuteziel fort.
 
 Erlegt ein Jäger einen Hasen, trägt er die entstandene Fleischkeule zu seiner Fahne. Wildschweine liefern Fleisch und Leder. Der Jäger kann nur eine Beute auf einmal tragen und läuft deshalb nach der ersten Ablage zurück, um die zweite zu holen. Isst er das abgelegte Fleisch zwischendurch selbst, setzt er danach die Bergung fort und holt die noch reservierte Beute. Erst wenn alle Beute an der Fahne liegt, jagt er weiter. Fleisch kann eingelagert oder gegessen werden; Leder bleibt als normale Ware für spätere Verarbeitung verfügbar. Mit steigender Berufserfahrung treffen Jäger zuverlässiger; Erfahrung erhalten sie nur für tatsächlich erlegtes Wild. Mit 10 Jäger-Erfahrungspunkten kann ein Bewohner den Beruf **Näher** lernen. Dadurch wird auch die **Näherei** freigeschaltet. Dort wird aus einer Einheit Leder ein Paar Schuhe.
 

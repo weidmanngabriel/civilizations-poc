@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { hunterHitChance, advanceHunting } from "../src/simulation/hunting";
-import { commandEat, resolveFoodArrivals } from "../src/simulation/needs";
+import { advanceHungerTick, commandEat, resolveFoodArrivals } from "../src/simulation/needs";
 import { placeLooseGood, reserveLooseGood } from "../src/simulation/looseGoods";
 import { setPersonProfession } from "../src/simulation/personCommands";
 import { createWorld, CONFIG } from "../src/simulation/scenario";
@@ -440,6 +440,8 @@ test("hunter resumes reserved leather after eating deposited boar meat", () => {
 
   assert.equal(hunter.hungerState, undefined);
   assert.equal(hunter.huntLootTarget, leather.id);
+  assert.equal(hunter.path.length, 0);
+  advanceHunting(world);
   assert.ok(hunter.path.length > 0);
   const leatherRouteEnd = hunter.path.at(-1)!;
   assert.equal(leatherRouteEnd.q, leather.position.q);
@@ -624,4 +626,48 @@ test("hunter must reach a moved work area through wayposts before acquiring new 
   assert.equal(hunter.huntAimTarget, undefined);
   assert.equal(hunter.path.length, 0);
   assert.equal(hunter.navigationBlocked, true);
+});
+
+
+test("a hungry hunter outside the waypost network returns to the hunting flag before global food search", () => {
+  const world = createWorld(1);
+  ensureInitialWaypost(world);
+  const hunter = world.people[0]!;
+  assert.equal(setPersonProfession(world, hunter.id, "hunter"), true);
+  const flag = { ...hunter.workArea!.center };
+  const hq = world.buildings.find((building) => building.id === "hq")!;
+  hq.inventory ??= {};
+  hq.inventory.bread = 1;
+  for (const tile of world.tiles) {
+    if (tile.bush) tile.bushAvailable = false;
+  }
+
+  const outside = world.tiles
+    .filter(
+      (tile) =>
+        tile.terrain === "grass" &&
+        !tile.resourceBlocking &&
+        !tile.buildingBlocking &&
+        hexDistance(flag, tile) > HUNTER_WORK_AREA_RADIUS + 10,
+    )
+    .sort((a, b) => hexDistance(flag, a) - hexDistance(flag, b))[0]!;
+  assert.ok(outside);
+  hunter.position = { ...outside };
+  hunter.path = [];
+  hunter.hunger = 20;
+
+  assert.equal(commandEat(world, hunter.id), true);
+  assert.equal(hunter.hungerState?.returningToWorkAreaForFood, true);
+  assert.ok(hunter.path.length > 0);
+  assert.deepEqual(hunter.path.at(-1), flag);
+
+  hunter.position = { ...flag };
+  hunter.path = [];
+  advanceHungerTick(world);
+
+  assert.equal(hunter.hungerState?.returningToWorkAreaForFood, undefined);
+  assert.equal(hunter.hungerState?.foodSource, hq.id);
+  assert.ok(hunter.path.length > 0 || (
+    hunter.position.q === hq.position.q && hunter.position.r === hq.position.r
+  ));
 });
