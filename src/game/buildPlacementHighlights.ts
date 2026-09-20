@@ -39,6 +39,9 @@ export function installBuildPlacementHighlights(scene: Phaser.Scene, world: Worl
     const graphics = scene.add.graphics().setDepth(11);
     layers.targetModeHighlights?.setDepth(12);
 
+    let activeKind: BuildableBuildingKind | "waypost" | undefined;
+    let observedWaypostRevision = world.waypostRevision ?? 0;
+
     const showFor = (kind?: BuildableBuildingKind | "waypost") => {
       graphics.clear();
       if (!kind) return;
@@ -52,12 +55,24 @@ export function installBuildPlacementHighlights(scene: Phaser.Scene, world: Worl
 
     const onBuildMode = (event: Event) => {
       const detail = (event as CustomEvent<BuildModeDetail>).detail;
-      showFor(detail.active ? detail.kind : undefined);
+      activeKind = detail.active ? detail.kind : undefined;
+      observedWaypostRevision = world.waypostRevision ?? 0;
+      showFor(activeKind);
+    };
+
+    const onSceneUpdate = () => {
+      if (!activeKind) return;
+      const revision = world.waypostRevision ?? 0;
+      if (revision === observedWaypostRevision) return;
+      observedWaypostRevision = revision;
+      showFor(activeKind);
     };
 
     window.addEventListener(BUILD_MODE_EVENT, onBuildMode);
+    scene.events.on(Phaser.Scenes.Events.UPDATE, onSceneUpdate);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       window.removeEventListener(BUILD_MODE_EVENT, onBuildMode);
+      scene.events.off(Phaser.Scenes.Events.UPDATE, onSceneUpdate);
       graphics.destroy();
     });
   };
