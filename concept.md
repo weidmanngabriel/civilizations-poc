@@ -242,9 +242,15 @@ Die Karte lässt sich per Mausrad und Pinch von 0,7× bis 10× zoomen. Gebäude-
 
 ## Neues Spiel, Speichern und Laden
 
-Über das Spielmenü kann ein neues Spiel gestartet, gespeichert oder geladen werden. Der vollständige autoritative Simulationszustand wird als menschenlesbare JSON-Datei gespeichert. Dazu gehören auch die zuletzt gewählte Simulationsgeschwindigkeit sowie individuelle Zustände gebrauchter Werkzeuge und Schuhe in Personeninventaren, Lagern, Bodenstapeln und laufenden Transporten.
+Über das Spielmenü kann ein neues Spiel gestartet, gespeichert oder geladen werden. **Speichern legt den Spielstand immer direkt im Browser ab.** Spielstände erhalten einen frei wählbaren Namen und werden im Ladefenster mit Speicherzeit, Bewohnerzahl, Gebäudezahl und einem Vorschaubild angezeigt. Optional kann beim Speichern zusätzlich dieselbe JSON-Datei heruntergeladen werden.
 
-Räumliche Objekte werden weiterhin kompakt über ihre logische Position gespeichert; abgeleitete Tile- und Footprint-Snapshots werden nicht persistiert. Für registrierte Gebäudetypen werden Grundriss, visueller Anker und blockierte Zellen beim Laden aus der **aktuellen** Registry-Definition rekonstruiert.
+Das Ladefenster zeigt die im Browser gespeicherten Spielstände. Zusätzlich kann dort eine Spielstand-Datei importiert werden. Ein erfolgreicher Import wird geladen und zugleich als neuer Browser-Spielstand gespeichert, sodass die Datei für spätere Ladevorgänge nicht erneut ausgewählt werden muss.
+
+Jeder Browser-Spielstand erhält beim Speichern automatisch ein Vorschaubild der Siedlung. Für dessen Ausschnitt zählen ausschließlich alle nicht abgerissenen **Gebäude einschließlich Hauptquartier und Baustellen**. Felder, Wege, Bewohner, Ressourcen und lose Waren vergrößern den Bildausschnitt nicht. Die Vorschau lässt einen kleinen Rand um die äußeren Gebäude und verändert die aktuelle Spieler-Kamera nach dem Speichern nicht dauerhaft.
+
+Der vollständige autoritative Simulationszustand bleibt menschenlesbares JSON. Browser-Speicherung, Download und Datei-Import verwenden dasselbe Saveformat. Dazu gehören auch die zuletzt gewählte Simulationsgeschwindigkeit sowie individuelle Zustände gebrauchter Werkzeuge und Schuhe in Personeninventaren, Lagern, Bodenstapeln und laufenden Transporten.
+
+Räumliche Objekte werden weiterhin kompakt über ihre logische Position gespeichert; abgeleitete Tile- und Footprint-Snapshots sowie das Vorschaubild sind nicht Teil des autoritativen World-State-JSON. Für registrierte Gebäudetypen werden Grundriss, visueller Anker und blockierte Zellen beim Laden aus der **aktuellen** Registry-Definition rekonstruiert.
 
 Die aktuelle Save-Version ist **5**. Die Version des visuellen Building-Schemas ist davon unabhängig. Frühere Save-Versionen oder ältere Datenformen werden bis v1 nicht migriert oder durch besondere Kompatibilitätslogik unterstützt.
 
