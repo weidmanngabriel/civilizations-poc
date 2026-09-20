@@ -36,7 +36,8 @@ const animalPosition = (animal: Animal): { x: number; y: number; moving: boolean
 
   const target = pixel(nextHex);
   const t = clamp01(animal.movement);
-  const hop = Math.sin(Math.PI * t) * 1.5;
+  const hopHeight = animal.kind === "hare" ? 1.5 : animal.kind === "boar" ? 0.45 : 0.15;
+  const hop = Math.sin(Math.PI * t) * hopHeight;
   return {
     x: start.x + (target.x - start.x) * t,
     y: start.y + (target.y - start.y) * t - hop,
