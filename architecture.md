@@ -274,7 +274,7 @@ All other unchanged systems remain documented in [`architecture-detail.md`](./ar
 
 Vite builds both the game root and `building-editor/index.html`. GitHub Pages publishes both from the same `dist` artifact.
 
-Per `agents.md`, implementation work happens on a temporary branch and is transferred to `main` as one final squash commit. The main `deploy.yml` workflow validates pull requests targeting `main` with `npm test` and `npm run build` but skips Pages setup, artifact upload and deployment for pull-request events. After the squash merge, the push to `main` repeats tests and the production build and deploys GitHub Pages only if both succeed. Character-Lab visual review is intentionally not part of this pipeline.
+Per `agents.md`, implementation work happens on a temporary branch and is transferred to `main` as one final squash commit. Pull-request updates run the fast validation path with `npm test` only, so iterative test and implementation work does not pay the production-build cost on every commit. The same workflow can be dispatched manually with validation level `test` or `full`; `full` runs both `npm test` and `npm run build` without deploying. Immediately before every squash merge, the final PR head must have a successful manual `full` validation, and the validated commit SHA must exactly match the PR head being merged. After the squash merge, the push to `main` repeats tests and the production build and deploys GitHub Pages only if both succeed. Manual workflow runs never deploy. Character-Lab visual review is intentionally not part of this pipeline.
 
 
 ## Character Lab
