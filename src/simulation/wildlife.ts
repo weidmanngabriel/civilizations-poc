@@ -3,6 +3,7 @@ import { findPath, key, neighbors, tileIndex, walkable } from "./hex";
 import { SIMULATION_HZ } from "./timing";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { randomFraction, randomInt } from "./random";
+import { completedLivestockBreeder } from "./livestockBreeding";
 
 export type AnimalBehaviorProfile = {
   normalMoveMinTicks: number;
@@ -237,6 +238,36 @@ const ownedStepRange = (kind: "cow" | "sheep"): [number, number] =>
 const isLivestock = (animal: Animal): boolean =>
   animal.kind === "cow" || animal.kind === "sheep";
 
+const ownedLivestockHome = (world: World): Hex | undefined =>
+  completedLivestockBreeder(world)?.position ??
+  world.buildings.find(
+    (building) => building.kind === "hq" && !building.retired,
+  )?.position;
+
+const syncOwnedLivestockHomes = (world: World): void => {
+  const home = ownedLivestockHome(world);
+  if (!home) return;
+  for (const kind of ["cow", "sheep"] as const) {
+    const group = groupList(world).find((candidate) => candidate.id === `owned-${kind}`);
+    if (group && (group.home.q !== home.q || group.home.r !== home.r)) {
+      group.home = { ...home };
+      group.target = { ...home };
+      group.nextTargetTick = world.round;
+      for (const animal of animalList(world)) {
+        if (
+          animal.owner !== "player" ||
+          animal.kind !== kind ||
+          animal.breedingAt
+        ) continue;
+        animal.returningToHq = true;
+        animal.path = [];
+        animal.movement = 0;
+        animal.nextMoveTick = world.round;
+      }
+    }
+  }
+};
+
 const ownedGroup = (world: World, kind: "cow" | "sheep", home: Hex): AnimalGroup => {
   const existing = groupList(world).find(
     (group) => group.kind === kind && group.id === `owned-${kind}`,
@@ -324,10 +355,8 @@ export function captureNearbyLivestock(world: World): LivestockCaptureStats {
   const livestock = animalList(world).filter((animal) => isLivestock(animal) && !animal.owner);
   let proximityChecks = 0;
   let captures = 0;
-  const hq = world.buildings.find(
-    (building) => building.kind === "hq" && !building.retired,
-  );
-  if (!hq || !scouts.length || !livestock.length) return { proximityChecks, captures };
+  const home = ownedLivestockHome(world);
+  if (!home || !scouts.length || !livestock.length) return { proximityChecks, captures };
 
   for (const animal of livestock) {
     let captured = false;
@@ -343,10 +372,10 @@ export function captureNearbyLivestock(world: World): LivestockCaptureStats {
         ownedPastureTarget(
           world,
           animal,
-          hq.position,
+          home,
           OWNED_LIVESTOCK_ARRIVAL_MIN_RADIUS,
           OWNED_LIVESTOCK_ARRIVAL_MAX_RADIUS,
-        ) ?? hq.position;
+        ) ?? home;
       animal.path =
         findPath(world.tiles, animal.position, pastureTarget, 1) ?? [];
       captured = true;
@@ -643,21 +672,21 @@ function advanceAnimalGroups(world: World): void {
 }
 
 export function advanceWildlife(world: World): void {
+  syncOwnedLivestockHomes(world);
   advanceAnimalGroups(world);
   for (const animal of animalList(world)) {
+    if (animal.breedingAt) continue;
     if (animal.owner === "player" && animal.returningToHq) {
-      const hq = world.buildings.find(
-        (building) => building.kind === "hq" && !building.retired,
-      );
-      if (!hq) continue;
+      const home = ownedLivestockHome(world);
+      if (!home) continue;
 
       if (!animal.path.length) {
-        if (hexDistance(animal.position, hq.position) <= OWNED_LIVESTOCK_PASTURE_RADIUS) {
+        if (hexDistance(animal.position, home) <= OWNED_LIVESTOCK_PASTURE_RADIUS) {
           animal.returningToHq = undefined;
           animal.groupId = ownedGroup(
             world,
             animal.kind as "cow" | "sheep",
-            hq.position,
+            home,
           ).id;
           scheduleOwnedRest(world, animal);
           continue;
@@ -667,10 +696,10 @@ export function advanceWildlife(world: World): void {
           ownedPastureTarget(
             world,
             animal,
-            hq.position,
+            home,
             OWNED_LIVESTOCK_ARRIVAL_MIN_RADIUS,
             OWNED_LIVESTOCK_ARRIVAL_MAX_RADIUS,
-          ) ?? hq.position;
+          ) ?? home;
         animal.path = findPath(world.tiles, animal.position, pastureTarget, 1) ?? [];
         animal.movement = 0;
       }
@@ -678,7 +707,7 @@ export function advanceWildlife(world: World): void {
       advanceAnimalMovement(world, animal);
       if (
         !animal.path.length &&
-        hexDistance(animal.position, hq.position) <= OWNED_LIVESTOCK_PASTURE_RADIUS
+        hexDistance(animal.position, home) <= OWNED_LIVESTOCK_PASTURE_RADIUS
       ) {
         animal.returningToHq = undefined;
         animal.groupId = ownedGroup(
