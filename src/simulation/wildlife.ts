@@ -346,8 +346,17 @@ function planFleeMovement(world: World, animal: Animal): void {
   animal.movement = 0;
 }
 
-export function frightenAnimalGroup(world: World, groupId: string, danger: Hex): void {
+export const GROUP_FRIGHTEN_RADIUS = 10;
+
+export function frightenAnimalGroup(
+  world: World,
+  groupId: string,
+  danger: Hex,
+  attackedPosition: Hex,
+): void {
   for (const animal of animalGroupMembers(world, groupId)) {
+    if (hexDistance(animal.position, attackedPosition) > GROUP_FRIGHTEN_RADIUS)
+      continue;
     const profile = ANIMAL_BEHAVIOR[animal.kind];
     animal.fleeingUntilTick = world.round + profile.fleeTicks;
     animal.fleeFrom = { ...danger };
