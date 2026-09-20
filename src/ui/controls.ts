@@ -40,6 +40,7 @@ import { canPlaceWaypost, removeWaypost, wayposts } from "../simulation/wayposts
 import { orderScoutWaypost } from "../simulation/scouting";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 import { BUILDING_SVG, GOOD_ICONS, buildingIcon } from "../icons";
+import { confirmDialog } from "./modalDialog";
 
 const SIMULATION_STEP_MS = 1000 / CONFIG.simulationHz;
 const MAX_FRAME_DELTA_MS = 100;
@@ -679,7 +680,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
   });
 
-  selectionPanel.addEventListener("click", (event) => {
+  selectionPanel.addEventListener("click", async (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-action]");
     if (!button || button.disabled) return;
     const action = button.dataset.action;
@@ -692,7 +693,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
     if (action === "demolish-waypost" && selectedWaypostId) {
-      if (window.confirm("Wegweiser wirklich abreißen? Verbindungen im Wegenetz werden entfernt.")) {
+      if (await confirmDialog("Wegweiser wirklich abreißen? Verbindungen im Wegenetz werden entfernt.", { title: "Wegweiser abreißen", confirmLabel: "Abreißen", danger: true })) {
         removeWaypost(w, selectedWaypostId);
         selectedWaypostId = undefined;
         window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
@@ -736,7 +737,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       const selected = w.buildings.find((b) => b.id === selectedBuildingId);
       if (
         selected &&
-        window.confirm(`${selected.name} wirklich abreißen? Gelagerte Waren gehen verloren.`)
+        await confirmDialog(`${selected.name} wirklich abreißen? Gelagerte Waren gehen verloren.`, { title: "Gebäude abreißen", confirmLabel: "Abreißen", danger: true })
       ) {
         removeBuildingWithFootprint(w, selectedBuildingId);
         selectedBuildingId = undefined;
