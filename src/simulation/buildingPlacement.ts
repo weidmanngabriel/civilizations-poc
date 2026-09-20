@@ -87,6 +87,7 @@ const SHAPES: Record<PlaceableBuildingKind, BuildingPlacementShape> = {
   pottery: COMPACT_SHAPE,
   stonemason: COMPACT_SHAPE,
   tailor: COMPACT_SHAPE,
+  livestockBreeder: COMPACT_SHAPE,
 };
 
 export const footprintFromShape = (shape: BuildingPlacementShape, anchorPosition: Hex): Hex[] =>
@@ -204,12 +205,18 @@ const canPlaceWithLookup = (
   return !footprint.some((position) => lookup.people.has(key(position)));
 };
 
+const hasExistingLivestockBreeder = (world: World): boolean =>
+  world.buildings.some(
+    (building) => building.kind === "livestockBreeder" && !building.retired,
+  );
+
 export function canPlaceBuilding(
   world: World,
   anchorPosition: Hex,
   kind: PlaceableBuildingKind,
 ): boolean {
   if (!isBuildingUnlocked(world, kind)) return false;
+  if (kind === "livestockBreeder" && hasExistingLivestockBreeder(world)) return false;
   return canPlaceWithLookup(createPlacementLookup(world), anchorPosition, kind);
 }
 
@@ -218,6 +225,7 @@ export function validBuildingAnchors(
   kind: PlaceableBuildingKind,
 ): Hex[] {
   if (!isBuildingUnlocked(world, kind)) return [];
+  if (kind === "livestockBreeder" && hasExistingLivestockBreeder(world)) return [];
   const lookup = createPlacementLookup(world);
   return world.tiles
     .filter((tile) => canPlaceWithLookup(lookup, tile, kind))

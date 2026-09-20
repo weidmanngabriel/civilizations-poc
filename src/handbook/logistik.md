@@ -36,3 +36,10 @@ Bewohner nutzen das Wegweisernetz für längere Navigation verpflichtend, müsse
 ## Wenn der Warenfluss stockt
 
 Wenn eine Produktion stockt, prüfe den tatsächlichen Warenfluss, die Wege und die Arbeitsbereiche der beteiligten Bewohner.
+
+## Viehzüchterei versorgen
+
+Die Viehzüchterei kann einen Viehzüchter und bis zu zwei Träger beschäftigen. Träger beschaffen Weizen und Wasser über die normale Warenlogistik. Im Gebäude können jeweils bis zu zehn Einheiten Weizen und Wasser liegen.
+
+Für einen Zuchtvorgang werden vier Weizen und vier Wasser verbraucht. Fehlen Vorräte oder geeignete ausgewachsene Tiere, wartet der Viehzüchter automatisch.
+

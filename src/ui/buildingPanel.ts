@@ -28,6 +28,7 @@ const BUILDING_LABELS: Record<BuildingKind, string> = {
   pottery: "Töpferei",
   stonemason: "Steinmetzhütte",
   tailor: "Näherei",
+  livestockBreeder: "Viehzüchterei",
   warehouse: "Lager",
   house: "Wohnhaus",
 };

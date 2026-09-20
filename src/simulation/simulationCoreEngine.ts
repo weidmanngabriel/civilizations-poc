@@ -59,6 +59,7 @@ import {
   takeStoredEquipment,
 } from "./equipment";
 import { interruptSleep } from "./sleep";
+import { LIVESTOCK_BREEDING_LIMIT, ownedLivestockCount } from "./livestockBreeding";
 import {
   availableLooseGoodAmount,
   findLooseGoodDropPosition,
@@ -971,6 +972,22 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
       output: 0,
       recipe: { input: "leather", amount: 1, output: "shoes", duration: CONFIG.duration },
     };
+  if (kind === "livestockBreeder")
+    return {
+      kind,
+      name: "Viehzüchterei",
+      workers: 1,
+      carriers: 2,
+      input: 0,
+      inputInventory: { wheat: 0, water: 0 },
+      output: 0,
+      recipe: {
+        inputs: { wheat: 4, water: 4 },
+        amount: 1,
+        duration: 10 * CONFIG.simulationHz,
+      },
+      breederNextKind: "cow",
+    };
   if (kind === "well")
     return {
       kind,
@@ -1395,7 +1412,12 @@ export function tick(w: World): void {
       if (!p.assignment || !p.active || p.trip || p.path.length || p.farmTask) continue;
       const b = building(w, p.assignment.building);
       if (!same(p.position, b.position)) continue;
-      if (p.assignment.role === "builder" || isUnderConstruction(b) || b.kind === "farm") continue;
+      if (
+        p.assignment.role === "builder" ||
+        isUnderConstruction(b) ||
+        b.kind === "farm" ||
+        b.kind === "livestockBreeder"
+      ) continue;
       const recipe = b.recipe;
       if (p.assignment.role === "worker" && recipe) {
         const profession = workerProfession(b);
@@ -1568,6 +1590,24 @@ export function status(w: World, b: Building): string {
     return `${siteBuilders.length} Bauarbeiter · baubereit`;
   }
   if (b.kind === "well") return "Unerschöpfliche Wasserquelle";
+  if (b.kind === "livestockBreeder") {
+    const cows = ownedLivestockCount(w, "cow");
+    const sheep = ownedLivestockCount(w, "sheep");
+    if (!workers.length) return `Kein Viehzüchter zugewiesen · Kühe ${cows}/${LIVESTOCK_BREEDING_LIMIT} · Schafe ${sheep}/${LIVESTOCK_BREEDING_LIMIT}`;
+    if (b.breeding) {
+      const label = b.breeding.kind === "cow" ? "Kühe" : "Schafe";
+      const remaining = Math.max(0, Math.ceil((b.breeding.untilTick - w.round) / CONFIG.simulationHz));
+      return `Züchtet ${label} · noch ${remaining} s · Kühe ${cows}/${LIVESTOCK_BREEDING_LIMIT} · Schafe ${sheep}/${LIVESTOCK_BREEDING_LIMIT}`;
+    }
+    if (workers.some((p) => p.trip)) return "Viehzüchter beschafft Rohstoffe";
+    const missing: string[] = [];
+    if ((b.inputInventory?.wheat ?? 0) < 4) missing.push("Weizen");
+    if ((b.inputInventory?.water ?? 0) < 4) missing.push("Wasser");
+    if (missing.length) return `Wartet auf ${missing.join(" + ")}`;
+    if (cows >= LIVESTOCK_BREEDING_LIMIT && sheep >= LIVESTOCK_BREEDING_LIMIT)
+      return `Tierbestand erreicht · Kühe ${cows}/${LIVESTOCK_BREEDING_LIMIT} · Schafe ${sheep}/${LIVESTOCK_BREEDING_LIMIT}`;
+    return `Bereit zur Zucht · Kühe ${cows}/${LIVESTOCK_BREEDING_LIMIT} · Schafe ${sheep}/${LIVESTOCK_BREEDING_LIMIT}`;
+  }
   if (b.kind === "warehouse") {
     const carriers = assigned(w, b.id, "carrier").length;
     const merchants = assigned(w, b.id, "merchant").length;

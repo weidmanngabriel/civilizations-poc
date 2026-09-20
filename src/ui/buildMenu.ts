@@ -22,6 +22,7 @@ const BUILDING_NAMES: Record<PlaceableBuildingKind, string> = {
   pottery: "Töpferei",
   stonemason: "Steinmetzhütte",
   tailor: "Näherei",
+  livestockBreeder: "Viehzüchterei",
 };
 
 const SORTED_BUILDING_KINDS = (Object.keys(BUILDING_NAMES) as PlaceableBuildingKind[])

@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import type { Animal, Projectile, World } from "../simulation/model";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 import { pixel } from "./mapGeometry";
+import { LIVESTOCK_BABY_START_SCALE, LIVESTOCK_GROWTH_TICKS } from "../simulation/livestockBreeding";
 
 const ANIMAL_EMOJI: Record<Animal["kind"], string> = {
   hare: "🐇",
@@ -75,10 +76,25 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
             })
             .setOrigin(0.5, 0.72)
             .setDepth(1750);
-          const size = ANIMAL_EMOJI_WORLD_SIZE[animal.kind];
-          sprite.setDisplaySize(size.width, size.height);
           animalSprites.set(animal.id, sprite);
         }
+
+        if (animal.breedingAt) {
+          sprite.setVisible(false);
+          ownershipHearts.get(animal.id)?.setVisible(false);
+          continue;
+        }
+
+        const size = ANIMAL_EMOJI_WORLD_SIZE[animal.kind];
+        const growthProgress = animal.matureAtTick === undefined
+          ? 1
+          : clamp01(1 - (animal.matureAtTick - world.round) / LIVESTOCK_GROWTH_TICKS);
+        const growthScale =
+          LIVESTOCK_BABY_START_SCALE +
+          (1 - LIVESTOCK_BABY_START_SCALE) * growthProgress;
+        sprite
+          .setVisible(true)
+          .setDisplaySize(size.width * growthScale, size.height * growthScale);
 
         const position = animalPosition(animal);
         sprite.setPosition(position.x, position.y);
@@ -101,7 +117,12 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
               .setDepth(1760);
             ownershipHearts.set(animal.id, heart);
           }
-          heart.setVisible(true).setPosition(position.x, position.y - (animal.kind === "cow" ? 10 : 8));
+          heart
+            .setVisible(true)
+            .setPosition(
+              position.x,
+              position.y - (animal.kind === "cow" ? 10 : 8) * growthScale,
+            );
         } else if (heart) {
           heart.setVisible(false);
         }

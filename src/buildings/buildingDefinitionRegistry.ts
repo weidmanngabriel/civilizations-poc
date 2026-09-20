@@ -9,6 +9,7 @@ import potteryJson from "../assets/buildings/pottery/building.json";
 import sawmillJson from "../assets/buildings/sawmill/building.json";
 import stonemasonJson from "../assets/buildings/stonemason/building.json";
 import tailorJson from "../assets/buildings/tailor/building.json";
+import livestockBreederJson from "../assets/buildings/livestockBreeder/building.json";
 import warehouseJson from "../assets/buildings/warehouse/building.json";
 import wellJson from "../assets/buildings/well/building.json";
 import type { Building, BuildingKind, Hex } from "../simulation/model";
@@ -79,6 +80,7 @@ register("well", wellJson);
 register("pottery", potteryJson);
 register("stonemason", stonemasonJson);
 register("tailor", tailorJson);
+register("livestockBreeder", livestockBreederJson);
 register("warehouse", warehouseJson);
 register("house", houseJson);
 

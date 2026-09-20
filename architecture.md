@@ -287,3 +287,12 @@ Import, Export, UI und die Browser-Automatisierung `window.characterLab` verwend
 
 
 Character Lab visual review runs in the separate `.github/workflows/character-lab-review.yml` pipeline. It uses the dedicated `build:character-lab` Vite/TypeScript configuration and therefore does not build or test the main game. The workflow installs ffmpeg only in that job, produces deterministic overview PNGs, dense strike bursts for all six woodcut swings, plus a compact 640×480 WebM, and uploads them together as a workflow artifact. Path filters keep this review pipeline from running for unrelated gameplay changes.
+
+## Livestock breeding
+
+src/simulation/livestockBreeding.ts owns the deterministic breeding state for player-owned cows and sheep. The breeder remains a normal building for staffing and demand-driven input logistics: its one worker and up to two carriers use the existing assignment and transport systems, while wheat and water live in the building's normal multi-input inventory with the shared per-good capacity of ten. The building recipe is intentionally input-only; animal creation is handled by the livestock system rather than the generic goods-output production loop.
+
+A completed livestockBreeder becomes the dynamic home of both owned livestock groups. wildlife.ts retargets those groups between the completed breeder and HQ fallback without introducing a second animal representation. Breeding cycles reserve their two concrete parent animal IDs by marking them as inside the building, consume four wheat and four water at cycle start, and create a new persistent owned animal on completion. Juvenile maturity and the selected parent's breeding cooldown are absolute simulation ticks, so pause, save/load and simulation speed preserve deterministic timing. Rendering derives juvenile scale from the remaining fixed growth duration instead of storing presentation state.
+
+The current product intentionally permits only one non-retired livestock breeder, including construction sites. The placement layer enforces this invariant; demolition makes a new breeder placeable and causes owned livestock to return to the HQ pasture.
+

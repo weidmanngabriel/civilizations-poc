@@ -1,0 +1,260 @@
+import type { Animal, AnimalGroup, Building, World } from "./model";
+import { key, walkable } from "./hex";
+import { hexDistance } from "./spatial";
+import { SIMULATION_HZ } from "./timing";
+import { awardProfessionExperience } from "./experience";
+
+export type LivestockKind = "cow" | "sheep";
+
+export const LIVESTOCK_BREEDING_LIMIT = 12;
+export const LIVESTOCK_BREEDING_DURATION_TICKS = 10 * SIMULATION_HZ;
+export const LIVESTOCK_GROWTH_TICKS = 3 * 60 * SIMULATION_HZ;
+export const LIVESTOCK_BREEDING_COOLDOWN_TICKS = 3 * 60 * SIMULATION_HZ;
+export const LIVESTOCK_BABY_START_SCALE = 0.45;
+export const LIVESTOCK_BREEDING_WHEAT = 4;
+export const LIVESTOCK_BREEDING_WATER = 4;
+
+export const completedLivestockBreeder = (world: World): Building | undefined =>
+  world.buildings.find(
+    (building) =>
+      building.kind === "livestockBreeder" &&
+      !building.retired &&
+      (!building.construction || building.construction.complete),
+  );
+
+export const ownedLivestockCount = (world: World, kind: LivestockKind): number =>
+  (world.animals ?? []).filter(
+    (animal) => animal.owner === "player" && animal.kind === kind,
+  ).length;
+
+export const livestockIsAdult = (world: World, animal: Animal): boolean =>
+  animal.matureAtTick === undefined || animal.matureAtTick <= world.round;
+
+const hasBreedingInputs = (building: Building): boolean =>
+  (building.inputInventory?.wheat ?? 0) >= LIVESTOCK_BREEDING_WHEAT &&
+  (building.inputInventory?.water ?? 0) >= LIVESTOCK_BREEDING_WATER;
+
+const consumeBreedingInputs = (building: Building): void => {
+  building.inputInventory ??= {};
+  building.inputInventory.wheat =
+    (building.inputInventory.wheat ?? 0) - LIVESTOCK_BREEDING_WHEAT;
+  building.inputInventory.water =
+    (building.inputInventory.water ?? 0) - LIVESTOCK_BREEDING_WATER;
+};
+
+const eligibleParents = (
+  world: World,
+  building: Building,
+  kind: LivestockKind,
+): Animal[] =>
+  (world.animals ?? [])
+    .filter(
+      (animal) =>
+        animal.owner === "player" &&
+        animal.kind === kind &&
+        !animal.breedingAt &&
+        livestockIsAdult(world, animal) &&
+        (animal.breedingCooldownUntilTick ?? 0) <= world.round &&
+        hexDistance(animal.position, building.position) <= 10,
+    )
+    .sort(
+      (a, b) =>
+        hexDistance(a.position, building.position) -
+          hexDistance(b.position, building.position) ||
+        a.id.localeCompare(b.id),
+    );
+
+const canBreedKind = (
+  world: World,
+  building: Building,
+  kind: LivestockKind,
+): boolean =>
+  ownedLivestockCount(world, kind) < LIVESTOCK_BREEDING_LIMIT &&
+  eligibleParents(world, building, kind).length >= 2;
+
+const ensureOwnedGroup = (
+  world: World,
+  kind: LivestockKind,
+  home: Building["position"],
+): AnimalGroup => {
+  world.animalGroups ??= [];
+  let group = world.animalGroups.find((candidate) => candidate.id === `owned-${kind}`);
+  if (!group) {
+    group = {
+      id: `owned-${kind}`,
+      kind,
+      home: { ...home },
+      target: { ...home },
+      nextTargetTick: world.round,
+      migrationDirection: { q: 0, r: 0 },
+    };
+    world.animalGroups.push(group);
+  } else {
+    group.home = { ...home };
+    group.target = { ...home };
+  }
+  return group;
+};
+
+const freePasturePosition = (
+  world: World,
+  home: Building["position"],
+  excludedIds: Set<string>,
+): Building["position"] => {
+  const occupied = new Set(
+    (world.animals ?? [])
+      .filter((animal) => !excludedIds.has(animal.id) && !animal.breedingAt)
+      .map((animal) => key(animal.position)),
+  );
+  const candidate = world.tiles
+    .filter(
+      (tile) =>
+        walkable(tile) &&
+        tile.terrain !== "building" &&
+        tile.terrain !== "river" &&
+        tile.terrain !== "mountain" &&
+        hexDistance(tile, home) >= 3 &&
+        hexDistance(tile, home) <= 8 &&
+        !occupied.has(key(tile)),
+    )
+    .sort(
+      (a, b) =>
+        hexDistance(a, home) - hexDistance(b, home) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0];
+  return candidate ? { q: candidate.q, r: candidate.r } : { ...home };
+};
+
+const releaseAnimal = (
+  world: World,
+  animal: Animal,
+  building: Building,
+  excludedIds: Set<string>,
+): void => {
+  const group = ensureOwnedGroup(world, animal.kind as LivestockKind, building.position);
+  animal.groupId = group.id;
+  animal.position = freePasturePosition(world, building.position, excludedIds);
+  animal.path = [];
+  animal.movement = 0;
+  animal.breedingAt = undefined;
+  animal.returningToHq = undefined;
+  animal.nextMoveTick = world.round + 5 * SIMULATION_HZ;
+  excludedIds.delete(animal.id);
+};
+
+const nextAnimalId = (world: World): string => {
+  const id = world.nextAnimalId ?? 1;
+  world.nextAnimalId = id + 1;
+  return `animal-${id}`;
+};
+
+const finishBreeding = (world: World, building: Building): void => {
+  const cycle = building.breeding;
+  if (!cycle) return;
+  const parents = cycle.parentIds
+    .map((id) => (world.animals ?? []).find((animal) => animal.id === id))
+    .filter((animal): animal is Animal => Boolean(animal));
+  const releaseIds = new Set(parents.map((parent) => parent.id));
+
+  for (const parent of parents) releaseAnimal(world, parent, building, releaseIds);
+  const cooldownParent = parents[0];
+  if (cooldownParent)
+    cooldownParent.breedingCooldownUntilTick =
+      world.round + LIVESTOCK_BREEDING_COOLDOWN_TICKS;
+
+  const group = ensureOwnedGroup(world, cycle.kind, building.position);
+  const babyId = nextAnimalId(world);
+  const baby: Animal = {
+    id: babyId,
+    kind: cycle.kind,
+    groupId: group.id,
+    position: freePasturePosition(world, building.position, new Set()),
+    path: [],
+    movement: 0,
+    nextMoveTick: world.round + 5 * SIMULATION_HZ,
+    owner: "player",
+    matureAtTick: world.round + LIVESTOCK_GROWTH_TICKS,
+  };
+  (world.animals ??= []).push(baby);
+  const worker = world.people.find(
+    (person) =>
+      person.assignment?.building === building.id &&
+      person.assignment.role === "worker",
+  );
+  if (worker) awardProfessionExperience(worker, "stockfarmer");
+  building.breeding = undefined;
+};
+
+const releaseOrphanedBreedingAnimals = (world: World): void => {
+  const activeBreederIds = new Set(
+    world.buildings
+      .filter((building) => building.kind === "livestockBreeder" && !building.retired)
+      .map((building) => building.id),
+  );
+  const home =
+    completedLivestockBreeder(world) ??
+    world.buildings.find((building) => building.kind === "hq" && !building.retired);
+  if (!home) return;
+
+  for (const animal of world.animals ?? []) {
+    if (!animal.breedingAt || activeBreederIds.has(animal.breedingAt)) continue;
+    releaseAnimal(world, animal, home, new Set([animal.id]));
+  }
+};
+
+const chooseKind = (
+  world: World,
+  building: Building,
+): LivestockKind | undefined => {
+  const preferred = building.breederNextKind ?? "cow";
+  const other: LivestockKind = preferred === "cow" ? "sheep" : "cow";
+  if (canBreedKind(world, building, preferred)) return preferred;
+  if (canBreedKind(world, building, other)) return other;
+  return undefined;
+};
+
+const startBreeding = (
+  world: World,
+  building: Building,
+  kind: LivestockKind,
+): void => {
+  const parents = eligibleParents(world, building, kind).slice(0, 2);
+  if (parents.length < 2) return;
+
+  consumeBreedingInputs(building);
+  for (const parent of parents) {
+    parent.breedingAt = building.id;
+    parent.path = [];
+    parent.movement = 0;
+    parent.position = { ...building.position };
+    parent.returningToHq = undefined;
+  }
+  building.breeding = {
+    kind,
+    parentIds: parents.map((parent) => parent.id),
+    untilTick: world.round + LIVESTOCK_BREEDING_DURATION_TICKS,
+  };
+  building.breederNextKind = kind === "cow" ? "sheep" : "cow";
+};
+
+export function advanceLivestockBreeding(world: World): void {
+  releaseOrphanedBreedingAnimals(world);
+  const building = completedLivestockBreeder(world);
+  if (!building) return;
+
+  if (building.breeding) {
+    if (world.round >= building.breeding.untilTick) finishBreeding(world, building);
+    return;
+  }
+
+  const workerPresent = world.people.some(
+    (person) =>
+      person.assignment?.building === building.id &&
+      person.assignment.role === "worker",
+  );
+  if (!workerPresent || !hasBreedingInputs(building)) return;
+
+  const kind = chooseKind(world, building);
+  if (kind) startBreeding(world, building, kind);
+}

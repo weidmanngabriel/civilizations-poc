@@ -58,6 +58,7 @@ const PROFESSION_ICONS: Record<Profession, string> = {
   potter: "🧱",
   stonemason: "🪨",
   tailor: "🧵",
+  stockfarmer: "🐄",
 };
 
 const escapeHtml = (value: string): string =>
