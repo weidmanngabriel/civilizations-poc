@@ -48,6 +48,7 @@ import "./performance-debug.css";
 import "./performance-recording.css";
 import "./technology-tree.css";
 import "./modal-dialog.css";
+import "./game-menu.css";
 
 const preventPageZoom = (): void => {
   document.addEventListener(
@@ -135,7 +136,7 @@ installResourcePerformanceDebugPanel();
 installHqStoragePanel(world);
 mountBuildMenu(world);
 mountHandbook();
-mountGameMenu(world, () => scene.renderWorld());
+mountGameMenu(world, () => scene.renderWorld(), () => scene.captureSettlementThumbnail());
 mountPersonPanel(world);
 mountPersonContextMenu(world);
 mountBuildingPanel(world);
