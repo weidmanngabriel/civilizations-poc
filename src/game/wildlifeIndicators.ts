@@ -10,12 +10,14 @@ const ANIMAL_EMOJI: Record<Animal["kind"], string> = {
   sheep: "🐑",
 };
 
-const ANIMAL_EMOJI_SIZE: Record<Animal["kind"], string> = {
-  hare: "8px",
-  boar: "13px",
-  cow: "16px",
-  sheep: "14px",
+const ANIMAL_EMOJI_WORLD_SIZE: Record<Animal["kind"], { width: number; height: number }> = {
+  hare: { width: 5, height: 3.5 },
+  boar: { width: 14, height: 9 },
+  cow: { width: 18, height: 12 },
+  sheep: { width: 12, height: 8 },
 };
+
+const ANIMAL_EMOJI_RENDER_SIZE = "128px";
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
 
@@ -69,10 +71,12 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
           sprite = scene.add
             .text(0, 0, ANIMAL_EMOJI[animal.kind], {
               fontFamily: "Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif",
-              fontSize: ANIMAL_EMOJI_SIZE[animal.kind],
+              fontSize: ANIMAL_EMOJI_RENDER_SIZE,
             })
             .setOrigin(0.5, 0.72)
             .setDepth(1750);
+          const size = ANIMAL_EMOJI_WORLD_SIZE[animal.kind];
+          sprite.setDisplaySize(size.width, size.height);
           animalSprites.set(animal.id, sprite);
         }
 
