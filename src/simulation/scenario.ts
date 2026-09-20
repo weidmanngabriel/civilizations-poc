@@ -467,6 +467,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
 
   const world: World = {
     round: 0,
+    simulationSpeed: 1,
     nextId: population + 1,
     nextBuildingId: 1,
     nextFieldId: 1,
