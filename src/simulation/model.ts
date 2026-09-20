@@ -1,4 +1,4 @@
-export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "meat" | "leather" | "shoes" | "clay" | "rubble" | "brick" | "stoneBlock";
+export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "meat" | "leather" | "wool" | "shoes" | "clay" | "rubble" | "brick" | "stoneBlock";
 export type EquipmentGood = "woodenTool" | "shoes";
 export type EquipmentSlot = "tool" | "shoes";
 export interface EquippedItem {
@@ -280,7 +280,7 @@ export interface Person {
 }
 export type AnimalId = string;
 export type AnimalGroupId = string;
-export type AnimalKind = "hare" | "boar";
+export type AnimalKind = "hare" | "boar" | "cow" | "sheep";
 export interface AnimalGroup {
   id: AnimalGroupId;
   kind: AnimalKind;
@@ -302,6 +302,10 @@ export interface Animal {
   nextMoveTick: number;
   fleeingUntilTick?: number;
   fleeFrom?: Hex;
+  /** Player ownership is persistent and makes livestock invalid hunting targets. */
+  owner?: "player";
+  /** Newly captured livestock walks directly to the HQ before resuming herd roaming. */
+  returningToHq?: boolean;
 }
 export type ProjectileKind = "arrow";
 export type RangedEntityRef =

@@ -228,6 +228,10 @@ Hasen leben in kleinen Gruppen mit einem gemeinsamen Heimatpunkt, bleiben aber e
 
 Wird ein Tier der Gruppe beschossen, flieht dieses Tier und nur Gruppenmitglieder in höchstens 10 Mikrozellen Entfernung für fünf Sekunden individuell vom Angriff weg. Weiter entfernte Gruppenmitglieder bleiben unbeeinflusst. Während dieser Zeit gibt es keine Gruppensammelbewegung. Danach greift die normale Gewichtung wieder, sodass sich die Tiere mit der Zeit erneut sammeln.
 
+Kühe und Schafe leben ebenfalls in kleinen Herden. Sie bewegen sich zielgerichteter und weniger zick-zack-förmig als Hasen; Schafe legen im Normalverhalten etwas weitere Strecken zurück als Kühe. Wilde Kühe und Schafe können vom Jäger gejagt werden. Eine Kuh hinterlässt Fleisch und Leder, ein Schaf Fleisch und Wolle.
+
+Ein Kundschafter fängt wilde Kühe und Schafe ohne zusätzlichen Spielerbefehl ein: Sobald er höchstens **2 Micro-Tiles** von einem solchen Tier entfernt ist, wechselt es in Spielerbesitz. Ein Herz über dem Tier markiert den Besitz. Eigene Nutztiere sind keine Jagdziele mehr und laufen unmittelbar zum Hauptquartier. Nach der Ankunft bleiben sie als zählbare Tiere sichtbar und bewegen sich in Spielerherden in der Umgebung des Hauptquartiers. Das Hauptquartier zeigt die aktuelle Zahl eigener Kühe und Schafe. Eine spätere Viehzüchterei und Fortpflanzung sind ausdrücklich noch nicht Teil dieser Stufe.
+
 Tierarten und Fernangriffe sind bewusst allgemein modelliert. Weitere Tiere können eigene Bewegungs- und Fluchtparameter erhalten. Dieselbe Projektil-/Schussbasis soll später auch Fernkampfsoldaten tragen.
 
 ## Handbuch und Hilfe

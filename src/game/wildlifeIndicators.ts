@@ -1,13 +1,20 @@
 import Phaser from "phaser";
 import type { Animal, Projectile, World } from "../simulation/model";
+import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 import { pixel } from "./mapGeometry";
 
 const HARE_TEXTURE = "wildlife-hare";
 const BOAR_TEXTURE = "wildlife-boar";
+const COW_TEXTURE = "wildlife-cow";
+const SHEEP_TEXTURE = "wildlife-sheep";
 const HARE_WORLD_WIDTH = 5;
 const HARE_WORLD_HEIGHT = 3.5;
 const BOAR_WORLD_WIDTH = 14;
 const BOAR_WORLD_HEIGHT = 9;
+const COW_WORLD_WIDTH = 18;
+const COW_WORLD_HEIGHT = 12;
+const SHEEP_WORLD_WIDTH = 12;
+const SHEEP_WORLD_HEIGHT = 8;
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
 
@@ -29,7 +36,8 @@ const animalPosition = (animal: Animal): { x: number; y: number; moving: boolean
 
   const target = pixel(nextHex);
   const t = clamp01(animal.movement);
-  const hop = Math.sin(Math.PI * t) * 1.5;
+  const hopHeight = animal.kind === "hare" ? 1.5 : animal.kind === "boar" ? 0.45 : 0.15;
+  const hop = Math.sin(Math.PI * t) * hopHeight;
   return {
     x: start.x + (target.x - start.x) * t,
     y: start.y + (target.y - start.y) * t - hop,
@@ -87,6 +95,60 @@ const ensureBoarTexture = (scene: Phaser.Scene): void => {
   g.destroy();
 };
 
+const ensureCowTexture = (scene: Phaser.Scene): void => {
+  if (scene.textures.exists(COW_TEXTURE)) return;
+  const g = scene.add.graphics().setVisible(false);
+  g.fillStyle(0xf3eee3, 1);
+  g.fillEllipse(34, 25, 40, 22);
+  g.fillEllipse(57, 22, 22, 18);
+  g.fillStyle(0x5e4438, 1);
+  g.fillEllipse(24, 22, 12, 10);
+  g.fillEllipse(40, 29, 11, 9);
+  g.fillCircle(62, 20, 3);
+  g.lineStyle(4, 0x6a5142, 1);
+  g.lineBetween(24, 34, 23, 45);
+  g.lineBetween(43, 34, 44, 45);
+  g.lineStyle(2, 0x8b7967, 1);
+  g.lineBetween(63, 12, 68, 7);
+  g.lineBetween(53, 12, 49, 7);
+  g.fillStyle(0x2a211d, 1);
+  g.fillCircle(61, 18, 1.5);
+  g.generateTexture(COW_TEXTURE, 76, 50);
+  g.destroy();
+};
+
+const ensureSheepTexture = (scene: Phaser.Scene): void => {
+  if (scene.textures.exists(SHEEP_TEXTURE)) return;
+  const g = scene.add.graphics().setVisible(false);
+  g.fillStyle(0xf5f2e8, 1);
+  g.fillCircle(25, 23, 13);
+  g.fillCircle(36, 20, 13);
+  g.fillCircle(45, 24, 12);
+  g.fillCircle(33, 29, 13);
+  g.fillStyle(0x5a514b, 1);
+  g.fillEllipse(55, 24, 15, 13);
+  g.lineStyle(3, 0x5a514b, 1);
+  g.lineBetween(28, 34, 27, 43);
+  g.lineBetween(43, 34, 44, 43);
+  g.fillStyle(0x211d1a, 1);
+  g.fillCircle(59, 22, 1.4);
+  g.generateTexture(SHEEP_TEXTURE, 68, 48);
+  g.destroy();
+};
+
+const visualForAnimal = (animal: Animal): { texture: string; width: number; height: number } => {
+  switch (animal.kind) {
+    case "boar":
+      return { texture: BOAR_TEXTURE, width: BOAR_WORLD_WIDTH, height: BOAR_WORLD_HEIGHT };
+    case "cow":
+      return { texture: COW_TEXTURE, width: COW_WORLD_WIDTH, height: COW_WORLD_HEIGHT };
+    case "sheep":
+      return { texture: SHEEP_TEXTURE, width: SHEEP_WORLD_WIDTH, height: SHEEP_WORLD_HEIGHT };
+    default:
+      return { texture: HARE_TEXTURE, width: HARE_WORLD_WIDTH, height: HARE_WORLD_HEIGHT };
+  }
+};
+
 export function installWildlifeIndicators(scene: Phaser.Scene, world: World): void {
   const sceneWithCreate = scene as Phaser.Scene & { create?: () => void };
   const originalCreate = sceneWithCreate.create?.bind(scene);
@@ -95,11 +157,15 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
     originalCreate?.();
     ensureHareTexture(scene);
     ensureBoarTexture(scene);
+    ensureCowTexture(scene);
+    ensureSheepTexture(scene);
 
     const projectileGraphics = scene.add.graphics().setDepth(1760);
     const animalSprites = new Map<string, Phaser.GameObjects.Image>();
+    const ownershipHearts = new Map<string, Phaser.GameObjects.Text>();
 
     const render = (): void => {
+      const started = performanceNow();
       projectileGraphics.clear();
       const liveAnimals = new Set<string>();
 
@@ -107,13 +173,10 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
         liveAnimals.add(animal.id);
         let sprite = animalSprites.get(animal.id);
         if (!sprite) {
-          const boar = animal.kind === "boar";
+          const visual = visualForAnimal(animal);
           sprite = scene.add
-            .image(0, 0, boar ? BOAR_TEXTURE : HARE_TEXTURE)
-            .setDisplaySize(
-              boar ? BOAR_WORLD_WIDTH : HARE_WORLD_WIDTH,
-              boar ? BOAR_WORLD_HEIGHT : HARE_WORLD_HEIGHT,
-            )
+            .image(0, 0, visual.texture)
+            .setDisplaySize(visual.width, visual.height)
             .setOrigin(0.5, 0.72)
             .setDepth(1750);
           animalSprites.set(animal.id, sprite);
@@ -124,12 +187,34 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
         if (position.moving && Math.abs(position.directionX) > 0.01)
           sprite.setFlipX(position.directionX < 0);
         sprite.setTint((animal.fleeingUntilTick ?? -1) > world.round ? 0xffe1bf : 0xffffff);
+
+        let heart = ownershipHearts.get(animal.id);
+        if (animal.owner === "player") {
+          if (!heart) {
+            heart = scene.add
+              .text(0, 0, "♥", {
+                fontFamily: "Arial, sans-serif",
+                fontSize: "9px",
+                color: "#e53935",
+                stroke: "#ffffff",
+                strokeThickness: 1.5,
+              })
+              .setOrigin(0.5, 1)
+              .setDepth(1760);
+            ownershipHearts.set(animal.id, heart);
+          }
+          heart.setVisible(true).setPosition(position.x, position.y - (animal.kind === "cow" ? 10 : 8));
+        } else if (heart) {
+          heart.setVisible(false);
+        }
       }
 
       for (const [id, sprite] of animalSprites) {
         if (liveAnimals.has(id)) continue;
         sprite.destroy();
         animalSprites.delete(id);
+        ownershipHearts.get(id)?.destroy();
+        ownershipHearts.delete(id);
       }
 
       for (const projectile of world.projectiles ?? []) {
@@ -165,6 +250,11 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
           tipY - uy * 0.25 - py * 0.575,
         );
       }
+      performanceProfiler.recordFeature(
+        "overlayWildlife",
+        performanceNow() - started,
+        (world.animals?.length ?? 0) + (world.projectiles?.length ?? 0),
+      );
     };
 
     scene.events.on(Phaser.Scenes.Events.POST_UPDATE, render);
@@ -173,6 +263,8 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
       projectileGraphics.destroy();
       for (const sprite of animalSprites.values()) sprite.destroy();
       animalSprites.clear();
+      for (const heart of ownershipHearts.values()) heart.destroy();
+      ownershipHearts.clear();
     });
   };
 }

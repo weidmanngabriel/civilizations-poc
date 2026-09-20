@@ -37,8 +37,8 @@ import { resolveFoodArrivals } from "./needs";
 import { syncManualMoveOrders } from "./personCommands";
 import { syncScoutWaypostTasks } from "./scouting";
 import { measureResourcePerformance } from "../debug/resourcePerformance";
-import { performanceProfiler } from "../debug/performanceProfiler";
-import { advanceWildlife } from "./wildlife";
+import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
+import { advanceWildlife, captureNearbyLivestock } from "./wildlife";
 import { advanceHunting } from "./hunting";
 import { resolveEquipmentPickups } from "./equipment";
 
@@ -364,8 +364,21 @@ export function tick(world: World): void {
   );
   syncManualMoveOrders(world);
   coreTick(world);
-  advanceWildlife(world);
-  advanceHunting(world);
+  const captureStarted = performanceNow();
+  const captureStats = captureNearbyLivestock(world);
+  performanceProfiler.recordFeature(
+    "livestockCaptureProximity",
+    performanceNow() - captureStarted,
+    captureStats.proximityChecks,
+  );
+  performanceProfiler.profileFeature("wildlife", () => advanceWildlife(world));
+  const huntingStarted = performanceNow();
+  const huntingStats = advanceHunting(world);
+  performanceProfiler.recordFeature(
+    "hunting",
+    performanceNow() - huntingStarted,
+    huntingStats.animalTargetChecks,
+  );
   syncScoutWaypostTasks(world);
   syncManualMoveOrders(world);
   resolveEquipmentPickups(world);
