@@ -1,10 +1,28 @@
-import type { Building, EquipmentGood, EquipmentSlot, Good, Person, World } from "./model";
+import type {
+  Building,
+  EquippedItem,
+  EquipmentGood,
+  EquipmentSlot,
+  Good,
+  LooseGoodStack,
+  Person,
+  World,
+} from "./model";
 import { CONFIG } from "./scenario";
 import { same } from "./hex";
-import { hexDistance } from "./spatial";
+import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { findRequiredNavigationPath } from "./wayposts";
 import { interruptEating } from "./needs";
 import { interruptSleep } from "./sleep";
+import {
+  availableLooseGoodAmount,
+  findLooseGoodDropPosition,
+  looseGoodStacks,
+  pickupReservedLooseGoodWithState,
+  placeLooseGood,
+  releaseLooseGoodReservation,
+  reserveLooseGood,
+} from "./looseGoods";
 
 export const EQUIPMENT_DEFINITIONS: Record<EquipmentGood, {
   slot: EquipmentSlot;
@@ -21,8 +39,43 @@ const storageBuilding = (building: Building): boolean =>
   (!building.construction || building.construction.complete) &&
   (building.kind === "hq" || building.kind === "warehouse");
 
-const stock = (building: Building, good: Good): number =>
-  storageBuilding(building) ? (building.inventory?.[good] ?? 0) : 0;
+const cloneItem = (item: EquippedItem): EquippedItem => ({ ...item });
+
+const freshItem = (good: EquipmentGood): EquippedItem => ({
+  good,
+  durability: EQUIPMENT_DEFINITIONS[good].durability,
+  workProgress: 0,
+});
+
+export const storedEquipmentCount = (building: Building, good: Good): number =>
+  building.storedEquipment?.filter((item) => item.good === good).length ?? 0;
+
+export const storageGoodStock = (building: Building, good: Good): number =>
+  storageBuilding(building)
+    ? (building.inventory?.[good] ?? 0) + storedEquipmentCount(building, good)
+    : 0;
+
+export const storeEquipmentItems = (building: Building, items: EquippedItem[]): void => {
+  if (!items.length) return;
+  building.storedEquipment ??= [];
+  building.storedEquipment.push(...items.map(cloneItem));
+};
+
+export const takeStoredEquipment = (
+  building: Building,
+  good: Good,
+  amount = 1,
+): EquippedItem[] => {
+  if (!building.storedEquipment?.length || amount <= 0) return [];
+  const taken: EquippedItem[] = [];
+  const kept: EquippedItem[] = [];
+  for (const item of building.storedEquipment) {
+    if (item.good === good && taken.length < amount) taken.push(cloneItem(item));
+    else kept.push(item);
+  }
+  building.storedEquipment = kept.length ? kept : undefined;
+  return taken;
+};
 
 const returnTarget = (world: World): Building | undefined =>
   world.buildings.find(storageBuilding);
@@ -34,45 +87,103 @@ const equipmentPreference = (person: Person) =>
 export const equipmentForSlot = (person: Person, slot: EquipmentSlot) =>
   person.equipment?.[slot];
 
+export const equipmentWearPercent = (item: EquippedItem): number => {
+  const definition = EQUIPMENT_DEFINITIONS[item.good];
+  const partialToolWear = item.good === "woodenTool"
+    ? Math.max(0, item.workProgress ?? 0) / CONFIG.duration
+    : 0;
+  const used = definition.durability - item.durability + partialToolWear;
+  return Math.max(0, Math.min(100, Math.round((used / definition.durability) * 100)));
+};
+
 export const equipmentStock = (world: World, good: EquipmentGood): number =>
-  world.buildings.reduce((sum, building) => sum + stock(building, good), 0);
+  world.buildings.reduce((sum, building) => sum + storageGoodStock(building, good), 0) +
+  looseGoodStacks(world)
+    .filter((stack) => stack.good === good)
+    .reduce((sum, stack) => sum + availableLooseGoodAmount(stack), 0);
 
 export const equipmentPendingForSlot = (person: Person, slot: EquipmentSlot): boolean =>
   person.equipmentTask?.slot === slot;
 
-const storageCandidates = (world: World, person: Person, good: EquipmentGood): Building[] =>
-  world.buildings
-    .filter((building) => stock(building, good) > 0)
-    .sort(
-      (a, b) =>
-        hexDistance(person.position, a.position) - hexDistance(person.position, b.position) ||
-        a.id.localeCompare(b.id),
-    );
+const dropEquipmentItem = (world: World, origin: Person["position"], item: EquippedItem): boolean => {
+  const radius = Math.max(GRID_REFINEMENT, CONFIG.mapColumns, CONFIG.mapRows);
+  const drop = findLooseGoodDropPosition(world, origin, item.good, radius);
+  return Boolean(drop && placeLooseGood(world, drop, item.good, 1, [item]));
+};
+
+const depositEquipmentItem = (
+  world: World,
+  origin: Person["position"],
+  item: EquippedItem,
+  preferred?: Building,
+): boolean => {
+  const target = preferred && storageBuilding(preferred) ? preferred : returnTarget(world);
+  if (target) {
+    storeEquipmentItems(target, [item]);
+    return true;
+  }
+  return dropEquipmentItem(world, origin, item);
+};
+
+type EquipmentSource =
+  | { kind: "storage"; source: Building; path: Person["path"] }
+  | { kind: "looseGood"; source: LooseGoodStack; path: Person["path"] };
+
+const equipmentSources = (
+  world: World,
+  person: Person,
+  good: EquipmentGood,
+): EquipmentSource[] => {
+  const sources: EquipmentSource[] = [];
+  for (const source of world.buildings.filter((building) => storageGoodStock(building, good) > 0)) {
+    const path = findRequiredNavigationPath(world, person, source.position, CONFIG.roadSpeedMultiplier);
+    if (path) sources.push({ kind: "storage", source, path });
+  }
+  for (const source of looseGoodStacks(world)) {
+    if (source.good !== good || availableLooseGoodAmount(source) < 1) continue;
+    const path = findRequiredNavigationPath(world, person, source.position, CONFIG.roadSpeedMultiplier);
+    if (path) sources.push({ kind: "looseGood", source, path });
+  }
+  return sources.sort(
+    (a, b) =>
+      hexDistance(person.position, a.source.position) - hexDistance(person.position, b.source.position) ||
+      a.source.id.localeCompare(b.source.id),
+  );
+};
 
 const reserveEquipmentPickup = (
   world: World,
   person: Person,
   good: EquipmentGood,
 ): boolean => {
-  for (const source of storageCandidates(world, person, good)) {
-    const path = findRequiredNavigationPath(world, person, source.position, CONFIG.roadSpeedMultiplier);
-    if (!path) continue;
+  for (const candidate of equipmentSources(world, person, good)) {
+    let item: EquippedItem | undefined;
+    if (candidate.kind === "storage") {
+      item = takeStoredEquipment(candidate.source, good, 1)[0];
+      if (!item) {
+        candidate.source.inventory ??= {};
+        if ((candidate.source.inventory[good] ?? 0) < 1) continue;
+        candidate.source.inventory[good] = (candidate.source.inventory[good] ?? 0) - 1;
+        item = freshItem(good);
+      }
+    } else if (!reserveLooseGood(world, candidate.source.id, 1)) {
+      continue;
+    }
 
     interruptEating(world, person);
     if (person.sleepState) interruptSleep(world, person);
 
-    source.inventory ??= {};
-    source.inventory[good] = Math.max(0, (source.inventory[good] ?? 0) - 1);
-
     person.equipmentTask = {
       good,
       slot: EQUIPMENT_DEFINITIONS[good].slot,
-      source: source.id,
-      sourcePosition: { ...source.position },
+      source: candidate.source.id,
+      ...(candidate.kind === "looseGood" ? { sourceKind: "looseGood" as const } : {}),
+      sourcePosition: { ...candidate.source.position },
+      ...(item ? { item } : {}),
     };
-    person.manualMoveTarget = { ...source.position };
+    person.manualMoveTarget = { ...candidate.source.position };
     person.idleTarget = undefined;
-    person.path = path;
+    person.path = candidate.path;
     person.movement = 0;
     person.active = false;
     return true;
@@ -83,12 +194,16 @@ const reserveEquipmentPickup = (
 export function cancelEquipmentPickup(world: World, person: Person): void {
   const task = person.equipmentTask;
   if (!task) return;
-  const source = world.buildings.find((building) => building.id === task.source && storageBuilding(building))
-    ?? returnTarget(world);
-  if (source) {
-    source.inventory ??= {};
-    source.inventory[task.good] = (source.inventory[task.good] ?? 0) + 1;
+
+  if (task.sourceKind === "looseGood") {
+    releaseLooseGoodReservation(world, task.source, 1);
+  } else if (task.item) {
+    const source = world.buildings.find(
+      (building) => building.id === task.source && storageBuilding(building),
+    );
+    depositEquipmentItem(world, task.sourcePosition, task.item, source);
   }
+
   if (person.manualMoveTarget && same(person.manualMoveTarget, task.sourcePosition)) {
     person.manualMoveTarget = undefined;
     person.path = [];
@@ -124,22 +239,28 @@ export function resolveEquipmentPickups(world: World): void {
     const task = person.equipmentTask;
     if (!task || !same(person.position, task.sourcePosition)) continue;
 
+    let item = task.item;
+    if (task.sourceKind === "looseGood") {
+      const pickup = pickupReservedLooseGoodWithState(world, task.source, 1);
+      if (!pickup) {
+        person.equipmentTask = undefined;
+        continue;
+      }
+      item = pickup.equipmentItems[0] ?? freshItem(task.good);
+    }
+    item ??= freshItem(task.good);
+
     const existing = equipmentForSlot(person, task.slot);
     if (existing) {
-      const source = world.buildings.find((building) => building.id === task.source && storageBuilding(building))
-        ?? returnTarget(world);
-      if (source) {
-        source.inventory ??= {};
-        source.inventory[existing.good] = (source.inventory[existing.good] ?? 0) + 1;
-      }
+      const source = task.sourceKind === "looseGood"
+        ? undefined
+        : world.buildings.find(
+            (building) => building.id === task.source && storageBuilding(building),
+          );
+      depositEquipmentItem(world, person.position, existing, source);
     }
 
-    const definition = EQUIPMENT_DEFINITIONS[task.good];
-    equipmentState(person)[task.slot] = {
-      good: task.good,
-      durability: definition.durability,
-      workProgress: 0,
-    };
+    equipmentState(person)[task.slot] = cloneItem(item);
     person.equipmentTask = undefined;
   }
 }
@@ -149,16 +270,12 @@ export function unequipSlot(world: World, personId: number, slot: EquipmentSlot)
   const item = person ? equipmentForSlot(person, slot) : undefined;
   if (!person) return false;
 
-  if (person.equipmentPreferences) delete person.equipmentPreferences[slot];
   if (person.equipmentTask?.slot === slot) cancelEquipmentPickup(world, person);
-  if (!item || !person.equipment) return true;
-
-  const target = returnTarget(world);
-  if (target) {
-    target.inventory ??= {};
-    target.inventory[item.good] = (target.inventory[item.good] ?? 0) + 1;
+  if (item && person.equipment) {
+    if (!depositEquipmentItem(world, person.position, item)) return false;
+    delete person.equipment[slot];
   }
-  delete person.equipment[slot];
+  if (person.equipmentPreferences) delete person.equipmentPreferences[slot];
   return true;
 }
 

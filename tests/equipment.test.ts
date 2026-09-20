@@ -7,9 +7,11 @@ import {
   equipmentForSlot,
   equipmentMovementSpeedMultiplier,
   equipmentStock,
+  equipmentWearPercent,
   equipmentWorkSpeedMultiplier,
   recordShoeTravel,
   recordToolWork,
+  resolveEquipmentPickups,
   unequipSlot,
 } from "../src/simulation/equipment";
 
@@ -78,4 +80,66 @@ test("shoes wear by travelled microtiles and auto-requip from storage", () => {
   tickUntil(world, () => equipmentForSlot(person, "shoes")?.good === "shoes");
   assert.equal(equipmentForSlot(person, "shoes")?.durability, CONFIG.shoesDurabilityMicrotiles);
   assert.equal(equipmentStock(world, "shoes"), 0);
+});
+
+
+test("manually stored used equipment keeps its wear when another person equips it", () => {
+  const world = createWorld(2);
+  const first = world.people[0]!;
+  const second = world.people[1]!;
+  const hq = world.buildings.find((building) => building.kind === "hq")!;
+  hq.inventory!.shoes = 1;
+
+  assert.equal(assignEquipment(world, first.id, "shoes"), true);
+  tickUntil(world, () => equipmentForSlot(first, "shoes")?.good === "shoes");
+  recordShoeTravel(world, first, 625);
+
+  const worn = equipmentForSlot(first, "shoes")!;
+  assert.equal(worn.durability, 1875);
+  assert.equal(equipmentWearPercent(worn), 25);
+  assert.equal(unequipSlot(world, first.id, "shoes"), true);
+  assert.equal(hq.storedEquipment?.[0]?.durability, 1875);
+  assert.equal(equipmentStock(world, "shoes"), 1);
+
+  assert.equal(assignEquipment(world, second.id, "shoes"), true);
+  tickUntil(world, () => equipmentForSlot(second, "shoes")?.good === "shoes");
+
+  assert.equal(equipmentForSlot(second, "shoes")?.durability, 1875);
+  assert.equal(equipmentWearPercent(equipmentForSlot(second, "shoes")!), 25);
+});
+
+test("used equipment is dropped physically when no HQ or warehouse exists and keeps its wear", () => {
+  const world = createWorld(2);
+  const first = world.people[0]!;
+  const second = world.people[1]!;
+  first.equipment = {
+    tool: {
+      good: "woodenTool",
+      durability: 15,
+      workProgress: CONFIG.duration / 2,
+    },
+  };
+  const groundCell = world.tiles.find(
+    (tile) => tile.terrain === "grass" && !tile.resourceBlocking,
+  )!;
+  first.position = { q: groundCell.q, r: groundCell.r };
+  second.position = { q: groundCell.q, r: groundCell.r };
+  world.buildings = [];
+
+  assert.equal(unequipSlot(world, first.id, "tool"), true);
+  const stack = world.looseGoods?.find((candidate) => candidate.good === "woodenTool");
+  assert.ok(stack);
+  assert.equal(stack.amount, 1);
+  assert.equal(stack.equipmentItems?.[0]?.durability, 15);
+  assert.equal(stack.equipmentItems?.[0]?.workProgress, CONFIG.duration / 2);
+
+  assert.equal(assignEquipment(world, second.id, "woodenTool"), true);
+  second.position = { ...second.equipmentTask!.sourcePosition };
+  resolveEquipmentPickups(world);
+
+  const reused = equipmentForSlot(second, "tool")!;
+  assert.equal(reused.durability, 15);
+  assert.equal(reused.workProgress, CONFIG.duration / 2);
+  assert.equal(equipmentWearPercent(reused), 52);
+  assert.equal(world.looseGoods?.some((candidate) => candidate.id === stack.id), false);
 });

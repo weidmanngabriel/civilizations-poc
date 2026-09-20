@@ -20,9 +20,10 @@ import {
 } from "./naturalResources";
 import { createDefaultGameWorld } from "./scenario";
 import { refinedCellCluster } from "./spatial";
+import { isValidSimulationSpeed } from "./timing";
 
 export const SAVE_FORMAT = "civilizations-save";
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export type SavedActivity =
   | "idle"
@@ -362,7 +363,11 @@ export const deserializeSaveGame = (json: string): World => {
     tiles: reconstructTiles(map, buildings, naturalResources),
   } as unknown as World;
 
-  if (typeof world.round !== "number" || typeof world.rngState !== "number")
+  if (
+    typeof world.round !== "number" ||
+    typeof world.rngState !== "number" ||
+    !isValidSimulationSpeed(world.simulationSpeed)
+  )
     throw new Error("Der Spielstand enthält keinen gültigen Simulationszustand.");
   return cloneJson(world);
 };

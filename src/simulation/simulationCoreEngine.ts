@@ -54,6 +54,9 @@ import {
   maintainEquipment,
   recordShoeTravel,
   recordToolWork,
+  storageGoodStock,
+  storeEquipmentItems,
+  takeStoredEquipment,
 } from "./equipment";
 import { interruptSleep } from "./sleep";
 import {
@@ -61,7 +64,7 @@ import {
   findLooseGoodDropPosition,
   looseGoodStack,
   looseGoodStacks,
-  pickupReservedLooseGood,
+  pickupReservedLooseGoodWithState,
   placeLooseGood,
   releaseLooseGoodReservation,
   reserveLooseGood,
@@ -200,11 +203,11 @@ const measureFeature = <T>(keyName: PerformanceFeature, run: () => T): T =>
   performanceProfiler.profileFeature(keyName, run);
 
 const storageStock = (b: Building, good: Good): number =>
-  isStorageBuilding(b) ? (b.inventory?.[good] ?? 0) : 0;
+  isStorageBuilding(b) ? storageGoodStock(b, good) : 0;
 
 export const warehouseStock = (b: Building, good: Good): number =>
   b.kind === "warehouse" && !isUnderConstruction(b)
-    ? (b.inventory?.[good] ?? 0)
+    ? storageGoodStock(b, good)
     : 0;
 export const totalWarehouseStock = (w: World, good: Good): number =>
   w.buildings
@@ -299,7 +302,7 @@ function returnCargoToSource(w: World, p: Person): void {
     const origin = p.trip.sourcePosition ?? p.position;
     const drop = findLooseGoodDropPosition(w, origin, p.trip.good, GRID_REFINEMENT) ??
       findLooseGoodDropPosition(w, p.position, p.trip.good, GRID_REFINEMENT);
-    if (drop) placeLooseGood(w, drop, p.trip.good, amount);
+    if (drop) placeLooseGood(w, drop, p.trip.good, amount, p.trip.equipmentItems ?? []);
     p.pendingFarmBonus = undefined;
     return;
   }
@@ -315,8 +318,13 @@ function returnCargoToSource(w: World, p: Person): void {
     return;
   }
   if (isStorageBuilding(source)) {
-    source.inventory ??= {};
-    source.inventory[p.trip.good] = (source.inventory[p.trip.good] ?? 0) + amount;
+    const equipmentItems = p.trip.equipmentItems ?? [];
+    storeEquipmentItems(source, equipmentItems);
+    const countedAmount = amount - equipmentItems.length;
+    if (countedAmount > 0) {
+      source.inventory ??= {};
+      source.inventory[p.trip.good] = (source.inventory[p.trip.good] ?? 0) + countedAmount;
+    }
   } else {
     source.output += amount;
   }
@@ -1290,20 +1298,37 @@ export function tick(w: World): void {
           if (w.round < p.trip.transferUntilTick) continue;
 
           if (p.trip.sourceKind === "looseGood") {
-            if (!pickupReservedLooseGood(w, p.trip.source, CONFIG.carryCapacity)) {
+            const pickup = pickupReservedLooseGoodWithState(
+              w,
+              p.trip.source,
+              CONFIG.carryCapacity,
+            );
+            if (!pickup) {
               cancel(w, p);
               immediateDecisionPeople.add(p.id);
               continue;
             }
+            p.trip.equipmentItems = pickup.equipmentItems.length
+              ? pickup.equipmentItems
+              : undefined;
           } else if (p.trip.sourceKind === "resource") {
             const source = naturalResource(w, p.trip.source);
             source.output -= CONFIG.carryCapacity;
           } else {
             const source = building(w, p.trip.source);
             if (isStorageBuilding(source)) {
-              source.inventory ??= {};
-              source.inventory[p.trip.good] =
-                (source.inventory[p.trip.good] ?? 0) - CONFIG.carryCapacity;
+              const equipmentItems = takeStoredEquipment(
+                source,
+                p.trip.good,
+                CONFIG.carryCapacity,
+              );
+              p.trip.equipmentItems = equipmentItems.length ? equipmentItems : undefined;
+              const countedAmount = CONFIG.carryCapacity - equipmentItems.length;
+              if (countedAmount > 0) {
+                source.inventory ??= {};
+                source.inventory[p.trip.good] =
+                  (source.inventory[p.trip.good] ?? 0) - countedAmount;
+              }
             } else if (!(source.kind === "well" && p.trip.good === "water")) {
               source.output -= CONFIG.carryCapacity;
             }
@@ -1326,9 +1351,14 @@ export function tick(w: World): void {
             const delivered = target.construction!.delivered;
             delivered[p.trip.good] = (delivered[p.trip.good] ?? 0) + CONFIG.carryCapacity;
           } else if (isStorageBuilding(target)) {
-            target.inventory ??= {};
-            target.inventory[p.trip.good] =
-              (target.inventory[p.trip.good] ?? 0) + CONFIG.carryCapacity;
+            const equipmentItems = p.trip.equipmentItems ?? [];
+            storeEquipmentItems(target, equipmentItems);
+            const countedAmount = CONFIG.carryCapacity - equipmentItems.length;
+            if (countedAmount > 0) {
+              target.inventory ??= {};
+              target.inventory[p.trip.good] =
+                (target.inventory[p.trip.good] ?? 0) + countedAmount;
+            }
           } else if (target.kind === "farm" && p.trip.good === "wheat") {
             target.output += CONFIG.carryCapacity + (p.pendingFarmBonus ?? 0);
           } else {

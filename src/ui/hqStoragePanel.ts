@@ -1,5 +1,6 @@
 import type { Good, World } from "../simulation/model";
 import { CONFIG } from "../simulation/scenario";
+import { storageGoodStock } from "../simulation/equipment";
 import { GOOD_ICONS } from "../icons";
 
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
@@ -40,7 +41,7 @@ export function installHqStoragePanel(world: World): void {
     for (const good of ALL_GOODS) {
       const target = addon.querySelector<HTMLElement>(`[data-hq-good="${good}"]`);
       if (target)
-        target.textContent = `${Math.round(hq.inventory?.[good] ?? 0)}/${CONFIG.warehouseCapacityPerGood}`;
+        target.textContent = `${Math.round(storageGoodStock(hq, good))}/${CONFIG.warehouseCapacityPerGood}`;
     }
 
     const carriers = world.people.filter(

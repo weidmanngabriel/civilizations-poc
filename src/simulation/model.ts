@@ -89,6 +89,8 @@ export interface Building {
   inputInventory?: Inventory;
   output: number;
   inventory?: Inventory;
+  /** Individually tracked used equipment stored alongside fresh counted inventory. */
+  storedEquipment?: EquippedItem[];
   construction?: ConstructionState;
   baseTerrain?: "grass" | "road";
   baseTerrains?: Record<string, "grass" | "road">;
@@ -119,6 +121,8 @@ export interface LooseGoodStack {
   amount: number;
   /** Units already promised to future pickups. Reserved units remain physically present. */
   reserved: number;
+  /** Stateful used equipment among the physical units in this stack. */
+  equipmentItems?: EquippedItem[];
 }
 export interface Trip {
   source: BuildingId | NaturalResourceId | LooseGoodStackId;
@@ -131,6 +135,8 @@ export interface Trip {
   picked: boolean;
   /** Exact simulation tick when the current pickup/dropoff interaction completes. */
   transferUntilTick?: number;
+  /** Stateful equipment currently carried by this transport trip. */
+  equipmentItems?: EquippedItem[];
 }
 export interface MerchantRoute {
   target?: BuildingId;
@@ -246,8 +252,11 @@ export interface Person {
   equipmentTask?: {
     good: EquipmentGood;
     slot: EquipmentSlot;
-    source: BuildingId;
+    source: BuildingId | LooseGoodStackId;
+    sourceKind?: "looseGood";
     sourcePosition: Hex;
+    /** Reserved storage item. Ground items remain in their stack until physical pickup. */
+    item?: EquippedItem;
   };
   pendingFarmBonus?: number;
   hunger?: number;
@@ -331,6 +340,8 @@ export interface World {
   /** Loose-good ids are initialized lazily for compatibility with older fixtures. */
   nextLooseGoodId?: number;
   rngState: number;
+  /** Last selected simulation speed multiplier. Player worlds persist this in saves. */
+  simulationSpeed?: number;
   nextBushRegrowTick?: number;
   /** Missing in neutral/sandbox worlds; explicit in the player-facing progression world. */
   unlockedTechnologies?: string[];
