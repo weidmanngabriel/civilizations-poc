@@ -18,4 +18,4 @@ Auf längeren Handbuchseiten findest du unten rechts einen runden Listen-Button.
 
 ## Spielstand
 
-Über **Spiel** pausierst oder setzt du die Simulation fort, stellst die Geschwindigkeit ein, öffnest Debug und kannst außerdem ein neues Spiel starten sowie deinen aktuellen Spielstand speichern oder laden. Dadurch bleiben diese Steuerungen außerhalb des Menüs von der Karte verschwunden.
+Über **Spiel** pausierst oder setzt du die Simulation fort, stellst die Geschwindigkeit ein, öffnest Debug und kannst außerdem ein neues Spiel starten sowie deinen aktuellen Spielstand speichern oder laden. Neben den festen Tempostufen kannst du ein eigenes Tempo von **0,1× bis 10,0×** mit höchstens einer Nachkommastelle eingeben. Das zuletzt gewählte Tempo wird im Spielstand gespeichert und beim Laden wieder verwendet. Dadurch bleiben diese Steuerungen außerhalb des Menüs von der Karte verschwunden.
