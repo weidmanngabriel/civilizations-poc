@@ -40,7 +40,7 @@ Hat ein Bewohner ein Wohnhaus zugewiesen, versucht er beim Schlafen zuerst diese
 
 ## Ausrüstung
 
-Bewohner können aktuell **Holzwerkzeug** und **Schuhe** tragen. Öffne bei einer Person **Aktionen → Ausrüstung**, um vorhandene Ausrüstung manuell zuzuweisen. In der Person-Detailansicht siehst du dafür die Slots **Werkzeug** und **Schuhe** samt Zustand.
+Bewohner können aktuell **Holzwerkzeug** und **Schuhe** tragen. Unter **Aktionen → Ausrüstung** wählst du zuerst zwischen **Werkzeug** und **Schuhe**. Werkzeug öffnet nur die passenden Werkzeugtypen; Schuhe werden direkt zugewiesen, solange ein Paar verfügbar ist. In der Person-Detailansicht siehst du die Slots **Werkzeug** und **Schuhe** samt Zustand. Ein leerer Werkzeug-Slot öffnet nur die Werkzeugauswahl, ein leerer Schuhe-Slot weist Schuhe direkt zu.
 
 Schuhe machen Bewohner beim Gehen schneller. Holzwerkzeug beschleunigt ihre produktive Arbeit, auch auf Baustellen. Beide Gegenstände verschleißen. Nach einer manuellen Zuweisung versucht der Bewohner bei vollständigem Verschleiß automatisch denselben Ausrüstungstyp aus dem Hauptquartier oder einem Lager nachzurüsten. Legst du den Gegenstand in der Person-Detailansicht manuell ab, endet diese automatische Neuausrüstung.
 
