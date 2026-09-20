@@ -9,6 +9,7 @@ import {
   HUNTER_WORK_AREA_RADIUS,
   HUNTER_WORK_AREA_RADIUS_WORLD_TILES,
   WORK_AREA_RADIUS_WORLD_TILES,
+  setWorkAreaCenter,
   syncWorkAreas,
 } from "../src/simulation/workAreas";
 import { hexDistance } from "../src/simulation/spatial";
@@ -57,22 +58,37 @@ test("hunter gets a ten-world-tile work area", () => {
   assert.equal(HUNTER_WORK_AREA_RADIUS_WORLD_TILES, WORK_AREA_RADIUS_WORLD_TILES * 4);
 });
 
-test("a shot frightens every animal in the group for five seconds", () => {
+test("a shot frightens only group members within ten micro-cells of the attacked animal", () => {
   const world = createWorld(0);
-  const home = firstGrass(world);
+  const home = centralGrass(world);
   const group = spawnAnimalGroup(world, "hare", home, 3)!;
-
-  frightenAnimalGroup(world, group.id, home);
   const members = world.animals!.filter((animal) => animal.groupId === group.id);
   assert.equal(members.length, 3);
-  for (const animal of members) {
-    assert.equal(animal.fleeingUntilTick, 5 * CONFIG.simulationHz);
-    assert.ok(animal.path.length > 0);
-  }
+
+  const near = world.tiles
+    .filter((tile) => tile.terrain === "grass" && !tile.resourceBlocking && !tile.buildingBlocking)
+    .sort((a, b) => Math.abs(hexDistance(home, a) - 8) - Math.abs(hexDistance(home, b) - 8))[0]!;
+  const far = world.tiles
+    .filter((tile) => tile.terrain === "grass" && !tile.resourceBlocking && !tile.buildingBlocking)
+    .sort((a, b) => Math.abs(hexDistance(home, a) - 14) - Math.abs(hexDistance(home, b) - 14))[0]!;
+  members[0]!.position = { ...home };
+  members[1]!.position = { ...near };
+  members[2]!.position = { ...far };
+  for (const animal of members) animal.path = [];
+
+  frightenAnimalGroup(world, group.id, { q: home.q - 1, r: home.r }, members[0]!.position);
+
+  assert.equal(members[0]!.fleeingUntilTick, 5 * CONFIG.simulationHz);
+  assert.equal(members[1]!.fleeingUntilTick, 5 * CONFIG.simulationHz);
+  assert.equal(members[2]!.fleeingUntilTick, undefined);
+  assert.ok(members[0]!.path.length > 0);
+  assert.ok(members[1]!.path.length > 0);
+  assert.equal(members[2]!.path.length, 0);
 
   world.round = 5 * CONFIG.simulationHz;
   advanceWildlife(world);
-  for (const animal of members) assert.equal(animal.fleeingUntilTick, undefined);
+  assert.equal(members[0]!.fleeingUntilTick, undefined);
+  assert.equal(members[1]!.fleeingUntilTick, undefined);
 });
 
 test("hunter aims for two seconds, fires a locked shot, and retrieves meat", () => {
@@ -579,4 +595,31 @@ test("hunter uses global pathfinding to carry loot back from outside the hunting
   assert.ok(world.looseGoods?.some(
     (stack) => stack.good === "meat" && hexDistance(stack.position, hunter.workArea!.center) <= 5,
   ));
+});
+
+
+test("hunter must reach a moved work area through wayposts before acquiring new prey", () => {
+  const world = createWorld(1);
+  const hunter = world.people[0]!;
+  assert.equal(setPersonProfession(world, hunter.id, "hunter"), true);
+
+  const farFlag = world.tiles
+    .filter((tile) => tile.terrain === "grass" && !tile.resourceBlocking && !tile.buildingBlocking)
+    .sort((a, b) => hexDistance(hunter.position, b) - hexDistance(hunter.position, a))[0]!;
+  assert.ok(hexDistance(hunter.position, farFlag) > HUNTER_WORK_AREA_RADIUS);
+  assert.equal(setWorkAreaCenter(world, hunter.id, farFlag), true);
+  assert.equal(hunter.path.length, 0);
+  assert.equal(hunter.navigationBlocked, true);
+
+  const group = spawnAnimalGroup(world, "hare", farFlag, 1)!;
+  const prey = world.animals!.find((animal) => animal.groupId === group.id)!;
+  prey.position = { ...farFlag };
+  prey.path = [];
+
+  advanceHunting(world);
+
+  assert.equal(hunter.huntTarget, undefined);
+  assert.equal(hunter.huntAimTarget, undefined);
+  assert.equal(hunter.path.length, 0);
+  assert.equal(hunter.navigationBlocked, true);
 });
