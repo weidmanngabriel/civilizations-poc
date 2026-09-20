@@ -37,6 +37,9 @@ const FEATURE_LABELS: Record<PerformanceFeature, string> = {
   xpResolution: "Sim · XP-Auswertung",
   technologyUnlocks: "Sim · Tech-Unlocks",
   workAreaSync: "Sim · Arbeitsbereiche synchronisieren",
+  wildlife: "Sim · Wildlife-Bewegung",
+  hunting: "Sim · Jagd / Tierprüfungen",
+  livestockCaptureProximity: "Sim · Scout-Nutztier-Näheprüfung",
   renderWorld: "renderWorld",
   renderMapSignature: "↳ Render · Map-Signatur",
   renderMapDraw: "↳ Render · Map zeichnen",
@@ -51,6 +54,7 @@ const FEATURE_LABELS: Record<PerformanceFeature, string> = {
   overlayHungerPosition: "↳ Hunger-Overlay · Position",
   overlayHungerVisual: "↳ Hunger-Overlay · Phaser-Updates",
   overlayBush: "Busch-Overlay",
+  overlayWildlife: "Tier-Overlay",
 };
 
 const PATH_REASON_LABELS: Record<PathReason, string> = {
@@ -123,6 +127,10 @@ export function renderPerformanceDebug(container: HTMLElement, world: World): vo
   const forests = world.naturalResources.filter((resource) => resource.kind === "forest" && !resource.depleted).length;
   const moving = world.people.filter((person) => person.path.length > 0).length;
   const trips = world.people.filter((person) => person.trip).length;
+  const animals = world.animals ?? [];
+  const livestock = animals.filter((animal) => animal.kind === "cow" || animal.kind === "sheep");
+  const ownedLivestock = livestock.filter((animal) => animal.owner === "player").length;
+  const animalGroups = world.animalGroups?.length ?? 0;
   const featuresByCost = [...snapshot.features].sort((a, b) => b.msPerSecond - a.msPerSecond);
   const visiblePathReasons = snapshot.pathReasons
     .filter((reason) => reason.count > 0)
@@ -166,6 +174,10 @@ export function renderPerformanceDebug(container: HTMLElement, world: World): vo
       <span>Wälder <strong>${forests}</strong></span>
       <span>laufend <strong>${moving}</strong></span>
       <span>Trips <strong>${trips}</strong></span>
+      <span>Tiere <strong>${animals.length}</strong></span>
+      <span>Herden <strong>${animalGroups}</strong></span>
+      <span>Nutztiere <strong>${livestock.length}</strong></span>
+      <span>Eigene Nutztiere <strong>${ownedLivestock}</strong></span>
     </div>
     <div class="perf-charts">
       <div><small>FPS · 30 s</small>${sparkline(snapshot.history, (point) => point.fps)}</div>
