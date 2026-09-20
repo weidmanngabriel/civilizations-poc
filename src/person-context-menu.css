@@ -51,6 +51,15 @@
   gap: 7px;
 }
 
+.person-context-placeholder {
+  pointer-events: none;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 12px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  background: rgb(27 35 29 / 18%);
+}
+
 .person-context-action {
   pointer-events: auto;
   min-width: 0;
@@ -244,6 +253,7 @@
     gap: 5px;
   }
 
+  .person-context-placeholder,
   .person-context-action {
     min-width: 44px;
     min-height: 44px;
