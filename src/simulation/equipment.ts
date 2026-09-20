@@ -63,7 +63,7 @@ export const storeEquipmentItems = (building: Building, items: EquippedItem[]): 
 
 export const takeStoredEquipment = (
   building: Building,
-  good: EquipmentGood,
+  good: Good,
   amount = 1,
 ): EquippedItem[] => {
   if (!building.storedEquipment?.length || amount <= 0) return [];
