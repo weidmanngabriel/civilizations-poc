@@ -8,7 +8,14 @@ export const personProfessionLabel = (world: World, person: Person): string => {
 };
 
 export const personActivityLabel = (person: Person): string => {
-  if (person.hungerState) return person.path.length ? "Geht essen" : "Isst";
+  if (person.hungerState) {
+    if (person.hungerState.returningToWorkAreaForFood)
+      return person.path.length ? "Geht zur Jagdflagge" : "Sucht Essen";
+    if (person.hungerState.returningToNeedOrigin)
+      return person.path.length ? "Kehrt zurück" : "Sucht Essen";
+    if (person.hungerState.eatingUntilTick !== undefined) return "Isst";
+    return person.path.length ? "Geht essen" : "Sucht Essen";
+  }
   if (person.sleepState) return person.path.length ? "Sucht Schlafplatz" : "Schläft";
   if (person.trip?.picked) return `Transportiert ${GOODS[person.trip.good]}`;
   if (person.outdoorCarry) return `Trägt ${GOODS[person.outdoorCarry]} zur Flagge`;
