@@ -669,6 +669,77 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  async captureSettlementThumbnail(): Promise<string> {
+    const camera = this.cameras.main;
+    const previous: CameraSnapshot = {
+      scrollX: camera.scrollX,
+      scrollY: camera.scrollY,
+      zoom: camera.zoom,
+    };
+    const buildings = this.world.buildings.filter(
+      (building) => !building.retired && building.kind !== "field",
+    );
+
+    try {
+      if (buildings.length > 0) {
+        const points = buildings.flatMap((building) =>
+          buildingFootprint(building).map((position) => pixel(position)),
+        );
+        let minX = Math.min(...points.map((point) => point.x));
+        let maxX = Math.max(...points.map((point) => point.x));
+        let minY = Math.min(...points.map((point) => point.y));
+        let maxY = Math.max(...points.map((point) => point.y));
+
+        const width = Math.max(120, maxX - minX);
+        const height = Math.max(90, maxY - minY);
+        const paddingX = Math.max(28, width * 0.15);
+        const paddingTop = Math.max(52, height * 0.18);
+        const paddingBottom = Math.max(24, height * 0.12);
+        minX -= paddingX;
+        maxX += paddingX;
+        minY -= paddingTop;
+        maxY += paddingBottom;
+
+        const fitWidth = Math.max(1, maxX - minX);
+        const fitHeight = Math.max(1, maxY - minY);
+        const fitZoom = Math.min(
+          camera.width / fitWidth,
+          camera.height / fitHeight,
+        ) * 0.92;
+        camera.setZoom(Phaser.Math.Clamp(fitZoom, 0.12, MAX_CAMERA_ZOOM));
+        camera.centerOn((minX + maxX) / 2, (minY + maxY) / 2);
+      }
+
+      this.renderWorld();
+      await new Promise<void>((resolve) =>
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())),
+      );
+
+      const source = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const renderer = this.game.renderer as unknown as {
+          snapshot(callback: (image: HTMLImageElement) => void): void;
+        };
+        try {
+          renderer.snapshot(resolve);
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      const thumbnail = document.createElement("canvas");
+      thumbnail.width = 480;
+      thumbnail.height = 270;
+      const context = thumbnail.getContext("2d");
+      if (!context) throw new Error("Vorschaubild konnte nicht erzeugt werden.");
+      context.drawImage(source, 0, 0, thumbnail.width, thumbnail.height);
+      return thumbnail.toDataURL("image/webp", 0.74);
+    } finally {
+      camera.setZoom(previous.zoom);
+      camera.setScroll(previous.scrollX, previous.scrollY);
+      this.renderWorld();
+    }
+  }
+
   renderWorld(): void {
     if (!this.markers) return;
     this.drawMap();
