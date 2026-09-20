@@ -7,9 +7,9 @@ import type {
   Tile,
   World,
 } from "./model";
-import { key, pathTravelCost, same, tileIndex } from "./hex";
+import { findPath, key, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
-import { findRequiredNavigationPath } from "./wayposts";
+import { clearNavigationBlocked, findRequiredNavigationPath } from "./wayposts";
 import { hexDistance } from "./spatial";
 import {
   findLocalNeedPath,
@@ -203,8 +203,6 @@ const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
   if (person.huntLootTarget) return looseGoodStack(world, person.huntLootTarget)?.position;
   if (person.huntLootQueue?.length)
     return looseGoodStack(world, person.huntLootQueue[0]!)?.position;
-  if (person.huntTarget)
-    return world.animals?.find((animal) => animal.id === person.huntTarget)?.position;
   if (person.resourceTarget) return world.naturalResources.find((resource) => resource.id === person.resourceTarget)?.position;
   if (person.fisher && person.fishingSpot) return person.fishingSpot;
   if (person.assignment) return world.buildings.find((building) => building.id === person.assignment!.building)?.position;
@@ -214,6 +212,13 @@ const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
 const resumeTask = (world: World, person: Person, hungerState: HungerState): void => {
   person.active = false;
   person.movement = 0;
+  if (
+    person.hunter &&
+    (person.huntTarget || person.huntLootTarget || person.huntLootQueue?.length || person.outdoorCarry)
+  ) {
+    person.path = [];
+    return;
+  }
   const target = currentTaskTarget(world, person);
   if (!target) { person.path = []; return; }
   if (same(person.position, target)) {
@@ -385,22 +390,72 @@ const assignFoodCandidate = (
   return true;
 };
 
+const routeHunterToFoodAnchor = (world: World, person: Person): boolean => {
+  const state = person.hungerState;
+  const target = person.workArea?.center;
+  if (!state || !target) return false;
+  if (same(person.position, target)) {
+    state.returningToWorkAreaForFood = undefined;
+    state.needOrigin = { ...person.position };
+    const localCandidate = foodCandidate(world, person, state.needOrigin, true);
+    return assignFoodCandidate(
+      world,
+      person,
+      state,
+      localCandidate ?? foodCandidate(world, person, state.needOrigin, false),
+      Boolean(localCandidate),
+    );
+  }
+  if (person.path.length) {
+    person.active = false;
+    return true;
+  }
+  if (state.retryAfterTick !== undefined && world.round < state.retryAfterTick) {
+    person.active = false;
+    return true;
+  }
+  const path = performanceProfiler.withPathReason(
+    "hunger",
+    () => findPath(world.tiles, person.position, target, ROAD_SPEED_MULTIPLIER),
+  );
+  clearNavigationBlocked(person);
+  if (!path) {
+    state.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
+    person.path = [];
+    person.active = false;
+    return true;
+  }
+  state.retryAfterTick = undefined;
+  person.path = path;
+  person.movement = 0;
+  person.active = false;
+  return true;
+};
+
 const startEating = (world: World, person: Person): boolean => {
   const origin = { ...person.position };
   const localCandidate = foodCandidate(world, person, origin, true);
-  const candidate = localCandidate ?? foodCandidate(world, person, origin, false);
   person.hungerState = {
     resumeActive: person.active,
     needOrigin: origin,
   };
   person.active = false;
   person.movement = 0;
+
+  if (localCandidate)
+    return assignFoodCandidate(world, person, person.hungerState, localCandidate, true);
+
+  if (person.hunter && person.workArea && !same(person.position, person.workArea.center)) {
+    person.hungerState.returningToWorkAreaForFood = true;
+    return routeHunterToFoodAnchor(world, person);
+  }
+
   return assignFoodCandidate(
     world,
     person,
     person.hungerState,
-    candidate,
-    Boolean(localCandidate),
+    foodCandidate(world, person, origin, false),
+    false,
   );
 };
 
@@ -521,7 +576,7 @@ const ensureFoodRoute = (world: World, person: Person): void => {
 export function resolveFoodArrivals(world: World): void {
   for (const person of world.people) {
     if (!person.hungerState) continue;
-    if (person.hungerState.returningToNeedOrigin) continue;
+    if (person.hungerState.returningToNeedOrigin || person.hungerState.returningToWorkAreaForFood) continue;
     restoreFoodRouteIfHijacked(world, person);
     const state = person.hungerState;
     const target = performanceProfiler.profileFeature(
@@ -570,6 +625,7 @@ export function advanceHungerTick(world: World): void {
     if (person.manualMoveTarget) continue;
     if (person.hungerState) {
       if (person.hungerState.returningToNeedOrigin) ensureEatingReturn(world, person);
+      else if (person.hungerState.returningToWorkAreaForFood) routeHunterToFoodAnchor(world, person);
       else ensureFoodRoute(world, person);
       continue;
     }
