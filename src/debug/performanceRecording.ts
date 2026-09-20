@@ -13,6 +13,7 @@ export type PerformanceRecordingFeature = {
   p95: number;
   max: number;
   callsPerSecond: number;
+  objectsPerSecond: number;
 };
 
 export type PerformanceRecordingPathReason = {
@@ -166,6 +167,7 @@ const sampleFromSnapshot = (
     p95: feature.p95,
     max: feature.max,
     callsPerSecond: feature.callsPerSecond,
+    objectsPerSecond: feature.objectsPerSecond,
   }])) as Record<PerformanceFeature, PerformanceRecordingFeature>,
   pathReasons: Object.fromEntries(snapshot.pathReasons.map((reason) => [reason.reason, {
     msPerSecond: reason.msPerSecond,
