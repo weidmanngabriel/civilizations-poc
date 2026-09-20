@@ -71,6 +71,12 @@ export const createBrowserSaveRecord = (
   json: options.json,
 });
 
+export const findCurrentBrowserSave = (
+  saves: BrowserSaveRecord[],
+  currentSaveId: string | undefined,
+): BrowserSaveRecord | undefined =>
+  currentSaveId ? saves.find((save) => save.id === currentSaveId) : undefined;
+
 export const listBrowserSaves = async (): Promise<BrowserSaveRecord[]> => {
   const db = await openDatabase();
   const transaction = db.transaction(STORE_NAME, "readonly");
