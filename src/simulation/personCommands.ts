@@ -20,6 +20,7 @@ const BUILDING_PROFESSIONS = new Set<Profession>([
   "potter",
   "stonemason",
   "tailor",
+  "stockfarmer",
 ]);
 
 const completed = (building: Building): boolean =>
