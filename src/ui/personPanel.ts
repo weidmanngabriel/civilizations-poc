@@ -12,7 +12,7 @@ import { GOOD_ICONS } from "../icons";
 import { personActivityLabel } from "../personPresentation";
 import { personAlertMap, type PersonAlertSeverity } from "./personAlerts";
 import { setPersonProfession, setPersonWorkplace } from "../simulation/personCommands";
-import { assignEquipment, EQUIPMENT_DEFINITIONS, equipmentForSlot, unequipSlot } from "../simulation/equipment";
+import { EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentPendingForSlot, unequipSlot } from "../simulation/equipment";
 import { PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT } from "./personContextMenu";
 import { confirmDialog, showDialog } from "./modalDialog";
 
@@ -349,7 +349,10 @@ export function mountPersonPanel(world: World): void {
       const item = equipmentForSlot(person, slot);
       const good = slot === "tool" ? "woodenTool" : "shoes";
       const definition = EQUIPMENT_DEFINITIONS[good];
-      if (!item) return `<button type="button" class="person-equipment-slot empty" data-equipment-slot="${slot}"><span aria-hidden="true">${definition.icon}</span><span><strong>${slot === "tool" ? "Werkzeug" : "Schuhe"}</strong><small>Zuweisen</small></span></button>`;
+      if (!item) {
+        const pending = equipmentPendingForSlot(person, slot);
+        return `<button type="button" class="person-equipment-slot empty" data-equipment-slot="${slot}" ${pending ? "disabled" : ""}><span aria-hidden="true">${definition.icon}</span><span><strong>${slot === "tool" ? "Werkzeug" : "Schuhe"}</strong><small>${pending ? "Wird geholt" : "Zuweisen"}</small></span></button>`;
+      }
       const condition = slot === "tool"
         ? `${Math.max(0, Math.ceil(item.durability))}/${definition.durability} Einsätze`
         : `${Math.max(0, Math.ceil(item.durability))}/${definition.durability} Microtiles`;
@@ -577,11 +580,6 @@ export function mountPersonPanel(world: World): void {
         unequipSlot(world, person.id, slot);
         inspectorSignature = "";
         renderInspector();
-      } else if (slot === "shoes") {
-        if (assignEquipment(world, person.id, "shoes")) {
-          inspectorSignature = "";
-          renderInspector();
-        }
       } else {
         window.dispatchEvent(new CustomEvent(PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT, {
           detail: { personId: person.id, slot },
