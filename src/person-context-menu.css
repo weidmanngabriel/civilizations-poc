@@ -159,6 +159,11 @@
   font-size: 10px;
 }
 
+.person-context-professions button:disabled,
+.person-context-equipment button:disabled {
+  opacity: .6;
+}
+
 .person-context-professions button[aria-pressed="true"],
 .person-context-equipment button[aria-pressed="true"] {
   border-color: rgb(243 211 106 / 78%);
