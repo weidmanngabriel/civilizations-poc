@@ -203,10 +203,12 @@ const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
   if (person.huntLootTarget) return looseGoodStack(world, person.huntLootTarget)?.position;
   if (person.huntLootQueue?.length)
     return looseGoodStack(world, person.huntLootQueue[0]!)?.position;
+  if (person.huntTarget)
+    return world.animals?.find((animal) => animal.id === person.huntTarget)?.position;
   if (person.resourceTarget) return world.naturalResources.find((resource) => resource.id === person.resourceTarget)?.position;
   if (person.fisher && person.fishingSpot) return person.fishingSpot;
   if (person.assignment) return world.buildings.find((building) => building.id === person.assignment!.building)?.position;
-  return world.buildings.find((building) => building.id === "hq")?.position;
+  return undefined;
 };
 
 const resumeTask = (world: World, person: Person, hungerState: HungerState): void => {
