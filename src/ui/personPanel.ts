@@ -12,7 +12,7 @@ import { GOOD_ICONS } from "../icons";
 import { personActivityLabel } from "../personPresentation";
 import { personAlertMap, type PersonAlertSeverity } from "./personAlerts";
 import { setPersonProfession, setPersonWorkplace } from "../simulation/personCommands";
-import { EQUIPMENT_DEFINITIONS, equipmentForSlot, unequipSlot } from "../simulation/equipment";
+import { assignEquipment, EQUIPMENT_DEFINITIONS, equipmentForSlot, unequipSlot } from "../simulation/equipment";
 import { PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT } from "./personContextMenu";
 import { confirmDialog, showDialog } from "./modalDialog";
 
@@ -577,9 +577,14 @@ export function mountPersonPanel(world: World): void {
         unequipSlot(world, person.id, slot);
         inspectorSignature = "";
         renderInspector();
+      } else if (slot === "shoes") {
+        if (assignEquipment(world, person.id, "shoes")) {
+          inspectorSignature = "";
+          renderInspector();
+        }
       } else {
         window.dispatchEvent(new CustomEvent(PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT, {
-          detail: { personId: person.id },
+          detail: { personId: person.id, slot },
         }));
       }
       return;
