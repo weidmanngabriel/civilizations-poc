@@ -180,11 +180,11 @@ export function setPersonHome(world: World, personId: number, buildingId: Buildi
 export function orderPersonMove(world: World, personId: number, target: Hex): boolean {
   const person = world.people.find((candidate) => candidate.id === personId);
   if (!person || !world.tiles.some((tile) => same(tile, target))) return false;
+  const path = findRequiredNavigationPath(world, person, target, CONFIG.roadSpeedMultiplier);
+  if (!path) return false;
   cancelEquipmentPickup(world, person);
   interruptEating(world, person);
   if (person.sleepState) interruptSleep(world, person);
-  const path = findRequiredNavigationPath(world, person, target, CONFIG.roadSpeedMultiplier);
-  if (!path) return false;
   person.manualMoveTarget = { ...target };
   person.idleTarget = undefined;
   person.path = path;
