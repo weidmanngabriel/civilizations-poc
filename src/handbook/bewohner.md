@@ -42,7 +42,9 @@ Hat ein Bewohner ein Wohnhaus zugewiesen, versucht er beim Schlafen zuerst diese
 
 Bewohner können aktuell **Holzwerkzeug** und **Schuhe** tragen. Unter **Aktionen → Ausrüstung** wählst du zuerst zwischen **Werkzeug** und **Schuhe**. Beide öffnen anschließend die passende Auswahl. Ist die gewählte Ausrüstung in einem erreichbaren Lager oder im Hauptquartier vorhanden, wird sie dort für die Person reserviert. Der Bewohner läuft selbst zum Lager und zieht die Ausrüstung erst dort an. Währenddessen zeigt die Person-Detailansicht **„Wird geholt“**. Ist ein Slot bereits ausgerüstet oder wird die Ausrüstung gerade geholt, ist die entsprechende Aktion deaktiviert.
 
-Schuhe machen Bewohner beim Gehen schneller. Holzwerkzeug beschleunigt ihre produktive Arbeit, auch auf Baustellen. Beide Gegenstände verschleißen. Nach einer manuellen Zuweisung versucht der Bewohner bei vollständigem Verschleiß automatisch denselben Ausrüstungstyp aus dem Hauptquartier oder einem Lager nachzurüsten. Legst du den Gegenstand in der Person-Detailansicht manuell ab, endet diese automatische Neuausrüstung.
+Schuhe machen Bewohner beim Gehen schneller. Holzwerkzeug beschleunigt ihre produktive Arbeit, auch auf Baustellen. Beide Gegenstände verschleißen. In der Person-Detailansicht steht die **Abnutzung in Prozent**: neu entspricht 0 %, mit der Nutzung steigt der Wert. Nach einer manuellen Zuweisung versucht der Bewohner bei vollständigem Verschleiß automatisch denselben Ausrüstungstyp aus dem Hauptquartier oder einem Lager nachzurüsten. Legst du den Gegenstand in der Person-Detailansicht manuell ab, endet diese automatische Neuausrüstung.
+
+Abgelegte Schuhe und Werkzeuge verschwinden nicht. Gibt es ein Hauptquartier oder Lager, wird das konkrete gebrauchte Exemplar dort mit seiner bisherigen Abnutzung eingelagert. Ohne verfügbares Lager liegt es als physische Ware auf dem Boden. Wird dieses Exemplar später von einer anderen Person ausgerüstet, behält es genau seinen bisherigen Verschleiß.
 
 ## Personal in Gebäuden
 
