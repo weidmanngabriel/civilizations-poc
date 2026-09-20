@@ -9,7 +9,7 @@ export interface EquippedItem {
 }
 export type BuildingId = string;
 export type WaypostId = string;
-export type BuildingKind = "hq" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "stonemason" | "tailor" | "warehouse" | "house";
+export type BuildingKind = "hq" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "stonemason" | "tailor" | "livestockBreeder" | "warehouse" | "house";
 export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "field" | "house">;
 export type NaturalResourceId = string;
 export type NaturalResourceKind = "forest" | "clay" | "stone";
@@ -33,7 +33,8 @@ export type Profession =
   | "stonecutter"
   | "potter"
   | "stonemason"
-  | "tailor";
+  | "tailor"
+  | "stockfarmer";
 export interface Hex {
   q: number;
   r: number;
@@ -59,7 +60,7 @@ export interface Recipe {
   input?: Good;
   inputs?: GoodAmounts;
   amount: number;
-  output: Good;
+  output?: Good;
   outputAmount?: number;
   duration: number;
 }
@@ -97,6 +98,14 @@ export interface Building {
   farmId?: BuildingId;
   fieldStage?: FieldStage;
   fieldGrowthProgress?: number;
+  /** Livestock type preferred for the next successful breeding cycle. */
+  breederNextKind?: "cow" | "sheep";
+  /** Active breeding cycle owned by this building. */
+  breeding?: {
+    kind: "cow" | "sheep";
+    parentIds: AnimalId[];
+    untilTick: number;
+  };
   retired?: boolean;
 }
 export interface Waypost {
@@ -304,8 +313,14 @@ export interface Animal {
   fleeFrom?: Hex;
   /** Player ownership is persistent and makes livestock invalid hunting targets. */
   owner?: "player";
-  /** Newly captured livestock walks directly to the HQ before resuming herd roaming. */
+  /** Owned livestock is currently walking to its active pasture (HQ or livestock breeder). */
   returningToHq?: boolean;
+  /** Simulation tick at which this juvenile reaches full size. Missing means fully grown. */
+  matureAtTick?: number;
+  /** Simulation tick before which this animal cannot be used for another breeding cycle. */
+  breedingCooldownUntilTick?: number;
+  /** Building that currently keeps this animal inside during breeding. */
+  breedingAt?: BuildingId;
 }
 export type ProjectileKind = "arrow";
 export type RangedEntityRef =
