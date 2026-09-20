@@ -136,7 +136,9 @@ const BUILDING_NODES: Partial<Record<string, PlaceableBuildingKind>> = {
   mill: "mill",
   bakery1: "bakery",
   pot1: "pottery",
+  pot2: "pottery2",
   mason1: "stonemason",
+  mason2: "stonemason2",
   tailor1: "tailor",
   cattle: "livestockBreeder",
 };
@@ -151,7 +153,9 @@ const BUILDING_LABELS: Record<PlaceableBuildingKind, string> = {
   bakery: "Bäckerei",
   well: "Brunnen",
   pottery: "Töpferei",
+  pottery2: "Töpferei II",
   stonemason: "Steinmetzhütte",
+  stonemason2: "Steinmetzhütte II",
   tailor: "Näherei",
   livestockBreeder: "Viehzüchterei",
 };
@@ -253,8 +257,8 @@ const nodeStatus = (world: World, nodeId: string): NodeStatus => {
     return progressionStatus(world, "miller", "bakery");
   }
   if (nodeId === "merchant") return professionAvailabilityStatus(world, "warehouse");
-  if (nodeId === "potter") return professionAvailabilityStatus(world, "pottery");
-  if (nodeId === "mason") return professionAvailabilityStatus(world, "stonemason");
+  if (nodeId === "potter") return progressionStatus(world, "potter", "pottery2");
+  if (nodeId === "mason") return progressionStatus(world, "stonemason", "stonemason2");
   if (nodeId === "tailor") return progressionStatus(world, "hunter", "tailor");
   if (nodeId === "stockfarmer") return progressionStatus(world, "hunter", "livestockBreeder");
   if (nodeId === "baker") return professionAvailabilityStatus(world, "bakery");
