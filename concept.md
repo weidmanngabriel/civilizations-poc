@@ -10,6 +10,10 @@ Bis Version 1 wird bewusst keine Rückwärtskompatibilität gepflegt, wenn dafü
 
 Ziel bleibt eine personenbasierte Produktions- und Logistiksimulation auf einem Hex-Grid. Waren liegen physisch an Orten, Personen bewegen sie sichtbar über die Karte und räumliche Planung wirkt direkt auf Produktion, Versorgung und Transport. Hunger und Schlaf konkurrieren mit Arbeit um die Zeit einzelner Personen.
 
+### Benutzerabfragen
+
+Bestätigungen und blockierende Hinweise erscheinen als eigene modale Spielfenster statt als Browser-Dialoge. Während einer solchen Abfrage ist die Karte nicht bedienbar. Bestätigen und Abbrechen sind auf Desktop und Touch gleich verfügbar; bei destruktiven Aktionen liegt der Standardfokus auf **Abbrechen**, um versehentliche Löschaktionen zu vermeiden.
+
 ## Feineres Raumraster
 
 Die Welt verwendet intern ein **5× feineres Raster pro Raumachse**: aus 41 × 25 werden 205 × 125 Mikrozellen. Die sichtbare Kartengröße bleibt ungefähr gleich. Gebäude und Äcker belegen viele Mikrozellen; Bewohner bewegen sich flüssig und bleiben visuell lesbar.

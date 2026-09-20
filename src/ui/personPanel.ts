@@ -14,6 +14,7 @@ import { personAlertMap, type PersonAlertSeverity } from "./personAlerts";
 import { setPersonProfession, setPersonWorkplace } from "../simulation/personCommands";
 import { EQUIPMENT_DEFINITIONS, equipmentForSlot, unequipSlot } from "../simulation/equipment";
 import { PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT } from "./personContextMenu";
+import { confirmDialog, showDialog } from "./modalDialog";
 
 const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
@@ -513,7 +514,7 @@ export function mountPersonPanel(world: World): void {
     renderBrowserList();
   });
 
-  browser.addEventListener("click", (event) => {
+  browser.addEventListener("click", async (event) => {
     const target = event.target as HTMLElement;
     const action = target.closest<HTMLButtonElement>("[data-person-action]")?.dataset.personAction;
     if (action === "close-browser") {
@@ -547,10 +548,10 @@ export function mountPersonPanel(world: World): void {
     const existingProfession = professionOf(world, person);
     if (
       existingProfession &&
-      !window.confirm(`${personName(person.id)} ist bereits ${PROFESSION_LABELS[existingProfession]}. Beruf und Arbeitsplatz wirklich ändern?`)
+      !await confirmDialog(`${personName(person.id)} ist bereits ${PROFESSION_LABELS[existingProfession]}. Beruf und Arbeitsplatz wirklich ändern?`, { title: "Person neu zuweisen", confirmLabel: "Neu zuweisen" })
     ) return;
     if (!setPersonProfession(world, person.id, profession) || !setPersonWorkplace(world, person.id, buildingId)) {
-      window.alert("Diese Person kann gerade nicht neu zugewiesen werden.");
+      await showDialog("Diese Person kann gerade nicht neu zugewiesen werden.", { title: "Neuzuweisung nicht möglich" });
       return;
     }
     returnToStaffBuilding();

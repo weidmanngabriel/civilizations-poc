@@ -47,6 +47,7 @@ import "./building-panel.css";
 import "./performance-debug.css";
 import "./performance-recording.css";
 import "./technology-tree.css";
+import "./modal-dialog.css";
 
 const preventPageZoom = (): void => {
   document.addEventListener(

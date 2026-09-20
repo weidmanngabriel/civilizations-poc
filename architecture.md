@@ -25,6 +25,10 @@ building-editor/   desktop-first building authoring subpage
 
 The deterministic simulation stays independent from Phaser. Presentation reads simulation state and never owns authoritative game state. The simulation runs at 60 ticks/s at displayed 1×; rendering is decoupled and driven by `requestAnimationFrame`.
 
+### User dialogs
+
+User-facing confirmations and blocking information messages use the reusable DOM modal in `src/ui/modalDialog.ts` instead of browser-native `alert()` or `confirm()`. The modal owns only presentation and the asynchronous user decision; callers remain responsible for simulation mutations. Its fixed backdrop blocks pointer interaction with the map while open, `Escape` cancels/closes it, focus is restored afterwards, and destructive confirmations focus the safe cancel action by default. The same interaction is used on desktop and touch.
+
 ## Simulation entry point
 
 `src/simulation/simulation.ts` is the public simulation entry point and wraps/re-exports core behavior. `simulationCore.ts` is a scheduling/work-area facade around the historical core implementation in `simulationCoreEngine.ts`.
