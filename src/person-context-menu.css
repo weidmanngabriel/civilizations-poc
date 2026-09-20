@@ -146,6 +146,7 @@
   gap: 6px;
 }
 
+.person-context-professions[hidden],
 .person-context-equipment[hidden] {
   display: none;
 }
