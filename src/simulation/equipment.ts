@@ -89,6 +89,12 @@ export function cancelEquipmentPickup(world: World, person: Person): void {
     source.inventory ??= {};
     source.inventory[task.good] = (source.inventory[task.good] ?? 0) + 1;
   }
+  if (person.manualMoveTarget && same(person.manualMoveTarget, task.sourcePosition)) {
+    person.manualMoveTarget = undefined;
+    person.path = [];
+    person.movement = 0;
+    person.active = false;
+  }
   person.equipmentTask = undefined;
 }
 
