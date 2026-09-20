@@ -199,7 +199,7 @@ Die drei Stufen sind direkt in der Personenübersicht filterbar und werden zusä
 
 Bewohner werden einzeln ausgewählt. Die normale Auswahl zeigt nur kompakte Personeninformationen; die eigentlichen Befehle liegen in einem separaten Kontextmenü. Auf Mobile bleibt dieses Personen-Flyout bewusst kompakt und ohne internes Scrollen: es sitzt direkt am unteren Bildschirmrand, der Aktionsbutton steht links oben, Schließen rechts oben und die Stammdaten bleiben einzeilig ohne Umbruch. Die Pfeilnavigation zwischen Personen ist dort nicht Teil des Flyouts. Am Desktop öffnet die **Leertaste** dieses Menü, zusätzlich steht auf allen Eingabegeräten der sichtbare Aktionsbutton zur Verfügung.
 
-Das Kontextmenü besitzt dauerhaft **16 feste Slots** als hohles Quadrat ohne Ecken. Nicht verfügbare Aktionen werden nicht ausgegraut, sondern gar nicht angezeigt; ihre Position bleibt leer, damit spätere Aktionen ergänzt werden können, ohne gelernte Positionen zu verschieben.
+Das Kontextmenü besitzt dauerhaft **16 feste Slots** als hohles Quadrat ohne Ecken. Nicht verfügbare Aktionen werden nicht als aktive Buttons angezeigt. Ihre festen Positionen bleiben als sehr dezente, nicht klickbare Kacheln sichtbar, damit der Rahmen des Kontextmenüs als Quadrat ohne Ecken erkennbar bleibt und spätere Aktionen ergänzt werden können, ohne gelernte Positionen zu verschieben.
 
 Der erste verbindliche Aktionssatz ist:
 
