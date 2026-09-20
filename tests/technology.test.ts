@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildWithFootprint, validBuildingAnchors } from "../src/simulation/buildingPlacement";
 import type { Building, PlaceableBuildingKind, World } from "../src/simulation/model";
-import { createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
+import { createDefaultGameWorld } from "../src/simulation/scenario";
+import { createTestWorld } from "./testWorld";
 import { tick } from "../src/simulation/simulation";
 import { requiredProductionBuildings } from "../src/simulation/constructionRules";
 import {
@@ -12,6 +13,12 @@ import {
   isBuildingUnlocked,
   updateTechnologyUnlocks,
 } from "../src/simulation/technology";
+
+const createProgressionTestWorld = () => {
+  const world = createTestWorld({ width: 40, height: 30 });
+  world.unlockedTechnologies = [...STARTING_TECHNOLOGIES];
+  return world;
+};
 
 const addCompletedBuilding = (
   world: World,
@@ -52,7 +59,7 @@ test("player-facing world starts with only the intended building technologies", 
 
 test("profession rules unlock at exactly ten XP once construction-chain prerequisites exist", () => {
   for (const rule of TECHNOLOGY_UNLOCK_RULES) {
-    const world = createDefaultGameWorld();
+    const world = createProgressionTestWorld();
     for (const prerequisite of requiredProductionBuildings(rule.technology))
       addCompletedBuilding(world, prerequisite);
 
@@ -73,7 +80,7 @@ test("profession rules unlock at exactly ten XP once construction-chain prerequi
 });
 
 test("well unlocks only after a completed stonemason exists", () => {
-  const world = createDefaultGameWorld();
+  const world = createProgressionTestWorld();
   world.people[0]!.experience = { stonecutter: 10 };
   updateTechnologyUnlocks(world);
   assert.equal(isBuildingUnlocked(world, "stonemason"), true);
@@ -93,7 +100,7 @@ test("well unlocks only after a completed stonemason exists", () => {
 });
 
 test("bakery needs its profession and every processed construction-good producer", () => {
-  const world = createDefaultGameWorld();
+  const world = createProgressionTestWorld();
   world.people[0]!.experience = { miller: 10 };
 
   addCompletedBuilding(world, "sawmill");
@@ -106,7 +113,7 @@ test("bakery needs its profession and every processed construction-good producer
 });
 
 test("simulation tick evaluates existing XP and unlocks the matching technology", () => {
-  const world = createDefaultGameWorld();
+  const world = createProgressionTestWorld();
   world.people[0]!.experience = { woodcutter: 10 };
   assert.equal(isBuildingUnlocked(world, "sawmill"), false);
 
@@ -116,7 +123,7 @@ test("simulation tick evaluates existing XP and unlocks the matching technology"
 });
 
 test("locked technologies expose no valid building anchors and unlock into normal placement", () => {
-  const world = createDefaultGameWorld();
+  const world = createProgressionTestWorld();
   assert.deepEqual(validBuildingAnchors(world, "sawmill"), []);
 
   world.people[0]!.experience = { woodcutter: 10 };
@@ -129,7 +136,7 @@ test("locked technologies expose no valid building anchors and unlock into norma
 });
 
 test("neutral test worlds stay permissive for low-level simulation scenarios", () => {
-  const world = createWorld();
+  const world = createTestWorld();
   assert.equal(world.unlockedTechnologies, undefined);
   for (const technology of IMPLEMENTED_TECHNOLOGIES)
     assert.equal(isBuildingUnlocked(world, technology), true);

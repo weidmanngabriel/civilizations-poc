@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { PlaceableBuildingKind } from "../src/simulation/model";
 import { createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
+import { createTestWorld } from "./testWorld";
 import { hexDistance, same } from "../src/simulation/hex";
 import { placeLooseGood } from "../src/simulation/looseGoods";
 import { buildingInteractionAt } from "../src/buildings/buildingDefinitionRegistry";

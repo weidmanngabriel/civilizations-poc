@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createWorld, CONFIG } from "../src/simulation/scenario";
+import type { World } from "../src/simulation/model";
+import { createTestWorld } from "./testWorld";
 import { findPath, hexDistance, same, walkable } from "../src/simulation/hex";
 import {
   assigned,
@@ -13,8 +15,21 @@ import {
   woodcutters,
 } from "../src/simulation/simulation";
 
-function activeWoodcutter() {
-  const world = createWorld();
+const createForestTestWorld = (population = 1) =>
+  createTestWorld({
+    width: 40,
+    height: 30,
+    population,
+    resources: [
+      { kind: "forest", offset: { q: 8, r: 0 } },
+      { kind: "forest", offset: { q: 10, r: 2 } },
+      { kind: "forest", offset: { q: 7, r: 4 } },
+      { kind: "forest", offset: { q: 12, r: -2 } },
+    ],
+  });
+
+function activeWoodcutter(population = 1) {
+  const world = createForestTestWorld(population);
   assert.equal(changeWoodcutters(world, 1), true);
   const worker = woodcutters(world)[0]!;
   const forest = naturalResource(world, worker.resourceTarget!);
@@ -35,10 +50,10 @@ function activeWoodcutter() {
   return { world, forest, worker };
 }
 
-const groundWood = (world: ReturnType<typeof createWorld>) =>
+const groundWood = (world: World) =>
   (world.looseGoods ?? []).filter((stack) => stack.good === "wood");
 
-const groundWoodAmount = (world: ReturnType<typeof createWorld>) =>
+const groundWoodAmount = (world: World) =>
   groundWood(world).reduce((sum, stack) => sum + stack.amount, 0);
 
 test("trees are blocking resource objects on ordinary ground", () => {
@@ -67,7 +82,7 @@ test("trees are blocking resource objects on ordinary ground", () => {
 });
 
 test("a woodcutter reaches a tree from beside it without entering the blocked tree cell", () => {
-  const world = createWorld();
+  const world = createForestTestWorld();
   assert.equal(changeWoodcutters(world, 1), true);
   const worker = woodcutters(world)[0]!;
   const forest = naturalResource(world, worker.resourceTarget!);
@@ -88,7 +103,7 @@ test("a woodcutter reaches a tree from beside it without entering the blocked tr
 });
 
 test("each appointed woodcutter claims a different tree", () => {
-  const world = createWorld();
+  const world = createForestTestWorld(2);
   assert.equal(changeWoodcutters(world, 1), true);
   assert.equal(changeWoodcutters(world, 1), true);
 
@@ -168,7 +183,7 @@ test("woodcutter experience speeds up felling by up to 50 percent without increa
 });
 
 test("leftover wood remains collectible after the tree has disappeared", () => {
-  const { world, forest, worker } = activeWoodcutter();
+  const { world, forest, worker } = activeWoodcutter(2);
   forest.remaining = 1;
   forest.output = 0;
   let guard = 10_000;

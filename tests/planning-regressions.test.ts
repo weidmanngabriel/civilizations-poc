@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { CONFIG, createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
+import { CONFIG, createDefaultGameWorld } from "../src/simulation/scenario";
 import {
   assigned,
   buildAt,
@@ -13,6 +13,7 @@ import {
   woodcutters,
 } from "../src/simulation/simulation";
 import { hexDistance } from "../src/simulation/spatial";
+import { createTestWorld } from "./testWorld";
 
 test("starting woodcutters choose trees on the first simulation tick", () => {
   const world = createDefaultGameWorld();
@@ -28,7 +29,9 @@ test("starting woodcutters choose trees on the first simulation tick", () => {
 });
 
 test("assigning a woodcutter keeps pathfinding out of the assignment call", () => {
-  const world = createWorld();
+  const world = createTestWorld({
+    resources: [{ kind: "forest", offset: { q: 8, r: 0 } }],
+  });
 
   assert.equal(changeWoodcutters(world, 1), true);
   const worker = woodcutters(world)[0]!;
@@ -42,9 +45,9 @@ test("assigning a woodcutter keeps pathfinding out of the assignment call", () =
 });
 
 test("assigning an extractor keeps pathfinding out of the assignment call", () => {
-  const world = createDefaultGameWorld();
-  world.wayposts = undefined;
-  world.waypostRevision = undefined;
+  const world = createTestWorld({
+    resources: [{ kind: "clay", offset: { q: 8, r: 0 } }],
+  });
 
   assert.equal(changeExtractors(world, "clay", 1), true);
   const worker = world.people.find((person) => person.extractor === "clay")!;
@@ -58,7 +61,7 @@ test("assigning an extractor keeps pathfinding out of the assignment call", () =
 });
 
 test("assigning a farmer defers the initial route search to the simulation tick", () => {
-  const world = createWorld();
+  const world = createTestWorld({ width: 40, height: 30 });
   const hq = world.buildings.find((building) => building.id === "hq")!;
   const farmTile = world.tiles.find(
     (tile) =>
