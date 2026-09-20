@@ -119,6 +119,11 @@ test("used equipment is dropped physically when no HQ or warehouse exists and ke
       workProgress: CONFIG.duration / 2,
     },
   };
+  const groundCell = world.tiles.find(
+    (tile) => tile.terrain === "grass" && !tile.resourceBlocking,
+  )!;
+  first.position = { q: groundCell.q, r: groundCell.r };
+  second.position = { q: groundCell.q, r: groundCell.r };
   world.buildings = [];
 
   assert.equal(unequipSlot(world, first.id, "tool"), true);
