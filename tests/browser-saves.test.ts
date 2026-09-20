@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createDefaultGameWorld } from "../src/simulation/scenario";
-import { createBrowserSaveRecord } from "../src/ui/browserSaves";
+import { createBrowserSaveRecord, findCurrentBrowserSave } from "../src/ui/browserSaves";
 
 test("browser save metadata counts residents and non-field buildings", () => {
   const world = createDefaultGameWorld();
@@ -23,4 +23,28 @@ test("browser save metadata counts residents and non-field buildings", () => {
     world.buildings.filter((building) => !building.retired && building.kind !== "field").length,
   );
   assert.equal(record.thumbnail, "data:image/webp;base64,test");
+});
+
+
+test("active browser save lookup only returns the exact current slot", () => {
+  const world = createDefaultGameWorld();
+  const savedAt = new Date("2026-09-20T12:00:00.000Z");
+  const first = createBrowserSaveRecord(world, {
+    id: "save-first",
+    name: "Erster Spielstand",
+    savedAt,
+    thumbnail: "data:image/webp;base64,first",
+    json: "{}",
+  });
+  const second = createBrowserSaveRecord(world, {
+    id: "save-second",
+    name: "Zweiter Spielstand",
+    savedAt,
+    thumbnail: "data:image/webp;base64,second",
+    json: "{}",
+  });
+
+  assert.equal(findCurrentBrowserSave([first, second], "save-second"), second);
+  assert.equal(findCurrentBrowserSave([first, second], "missing"), undefined);
+  assert.equal(findCurrentBrowserSave([first, second], undefined), undefined);
 });
