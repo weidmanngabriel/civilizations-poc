@@ -13,6 +13,7 @@ import {
   syncWorkAreas,
 } from "../src/simulation/workAreas";
 import { hexDistance } from "../src/simulation/spatial";
+import { ensureInitialWaypost } from "../src/simulation/wayposts";
 import {
   advanceWildlife,
   animalGroupCenter,
@@ -601,6 +602,7 @@ test("hunter uses global pathfinding to carry loot back from outside the hunting
 test("hunter must reach a moved work area through wayposts before acquiring new prey", () => {
   const world = createWorld(1);
   const hunter = world.people[0]!;
+  ensureInitialWaypost(world);
   assert.equal(setPersonProfession(world, hunter.id, "hunter"), true);
 
   const farFlag = world.tiles
