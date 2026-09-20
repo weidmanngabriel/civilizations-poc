@@ -291,3 +291,17 @@ Die Viehzüchterei beschäftigt einen **Viehzüchter** und bis zu zwei **Träger
 
 Nach zehn simulierten Sekunden entsteht ein Jungtier. Es startet deutlich kleiner und wächst innerhalb von drei simulierten Minuten linear auf die volle Tiergröße. Eines der beiden Elterntiere erhält nach jeder erfolgreichen Zucht drei simulierte Minuten Zuchtpause. Jungtiere zählen bereits zum spielerweiten Bestand. Die Zahl zwölf ist eine Startgrenze für neue Zuchten und kein hartes Populationslimit: durch bereits laufende Vorgänge oder andere Zugänge darf der Bestand darüber liegen.
 
+## Produktionsgebäude Stufe 2
+
+Töpferei und Steinmetzhütte besitzen jeweils eine zweite Gebäudestufe. Sobald mindestens ein Bewohner **10 Erfahrungspunkte als Töpfer** erreicht hat, wird **Töpferei 2** dauerhaft freigeschaltet. Entsprechend schalten **10 Erfahrungspunkte als Steinmetz** die **Steinmetzhütte 2** dauerhaft frei.
+
+Eine vorhandene Töpferei beziehungsweise Steinmetzhütte kann am bestehenden Standort ausgebaut werden. Der Ausbau ersetzt dieselbe Gebäudeinstanz; Personalzuweisungen und vorhandene Lagerinhalte bleiben grundsätzlich erhalten. Für den Ausbau werden nur die zusätzlichen Ausbauwaren benötigt:
+
+- Töpferei → Töpferei 2: 2 Holz, 2 Bruchstein, 2 Backsteine.
+- Steinmetzhütte → Steinmetzhütte 2: 2 Holz, 2 Bruchstein, 2 Steinquader.
+
+Die zweite Stufe kann nach ihrer Freischaltung auch direkt neu gebaut werden. Ihre direkten Baukosten entsprechen den Kosten der ersten Stufe plus den Ausbaukosten. Damit kostet Töpferei 2 insgesamt 6 Holz, 2 Bruchstein und 2 Backsteine; Steinmetzhütte 2 kostet 6 Holz, 2 Bruchstein und 2 Steinquader.
+
+Töpferei 2 behält die Backsteinproduktion und erhält zusätzlich **Dachziegel** aus 2 Lehm und 1 Holz. Steinmetzhütte 2 behält die Steinquaderproduktion und erhält zusätzlich **Marmor** aus 2 Bruchstein. Bei Gebäuden mit mehreren Rezepten wählt der Spieler die aktive Produktion. Ein Wechsel ist erst möglich, wenn kein laufender Produktionsvorgang und kein fertiger Output des bisherigen Rezepts mehr im Gebäude liegt.
+
+Vor einem Ausbau wird der Grundriss der Zielstufe an genau demselben visuellen Anker geprüft. Das Bestandsgebäude selbst blockiert seinen Ausbau nicht; alle sonstigen normalen Platzierungsregeln gelten weiterhin. Ist der Zielgrundriss blockiert, kann der Spieler eine Blocker-Ansicht öffnen. Sie zeigt den Zielgrundriss und markiert blockierende Gebäude, natürliche Ressourcen, Gelände, Wegweiser, Bewohner oder lose Waren. Blockierende Gebäude können aus dieser Ansicht direkt ausgewählt werden. Der Ausbau verschiebt oder dreht ein Gebäude niemals automatisch. Soll die zweite Stufe an einem anderen Ort stehen, muss sie dort neu gebaut oder das Bestandsgebäude vorher abgerissen werden.
