@@ -152,6 +152,8 @@ export interface HungerState {
   returnToNeedOrigin?: boolean;
   /** Eating is complete and the person is walking back to needOrigin. */
   returningToNeedOrigin?: boolean;
+  /** Hunter is returning from unrestricted pursuit to the personal flag before global food search. */
+  returningToWorkAreaForFood?: boolean;
   foodSource?: BuildingId;
   /** Food kind reserved at a building source. */
   foodGood?: "bread" | "fish" | "meat";
