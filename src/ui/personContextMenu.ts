@@ -15,7 +15,7 @@ import {
   type PersonCommandMode,
 } from "../game/personCommandInteraction";
 import { WORK_AREA_MODE_EVENT } from "../game/workAreaInteraction";
-import { assignEquipment, EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentStock } from "../simulation/equipment";
+import { assignEquipment, EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentPendingForSlot, equipmentStock } from "../simulation/equipment";
 
 const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
@@ -153,18 +153,19 @@ export function mountPersonContextMenu(world: World): void {
 
     if (!slot) {
       pickerTitle.textContent = "Ausrüstung";
-      const tool = equipmentForSlot(person, "tool");
-      const shoes = equipmentForSlot(person, "shoes");
+      const people = [person];
+      const toolDone = people.every((candidate) => Boolean(equipmentForSlot(candidate, "tool") || equipmentPendingForSlot(candidate, "tool")));
+      const shoesDone = people.every((candidate) => Boolean(equipmentForSlot(candidate, "shoes") || equipmentPendingForSlot(candidate, "shoes")));
       equipmentList.innerHTML = `
-        <button type="button" data-equipment-slot-choice="tool">
+        <button type="button" data-equipment-slot-choice="tool" ${toolDone ? "disabled" : ""}>
           <span aria-hidden="true">🪓</span>
           <strong>Werkzeug</strong>
-          <small>${tool ? "Bereits ausgerüstet" : "Werkzeug auswählen"}</small>
+          <small>${toolDone ? "Bereits ausgerüstet" : "Werkzeug auswählen"}</small>
         </button>
-        <button type="button" data-equipment-slot-choice="shoes" ${equipmentStock(world, "shoes") <= 0 && !shoes ? "disabled" : ""}>
+        <button type="button" data-equipment-slot-choice="shoes" ${shoesDone ? "disabled" : ""}>
           <span aria-hidden="true">${EQUIPMENT_DEFINITIONS.shoes.icon}</span>
           <strong>Schuhe</strong>
-          <small>${shoes ? "Bereits ausgerüstet" : `${equipmentStock(world, "shoes")} verfügbar`}</small>
+          <small>${shoesDone ? "Bereits ausgerüstet" : "Schuhe auswählen"}</small>
         </button>`;
       return;
     }
@@ -175,11 +176,12 @@ export function mountPersonContextMenu(world: World): void {
     equipmentList.innerHTML = goods.map((good) => {
       const definition = EQUIPMENT_DEFINITIONS[good];
       const equipped = equipmentForSlot(person, slot)?.good === good;
+      const pending = person.equipmentTask?.good === good;
       const available = equipmentStock(world, good);
-      return `<button type="button" data-equipment-good="${good}" aria-pressed="${equipped}" ${available <= 0 && !equipped ? "disabled" : ""}>
+      return `<button type="button" data-equipment-good="${good}" aria-pressed="${equipped}" ${equipped || pending || available <= 0 ? "disabled" : ""}>
         <span aria-hidden="true">${definition.icon}</span>
         <strong>${definition.label}</strong>
-        <small>${equipped ? "Zugewiesen" : `${available} verfügbar`}</small>
+        <small>${equipped ? "Zugewiesen" : pending ? "Wird geholt" : `${available} verfügbar`}</small>
       </button>`;
     }).join("");
   };
@@ -271,14 +273,6 @@ export function mountPersonContextMenu(world: World): void {
     const equipmentSlotButton = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-equipment-slot-choice]");
     if (equipmentSlotButton) {
       const slot = equipmentSlotButton.dataset.equipmentSlotChoice as EquipmentSlot;
-      if (slot === "shoes") {
-        if (!assignEquipment(world, person.id, "shoes")) return;
-        setMenuOpen(false);
-        window.dispatchEvent(new CustomEvent(PERSON_SELECTION_REQUESTED_EVENT, {
-          detail: { id: person.id, focus: false },
-        }));
-        return;
-      }
       renderEquipmentPicker(slot);
       return;
     }
