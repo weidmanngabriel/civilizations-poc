@@ -17,6 +17,7 @@ const GOODS: Record<Good, string> = {
   fish: "Fisch",
   meat: "Fleisch",
   leather: "Leder",
+  wool: "Wolle",
   shoes: "Schuhe",
   clay: "Lehm",
   rubble: "Bruchstein",
@@ -44,6 +45,17 @@ export function installHqStoragePanel(world: World): void {
         target.textContent = `${Math.round(storageGoodStock(hq, good))}/${CONFIG.warehouseCapacityPerGood}`;
     }
 
+    const cows = (world.animals ?? []).filter(
+      (animal) => animal.kind === "cow" && animal.owner === "player",
+    ).length;
+    const sheep = (world.animals ?? []).filter(
+      (animal) => animal.kind === "sheep" && animal.owner === "player",
+    ).length;
+    const cowCount = addon.querySelector<HTMLElement>("[data-hq-cows]");
+    const sheepCount = addon.querySelector<HTMLElement>("[data-hq-sheep]");
+    if (cowCount) cowCount.textContent = String(cows);
+    if (sheepCount) sheepCount.textContent = String(sheep);
+
     const carriers = world.people.filter(
       (person) => person.assignment?.building === hq.id && person.assignment.role === "carrier",
     );
@@ -70,7 +82,7 @@ export function installHqStoragePanel(world: World): void {
       ).join("");
       panel.insertAdjacentHTML(
         "beforeend",
-        `<div data-hq-storage-addon><div class="assignment"><div>Träger<small><span data-hq-carrier-active></span> aktiv</small></div><div class="stepper"><button data-action="assignment" data-building="hq" data-role="carrier" data-delta="-1" aria-label="Hauptquartier: Träger verringern">−</button><output data-hq-carrier-count></output><button data-action="assignment" data-building="hq" data-role="carrier" data-delta="1" aria-label="Hauptquartier: Träger erhöhen">+</button></div></div><p class="recipe">HQ-Lager · bis zu ${CONFIG.warehouseCapacityPerGood} Einheiten je Warentyp</p><div class="inventory">${inventory}</div></div>`,
+        `<div data-hq-storage-addon><div class="assignment"><div>Träger<small><span data-hq-carrier-active></span> aktiv</small></div><div class="stepper"><button data-action="assignment" data-building="hq" data-role="carrier" data-delta="-1" aria-label="Hauptquartier: Träger verringern">−</button><output data-hq-carrier-count></output><button data-action="assignment" data-building="hq" data-role="carrier" data-delta="1" aria-label="Hauptquartier: Träger erhöhen">+</button></div></div><p class="recipe">Viehbestand · 🐄 <strong data-hq-cows>0</strong> Kühe · 🐑 <strong data-hq-sheep>0</strong> Schafe</p><p class="recipe">HQ-Lager · bis zu ${CONFIG.warehouseCapacityPerGood} Einheiten je Warentyp</p><div class="inventory">${inventory}</div></div>`,
       );
     }
     update();
