@@ -15,6 +15,7 @@ import {
   freePeople,
   GOODS,
   isUnderConstruction,
+  setBuildingRecipe,
   setMerchantRoute,
   setRoad,
   status,
@@ -32,7 +33,10 @@ import { personActivityLabel } from "../personPresentation";
 import {
   buildWithFootprint,
   canPlaceBuilding,
+  canUpgradeBuilding,
   removeBuildingWithFootprint,
+  startBuildingUpgrade,
+  upgradePlacementBlockers,
 } from "../simulation/buildingPlacement";
 import { CONFIG } from "../simulation/scenario";
 import { normalizeSimulationSpeed } from "../simulation/timing";
@@ -42,6 +46,8 @@ import { orderScoutWaypost } from "../simulation/scouting";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 import { BUILDING_SVG, GOOD_ICONS, buildingIcon } from "../icons";
 import { confirmDialog } from "./modalDialog";
+import { buildingUpgradeRule } from "../simulation/buildingUpgradeRules";
+import { isBuildingUnlocked, maxProfessionExperience } from "../simulation/technology";
 
 const SIMULATION_STEP_MS = 1000 / CONFIG.simulationHz;
 const MAX_FRAME_DELTA_MS = 100;
@@ -57,6 +63,7 @@ const WAYPOST_SELECTED_EVENT = "poc-waypost-selected";
 const PERSON_SELECTION_REQUESTED_EVENT = "poc-person-selection-requested";
 const PERSON_STAFF_PICKER_REQUESTED_EVENT = "poc-person-staff-picker-requested";
 const WORLD_REPLACED_EVENT = "poc-world-replaced";
+const UPGRADE_PREVIEW_EVENT = "poc-upgrade-preview";
 
 type BuildingSelectedDetail = { id: BuildingId };
 type WaypostSelectedDetail = { id: WaypostId };
@@ -95,7 +102,7 @@ const escapeHtml = (value: string): string =>
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
-  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Farmen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span><b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div><label class="custom-speed"><span>Frei</span><input id="custom-sim-speed" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" value="1.0" aria-label="Benutzerdefiniertes Simulationstempo"></label></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
+  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Farmen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span><b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div id="upgrade-preview-overlay" class="merchant-target-overlay" hidden><div><small>AUSBAUPRÜFUNG</small><strong>Blockaden für den Ausbau</strong><span id="upgrade-preview-summary"></span></div><button id="upgrade-preview-close">Zurück</button></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div><label class="custom-speed"><span>Frei</span><input id="custom-sim-speed" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" value="1.0" aria-label="Benutzerdefiniertes Simulationstempo"></label></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
 
   let autoplayFrame: number | undefined;
   let lastAutoplayFrame = 0;
@@ -110,6 +117,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   let buildPlacementKind: BuildableBuildingKind | "waypost" | undefined;
   let buildPlacementPosition: Hex | undefined;
   let waypostScoutId: number | undefined;
+  let upgradePreviewBuildingId: BuildingId | undefined;
 
   const main = app.querySelector<HTMLElement>("main")!;
   const selectionPanel = document.querySelector<HTMLElement>("#selection-panel")!;
@@ -117,6 +125,9 @@ export function mountControls(w: World, renderMap: () => void): void {
   const merchantTargetCancel = document.querySelector<HTMLButtonElement>("#merchant-target-cancel")!;
   const buildPlacementOverlay = document.querySelector<HTMLElement>("#build-placement-overlay")!;
   const buildPlacementConfirm = document.querySelector<HTMLButtonElement>("#build-placement-confirm")!;
+  const upgradePreviewOverlay = document.querySelector<HTMLElement>("#upgrade-preview-overlay")!;
+  const upgradePreviewSummary = document.querySelector<HTMLElement>("#upgrade-preview-summary")!;
+  const upgradePreviewClose = document.querySelector<HTMLButtonElement>("#upgrade-preview-close")!;
   const buildPlacementCancel = document.querySelector<HTMLButtonElement>("#build-placement-cancel")!;
   const buildPlacementTitle = document.querySelector<HTMLElement>("#build-placement-title")!;
   const debugPanel = document.querySelector<HTMLElement>("#debug-panel")!;
@@ -211,6 +222,66 @@ export function mountControls(w: World, renderMap: () => void): void {
       <div class="staff-group-title"><strong>${label}</strong><span>${people.length}/${limit}</span></div>
       <div class="staff-list">${occupied}${empty}</div>
     </section>`;
+  };
+
+  const upgradeBlockerLabel = (blocker: ReturnType<typeof upgradePlacementBlockers>[number]): string => {
+    if (blocker.kind === "building") {
+      const other = w.buildings.find((candidate) => candidate.id === blocker.id);
+      return other?.name ?? "Gebäude";
+    }
+    if (blocker.kind === "resource")
+      return blocker.detail === "forest" ? "Baum/Wald" : blocker.detail === "clay" ? "Lehmvorkommen" : "Steinvorkommen";
+    if (blocker.kind === "terrain")
+      return blocker.detail === "river" ? "Fluss" : blocker.detail === "mountain" ? "Berg" : "ungeeignetes Gelände";
+    if (blocker.kind === "looseGood")
+      return blocker.detail && blocker.detail in GOODS ? `lose Ware: ${GOODS[blocker.detail as Good]}` : "lose Ware";
+    if (blocker.kind === "person") return `Bewohner ${blocker.id}`;
+    if (blocker.kind === "waypost") return "Wegweiser";
+    return "außerhalb des Wegweiserradius";
+  };
+
+  const upgradeControls = (b: Building): string => {
+    const rule = buildingUpgradeRule(b.kind);
+    if (!rule || isUnderConstruction(b)) return "";
+    const unlocked = isBuildingUnlocked(w, rule.to);
+    const xp = maxProfessionExperience(w, rule.profession);
+    const costs = (Object.entries(rule.required) as [Good, number][])
+      .map(([good, amount]) => `${GOOD_ICONS[good]} ${amount} ${GOODS[good]}`)
+      .join(" + ");
+    if (!unlocked)
+      return `<section class="upgrade-card"><strong>Ausbau zu ${BUILDING_NAMES[rule.to]}</strong><p class="recipe">${PROFESSION_LABELS[rule.profession]}: ${Math.min(rule.threshold, xp)}/${rule.threshold} XP erforderlich</p></section>`;
+
+    const blockers = upgradePlacementBlockers(w, b);
+    if (blockers.length)
+      return `<section class="upgrade-card"><strong>Ausbau zu ${BUILDING_NAMES[rule.to]}</strong><p class="recipe">${costs}</p><button data-action="upgrade-blockers">Ausbau blockiert · ${blockers.length} Hindernis${blockers.length === 1 ? "" : "se"} anzeigen</button></section>`;
+
+    return `<section class="upgrade-card"><strong>Ausbau zu ${BUILDING_NAMES[rule.to]}</strong><p class="recipe">${costs}</p><button data-action="upgrade" ${canUpgradeBuilding(w, b) ? "" : "disabled"}>Ausbauen</button></section>`;
+  };
+
+  const recipeControls = (b: Building): string => {
+    if (!b.availableRecipes?.length) return "";
+    const switchBlocked = b.output > 1e-9 || assigned(w, b.id, "worker").some((person) => person.progress > 1e-9);
+    const options = b.availableRecipes
+      .filter((recipe) => recipe.output)
+      .map((recipe) => `<option value="${recipe.output}" ${b.recipe?.output === recipe.output ? "selected" : ""}>${GOOD_ICONS[recipe.output!]} ${GOODS[recipe.output!]}</option>`)
+      .join("");
+    return `<label class="recipe">Produktion <select data-building-recipe="${b.id}" ${switchBlocked ? "disabled" : ""}>${options}</select></label>${switchBlocked ? '<p class="recipe">Rezeptwechsel ist möglich, sobald die laufende Produktion und der aktuelle Output abgeschlossen sind.</p>' : ""}`;
+  };
+
+  const renderUpgradePreview = (): void => {
+    if (!upgradePreviewBuildingId) return;
+    const source = w.buildings.find((candidate) => candidate.id === upgradePreviewBuildingId && !candidate.retired);
+    if (!source) {
+      upgradePreviewBuildingId = undefined;
+      upgradePreviewOverlay.hidden = true;
+      window.dispatchEvent(new CustomEvent(UPGRADE_PREVIEW_EVENT, { detail: { active: false } }));
+      return;
+    }
+    const blockers = upgradePlacementBlockers(w, source);
+    const labels = [...new Set(blockers.map(upgradeBlockerLabel))];
+    upgradePreviewSummary.textContent = blockers.length
+      ? `${blockers.length} Hindernis${blockers.length === 1 ? "" : "se"}: ${labels.join(", ")}. Blockierende Gebäude kannst du direkt auf der Karte anklicken.`
+      : "Der Platz ist jetzt frei. Kehre zum Gebäude zurück und starte den Ausbau.";
   };
 
   const merchantControls = (b: Building): string => {
@@ -410,13 +481,14 @@ export function mountControls(w: World, renderMap: () => void): void {
     const merchantStaff = b.kind === "warehouse"
       ? staffSection(b, "merchant", b.merchants ?? 0)
       : "";
-    selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">${recipe}</p><div class="building-staff">${staffSection(b, "worker", b.workers)}${staffSection(b, "carrier", b.carriers)}${merchantStaff}</div><div class="inventory">${inventory}</div>${merchantControls(b)}<p class="status" data-field="status"></p>${demolish}`;
+    selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">${recipe}</p>${recipeControls(b)}<div class="building-staff">${staffSection(b, "worker", b.workers)}${staffSection(b, "carrier", b.carriers)}${merchantStaff}</div><div class="inventory">${inventory}</div>${merchantControls(b)}${upgradeControls(b)}<p class="status" data-field="status"></p>${demolish}`;
     updateSelectionLiveState();
   }
 
   const refreshLiveState = () => {
     document.querySelector("#metrics")!.innerHTML = `<div><small>👥 BEV.</small><strong>${w.people.length}</strong></div><div><small>👤 FREI</small><strong>${freePeople(w).length}</strong></div><div><small>${GOOD_ICONS.wheat} WEIZEN</small><strong>${formatWholeAmount(totalWarehouseStock(w, "wheat"))}</strong></div><div><small>${GOOD_ICONS.bread} BROT</small><strong>${formatWholeAmount(totalWarehouseStock(w, "bread"))}</strong></div>`;
     if (!selectedTile) updateSelectionLiveState();
+    renderUpgradePreview();
     updateBuildPlacementConfirm();
     renderMap();
   };
@@ -693,9 +765,31 @@ export function mountControls(w: World, renderMap: () => void): void {
   merchantTargetCancel.addEventListener("click", leaveMerchantTargetMode);
   buildPlacementConfirm.addEventListener("click", confirmBuildPlacement);
   buildPlacementCancel.addEventListener("click", leaveBuildPlacementMode);
+  upgradePreviewClose.addEventListener("click", () => {
+    const sourceId = upgradePreviewBuildingId;
+    upgradePreviewBuildingId = undefined;
+    upgradePreviewOverlay.hidden = true;
+    main.classList.remove("merchant-target-mode");
+    window.dispatchEvent(new CustomEvent(UPGRADE_PREVIEW_EVENT, { detail: { active: false } }));
+    if (sourceId) {
+      selectedBuildingId = sourceId;
+      selectedTile = undefined;
+      selectedWaypostId = undefined;
+      window.dispatchEvent(new CustomEvent(BUILDING_SELECTION_REQUESTED_EVENT, {
+        detail: { id: sourceId, focus: false },
+      }));
+    }
+    renderSelectionPanel();
+    renderMap();
+  });
 
   selectionPanel.addEventListener("change", (event) => {
     const select = event.target as HTMLSelectElement;
+    if (select.dataset.buildingRecipe) {
+      setBuildingRecipe(w, select.dataset.buildingRecipe, select.value as Good);
+      refresh();
+      return;
+    }
     if (select.dataset.routeGood) {
       const personId = Number(select.dataset.routeGood);
       const p = w.people.find((person) => person.id === personId);
@@ -750,6 +844,26 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
     if (action === "build") {
       enterBuildPlacementMode(button.dataset.kind as BuildableBuildingKind);
+      return;
+    }
+    if (action === "upgrade-blockers" && selectedBuildingId) {
+      const source = w.buildings.find((candidate) => candidate.id === selectedBuildingId && !candidate.retired);
+      const rule = source ? buildingUpgradeRule(source.kind) : undefined;
+      if (!source || !rule) return;
+      upgradePreviewBuildingId = source.id;
+      upgradePreviewOverlay.hidden = false;
+      main.classList.add("merchant-target-mode");
+      renderUpgradePreview();
+      window.dispatchEvent(new CustomEvent(UPGRADE_PREVIEW_EVENT, {
+        detail: { active: true, buildingId: source.id, targetKind: rule.to },
+      }));
+      renderMap();
+      return;
+    }
+    if (action === "upgrade" && selectedBuildingId) {
+      const source = w.buildings.find((candidate) => candidate.id === selectedBuildingId && !candidate.retired);
+      if (source && startBuildingUpgrade(w, source)) refresh();
+      else renderSelectionPanel();
       return;
     }
     if (action === "road" && selectedTile) {
