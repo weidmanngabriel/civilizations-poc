@@ -125,26 +125,39 @@
 .person-context-placeholder.slot-15 { grid-column: 1; grid-row: 3; }
 .person-context-placeholder.slot-16 { grid-column: 1; grid-row: 2; }
 
-.person-context-picker {
-  position: absolute;
-  z-index: 2;
-  left: 16%;
-  right: 16%;
-  top: 17%;
-  bottom: 17%;
+.person-context-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding:
+    max(24px, env(safe-area-inset-top))
+    max(24px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom))
+    max(24px, env(safe-area-inset-left));
   pointer-events: auto;
-  padding: 10px;
-  border-radius: 14px;
-  background: rgb(20 27 22 / 98%);
-  border: 1px solid rgb(255 255 255 / 16%);
-  box-shadow: 0 12px 32px rgb(0 0 0 / 42%);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  background: rgb(12 18 14 / 58%);
+  backdrop-filter: blur(3px);
 }
 
-.person-context-picker[hidden] {
+.person-context-picker-backdrop[hidden] {
   display: none;
+}
+
+.person-context-picker {
+  width: min(960px, 100%);
+  max-height: min(88vh, 820px);
+  min-height: min(560px, calc(100vh - 48px));
+  pointer-events: auto;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgb(20 27 22 / 98%);
+  border: 1px solid rgb(255 255 255 / 16%);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 46%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .person-context-picker header {
@@ -167,9 +180,11 @@
 .person-context-equipment {
   min-height: 0;
   overflow: auto;
+  flex: 1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
+  gap: 8px;
 }
 
 .person-context-professions[hidden],
@@ -179,10 +194,10 @@
 
 .person-context-professions button,
 .person-context-equipment button {
-  min-height: 42px;
-  padding: 7px 8px;
-  border-radius: 9px;
-  font-size: 10px;
+  min-height: 58px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
 }
 
 .person-context-professions button:disabled,
@@ -278,16 +293,25 @@
     border-radius: 10px;
   }
 
+  .person-context-picker-backdrop {
+    padding:
+      max(8px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(8px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+  }
+
   .person-context-picker {
-    left: 10%;
-    right: 10%;
-    top: 13%;
-    bottom: 13%;
+    width: 100%;
+    min-height: calc(100vh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    max-height: calc(100vh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    padding: 12px;
+    border-radius: 14px;
   }
 
   .person-context-professions,
   .person-context-equipment {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .person-command-overlay {
