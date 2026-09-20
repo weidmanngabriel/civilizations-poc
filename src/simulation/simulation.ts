@@ -39,6 +39,7 @@ import { syncScoutWaypostTasks } from "./scouting";
 import { measureResourcePerformance } from "../debug/resourcePerformance";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 import { advanceWildlife, captureNearbyLivestock } from "./wildlife";
+import { advanceLivestockBreeding } from "./livestockBreeding";
 import { advanceHunting } from "./hunting";
 import { resolveEquipmentPickups } from "./equipment";
 
@@ -364,6 +365,9 @@ export function tick(world: World): void {
   );
   syncManualMoveOrders(world);
   coreTick(world);
+  performanceProfiler.profileFeature("production", () =>
+    advanceLivestockBreeding(world),
+  );
   const captureStarted = performanceNow();
   const captureStats = captureNearbyLivestock(world);
   performanceProfiler.recordFeature(
