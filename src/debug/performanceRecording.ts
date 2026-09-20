@@ -33,6 +33,10 @@ export type PerformanceRecordingWorld = {
   looseGoods: number;
   movingPeople: number;
   activeTrips: number;
+  animals: number;
+  animalGroups: number;
+  livestock: number;
+  ownedLivestock: number;
 };
 
 export type PerformanceRecordingSample = {
@@ -112,6 +116,8 @@ const average = (values: number[]): number =>
 
 const worldSnapshot = (world: World): PerformanceRecordingWorld => {
   const activeBuildings = world.buildings.filter((building) => !building.retired);
+  const animals = world.animals ?? [];
+  const livestock = animals.filter((animal) => animal.kind === "cow" || animal.kind === "sheep");
   return {
     tiles: world.tiles.length,
     people: world.people.length,
@@ -124,6 +130,10 @@ const worldSnapshot = (world: World): PerformanceRecordingWorld => {
     looseGoods: world.looseGoods?.length ?? 0,
     movingPeople: world.people.filter((person) => person.path.length > 0).length,
     activeTrips: world.people.filter((person) => person.trip).length,
+    animals: animals.length,
+    animalGroups: world.animalGroups?.length ?? 0,
+    livestock: livestock.length,
+    ownedLivestock: livestock.filter((animal) => animal.owner === "player").length,
   };
 };
 
