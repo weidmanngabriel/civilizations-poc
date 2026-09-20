@@ -1,0 +1,83 @@
+.user-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding:
+    max(12px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+  background: rgba(19, 31, 23, 0.58);
+  backdrop-filter: blur(3px);
+}
+
+.user-dialog {
+  width: min(440px, 100%);
+  max-height: min(80vh, 520px);
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid rgba(201, 207, 192, 0.95);
+  border-radius: 12px;
+  background: rgba(248, 249, 242, 0.98);
+  box-shadow: 0 18px 54px rgba(15, 26, 18, 0.34);
+}
+
+.user-dialog-copy small {
+  margin-bottom: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.user-dialog-copy strong {
+  display: block;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.user-dialog-copy p {
+  margin: 10px 0 0;
+  color: #5e6a59;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.user-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.user-dialog-actions button {
+  min-height: 42px;
+  padding: 0 16px;
+}
+
+.user-dialog-confirm--danger {
+  border-color: #8e443a;
+  background: #8e443a;
+  color: #fff;
+}
+
+.user-dialog-confirm--danger:hover:not(:disabled) {
+  background: #a45448;
+}
+
+@media (max-width: 620px) {
+  .user-dialog {
+    padding: 16px;
+  }
+
+  .user-dialog-actions {
+    align-items: stretch;
+  }
+
+  .user-dialog-actions button {
+    flex: 1 1 0;
+    min-height: 48px;
+  }
+}
