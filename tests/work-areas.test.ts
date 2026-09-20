@@ -29,6 +29,7 @@ const createForestTestWorld = (population = 1) =>
       { kind: "forest", offset: { q: 10, r: 2 } },
       { kind: "forest", offset: { q: 7, r: 4 } },
       { kind: "forest", offset: { q: 12, r: -2 } },
+      { kind: "forest", offset: { q: -8, r: 0 } },
     ],
   });
 
@@ -56,7 +57,7 @@ test("initial woodcutters place their flags at their first selected trees", () =
 });
 
 test("woodcutters keep resource targets inside their movable work flag", () => {
-  const world = createWorld();
+  const world = createForestTestWorld();
   assert.equal(changeWoodcutters(world, 1), true);
   tick(world);
   const worker = woodcutters(world)[0]!;
@@ -80,7 +81,7 @@ test("woodcutters keep resource targets inside their movable work flag", () => {
 });
 
 test("woodcutters stop instead of claiming resources outside an exhausted flag area", () => {
-  const world = createWorld();
+  const world = createForestTestWorld();
   assert.equal(changeWoodcutters(world, 1), true);
   tick(world);
   const worker = woodcutters(world)[0]!;
@@ -104,7 +105,7 @@ test("woodcutters stop instead of claiming resources outside an exhausted flag a
 });
 
 test("carriers receive a work flag at their workplace and reject outside pickup sources", () => {
-  const world = createWorld();
+  const world = createTestWorld({ width: 48, height: 36, population: 2 });
   const warehouse = buildAt(world, { q: 7, r: 4 }, "warehouse")!;
   const source = buildAt(world, { q: 30, r: 18 }, "sawmill")!;
   source.output = 5;
@@ -136,7 +137,7 @@ test("carriers receive a work flag at their workplace and reject outside pickup 
 
 
 test("fisher catch chance rises from 30 to 80 percent with experience", () => {
-  const world = createWorld(1);
+  const world = createTestWorld();
   const fisher = world.people[0]!;
   assert.equal(fishingCatchChance(fisher), 0.3);
   fisher.experience = { fisher: 100 };
@@ -144,7 +145,7 @@ test("fisher catch chance rises from 30 to 80 percent with experience", () => {
 });
 
 test("each extracted unit is carried to the personal work flag before becoming a stack", () => {
-  const world = createWorld(1);
+  const world = createForestTestWorld();
   assert.equal(changeWoodcutters(world, 1), true);
   tick(world);
   const worker = woodcutters(world)[0]!;
@@ -386,7 +387,7 @@ test("moving a fisher flag invalidates a fishing spot outside the new area", () 
 
 
 test("moving a work flag outside the worker area still requires global waypost travel", () => {
-  const world = createWorld(1);
+  const world = createForestTestWorld();
   assert.equal(changeWoodcutters(world, 1), true);
   tick(world);
   const worker = woodcutters(world)[0]!;
@@ -407,7 +408,7 @@ test("moving a work flag outside the worker area still requires global waypost t
 
 
 test("an extractor with no remaining local target returns to the work flag", () => {
-  const world = createWorld(1);
+  const world = createForestTestWorld();
   assert.equal(changeWoodcutters(world, 1), true);
   tick(world);
   const worker = woodcutters(world)[0]!;
@@ -466,7 +467,7 @@ test("a failed fishing cycle replans locally without returning to the work flag"
 
 
 test("an exhausted woodcutter idles exactly at the work flag across retry cycles", () => {
-  const world = createWorld(1);
+  const world = createForestTestWorld();
   assert.equal(changeWoodcutters(world, 1), true);
   tick(world);
   const worker = woodcutters(world)[0]!;
