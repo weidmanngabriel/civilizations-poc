@@ -242,6 +242,13 @@ export interface Person {
   equipment?: Partial<Record<EquipmentSlot, EquippedItem>>;
   /** Manual slot preferences survive wear and drive automatic replacement. */
   equipmentPreferences?: Partial<Record<EquipmentSlot, EquipmentGood>>;
+  /** Reserved equipment that this person is currently walking to a storage building to collect. */
+  equipmentTask?: {
+    good: EquipmentGood;
+    slot: EquipmentSlot;
+    source: BuildingId;
+    sourcePosition: Hex;
+  };
   pendingFarmBonus?: number;
   hunger?: number;
   hungerAccumulator?: number;
