@@ -8,6 +8,8 @@ export const personProfessionLabel = (world: World, person: Person): string => {
 };
 
 export const personActivityLabel = (person: Person): string => {
+  if (person.equipmentTask)
+    return person.equipmentTask.slot === "tool" ? "Holt Werkzeug" : "Holt Schuhe";
   if (person.hungerState) {
     if (person.hungerState.returningToWorkAreaForFood)
       return person.path.length ? "Geht zur Jagdflagge" : "Sucht Essen";
