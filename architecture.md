@@ -234,6 +234,8 @@ The selected sprite file is exported unchanged; the editor does not downscale or
 
 `src/simulation/saveGame.ts` owns the versioned JSON save format. Saves remain anchor/interaction-point based rather than snapshotting derived geometry: `tiles`, entity footprints and underlying building terrain are not persisted.
 
+Large choice surfaces are viewport-level UI, not children constrained by inspectors or radial context menus. Profession/equipment pickers use a fixed backdrop and a wide responsive dialog; the staff candidate picker switches the person browser into the same near-fullscreen modal treatment. Compact confirmations remain on the shared small modal.
+
 `src/ui/browserSaves.ts` stores named browser saves in IndexedDB. Each record contains the unchanged serialized save JSON plus UI metadata (name, timestamp, population/building counts and a preview image). IndexedDB is only a persistence adapter: browser saves and downloaded/imported files use the same `serializeSaveGame` / `deserializeSaveGame` path, so there is no second gameplay save schema.
 
 Saving from the game menu always writes the current state to IndexedDB. A checkbox may additionally download that same JSON as a file. Loading normally reads a browser save; the load dialog also accepts a JSON file. A successfully imported file is loaded and immediately stored as a new browser save so future loads no longer require the file.
