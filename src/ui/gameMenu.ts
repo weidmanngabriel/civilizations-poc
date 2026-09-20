@@ -4,6 +4,7 @@ import { deserializeSaveGame, replaceWorldState, serializeSaveGame } from "../si
 import {
   createBrowserSaveRecord,
   deleteBrowserSave,
+  findCurrentBrowserSave,
   listBrowserSaves,
   putBrowserSave,
   type BrowserSaveRecord,
@@ -190,6 +191,49 @@ export function mountGameMenu(
     window.dispatchEvent(new CustomEvent(WORLD_REPLACED_EVENT, { detail: { reason } }));
     renderMap();
     setOpen(false);
+  };
+
+  const saveCurrentGame = async (): Promise<boolean> => {
+    if (!currentSaveId) return false;
+
+    let saves: BrowserSaveRecord[];
+    try {
+      saves = await listBrowserSaves();
+    } catch (error) {
+      await showDialog(
+        error instanceof Error ? error.message : "Browser-Spielstände konnten nicht gelesen werden.",
+        { title: "Speichern nicht verfügbar" },
+      );
+      return true;
+    }
+
+    const existing = findCurrentBrowserSave(saves, currentSaveId);
+    if (!existing) {
+      currentSaveId = undefined;
+      return false;
+    }
+
+    setOpen(false);
+    try {
+      const savedAt = new Date();
+      const json = serializeSaveGame(world, savedAt);
+      const thumbnail = await captureThumbnail();
+      const record = createBrowserSaveRecord(world, {
+        id: existing.id,
+        name: existing.name,
+        savedAt,
+        thumbnail,
+        json,
+      });
+      await putBrowserSave(record);
+      currentSaveName = record.name;
+    } catch (error) {
+      await showDialog(
+        error instanceof Error ? error.message : "Der Spielstand konnte nicht gespeichert werden.",
+        { title: "Speichern fehlgeschlagen" },
+      );
+    }
+    return true;
   };
 
   const openSaveDialog = async (): Promise<void> => {
@@ -468,7 +512,7 @@ export function mountGameMenu(
     if (!action) return;
 
     if (action === "save") {
-      await openSaveDialog();
+      if (!await saveCurrentGame()) await openSaveDialog();
       return;
     }
     if (action === "load") {
