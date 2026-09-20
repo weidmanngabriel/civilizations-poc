@@ -713,7 +713,7 @@ export function advanceWildlife(world: World): void {
         animal.groupId = ownedGroup(
           world,
           animal.kind as "cow" | "sheep",
-          hq.position,
+          home,
         ).id;
         scheduleOwnedRest(world, animal);
       }
