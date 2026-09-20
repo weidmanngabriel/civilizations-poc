@@ -296,3 +296,12 @@ A completed livestockBreeder becomes the dynamic home of both owned livestock gr
 
 The current product intentionally permits only one non-retired livestock breeder, including construction sites. The placement layer enforces this invariant; demolition makes a new breeder placeable and causes owned livestock to return to the HQ pasture.
 
+## Gebäudeausbau und Produktionsstufen
+
+Produktionsstufen sind als eigene `BuildingKind`-Einträge modelliert. `pottery2` und `stonemason2` besitzen damit eigene Baukosten, Technologieeinträge und Asset-Slots und können später unabhängig exportierte Grundrisse und Sprites erhalten. Bis echte Editor-Exporte vorhanden sind, bleiben ihre Asset-Slots explizite Placeholder und verwenden die vorhandene räumliche Fallback-Form.
+
+Die fachlichen Ausbaukanten liegen zentral in `src/simulation/buildingUpgradeRules.ts`. Ein Ausbau transformiert die bestehende Gebäudeinstanz auf den Zieltyp, behält die stabile Gebäude-ID und verwendet nur die Ausbaukosten als neue Baustellenanforderung. Die Direktbaukosten der zweiten Stufe bleiben separat in `constructionRules.ts` zentralisiert und entsprechen fachlich Stufe 1 plus Ausbau.
+
+Die räumliche Prüfung liegt in `buildingPlacement.ts`. Sie berechnet den Zielgrundriss am bestehenden visuellen Anker, ignoriert ausschließlich den aktuellen Gebäudegrundriss und prüft ansonsten dieselben relevanten räumlichen Konflikte wie die normale Platzierung. `upgradePlacementBlockers` liefert die konkreten Konflikte zusätzlich strukturiert an die Präsentation, damit dieselbe autoritative Prüfung sowohl den Ausbau verhindert als auch die Kartenmarkierung speist.
+
+Mehrstufige Produktionsgebäude können `availableRecipes` besitzen; `recipe` bleibt das aktuell aktive Rezept und damit kompatibel mit dem bestehenden Produktionskern. Ein Rezeptwechsel ist nur zulässig, wenn kein alter Output und kein laufender Arbeitsfortschritt vorhanden ist, damit numerischer Gebäude-Output niemals nachträglich als anderer Warentyp interpretiert wird.
