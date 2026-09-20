@@ -365,3 +365,22 @@ test("worker spends five seconds eating at HQ before returning to work", () => {
   assert.equal(person.hunger, 99);
   assert.ok(person.path.length > 0, "person should resume the route to the workplace after eating");
 });
+
+
+test("a person without a resumable task stays put after eating instead of walking to HQ", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const warehouse = addBreadWarehouse(world);
+  person.position = { ...warehouse.position };
+  person.path = [];
+  person.hunger = 20;
+  person.hungerState = { resumeActive: false, foodSource: warehouse.id };
+
+  resolveFoodArrivals(world);
+  world.round = person.hungerState!.eatingUntilTick!;
+  resolveFoodArrivals(world);
+
+  assert.equal(person.hungerState, undefined);
+  assert.deepEqual(person.position, warehouse.position);
+  assert.equal(person.path.length, 0);
+});
