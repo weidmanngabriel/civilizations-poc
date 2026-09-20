@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CONFIG, createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
+import { createTestWorld } from "./testWorld";
 import { GRID_REFINEMENT } from "../src/simulation/spatial";
 import { hexDistance, neighbors, same } from "../src/simulation/hex";
 import {
@@ -17,6 +18,19 @@ import {
   WORK_AREA_RADIUS_WORLD_TILES,
   woodcutters,
 } from "../src/simulation/simulation";
+
+const createForestTestWorld = (population = 1) =>
+  createTestWorld({
+    width: 40,
+    height: 30,
+    population,
+    resources: [
+      { kind: "forest", offset: { q: 8, r: 0 } },
+      { kind: "forest", offset: { q: 10, r: 2 } },
+      { kind: "forest", offset: { q: 7, r: 4 } },
+      { kind: "forest", offset: { q: 12, r: -2 } },
+    ],
+  });
 
 test("work areas use a 2.5-world-tile radius", () => {
   assert.equal(WORK_AREA_RADIUS_WORLD_TILES, 2.5);
