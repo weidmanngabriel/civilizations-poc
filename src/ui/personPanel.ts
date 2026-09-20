@@ -12,7 +12,7 @@ import { GOOD_ICONS } from "../icons";
 import { personActivityLabel } from "../personPresentation";
 import { personAlertMap, type PersonAlertSeverity } from "./personAlerts";
 import { setPersonProfession, setPersonWorkplace } from "../simulation/personCommands";
-import { EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentPendingForSlot, unequipSlot } from "../simulation/equipment";
+import { EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentPendingForSlot, equipmentWearPercent, unequipSlot } from "../simulation/equipment";
 import { PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT } from "./personContextMenu";
 import { confirmDialog, showDialog } from "./modalDialog";
 
@@ -353,10 +353,8 @@ export function mountPersonPanel(world: World): void {
         const pending = equipmentPendingForSlot(person, slot);
         return `<button type="button" class="person-equipment-slot empty" data-equipment-slot="${slot}" ${pending ? "disabled" : ""}><span aria-hidden="true">${definition.icon}</span><span><strong>${slot === "tool" ? "Werkzeug" : "Schuhe"}</strong><small>${pending ? "Wird geholt" : "Zuweisen"}</small></span></button>`;
       }
-      const condition = slot === "tool"
-        ? `${Math.max(0, Math.ceil(item.durability))}/${definition.durability} Einsätze`
-        : `${Math.max(0, Math.ceil(item.durability))}/${definition.durability} Microtiles`;
-      return `<button type="button" class="person-equipment-slot" data-equipment-slot="${slot}"><span aria-hidden="true">${definition.icon}</span><span><strong>${definition.label}</strong><small>${condition} · Ablegen</small></span></button>`;
+      const wear = equipmentWearPercent(item);
+      return `<button type="button" class="person-equipment-slot" data-equipment-slot="${slot}"><span aria-hidden="true">${definition.icon}</span><span><strong>${definition.label}</strong><small>Abnutzung ${wear} % · Ablegen</small></span></button>`;
     };
     const signature = [
       person.id,
@@ -370,6 +368,7 @@ export function mountPersonPanel(world: World): void {
       cargo,
       tool?.good ?? "",
       tool?.durability ?? "",
+      tool?.workProgress ?? "",
       shoes?.good ?? "",
       shoes?.durability ?? "",
     ].join("|");
