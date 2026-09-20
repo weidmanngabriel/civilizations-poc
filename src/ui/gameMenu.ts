@@ -1,6 +1,7 @@
 import type { World } from "../simulation/model";
 import { createDefaultGameWorld } from "../simulation/scenario";
 import { deserializeSaveGame, replaceWorldState, serializeSaveGame } from "../simulation/saveGame";
+import { confirmDialog, showDialog } from "./modalDialog";
 
 const WORLD_REPLACED_EVENT = "poc-world-replaced";
 const SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
@@ -108,7 +109,7 @@ export function mountGameMenu(world: World, renderMap: () => void): void {
   toggle.addEventListener("click", () => setOpen(panel.hidden));
   close.addEventListener("click", () => setOpen(false));
 
-  panel.addEventListener("click", (event) => {
+  panel.addEventListener("click", async (event) => {
     const target = event.target as HTMLElement;
     if (target.closest("#autoplay") || target.closest("#debug-toggle")) {
       setOpen(false);
@@ -129,7 +130,7 @@ export function mountGameMenu(world: World, renderMap: () => void): void {
       return;
     }
     if (action === "new") {
-      if (!window.confirm("Neues Spiel starten? Der aktuelle ungespeicherte Spielstand geht verloren.")) return;
+      if (!await confirmDialog("Neues Spiel starten? Der aktuelle ungespeicherte Spielstand geht verloren.", { title: "Neues Spiel", confirmLabel: "Neu starten", danger: true })) return;
       replaceWorldState(world, createDefaultGameWorld());
       worldReplaced("new");
     }
@@ -144,7 +145,7 @@ export function mountGameMenu(world: World, renderMap: () => void): void {
       worldReplaced("load");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Der Spielstand konnte nicht geladen werden.";
-      window.alert(message);
+      await showDialog(message, { title: "Spielstand konnte nicht geladen werden" });
     } finally {
       fileInput.value = "";
     }
