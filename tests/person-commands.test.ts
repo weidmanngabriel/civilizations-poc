@@ -99,3 +99,32 @@ test("an experienced hunter can become a tailor and be assigned to a tailor buil
   assert.equal(setPersonWorkplace(world, person.id, tailor.id), true);
   assert.deepEqual(person.assignment, { building: tailor.id, role: "worker" });
 });
+
+
+test("an experienced hunter can become a livestock breeder and be assigned to the livestock breeder building", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const livestockBreeder: Building = {
+    id: "personal-livestock-breeder",
+    kind: "livestockBreeder",
+    name: "Persönliche Viehzüchterei",
+    position: { ...person.position },
+    workers: 1,
+    carriers: 2,
+    input: 0,
+    inputInventory: { wheat: 0, water: 0 },
+    output: 0,
+    recipe: { inputs: { wheat: 4, water: 4 }, amount: 1, duration: 600 },
+  };
+  world.buildings.push(livestockBreeder);
+  person.experience = { hunter: 10 };
+
+  assert.equal(setPersonProfession(world, person.id, "stockfarmer"), true);
+  assert.equal(currentProfession(world, person), "stockfarmer");
+  assert.deepEqual(
+    validWorkplaces(world, person.id).map((building) => building.id),
+    [livestockBreeder.id],
+  );
+  assert.equal(setPersonWorkplace(world, person.id, livestockBreeder.id), true);
+  assert.deepEqual(person.assignment, { building: livestockBreeder.id, role: "worker" });
+});
