@@ -37,16 +37,18 @@ const openDialog = (
     backdrop.innerHTML = `
       <section class="user-dialog" role="dialog" aria-modal="true" aria-labelledby="user-dialog-title" aria-describedby="user-dialog-message">
         <div class="user-dialog-copy">
-          <small>BESTÄTIGUNG</small>
+          <small id="user-dialog-kind"></small>
           <strong id="user-dialog-title"></strong>
           <p id="user-dialog-message"></p>
         </div>
         <div class="user-dialog-actions"></div>
       </section>`;
 
+    const kind = backdrop.querySelector<HTMLElement>("#user-dialog-kind")!;
     const title = backdrop.querySelector<HTMLElement>("#user-dialog-title")!;
     const messageElement = backdrop.querySelector<HTMLElement>("#user-dialog-message")!;
     const actions = backdrop.querySelector<HTMLElement>(".user-dialog-actions")!;
+    kind.textContent = options.cancelLabel ? "BESTÄTIGUNG" : "HINWEIS";
     title.textContent = options.title;
     messageElement.textContent = message;
 
@@ -101,7 +103,7 @@ const openDialog = (
     cancel?.addEventListener("click", () => finish(false));
 
     // For destructive decisions, focus the safe option so Enter cannot delete accidentally.
-    (cancel ?? confirm).focus();
+    (options.danger && cancel ? cancel : confirm).focus();
   });
 
 export const confirmDialog = (
