@@ -6,6 +6,8 @@ import { createWorld } from "../src/simulation/scenario";
 import { hexDistance } from "../src/simulation/spatial";
 import {
   LIVESTOCK_CAPTURE_RADIUS,
+  OWNED_LIVESTOCK_PASTURE_RADIUS,
+  advanceWildlife,
   captureNearbyLivestock,
   spawnAnimalGroup,
 } from "../src/simulation/wildlife";
@@ -56,7 +58,9 @@ test("a scout automatically captures livestock within two micro-tiles", () => {
   assert.equal(cow.owner, "player");
   assert.equal(cow.returningToHq, true);
   assert.ok(cow.path.length > 0);
-  assert.deepEqual(cow.path.at(-1), hq.position);
+  const arrival = cow.path.at(-1)!;
+  assert.ok(hexDistance(arrival, hq.position) >= 4);
+  assert.ok(hexDistance(arrival, hq.position) <= 8);
 });
 
 test("owned cows and sheep are excluded from hunter target selection", () => {
@@ -98,4 +102,59 @@ test("cow and sheep groups keep their requested herd sizes", () => {
     world.animals!.filter((animal) => animal.groupId === sheep.id).length,
     6,
   );
+});
+
+
+test("captured livestock rests after reaching the HQ pasture and only takes short grazing walks", () => {
+  const world = createWorld(0);
+  const hq = world.buildings.find((building) => building.kind === "hq")!;
+  const pasture = grassNear(world, hq.position, 6);
+  const group = spawnAnimalGroup(world, "cow", pasture, 1)!;
+  const cow = world.animals!.find((animal) => animal.groupId === group.id)!;
+  cow.owner = "player";
+  cow.returningToHq = true;
+  cow.position = { ...pasture };
+  cow.path = [];
+  cow.nextMoveTick = world.round;
+
+  advanceWildlife(world);
+
+  assert.equal(cow.returningToHq, undefined);
+  assert.equal(cow.groupId, "owned-cow");
+  assert.equal(cow.path.length, 0);
+  assert.ok(cow.nextMoveTick >= world.round + 12 * 60);
+  assert.ok(cow.nextMoveTick <= world.round + 25 * 60);
+
+  world.round = cow.nextMoveTick - 1;
+  advanceWildlife(world);
+  assert.equal(cow.path.length, 0);
+
+  world.round += 1;
+  advanceWildlife(world);
+  assert.ok(cow.path.length >= 1 && cow.path.length <= 4);
+  assert.ok(
+    hexDistance(cow.path.at(-1)!, hq.position) <= OWNED_LIVESTOCK_PASTURE_RADIUS,
+  );
+});
+
+test("captured herd members reserve different pasture arrival endpoints", () => {
+  const world = createWorld(1);
+  const scout = world.people[0]!;
+  const hq = world.buildings.find((building) => building.kind === "hq")!;
+  scout.position = { ...grassNear(world, hq.position, 14) };
+  assert.equal(setPersonProfession(world, scout.id, "scout"), true);
+
+  const group = spawnAnimalGroup(world, "sheep", scout.position, 2)!;
+  const sheep = world.animals!.filter((animal) => animal.groupId === group.id);
+  for (const animal of sheep) {
+    animal.position = { ...scout.position };
+    animal.path = [];
+  }
+
+  captureNearbyLivestock(world);
+
+  assert.equal(sheep.every((animal) => animal.owner === "player"), true);
+  const endpoints = sheep.map((animal) => animal.path.at(-1)!).filter(Boolean);
+  assert.equal(endpoints.length, 2);
+  assert.notDeepEqual(endpoints[0], endpoints[1]);
 });
