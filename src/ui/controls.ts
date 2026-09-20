@@ -35,6 +35,7 @@ import {
   removeBuildingWithFootprint,
 } from "../simulation/buildingPlacement";
 import { CONFIG } from "../simulation/scenario";
+import { normalizeSimulationSpeed } from "../simulation/timing";
 import { same } from "../simulation/hex";
 import { canPlaceWaypost, removeWaypost, wayposts } from "../simulation/wayposts";
 import { orderScoutWaypost } from "../simulation/scouting";
@@ -55,12 +56,13 @@ const WAYPOST_PLACEMENT_REQUESTED_EVENT = "poc-waypost-placement-requested";
 const WAYPOST_SELECTED_EVENT = "poc-waypost-selected";
 const PERSON_SELECTION_REQUESTED_EVENT = "poc-person-selection-requested";
 const PERSON_STAFF_PICKER_REQUESTED_EVENT = "poc-person-staff-picker-requested";
+const WORLD_REPLACED_EVENT = "poc-world-replaced";
 
 type BuildingSelectedDetail = { id: BuildingId };
 type WaypostSelectedDetail = { id: WaypostId };
 type TileSelectedDetail = { position: Hex };
 type BuildPositionSelectedDetail = { position: Hex };
-type SimulationSpeed = 0.5 | 1 | 2 | 3;
+type SimulationSpeed = number;
 
 const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
   warehouse: "Lager",
@@ -90,12 +92,13 @@ const escapeHtml = (value: string): string =>
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
-  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Farmen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span><b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
+  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Farmen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span><b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div><label class="custom-speed"><span>Frei</span><input id="custom-sim-speed" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" value="1.0" aria-label="Benutzerdefiniertes Simulationstempo"></label></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
 
   let autoplayFrame: number | undefined;
   let lastAutoplayFrame = 0;
   let simulationBudget = 0;
-  let simulationSpeed: SimulationSpeed = 1;
+  let simulationSpeed: SimulationSpeed = normalizeSimulationSpeed(w.simulationSpeed ?? 1);
+  w.simulationSpeed = simulationSpeed;
   let selectedBuildingId: BuildingId | undefined;
   let selectedWaypostId: WaypostId | undefined;
   let selectedTile: Hex | undefined;
@@ -491,13 +494,19 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const autoplayButton = document.querySelector("#autoplay") as HTMLButtonElement;
   const speedButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-sim-speed]"));
+  const customSpeedInput = document.querySelector<HTMLInputElement>("#custom-sim-speed")!;
   const isRunning = () => autoplayFrame !== undefined;
 
   const setSimulationSpeed = (speed: SimulationSpeed) => {
-    simulationSpeed = speed;
+    simulationSpeed = normalizeSimulationSpeed(speed);
+    w.simulationSpeed = simulationSpeed;
+    customSpeedInput.value = simulationSpeed.toFixed(1);
     performanceProfiler.setSimulationState(isRunning(), simulationSpeed, simulationBudget);
     for (const button of speedButtons)
-      button.setAttribute("aria-pressed", String(Number(button.dataset.simSpeed) === speed));
+      button.setAttribute(
+        "aria-pressed",
+        String(Math.abs(Number(button.dataset.simSpeed) - simulationSpeed) < 1e-9),
+      );
   };
 
   const stopAutoplay = () => {
@@ -664,6 +673,14 @@ export function mountControls(w: World, renderMap: () => void): void {
       setSimulationSpeed(Number(button.dataset.simSpeed) as SimulationSpeed);
     });
   }
+  customSpeedInput.addEventListener("change", () => {
+    const parsed = Number(customSpeedInput.value);
+    if (Number.isFinite(parsed)) setSimulationSpeed(parsed);
+    else customSpeedInput.value = simulationSpeed.toFixed(1);
+  });
+  customSpeedInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") customSpeedInput.blur();
+  });
   debugToggle.addEventListener("click", () => setDebugOpen(debugPanel.hidden));
   document.querySelector("#debug-close")!.addEventListener("click", () => setDebugOpen(false));
   merchantTargetCancel.addEventListener("click", leaveMerchantTargetMode);
@@ -810,6 +827,11 @@ export function mountControls(w: World, renderMap: () => void): void {
     renderSelectionPanel();
   });
 
+  window.addEventListener(WORLD_REPLACED_EVENT, () => {
+    setSimulationSpeed(w.simulationSpeed ?? 1);
+  });
+
+  setSimulationSpeed(simulationSpeed);
   refresh();
   startAutoplay();
 }
