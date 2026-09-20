@@ -16,6 +16,15 @@ Außerdem muss der Eingang des Gebäudes im Radius eines Wegweisers liegen. Dabe
 
 Wiese und Wege zählen grundsätzlich als Baufläche. Ein überbauter Weg verschwindet dauerhaft.
 
+
+## Gebäude ausbauen
+
+Erfahrene Töpfer und Steinmetze können die zweite Stufe ihres Betriebs freischalten. Danach kannst du eine vorhandene Töpferei oder Steinmetzhütte direkt am bisherigen Standort ausbauen oder die zweite Stufe neu an einem anderen Ort bauen.
+
+Beim Ausbau muss der größere oder anders geformte Grundriss der neuen Stufe vollständig passen. Ist etwas im Weg, zeigt **„Ausbau blockiert“** die geplante Fläche und markiert die Hindernisse auf der Karte. Blockierende Gebäude kannst du dort direkt auswählen und bei Bedarf abreißen. Das Gebäude wird beim Ausbau niemals automatisch verschoben.
+
+Die zweite Stufe behält die bisherige Produktion und bietet zusätzlich ein neues Produkt: Töpferei 2 kann Dachziegel herstellen, Steinmetzhütte 2 Marmor. Die aktive Produktion wählst du im Gebäude. Ein Wechsel erfolgt erst, wenn der bisherige Output abgeholt und die laufende Produktion beendet ist.
+
 ## Baustellen und Bauarbeiter
 
 Nach der Platzierung entsteht zunächst eine Baustelle. Bauarbeiter beschaffen benötigte Materialien und kümmern sich selbstständig um erreichbare Baustellen.
