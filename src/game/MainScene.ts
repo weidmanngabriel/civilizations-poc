@@ -490,8 +490,8 @@ export class MainScene extends Phaser.Scene {
       if (workplace?.kind === "bakery") return "🍞";
       if (workplace?.kind === "sawmill") return "🪵";
       if (workplace?.kind === "carpenter") return "🛠️";
-      if (workplace?.kind === "pottery") return "🧱";
-      if (workplace?.kind === "stonemason") return "🪨";
+      if (workplace?.kind === "pottery" || workplace?.kind === "pottery2") return "🧱";
+      if (workplace?.kind === "stonemason" || workplace?.kind === "stonemason2") return "🪨";
     }
     return "👤";
   }
