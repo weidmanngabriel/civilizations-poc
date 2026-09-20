@@ -246,7 +246,7 @@ Die Karte lässt sich per Mausrad und Pinch von 0,7× bis 10× zoomen. Gebäude-
 
 Das Ladefenster zeigt die im Browser gespeicherten Spielstände. Zusätzlich kann dort eine Spielstand-Datei importiert werden. Ein erfolgreicher Import wird geladen und zugleich als neuer Browser-Spielstand gespeichert, sodass die Datei für spätere Ladevorgänge nicht erneut ausgewählt werden muss.
 
-Jeder Browser-Spielstand erhält beim Speichern automatisch ein Vorschaubild der Siedlung. Für dessen Ausschnitt zählen ausschließlich alle nicht abgerissenen **Gebäude einschließlich Hauptquartier und Baustellen**. Felder, Wege, Bewohner, Ressourcen und lose Waren vergrößern den Bildausschnitt nicht. Die Vorschau lässt einen kleinen Rand um die äußeren Gebäude und verändert die aktuelle Spieler-Kamera nach dem Speichern nicht dauerhaft.
+Jeder Browser-Spielstand erhält beim Speichern automatisch ein Vorschaubild der Siedlung. Für dessen Ausschnitt zählen ausschließlich alle nicht abgerissenen **Gebäude einschließlich Hauptquartier und Baustellen**. Felder, Wege, Bewohner, Ressourcen und lose Waren vergrößern den Bildausschnitt nicht. Die Vorschau lässt einen kleinen Rand um die äußeren Gebäude, behält das aktuelle Seitenverhältnis des Spiel-Canvas unverändert bei und verändert die aktuelle Spieler-Kamera nach dem Speichern nicht dauerhaft.
 
 Der vollständige autoritative Simulationszustand bleibt menschenlesbares JSON. Browser-Speicherung, Download und Datei-Import verwenden dasselbe Saveformat. Dazu gehören auch die zuletzt gewählte Simulationsgeschwindigkeit sowie individuelle Zustände gebrauchter Werkzeuge und Schuhe in Personeninventaren, Lagern, Bodenstapeln und laufenden Transporten.
 
