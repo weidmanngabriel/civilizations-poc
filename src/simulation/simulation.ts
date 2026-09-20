@@ -40,6 +40,7 @@ import { measureResourcePerformance } from "../debug/resourcePerformance";
 import { performanceProfiler } from "../debug/performanceProfiler";
 import { advanceWildlife } from "./wildlife";
 import { advanceHunting } from "./hunting";
+import { resolveEquipmentPickups } from "./equipment";
 
 const RESOURCE_DROP_RADIUS = GRID_REFINEMENT;
 
@@ -367,6 +368,7 @@ export function tick(world: World): void {
   advanceHunting(world);
   syncScoutWaypostTasks(world);
   syncManualMoveOrders(world);
+  resolveEquipmentPickups(world);
   performanceProfiler.profileFeature("foodArrivals", () => resolveFoodArrivals(world));
   performanceProfiler.profileFeature("resourceDepletion", () =>
     finishDeferredResourceDepletion(world, deferredResourceDepletion),
