@@ -71,26 +71,27 @@ const createModal = (
   backdrop.append(dialog);
   document.body.append(backdrop);
 
-  const close = () => backdrop.remove();
+  let closed = false;
+  const escape = (event: KeyboardEvent) => {
+    if (event.key === "Escape") close();
+  };
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    document.removeEventListener("keydown", escape);
+    backdrop.remove();
+  };
   dialog.querySelector<HTMLButtonElement>(".save-manager-close")!.addEventListener("click", close);
   backdrop.addEventListener("pointerdown", (event) => {
     if (event.target === backdrop) close();
   });
-  const escape = (event: KeyboardEvent) => {
-    if (event.key !== "Escape") return;
-    close();
-    document.removeEventListener("keydown", escape);
-  };
   document.addEventListener("keydown", escape);
 
   return {
     backdrop,
     dialog,
     body: dialog.querySelector<HTMLElement>(".save-manager-body")!,
-    close: () => {
-      document.removeEventListener("keydown", escape);
-      close();
-    },
+    close,
   };
 };
 
