@@ -41,6 +41,22 @@ test("waypost placement rejects positions inside the minimum distance", () => {
   );
 });
 
+test("placing a waypost advances the network revision used by live placement previews", () => {
+  const world = createDefaultGameWorld();
+  const first = wayposts(world)[0]!;
+  const candidate = world.tiles
+    .filter((tile) => tile.terrain === "grass")
+    .find((tile) =>
+      hexDistance(first.position, tile) >= 4 * GRID_REFINEMENT &&
+      canPlaceWaypost(world, tile)
+    );
+  assert.ok(candidate);
+
+  const revision = world.waypostRevision ?? 0;
+  assert.ok(placeWaypost(world, candidate));
+  assert.equal(world.waypostRevision, revision + 1);
+});
+
 test("reachable wayposts connect between 3.5 and 7 world tiles and support network routing", () => {
   const world = createDefaultGameWorld();
   const first = wayposts(world)[0]!;
