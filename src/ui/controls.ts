@@ -904,6 +904,12 @@ export function mountControls(w: World, renderMap: () => void): void {
   window.addEventListener(BUILDING_SELECTED_EVENT, (event) => {
     if (buildPlacementKind) return;
     const id = (event as CustomEvent<BuildingSelectedDetail>).detail.id;
+    if (upgradePreviewBuildingId && id !== upgradePreviewBuildingId) {
+      upgradePreviewBuildingId = undefined;
+      upgradePreviewOverlay.hidden = true;
+      main.classList.remove("merchant-target-mode");
+      window.dispatchEvent(new CustomEvent(UPGRADE_PREVIEW_EVENT, { detail: { active: false } }));
+    }
     if (merchantTargetSelection !== undefined) {
       const merchant = w.people.find((p) => p.id === merchantTargetSelection);
       const sourceId = merchant?.assignment?.building;
