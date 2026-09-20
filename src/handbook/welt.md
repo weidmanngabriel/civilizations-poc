@@ -8,9 +8,13 @@ Bäume und Felsen können Wege blockieren. Andere Vorkommen sind begehbar, bleib
 
 Abgebaute Waren bleiben sichtbar in der Welt liegen, bis sie abgeholt werden.
 
-## Kleinwild
+## Wildtiere und Vieh
 
-Hasen leben in kleinen Gruppen und bewegen sich nur gelegentlich einige Schritte. Eine Gruppe wandert mit der Zeit durch ihr Gebiet und behält dabei meist für eine Weile eine grobe Wanderrichtung, während jedes Tier seinen eigenen kleinen Hoppelweg nimmt und locker bei den anderen bleibt. Die Tiere halten dabei Abstand und bleiben nicht auf derselben Stelle übereinander stehen. Werden sie beschossen, fliehen die Tiere einzeln auseinander und finden danach nach und nach wieder zusammen. Wildschweine laufen nach derselben Grundlogik durch die Landschaft, sind aber immer Einzelgänger. Erlegte Hasen hinterlassen Fleisch; Wildschweine hinterlassen Fleisch und Leder. Der erfolgreiche Jäger trägt die Beute einzeln zu seiner Arbeitsflagge zurück.
+Hasen leben in kleinen Gruppen und Wildschweine als Einzelgänger. Kühe und Schafe ziehen ebenfalls in Herden durch die Landschaft, bewegen sich aber ruhiger und zielgerichteter. Schafe wandern dabei etwas weiter als Kühe.
+
+Wilde Tiere können vom Jäger gejagt werden. Hasen hinterlassen Fleisch, Wildschweine und Kühe Fleisch und Leder, Schafe Fleisch und Wolle. Der erfolgreiche Jäger trägt die Beute einzeln zu seiner Arbeitsflagge zurück.
+
+Kundschafter können Kühe und Schafe für die Siedlung gewinnen. Es reicht, mit dem Kundschafter sehr nah an das Tier heranzulaufen. Ein Herz zeigt danach, dass das Tier zur Siedlung gehört. Eigene Tiere werden nicht mehr gejagt und laufen selbständig zum Hauptquartier zurück. Dort bleiben sie sichtbar; der aktuelle Kuh- und Schafbestand steht im Hauptquartier.
 
 ## Entstehende Wege
 
