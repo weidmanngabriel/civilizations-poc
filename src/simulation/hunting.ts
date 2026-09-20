@@ -221,7 +221,7 @@ function finishAiming(world: World, hunter: Person): boolean {
   hunter.nextRangedAttackTick = world.round + HUNTER_BOW.cooldownTicks;
   hunter.huntTarget = target.id;
   clearAim(hunter);
-  frightenAnimalGroup(world, target.groupId, hunter.position);
+  frightenAnimalGroup(world, target.groupId, hunter.position, target.position);
   return true;
 }
 
@@ -260,6 +260,14 @@ function advanceHunter(world: World, hunter: Person): void {
 
   if (!hunter.workArea) return;
   if (finishAiming(world, hunter)) return;
+
+  // A hunter must first reach the personal hunting area through normal
+  // waypost navigation. Only an already acquired target may lead them back
+  // outside that area through unrestricted pursuit.
+  if (!hunter.huntTarget && !workAreaContains(hunter, hunter.position)) {
+    hunter.active = false;
+    return;
+  }
 
   const target = targetForHunter(world, hunter);
   if (!target) {
