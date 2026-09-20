@@ -98,13 +98,19 @@ export function assignEquipment(world: World, personId: number, good: EquipmentG
   const definition = EQUIPMENT_DEFINITIONS[good];
   const existing = equipmentForSlot(person, definition.slot);
 
-  equipmentPreference(person)[definition.slot] = good;
-
-  if (existing?.good === good) return true;
-  if (person.equipmentTask?.good === good) return true;
+  if (existing?.good === good) {
+    equipmentPreference(person)[definition.slot] = good;
+    return true;
+  }
+  if (person.equipmentTask?.good === good) {
+    equipmentPreference(person)[definition.slot] = good;
+    return true;
+  }
 
   if (person.equipmentTask) cancelEquipmentPickup(world, person);
-  return reserveEquipmentPickup(world, person, good);
+  if (!reserveEquipmentPickup(world, person, good)) return false;
+  equipmentPreference(person)[definition.slot] = good;
+  return true;
 }
 
 export function resolveEquipmentPickups(world: World): void {
@@ -152,7 +158,12 @@ export function unequipSlot(world: World, personId: number, slot: EquipmentSlot)
 
 const tryPreferred = (world: World, person: Person, slot: EquipmentSlot): void => {
   const preferred = person.equipmentPreferences?.[slot];
-  if (!preferred || equipmentForSlot(person, slot) || equipmentPendingForSlot(person, slot)) return;
+  if (
+    !preferred ||
+    person.manualMoveTarget ||
+    equipmentForSlot(person, slot) ||
+    equipmentPendingForSlot(person, slot)
+  ) return;
   assignEquipment(world, person.id, preferred);
 };
 
