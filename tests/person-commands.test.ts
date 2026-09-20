@@ -75,3 +75,27 @@ test("direct movement overrides normal behavior only until the chosen target is 
   assert.deepEqual(person.position, { q: target.q, r: target.r });
   assert.equal(person.manualMoveTarget, undefined);
 });
+
+
+test("an experienced hunter can become a tailor and be assigned to a tailor building", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const tailor: Building = {
+    id: "personal-tailor",
+    kind: "tailor",
+    name: "Persönliche Näherei",
+    position: { ...person.position },
+    workers: 1,
+    carriers: 0,
+    input: 0,
+    output: 0,
+  };
+  world.buildings.push(tailor);
+  person.experience = { hunter: 10 };
+
+  assert.equal(setPersonProfession(world, person.id, "tailor"), true);
+  assert.equal(currentProfession(world, person), "tailor");
+  assert.deepEqual(validWorkplaces(world, person.id).map((building) => building.id), [tailor.id]);
+  assert.equal(setPersonWorkplace(world, person.id, tailor.id), true);
+  assert.deepEqual(person.assignment, { building: tailor.id, role: "worker" });
+});
