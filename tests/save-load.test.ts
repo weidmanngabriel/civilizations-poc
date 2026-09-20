@@ -24,9 +24,11 @@ test("save/load roundtrip reconstructs the complete authoritative JSON world sta
 
   world.round = 48291;
   world.rngState = 123456789;
+  world.simulationSpeed = 7.4;
   world.unlockedTechnologies = ["farm", "sawmill", "carpenter"];
   roadTile.terrain = "road";
   roadTile.trafficTicks = [48280, 48290];
+  target.storedEquipment = [{ good: "shoes", durability: 1875 }];
   person.experience = { woodcutter: 13, carpenter: 7 };
   person.experienceActionProgress = { woodcutter: 0.5 };
   person.path = [{ q: person.position.q + 1, r: person.position.r }];
@@ -54,7 +56,7 @@ test("save format stores entities by interaction position without tile or footpr
   const serialized = JSON.parse(JSON.stringify(save)) as Record<string, any>;
 
   assert.equal(save.format, "civilizations-save");
-  assert.equal(save.version, 4);
+  assert.equal(save.version, 5);
   assert.equal(save.world.people[0]!.id, `person-${person.id}`);
   assert.equal(save.world.people[0]!.activity, "moving");
   assert.deepEqual(savedHq.position, world.buildings[0]!.position);
@@ -69,11 +71,22 @@ test("save format stores entities by interaction position without tile or footpr
 test("old save versions are rejected instead of migrated", () => {
   const oldSave = createSaveGame(createDefaultGameWorld());
   const parsed = JSON.parse(JSON.stringify(oldSave));
-  parsed.version = 3;
+  parsed.version = 4;
 
   assert.throws(
     () => deserializeSaveGame(JSON.stringify(parsed)),
-    /Spielstand-Version 3 wird nicht unterstützt/,
+    /Spielstand-Version 4 wird nicht unterstützt/,
+  );
+});
+
+test("save rejects an invalid custom simulation speed", () => {
+  const save = createSaveGame(createDefaultGameWorld());
+  const parsed = JSON.parse(JSON.stringify(save));
+  parsed.world.simulationSpeed = 10.01;
+
+  assert.throws(
+    () => deserializeSaveGame(JSON.stringify(parsed)),
+    /keinen gültigen Simulationszustand/,
   );
 });
 
