@@ -10,7 +10,9 @@ export const BUILDING_CONSTRUCTION_REQUIREMENTS: Record<PlaceableBuildingKind, G
   bakery: { plank: 2, brick: 2 },
   well: { wood: 2, stoneBlock: 2 },
   pottery: { wood: 4 },
+  pottery2: { wood: 6, rubble: 2, brick: 2 },
   stonemason: { wood: 4 },
+  stonemason2: { wood: 6, rubble: 2, stoneBlock: 2 },
   tailor: { wood: 4 },
   livestockBreeder: { wood: 4 },
 };
