@@ -63,7 +63,7 @@ const NODES: TechNode[] = [
   { id: "herb", label: "🌿 Kräutersammler", x: 930, y: 310, kind: "profession" },
   { id: "smith", label: "⚒ Schmied", x: 930, y: 400, kind: "profession" },
   { id: "mill", label: "Mühle", x: 930, y: 580, kind: "building" },
-  { id: "cattle", label: "Viehhof", x: 930, y: 680, kind: "building" },
+  { id: "cattle", label: "Viehzüchterei", x: 930, y: 680, kind: "building" },
   { id: "tailor1", label: "Näherei", subtitle: "Leder → Schuhe", x: 930, y: 760, kind: "building" },
 
   { id: "carp1", label: "Schreinerei", subtitle: "Holzwerkzeuge", x: 1210, y: 40, kind: "building" },
@@ -138,6 +138,7 @@ const BUILDING_NODES: Partial<Record<string, PlaceableBuildingKind>> = {
   pot1: "pottery",
   mason1: "stonemason",
   tailor1: "tailor",
+  cattle: "livestockBreeder",
 };
 
 const BUILDING_LABELS: Record<PlaceableBuildingKind, string> = {
@@ -152,6 +153,7 @@ const BUILDING_LABELS: Record<PlaceableBuildingKind, string> = {
   pottery: "Töpferei",
   stonemason: "Steinmetzhütte",
   tailor: "Näherei",
+  livestockBreeder: "Viehzüchterei",
 };
 
 const NODE_WIDTH = 210;
@@ -254,6 +256,7 @@ const nodeStatus = (world: World, nodeId: string): NodeStatus => {
   if (nodeId === "potter") return professionAvailabilityStatus(world, "pottery");
   if (nodeId === "mason") return professionAvailabilityStatus(world, "stonemason");
   if (nodeId === "tailor") return progressionStatus(world, "hunter", "tailor");
+  if (nodeId === "stockfarmer") return progressionStatus(world, "hunter", "livestockBreeder");
   if (nodeId === "baker") return professionAvailabilityStatus(world, "bakery");
 
   return { state: "planned", text: "◌ Noch nicht im Prototyp" };
