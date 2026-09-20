@@ -118,13 +118,17 @@ export function mountPersonContextMenu(world: World): void {
   const renderMenu = (): void => {
     const person = selectedPerson();
     if (!person || menu.hidden) return;
-    frame.innerHTML = ACTIONS
+    const placeholders = Array.from({ length: 16 }, (_, index) =>
+      `<span class="person-context-placeholder slot-${index + 1}" aria-hidden="true"></span>`,
+    ).join("");
+    const actions = ACTIONS
       .filter((action) => actionVisible(action, person))
       .map((action) => `
         <button type="button" role="menuitem" class="person-context-action slot-${action.slot}" data-context-action="${action.id}">
           <span aria-hidden="true">${action.icon}</span><small>${action.label}</small>
         </button>`)
       .join("");
+    frame.innerHTML = placeholders + actions;
   };
 
   const renderProfessionPicker = (): void => {
