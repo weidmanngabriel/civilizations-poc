@@ -255,8 +255,8 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
       inventory: {
         wood: 0,
         plank: 0,
-        woodenTool: 0,
-        shoes: 0,
+        woodenTool: suppliedStart ? 5 : 0,
+        shoes: suppliedStart ? 5 : 0,
         wheat: 0,
         flour: 0,
         water: 0,
