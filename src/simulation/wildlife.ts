@@ -1,5 +1,5 @@
 import type { Animal, AnimalGroup, AnimalKind, Hex, World } from "./model";
-import { key, neighbors, tileIndex, walkable } from "./hex";
+import { findPath, key, neighbors, tileIndex, walkable } from "./hex";
 import { SIMULATION_HZ } from "./timing";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { randomFraction, randomInt } from "./random";
@@ -29,6 +29,8 @@ export type AnimalBehaviorProfile = {
   homeReturnDistance: number;
   /** Strength of directional persistence between consecutive group targets. */
   migrationInertiaWeight: number;
+  /** Random per-step path wobble; livestock uses lower values than small wildlife. */
+  pathJitter: number;
 };
 
 export const ANIMAL_BEHAVIOR: Record<AnimalKind, AnimalBehaviorProfile> = {
@@ -53,6 +55,7 @@ export const ANIMAL_BEHAVIOR: Record<AnimalKind, AnimalBehaviorProfile> = {
     separationWeight: 0.85,
     homeReturnDistance: 30,
     migrationInertiaWeight: 0.7,
+    pathJitter: 2.4,
   },
   boar: {
     normalMoveMinTicks: 4 * SIMULATION_HZ,
@@ -75,6 +78,53 @@ export const ANIMAL_BEHAVIOR: Record<AnimalKind, AnimalBehaviorProfile> = {
     separationWeight: 0.85,
     homeReturnDistance: 30,
     migrationInertiaWeight: 0.7,
+    pathJitter: 2.4,
+  },
+  cow: {
+    normalMoveMinTicks: 6 * SIMULATION_HZ,
+    normalMoveMaxTicks: 10 * SIMULATION_HZ,
+    normalPathMinSteps: 6,
+    normalPathMaxSteps: 10,
+    fleeTicks: 5 * SIMULATION_HZ,
+    fleePathMinSteps: 7,
+    fleePathMaxSteps: 11,
+    movementMultiplier: 0.82,
+    homeWeight: 0.2,
+    flockWeight: 0.28,
+    randomWeight: 0.12,
+    groupTargetWeight: 0.58,
+    groupTargetIntervalTicks: 30 * SIMULATION_HZ,
+    groupTargetMinDistance: 14,
+    groupTargetMaxDistance: 20,
+    separationDistance: 3,
+    flockRejoinDistance: 7,
+    separationWeight: 0.8,
+    homeReturnDistance: 32,
+    migrationInertiaWeight: 0.85,
+    pathJitter: 0.45,
+  },
+  sheep: {
+    normalMoveMinTicks: 5 * SIMULATION_HZ,
+    normalMoveMaxTicks: 9 * SIMULATION_HZ,
+    normalPathMinSteps: 8,
+    normalPathMaxSteps: 13,
+    fleeTicks: 5 * SIMULATION_HZ,
+    fleePathMinSteps: 8,
+    fleePathMaxSteps: 13,
+    movementMultiplier: 1,
+    homeWeight: 0.18,
+    flockWeight: 0.3,
+    randomWeight: 0.15,
+    groupTargetWeight: 0.62,
+    groupTargetIntervalTicks: 30 * SIMULATION_HZ,
+    groupTargetMinDistance: 18,
+    groupTargetMaxDistance: 25,
+    separationDistance: 2,
+    flockRejoinDistance: 7,
+    separationWeight: 0.85,
+    homeReturnDistance: 36,
+    migrationInertiaWeight: 0.88,
+    pathJitter: 0.65,
   },
 };
 
@@ -169,6 +219,65 @@ export function spawnAnimalGroup(
     });
   }
   return group;
+}
+
+export const LIVESTOCK_CAPTURE_RADIUS = 2;
+
+const isLivestock = (animal: Animal): boolean =>
+  animal.kind === "cow" || animal.kind === "sheep";
+
+const ownedGroup = (world: World, kind: "cow" | "sheep", home: Hex): AnimalGroup => {
+  const existing = groupList(world).find(
+    (group) => group.kind === kind && group.id === `owned-${kind}`,
+  );
+  if (existing) return existing;
+  const profile = ANIMAL_BEHAVIOR[kind];
+  const group: AnimalGroup = {
+    id: `owned-${kind}`,
+    kind,
+    home: { ...home },
+    target: { ...home },
+    nextTargetTick: world.round + profile.groupTargetIntervalTicks,
+    migrationDirection: { q: 0, r: 0 },
+  };
+  groupList(world).push(group);
+  return group;
+};
+
+export type LivestockCaptureStats = {
+  proximityChecks: number;
+  captures: number;
+};
+
+export function captureNearbyLivestock(world: World): LivestockCaptureStats {
+  const scouts = world.people.filter((person) => person.profession === "scout");
+  const livestock = animalList(world).filter((animal) => isLivestock(animal) && !animal.owner);
+  let proximityChecks = 0;
+  let captures = 0;
+  const hq = world.buildings.find(
+    (building) => building.kind === "hq" && !building.retired,
+  );
+  if (!hq || !scouts.length || !livestock.length) return { proximityChecks, captures };
+
+  for (const animal of livestock) {
+    let captured = false;
+    for (const scout of scouts) {
+      proximityChecks += 1;
+      if (hexDistance(scout.position, animal.position) > LIVESTOCK_CAPTURE_RADIUS) continue;
+      animal.owner = "player";
+      animal.returningToHq = true;
+      animal.fleeingUntilTick = undefined;
+      animal.fleeFrom = undefined;
+      animal.movement = 0;
+      animal.path =
+        findPath(world.tiles, animal.position, hq.position, 1) ?? [];
+      captured = true;
+      captures += 1;
+      break;
+    }
+    if (!captured) continue;
+  }
+  return { proximityChecks, captures };
 }
 
 export const animalGroupMembers = (world: World, groupId: string): Animal[] =>
@@ -285,7 +394,7 @@ function zigZagPath(
     return (
       hexDistance(candidate, target) +
       crowdPenalty +
-      (randomFraction(world) - 0.5) * 2.4
+      (randomFraction(world) - 0.5) * ANIMAL_BEHAVIOR[animal.kind].pathJitter
     );
   };
 
@@ -458,6 +567,29 @@ function advanceAnimalGroups(world: World): void {
 export function advanceWildlife(world: World): void {
   advanceAnimalGroups(world);
   for (const animal of animalList(world)) {
+    if (animal.owner === "player" && animal.returningToHq) {
+      if (!animal.path.length) {
+        const hq = world.buildings.find(
+          (building) => building.kind === "hq" && !building.retired,
+        );
+        if (hq && hexDistance(animal.position, hq.position) <= 1) {
+          animal.returningToHq = undefined;
+          animal.groupId = ownedGroup(world, animal.kind as "cow" | "sheep", hq.position).id;
+          animal.nextMoveTick =
+            world.round + randomInt(
+              world,
+              ANIMAL_BEHAVIOR[animal.kind].normalMoveMinTicks,
+              ANIMAL_BEHAVIOR[animal.kind].normalMoveMaxTicks,
+            );
+        } else if (hq) {
+          animal.path = findPath(world.tiles, animal.position, hq.position, 1) ?? [];
+          animal.movement = 0;
+        }
+      }
+      advanceAnimalMovement(world, animal);
+      continue;
+    }
+
     const fleeing = animalIsFleeing(world, animal);
     if (!fleeing && animal.fleeingUntilTick !== undefined) {
       animal.fleeingUntilTick = undefined;
