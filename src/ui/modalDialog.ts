@@ -60,7 +60,7 @@ const openDialog = (
     const cancel = options.cancelLabel ? document.createElement("button") : undefined;
     if (cancel) {
       cancel.type = "button";
-      cancel.textContent = options.cancelLabel;
+      cancel.textContent = options.cancelLabel ?? "";
       actions.append(cancel);
     }
     actions.append(confirm);
@@ -95,7 +95,7 @@ const openDialog = (
         ? (index <= 0 ? buttons.length - 1 : index - 1)
         : (index < 0 || index === buttons.length - 1 ? 0 : index + 1);
       event.preventDefault();
-      buttons[nextIndex].focus();
+      buttons[nextIndex]?.focus();
     };
 
     document.addEventListener("keydown", onKeyDown, true);
