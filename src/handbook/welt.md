@@ -23,3 +23,12 @@ Wo Bewohner häufig über freie Wiesen laufen, können mit der Zeit von selbst W
 ## Siedlungsplanung
 
 So bildet die Siedlung nach und nach eigene Hauptwege. Gute Standorte nutzen diese Wege und halten wichtige Ziele nah beieinander.
+
+## Kühe und Schafe züchten
+
+Eingefangene Kühe und Schafe sammeln sich zunächst beim Hauptquartier. Sobald eine Viehzüchterei fertig ist, wird sie zum neuen Sammelpunkt für beide Tierarten.
+
+Ein Viehzüchter braucht zwei ausgewachsene Tiere derselben Art sowie Weizen und Wasser. Die Viehzüchterei wechselt möglichst zwischen Kühen und Schafen und züchtet eine Tierart nicht weiter, wenn bereits zwölf Tiere davon vorhanden sind. Jungtiere sind anfangs kleiner und wachsen mit der Zeit heran.
+
+Aktuell kann nur eine Viehzüchterei gebaut werden. Wird sie abgerissen, kehren die Nutztiere wieder zum Hauptquartier zurück.
+
