@@ -231,6 +231,8 @@ export const ALL_GOODS: Good[] = [
   "rubble",
   "brick",
   "stoneBlock",
+  "roofTile",
+  "marble",
 ];
 
 const recipeRequirements = (b: Building): GoodAmounts => {
@@ -952,6 +954,21 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
       output: 0,
       recipe: { inputs: { clay: 1, wood: 1 }, amount: 1, output: "brick", duration: CONFIG.duration },
     };
+  if (kind === "pottery2") {
+    const brickRecipe: Recipe = { inputs: { clay: 1, wood: 1 }, amount: 1, output: "brick", duration: CONFIG.duration };
+    const roofTileRecipe: Recipe = { inputs: { clay: 2, wood: 1 }, amount: 1, output: "roofTile", duration: CONFIG.duration };
+    return {
+      kind,
+      name: "Töpferei 2",
+      workers: 1,
+      carriers: 2,
+      input: 0,
+      inputInventory: { clay: 0, wood: 0 },
+      output: 0,
+      recipe: brickRecipe,
+      availableRecipes: [brickRecipe, roofTileRecipe],
+    };
+  }
   if (kind === "stonemason")
     return {
       kind,
@@ -962,6 +979,20 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
       output: 0,
       recipe: { input: "rubble", amount: 2, output: "stoneBlock", duration: CONFIG.duration },
     };
+  if (kind === "stonemason2") {
+    const stoneBlockRecipe: Recipe = { input: "rubble", amount: 2, output: "stoneBlock", duration: CONFIG.duration };
+    const marbleRecipe: Recipe = { input: "rubble", amount: 2, output: "marble", duration: CONFIG.duration };
+    return {
+      kind,
+      name: "Steinmetzhütte 2",
+      workers: 1,
+      carriers: 2,
+      input: 0,
+      output: 0,
+      recipe: stoneBlockRecipe,
+      availableRecipes: [stoneBlockRecipe, marbleRecipe],
+    };
+  }
   if (kind === "tailor")
     return {
       kind,
@@ -1030,6 +1061,30 @@ const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | 
     },
   };
 };
+
+export function applyBuildingKindDefinition(
+  building: Building,
+  kind: BuildableBuildingKind,
+): void {
+  Object.assign(building, buildingDefinition(kind));
+}
+
+export function setBuildingRecipe(
+  w: World,
+  id: BuildingId,
+  output: Good,
+): boolean {
+  const b = w.buildings.find((candidate) => candidate.id === id && !candidate.retired);
+  if (!b || isUnderConstruction(b) || !b.availableRecipes?.length) return false;
+  if (b.output > 1e-9) return false;
+  if (assigned(w, b.id, "worker").some((person) => person.progress > 1e-9)) return false;
+  const recipe = b.availableRecipes.find((candidate) => candidate.output === output);
+  if (!recipe) return false;
+  b.recipe = recipe;
+  for (const person of assigned(w, b.id, "worker")) scheduleImmediateWorkDecision(w, person);
+  for (const person of assigned(w, b.id, "carrier")) scheduleImmediateWorkDecision(w, person);
+  return true;
+}
 
 export function buildAt(
   w: World,
@@ -1565,6 +1620,8 @@ export const GOODS: Record<Good, string> = {
   rubble: "Bruchstein",
   brick: "Backstein",
   stoneBlock: "Steinquader",
+  roofTile: "Dachziegel",
+  marble: "Marmor",
 };
 
 export function status(w: World, b: Building): string {
