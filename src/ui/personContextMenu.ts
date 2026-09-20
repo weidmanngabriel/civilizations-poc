@@ -72,13 +72,19 @@ export function mountPersonContextMenu(world: World): void {
   menu.hidden = true;
   menu.setAttribute("aria-label", "Aktionen für ausgewählte Person");
   menu.innerHTML = `
-    <div class="person-context-frame" role="menu"></div>
-    <div class="person-context-picker" hidden>
+    <div class="person-context-frame" role="menu"></div>`;
+  main.append(menu);
+
+  const pickerBackdrop = document.createElement("div");
+  pickerBackdrop.className = "person-context-picker-backdrop";
+  pickerBackdrop.hidden = true;
+  pickerBackdrop.innerHTML = `
+    <section class="person-context-picker" role="dialog" aria-modal="true" aria-label="Personenauswahl">
       <header><strong data-context-picker-title>Auswahl</strong><button type="button" data-context-close-picker aria-label="Auswahl schließen">×</button></header>
       <div class="person-context-professions"></div>
       <div class="person-context-equipment" hidden></div>
-    </div>`;
-  main.append(menu);
+    </section>`;
+  main.append(pickerBackdrop);
 
   const modeOverlay = document.createElement("div");
   modeOverlay.className = "person-command-overlay";
@@ -89,10 +95,10 @@ export function mountPersonContextMenu(world: World): void {
   main.append(modeOverlay);
 
   const frame = menu.querySelector<HTMLElement>(".person-context-frame")!;
-  const picker = menu.querySelector<HTMLElement>(".person-context-picker")!;
-  const professionList = menu.querySelector<HTMLElement>(".person-context-professions")!;
-  const equipmentList = menu.querySelector<HTMLElement>(".person-context-equipment")!;
-  const pickerTitle = menu.querySelector<HTMLElement>("[data-context-picker-title]")!;
+  const picker = pickerBackdrop.querySelector<HTMLElement>(".person-context-picker")!;
+  const professionList = picker.querySelector<HTMLElement>(".person-context-professions")!;
+  const equipmentList = picker.querySelector<HTMLElement>(".person-context-equipment")!;
+  const pickerTitle = picker.querySelector<HTMLElement>("[data-context-picker-title]")!;
   const overlayTitle = modeOverlay.querySelector<HTMLElement>("strong")!;
   const overlayHint = modeOverlay.querySelector<HTMLElement>("span")!;
 
@@ -193,7 +199,7 @@ export function mountPersonContextMenu(world: World): void {
   const setMenuOpen = (open: boolean): void => {
     if (open && !selectedPerson()) return;
     menu.hidden = !open;
-    picker.hidden = true;
+    pickerBackdrop.hidden = true;
     if (open) renderMenu();
   };
 
@@ -229,12 +235,12 @@ export function mountPersonContextMenu(world: World): void {
     const action = button.dataset.contextAction as ActionId;
     if (action === "profession") {
       renderProfessionPicker();
-      picker.hidden = false;
+      pickerBackdrop.hidden = false;
       return;
     }
     if (action === "equipment") {
       renderEquipmentPicker();
-      picker.hidden = false;
+      pickerBackdrop.hidden = false;
       return;
     }
     if (action === "workplace") return beginMode("workplace");
@@ -266,10 +272,14 @@ export function mountPersonContextMenu(world: World): void {
     }));
   });
 
+  pickerBackdrop.addEventListener("pointerdown", (event) => {
+    if (event.target === pickerBackdrop) pickerBackdrop.hidden = true;
+  });
+
   picker.addEventListener("click", (event) => {
     const close = (event.target as HTMLElement).closest("[data-context-close-picker]");
     if (close) {
-      picker.hidden = true;
+      pickerBackdrop.hidden = true;
       return;
     }
     const person = selectedPerson();
@@ -331,7 +341,7 @@ export function mountPersonContextMenu(world: World): void {
     selectedPersonId = detail.personId;
     setMenuOpen(true);
     renderEquipmentPicker(detail.slot);
-    picker.hidden = false;
+    pickerBackdrop.hidden = false;
   });
   window.addEventListener(UI_MENU_OPENED_EVENT, () => setMenuOpen(false));
   window.addEventListener(BUILD_MODE_EVENT, () => setMenuOpen(false));
@@ -346,6 +356,12 @@ export function mountPersonContextMenu(world: World): void {
       event.preventDefault();
       event.stopImmediatePropagation();
       setMenuOpen(menu.hidden);
+      return;
+    }
+    if (event.key === "Escape" && !pickerBackdrop.hidden) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      pickerBackdrop.hidden = true;
       return;
     }
     if (event.key === "Escape" && !menu.hidden) {

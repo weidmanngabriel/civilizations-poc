@@ -473,6 +473,7 @@ export function mountPersonPanel(world: World): void {
 
   const setBrowserOpen = (open: boolean): void => {
     browser.hidden = !open;
+    main.classList.toggle("person-staff-picker-open", open && Boolean(staffPicker));
     toggle.setAttribute("aria-expanded", String(open));
     toggle.classList.toggle("active", open);
     if (open) {

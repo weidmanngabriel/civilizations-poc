@@ -177,8 +177,9 @@
 
 .save-manager-card img {
   width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
+  height: auto;
+  max-height: 220px;
+  object-fit: contain;
   border-radius: 7px;
   background: #304d35;
 }

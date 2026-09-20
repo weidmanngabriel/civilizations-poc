@@ -586,6 +586,39 @@ main.merchant-target-mode .person-inspector {
   border-color: rgb(243 211 106 / 18%);
 }
 
+main.person-staff-picker-open::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  pointer-events: auto;
+  background: rgb(12 18 14 / 58%);
+  backdrop-filter: blur(3px);
+}
+
+.person-browser-panel.person-staff-picker {
+  left: 50%;
+  right: auto;
+  top: 50%;
+  bottom: auto;
+  z-index: 70;
+  width: min(960px, calc(100vw - 48px));
+  height: min(760px, calc(100vh - 48px));
+  max-height: calc(100vh - 48px);
+  transform: translate(-50%, -50%);
+  padding: 16px;
+  gap: 12px;
+}
+
+.person-browser-panel.person-staff-picker .person-browser-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+}
+
+.person-browser-panel.person-staff-picker .person-picker-group {
+  grid-column: 1 / -1;
+}
+
 .person-equipment {
   margin-top: 10px;
   padding-top: 9px;
@@ -651,5 +684,21 @@ main.merchant-target-mode .person-inspector {
 @media (max-width: 700px) {
   .person-equipment-slot {
     min-height: 48px;
+  }
+
+  .person-browser-panel.person-staff-picker {
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    top: max(8px, env(safe-area-inset-top));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: auto;
+    height: auto;
+    max-height: none;
+    transform: none;
+    padding: 12px;
+  }
+
+  .person-browser-panel.person-staff-picker .person-browser-list {
+    grid-template-columns: 1fr;
   }
 }
