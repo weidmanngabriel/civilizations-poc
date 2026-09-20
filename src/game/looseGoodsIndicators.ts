@@ -19,6 +19,8 @@ const goodColors: Record<Good, number> = {
   rubble: 0x8b8f8c,
   brick: 0xb55d42,
   stoneBlock: 0xc8c8bd,
+  roofTile: 0xc56f4a,
+  marble: 0xe7e2d8,
 };
 
 type StackVisual = {

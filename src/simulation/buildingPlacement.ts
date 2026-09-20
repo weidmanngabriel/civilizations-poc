@@ -9,19 +9,21 @@ import type {
 import {
   bindBuildingDefinition,
   buildingInteractionAt,
+  buildingVisualAnchor,
   definitionBlockedAt,
   definitionFootprintAt,
   definitionFootprintForBuilding,
 } from "../buildings/buildingDefinitionRegistry";
 import { hexDistance, key, neighbors, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
-import { buildAt, notifyConstructionSiteAdded, removeBuilding } from "./simulation";
+import { applyBuildingKindDefinition, buildAt, notifyConstructionSiteAdded, removeBuilding } from "./simulation";
 import { isBuildingUnlocked } from "./technology";
 import { refinedCellCluster } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
 import { looseGoodStacks } from "./looseGoods";
 import { BUILDING_CONSTRUCTION_REQUIREMENTS } from "./constructionRules";
 import { WAYPOST_BUILD_CLEARANCE, WAYPOST_ORIENTATION_RADIUS } from "./wayposts";
+import { buildingUpgradeRule } from "./buildingUpgradeRules";
 
 export type BuildingPlacementShape = {
   cells: Hex[];
@@ -85,7 +87,9 @@ const SHAPES: Record<PlaceableBuildingKind, BuildingPlacementShape> = {
   bakery: COMPACT_SHAPE,
   well: COMPACT_SHAPE,
   pottery: COMPACT_SHAPE,
+  pottery2: COMPACT_SHAPE,
   stonemason: COMPACT_SHAPE,
+  stonemason2: COMPACT_SHAPE,
   tailor: COMPACT_SHAPE,
   livestockBreeder: COMPACT_SHAPE,
 };
@@ -218,6 +222,213 @@ export function canPlaceBuilding(
   if (!isBuildingUnlocked(world, kind)) return false;
   if (kind === "livestockBreeder" && hasExistingLivestockBreeder(world)) return false;
   return canPlaceWithLookup(createPlacementLookup(world), anchorPosition, kind);
+}
+
+export type UpgradePlacementBlockerKind =
+  | "building"
+  | "resource"
+  | "terrain"
+  | "looseGood"
+  | "person"
+  | "waypost"
+  | "orientation";
+
+export type UpgradePlacementBlocker = {
+  kind: UpgradePlacementBlockerKind;
+  position: Hex;
+  id?: string | number;
+  detail?: string;
+};
+
+const samePosition = (a: Hex, b: Hex): boolean => a.q === b.q && a.r === b.r;
+
+const pushUpgradeBlocker = (
+  blockers: UpgradePlacementBlocker[],
+  blocker: UpgradePlacementBlocker,
+): void => {
+  const blockerKey = `${blocker.kind}:${blocker.id ?? ""}:${key(blocker.position)}:${blocker.detail ?? ""}`;
+  if (blockers.some((candidate) =>
+    `${candidate.kind}:${candidate.id ?? ""}:${key(candidate.position)}:${candidate.detail ?? ""}` === blockerKey
+  )) return;
+  blockers.push(blocker);
+};
+
+const otherBuildingAt = (
+  world: World,
+  position: Hex,
+  ignoredBuildingId: string,
+): Building | undefined =>
+  world.buildings.find(
+    (candidate) =>
+      candidate.id !== ignoredBuildingId &&
+      !candidate.retired &&
+      buildingFootprint(candidate).some((cell) => samePosition(cell, position)),
+  );
+
+export function upgradePlacementBlockers(
+  world: World,
+  building: Building,
+): UpgradePlacementBlocker[] {
+  const rule = buildingUpgradeRule(building.kind);
+  if (!rule) return [];
+
+  const anchor = buildingVisualAnchor(building);
+  const targetFootprint = footprintAt(rule.to, anchor);
+  const targetClearance = clearanceAt(rule.to, anchor);
+  const currentFootprint = new Set(buildingFootprint(building).map(key));
+  const tiles = tileIndex(world.tiles);
+  const activeResources = world.naturalResources.filter((resource) => !resource.depleted);
+  const looseGoodsByPosition = new Map(looseGoodStacks(world).map((stack) => [key(stack.position), stack]));
+  const blockers: UpgradePlacementBlocker[] = [];
+
+  const entrance = buildingInteractionAt(rule.to, anchor);
+  if (
+    world.wayposts &&
+    !world.wayposts.some(
+      (waypost) => hexDistance(waypost.position, entrance) <= WAYPOST_ORIENTATION_RADIUS,
+    )
+  ) {
+    pushUpgradeBlocker(blockers, { kind: "orientation", position: entrance });
+  }
+
+  for (const waypost of world.wayposts ?? []) {
+    const blockedCell = targetFootprint.find(
+      (position) => hexDistance(waypost.position, position) <= WAYPOST_BUILD_CLEARANCE,
+    );
+    if (blockedCell)
+      pushUpgradeBlocker(blockers, {
+        kind: "waypost",
+        id: waypost.id,
+        position: { ...waypost.position },
+      });
+  }
+
+  const inspectCell = (position: Hex, requireEmptyGround: boolean): void => {
+    if (currentFootprint.has(key(position))) return;
+
+    const tile = tiles.get(key(position));
+    const otherBuilding = otherBuildingAt(world, position, building.id);
+    if (otherBuilding) {
+      pushUpgradeBlocker(blockers, {
+        kind: "building",
+        id: otherBuilding.id,
+        position: { ...position },
+        detail: otherBuilding.kind,
+      });
+    } else if (!tile || (tile.terrain !== "grass" && tile.terrain !== "road")) {
+      pushUpgradeBlocker(blockers, {
+        kind: "terrain",
+        position: { ...position },
+        detail: tile?.terrain ?? "outside",
+      });
+    }
+
+    for (const resource of activeResources) {
+      if (!naturalResourceFootprint(resource).some((cell) => samePosition(cell, position))) continue;
+      pushUpgradeBlocker(blockers, {
+        kind: "resource",
+        id: resource.id,
+        position: { ...position },
+        detail: resource.kind,
+      });
+    }
+
+    if (requireEmptyGround) {
+      const stack = looseGoodsByPosition.get(key(position));
+      if (stack)
+        pushUpgradeBlocker(blockers, {
+          kind: "looseGood",
+          id: stack.id,
+          position: { ...position },
+          detail: stack.good,
+        });
+
+      for (const person of world.people.filter((candidate) => samePosition(candidate.position, position)))
+        pushUpgradeBlocker(blockers, {
+          kind: "person",
+          id: person.id,
+          position: { ...position },
+        });
+    }
+  };
+
+  for (const position of targetFootprint) inspectCell(position, true);
+  for (const position of targetClearance) inspectCell(position, false);
+  return blockers;
+}
+
+export function canUpgradeBuilding(world: World, building: Building): boolean {
+  const rule = buildingUpgradeRule(building.kind);
+  if (!rule || building.retired || (building.construction && !building.construction.complete))
+    return false;
+  if (!isBuildingUnlocked(world, rule.to)) return false;
+  return upgradePlacementBlockers(world, building).length === 0;
+}
+
+export function startBuildingUpgrade(world: World, building: Building): boolean {
+  const rule = buildingUpgradeRule(building.kind);
+  if (!rule || !canUpgradeBuilding(world, building)) return false;
+
+  const anchor = buildingVisualAnchor(building);
+  const oldFootprint = buildingFootprint(building);
+  const oldFootprintKeys = new Set(oldFootprint.map(key));
+  const targetFootprint = footprintAt(rule.to, anchor);
+  const targetFootprintKeys = new Set(targetFootprint.map(key));
+  const targetBlocked = new Set((definitionBlockedAt(rule.to, anchor) ?? []).map(key));
+  const tiles = tileIndex(world.tiles);
+  const oldBaseTerrains = building.baseTerrains;
+
+  for (const position of oldFootprint) {
+    if (targetFootprintKeys.has(key(position))) continue;
+    const tile = tiles.get(key(position));
+    if (!tile) continue;
+    tile.terrain = oldBaseTerrains?.[key(position)] ?? "grass";
+    tile.buildingBlocking = undefined;
+    tile.trafficTicks = undefined;
+  }
+
+  const previousInput = building.input;
+  const previousInputInventory = { ...(building.inputInventory ?? {}) };
+  const previousOutput = building.output;
+  applyBuildingKindDefinition(building, rule.to);
+  building.input = previousInput;
+  building.inputInventory = Object.keys(previousInputInventory).length
+    ? { ...(building.inputInventory ?? {}), ...previousInputInventory }
+    : building.inputInventory;
+  building.output = previousOutput;
+  building.position = buildingInteractionAt(rule.to, anchor);
+  bindBuildingDefinition(building);
+  building.footprint = targetFootprint.map((position) => ({ ...position }));
+  building.baseTerrains = Object.fromEntries(
+    targetFootprint.map((position) => [
+      key(position),
+      oldFootprintKeys.has(key(position))
+        ? oldBaseTerrains?.[key(position)] ?? "grass"
+        : "grass",
+    ]),
+  );
+
+  for (const position of targetFootprint) {
+    const tile = tiles.get(key(position));
+    if (!tile) continue;
+    tile.bush = undefined;
+    tile.bushAvailable = undefined;
+    tile.bushRegrowTick = undefined;
+    tile.terrain = "building";
+    tile.buildingBlocking = targetBlocked.has(key(position)) || undefined;
+    tile.trafficTicks = undefined;
+  }
+
+  const plan = constructionPlan(rule.required);
+  building.construction = {
+    required: { ...plan.required },
+    delivered: {},
+    duration: plan.duration,
+    progress: 0,
+    complete: false,
+  };
+  notifyConstructionSiteAdded(world);
+  return true;
 }
 
 export function validBuildingAnchors(

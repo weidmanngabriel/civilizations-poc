@@ -24,7 +24,9 @@ export const TECHNOLOGY_UNLOCK_RULES: TechnologyUnlockRule[] = [
   { technology: "mill", profession: "farmer", threshold: TECHNOLOGY_XP_THRESHOLD },
   { technology: "bakery", profession: "miller", threshold: TECHNOLOGY_XP_THRESHOLD },
   { technology: "pottery", profession: "clayDigger", threshold: TECHNOLOGY_XP_THRESHOLD },
+  { technology: "pottery2", profession: "potter", threshold: TECHNOLOGY_XP_THRESHOLD },
   { technology: "stonemason", profession: "stonecutter", threshold: TECHNOLOGY_XP_THRESHOLD },
+  { technology: "stonemason2", profession: "stonemason", threshold: TECHNOLOGY_XP_THRESHOLD },
   { technology: "tailor", profession: "hunter", threshold: TECHNOLOGY_XP_THRESHOLD },
   { technology: "livestockBreeder", profession: "hunter", threshold: TECHNOLOGY_XP_THRESHOLD },
 ];

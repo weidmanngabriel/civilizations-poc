@@ -65,8 +65,8 @@ export function workerProfession(building: Building): Profession | undefined {
   if (building.kind === "carpenter") return "carpenter";
   if (building.kind === "mill") return "miller";
   if (building.kind === "bakery") return "baker";
-  if (building.kind === "pottery") return "potter";
-  if (building.kind === "stonemason") return "stonemason";
+  if (building.kind === "pottery" || building.kind === "pottery2") return "potter";
+  if (building.kind === "stonemason" || building.kind === "stonemason2") return "stonemason";
   if (building.kind === "tailor") return "tailor";
   if (building.kind === "livestockBreeder") return "stockfarmer";
   return undefined;

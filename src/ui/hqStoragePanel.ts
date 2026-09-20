@@ -23,6 +23,8 @@ const GOODS: Record<Good, string> = {
   rubble: "Bruchstein",
   brick: "Backstein",
   stoneBlock: "Steinquader",
+  roofTile: "Dachziegel",
+  marble: "Marmor",
 };
 const ALL_GOODS = Object.keys(GOODS) as Good[];
 

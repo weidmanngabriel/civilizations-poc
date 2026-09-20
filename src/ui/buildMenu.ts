@@ -20,7 +20,9 @@ const BUILDING_NAMES: Record<PlaceableBuildingKind, string> = {
   bakery: "Bäckerei",
   well: "Brunnen",
   pottery: "Töpferei",
+  pottery2: "Töpferei 2",
   stonemason: "Steinmetzhütte",
+  stonemason2: "Steinmetzhütte 2",
   tailor: "Näherei",
   livestockBreeder: "Viehzüchterei",
 };

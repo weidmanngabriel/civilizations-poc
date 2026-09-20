@@ -1,4 +1,4 @@
-export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "meat" | "leather" | "wool" | "shoes" | "clay" | "rubble" | "brick" | "stoneBlock";
+export type Good = "wood" | "plank" | "woodenTool" | "wheat" | "flour" | "water" | "bread" | "fish" | "meat" | "leather" | "wool" | "shoes" | "clay" | "rubble" | "brick" | "stoneBlock" | "roofTile" | "marble";
 export type EquipmentGood = "woodenTool" | "shoes";
 export type EquipmentSlot = "tool" | "shoes";
 export interface EquippedItem {
@@ -9,7 +9,7 @@ export interface EquippedItem {
 }
 export type BuildingId = string;
 export type WaypostId = string;
-export type BuildingKind = "hq" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "stonemason" | "tailor" | "livestockBreeder" | "warehouse" | "house";
+export type BuildingKind = "hq" | "field" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "pottery2" | "stonemason" | "stonemason2" | "tailor" | "livestockBreeder" | "warehouse" | "house";
 export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "field" | "house">;
 export type NaturalResourceId = string;
 export type NaturalResourceKind = "forest" | "clay" | "stone";
@@ -86,6 +86,8 @@ export interface Building {
   carriers: number;
   merchants?: number;
   recipe?: Recipe;
+  /** Recipes offered by upgraded production buildings. recipe is the currently active choice. */
+  availableRecipes?: Recipe[];
   input: number;
   inputInventory?: Inventory;
   output: number;

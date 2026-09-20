@@ -19,6 +19,7 @@ import {
   canPlaceBuilding,
   footprintAt,
   footprintRing,
+  upgradePlacementBlockers,
 } from "../simulation/buildingPlacement";
 import { HEX_RADIUS, nearestTileAtWorldPoint, pixel } from "./mapGeometry";
 import {
@@ -27,6 +28,7 @@ import {
   canPlaceWaypost,
   wayposts,
 } from "../simulation/wayposts";
+import { buildingVisualAnchor } from "../buildings/buildingDefinitionRegistry";
 
 const TEXT_RESOLUTION = 3;
 const MIN_FOREST_ALPHA = 0.35;
@@ -43,6 +45,7 @@ const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const BUILD_POSITION_SELECTED_EVENT = "poc-build-position-selected";
 const WAYPOST_SELECTED_EVENT = "poc-waypost-selected";
+const UPGRADE_PREVIEW_EVENT = "poc-upgrade-preview";
 
 const colors = {
   grass: 0x526b42,
@@ -70,6 +73,8 @@ const goodColors: Record<Good, number> = {
   rubble: 0x8b8f8c,
   brick: 0xb55d42,
   stoneBlock: 0xc8c8bd,
+  roofTile: 0xc56f4a,
+  marble: 0xe7e2d8,
 };
 
 type PointerPosition = { x: number; y: number };
@@ -77,6 +82,7 @@ type CameraSnapshot = { scrollX: number; scrollY: number; zoom: number };
 type MerchantTargetModeDetail = { active: boolean; sourceId?: BuildingId };
 type BuildPlacementKind = BuildableBuildingKind | "waypost";
 type BuildModeDetail = { active: boolean; kind?: BuildPlacementKind };
+type UpgradePreviewDetail = { active: boolean; buildingId?: BuildingId; targetKind?: BuildableBuildingKind };
 type WorldBounds = { minX: number; maxX: number; minY: number; maxY: number };
 
 const underConstruction = (b: Building): boolean =>
@@ -108,6 +114,7 @@ export class MainScene extends Phaser.Scene {
   private buildKind?: BuildPlacementKind;
   private buildHover?: Hex;
   private buildPositionChosen = false;
+  private upgradePreview?: { buildingId: BuildingId; targetKind: BuildableBuildingKind };
   private cachedWorldBounds?: WorldBounds;
 
   constructor(private world: World) {
@@ -165,6 +172,13 @@ export class MainScene extends Phaser.Scene {
       }
       this.renderWorld();
     };
+    const setUpgradePreview = (event: Event) => {
+      const detail = (event as CustomEvent<UpgradePreviewDetail>).detail;
+      this.upgradePreview = detail.active && detail.buildingId && detail.targetKind
+        ? { buildingId: detail.buildingId, targetKind: detail.targetKind }
+        : undefined;
+      this.renderWorld();
+    };
     const setBuildMode = (event: Event) => {
       const detail = (event as CustomEvent<BuildModeDetail>).detail;
       this.buildKind = detail.active ? detail.kind : undefined;
@@ -179,11 +193,13 @@ export class MainScene extends Phaser.Scene {
     window.addEventListener(BUILDING_SELECTION_REQUESTED_EVENT, selectRequestedBuilding);
     window.addEventListener(MERCHANT_TARGET_MODE_EVENT, setMerchantTargetMode);
     window.addEventListener(BUILD_MODE_EVENT, setBuildMode);
+    window.addEventListener(UPGRADE_PREVIEW_EVENT, setUpgradePreview);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       window.removeEventListener(SELECTION_CLEARED_EVENT, clearSelection);
       window.removeEventListener(BUILDING_SELECTION_REQUESTED_EVENT, selectRequestedBuilding);
       window.removeEventListener(MERCHANT_TARGET_MODE_EVENT, setMerchantTargetMode);
       window.removeEventListener(BUILD_MODE_EVENT, setBuildMode);
+      window.removeEventListener(UPGRADE_PREVIEW_EVENT, setUpgradePreview);
     });
     this.renderWorld();
   }
@@ -474,8 +490,8 @@ export class MainScene extends Phaser.Scene {
       if (workplace?.kind === "bakery") return "🍞";
       if (workplace?.kind === "sawmill") return "🪵";
       if (workplace?.kind === "carpenter") return "🛠️";
-      if (workplace?.kind === "pottery") return "🧱";
-      if (workplace?.kind === "stonemason") return "🪨";
+      if (workplace?.kind === "pottery" || workplace?.kind === "pottery2") return "🧱";
+      if (workplace?.kind === "stonemason" || workplace?.kind === "stonemason2") return "🪨";
     }
     return "👤";
   }
@@ -575,7 +591,7 @@ export class MainScene extends Phaser.Scene {
     if (!this.targetModeOverlay || !this.targetModeHighlights) return;
     this.targetModeOverlay.clear();
     this.targetModeHighlights.removeAll(true);
-    if (!this.merchantTargetSourceId && !this.buildKind) return;
+    if (!this.merchantTargetSourceId && !this.buildKind && !this.upgradePreview) return;
 
     const bounds = this.worldBounds();
     this.targetModeOverlay.fillStyle(0x102018, TARGET_MODE_DIM_ALPHA);
@@ -645,6 +661,31 @@ export class MainScene extends Phaser.Scene {
         anchor.x + 7,
         anchor.y - 14,
       );
+      return;
+    }
+
+    if (this.upgradePreview) {
+      const source = this.world.buildings.find(
+        (candidate) => candidate.id === this.upgradePreview!.buildingId && !candidate.retired,
+      );
+      if (!source) return;
+      const anchor = buildingVisualAnchor(source);
+      const footprint = footprintAt(this.upgradePreview.targetKind, anchor);
+      const blockers = upgradePlacementBlockers(this.world, source);
+      const blockedPositions = new Set(blockers.map((blocker) => key(blocker.position)));
+
+      for (const position of footprint) {
+        highlights.fillStyle(blockedPositions.has(key(position)) ? 0xe18b7d : 0xb8e69f, 0.48);
+        highlights.fillPoints(this.hexPoints(position), true);
+      }
+      for (const position of footprintRing(footprint)) {
+        highlights.lineStyle(0.75, blockedPositions.has(key(position)) ? 0xe18b7d : 0xf8e8aa, 0.5);
+        highlights.strokePoints(this.hexPoints(position), true);
+      }
+      for (const blocker of blockers) {
+        highlights.fillStyle(0xe05252, 0.72);
+        highlights.fillPoints(this.hexPoints(blocker.position), true);
+      }
       return;
     }
 
