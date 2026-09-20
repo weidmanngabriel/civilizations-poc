@@ -53,6 +53,12 @@ const animals = (world: World): Animal[] => world.animals ?? [];
 const HUNT_DROPS: Record<AnimalKind, readonly Good[]> = {
   hare: ["meat"],
   boar: ["meat", "leather"],
+  cow: ["meat", "leather"],
+  sheep: ["meat", "wool"],
+};
+
+export type HuntingStats = {
+  animalTargetChecks: number;
 };
 
 const hunterInterrupted = (person: Person): boolean =>
@@ -68,16 +74,20 @@ const clearAim = (hunter: Person): void => {
   hunter.huntAimUntilTick = undefined;
 };
 
-const targetForHunter = (world: World, hunter: Person): Animal | undefined => {
+const targetForHunter = (world: World, hunter: Person, stats: HuntingStats): Animal | undefined => {
   const area = hunter.workArea;
   if (!area) return undefined;
   const current = hunter.huntTarget
     ? animals(world).find((animal) => animal.id === hunter.huntTarget)
     : undefined;
-  if (current) return current;
+  if (current && !current.owner) return current;
+  if (current?.owner) hunter.huntTarget = undefined;
 
   const target = animals(world)
-    .filter((animal) => workAreaContains(hunter, animal.position))
+    .filter((animal) => {
+      stats.animalTargetChecks += 1;
+      return !animal.owner && workAreaContains(hunter, animal.position);
+    })
     .sort(
       (a, b) =>
         hexDistance(hunter.position, a.position) - hexDistance(hunter.position, b.position) ||
@@ -196,7 +206,7 @@ function startAiming(world: World, hunter: Person, target: Animal): void {
 function finishAiming(world: World, hunter: Person): boolean {
   if (!hunter.huntAimTarget || hunter.huntAimUntilTick === undefined) return false;
   const target = animals(world).find((candidate) => candidate.id === hunter.huntAimTarget);
-  if (!target) {
+  if (!target || target.owner) {
     clearAim(hunter);
     hunter.huntTarget = undefined;
     hunter.active = false;
@@ -225,7 +235,7 @@ function finishAiming(world: World, hunter: Person): boolean {
   return true;
 }
 
-function advanceHunter(world: World, hunter: Person): void {
+function advanceHunter(world: World, hunter: Person, stats: HuntingStats): void {
   ensureWorkArea(world, hunter);
 
   if (hunterInterrupted(hunter)) {
@@ -269,7 +279,7 @@ function advanceHunter(world: World, hunter: Person): void {
     return;
   }
 
-  const target = targetForHunter(world, hunter);
+  const target = targetForHunter(world, hunter, stats);
   if (!target) {
     hunter.active = false;
     return;
@@ -312,6 +322,8 @@ function createHuntingLoot(
 
 function resolveHuntingImpact(world: World, impact: RangedImpact): void {
   if (!impact.hit || impact.target.kind !== "animal") return;
+  const target = animals(world).find((animal) => animal.id === impact.target.id);
+  if (!target || target.owner) return;
   const removed = removeAnimal(world, impact.target.id);
   if (!removed) return;
 
@@ -331,12 +343,14 @@ function resolveHuntingImpact(world: World, impact: RangedImpact): void {
   }
 }
 
-export function advanceHunting(world: World): void {
+export function advanceHunting(world: World): HuntingStats {
+  const stats: HuntingStats = { animalTargetChecks: 0 };
   const impacts = advanceRangedCombat(world);
   for (const impact of impacts) resolveHuntingImpact(world, impact);
 
   for (const person of world.people) {
     if (!person.hunter) continue;
-    advanceHunter(world, person);
+    advanceHunter(world, person, stats);
   }
+  return stats;
 }
