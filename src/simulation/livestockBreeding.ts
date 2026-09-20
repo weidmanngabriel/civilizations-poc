@@ -2,6 +2,7 @@ import type { Animal, AnimalGroup, Building, World } from "./model";
 import { key, walkable } from "./hex";
 import { hexDistance } from "./spatial";
 import { SIMULATION_HZ } from "./timing";
+import { awardProfessionExperience } from "./experience";
 
 export type LivestockKind = "cow" | "sheep";
 
@@ -176,6 +177,12 @@ const finishBreeding = (world: World, building: Building): void => {
     matureAtTick: world.round + LIVESTOCK_GROWTH_TICKS,
   };
   (world.animals ??= []).push(baby);
+  const worker = world.people.find(
+    (person) =>
+      person.assignment?.building === building.id &&
+      person.assignment.role === "worker",
+  );
+  if (worker) awardProfessionExperience(worker, "stockfarmer");
   building.breeding = undefined;
 };
 
