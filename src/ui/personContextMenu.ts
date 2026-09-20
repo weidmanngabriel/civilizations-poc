@@ -1,4 +1,4 @@
-import type { EquipmentGood, Person, Profession, World } from "../simulation/model";
+import type { EquipmentGood, EquipmentSlot, Person, Profession, World } from "../simulation/model";
 import { canLearnProfession, currentProfession, PROFESSION_LABELS } from "../simulation/experience";
 import {
   canChangePersonProfession,
@@ -145,16 +145,36 @@ export function mountPersonContextMenu(world: World): void {
     ].join("");
   };
 
-  const renderEquipmentPicker = (): void => {
+  const renderEquipmentPicker = (slot?: EquipmentSlot): void => {
     const person = selectedPerson();
     if (!person) return;
-    pickerTitle.textContent = "Ausrüstung zuweisen";
     professionList.hidden = true;
     equipmentList.hidden = false;
-    const goods: EquipmentGood[] = ["woodenTool", "shoes"];
+
+    if (!slot) {
+      pickerTitle.textContent = "Ausrüstung";
+      const tool = equipmentForSlot(person, "tool");
+      const shoes = equipmentForSlot(person, "shoes");
+      equipmentList.innerHTML = `
+        <button type="button" data-equipment-slot-choice="tool">
+          <span aria-hidden="true">🪓</span>
+          <strong>Werkzeug</strong>
+          <small>${tool ? "Bereits ausgerüstet" : "Werkzeug auswählen"}</small>
+        </button>
+        <button type="button" data-equipment-slot-choice="shoes" ${equipmentStock(world, "shoes") <= 0 && !shoes ? "disabled" : ""}>
+          <span aria-hidden="true">${EQUIPMENT_DEFINITIONS.shoes.icon}</span>
+          <strong>Schuhe</strong>
+          <small>${shoes ? "Bereits ausgerüstet" : `${equipmentStock(world, "shoes")} verfügbar`}</small>
+        </button>`;
+      return;
+    }
+
+    pickerTitle.textContent = slot === "tool" ? "Werkzeug zuweisen" : "Schuhe zuweisen";
+    const goods = (Object.keys(EQUIPMENT_DEFINITIONS) as EquipmentGood[])
+      .filter((good) => EQUIPMENT_DEFINITIONS[good].slot === slot);
     equipmentList.innerHTML = goods.map((good) => {
       const definition = EQUIPMENT_DEFINITIONS[good];
-      const equipped = equipmentForSlot(person, definition.slot)?.good === good;
+      const equipped = equipmentForSlot(person, slot)?.good === good;
       const available = equipmentStock(world, good);
       return `<button type="button" data-equipment-good="${good}" aria-pressed="${equipped}" ${available <= 0 && !equipped ? "disabled" : ""}>
         <span aria-hidden="true">${definition.icon}</span>
@@ -248,6 +268,20 @@ export function mountPersonContextMenu(world: World): void {
     }
     const person = selectedPerson();
     if (!person) return;
+    const equipmentSlotButton = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-equipment-slot-choice]");
+    if (equipmentSlotButton) {
+      const slot = equipmentSlotButton.dataset.equipmentSlotChoice as EquipmentSlot;
+      if (slot === "shoes") {
+        if (!assignEquipment(world, person.id, "shoes")) return;
+        setMenuOpen(false);
+        window.dispatchEvent(new CustomEvent(PERSON_SELECTION_REQUESTED_EVENT, {
+          detail: { id: person.id, focus: false },
+        }));
+        return;
+      }
+      renderEquipmentPicker(slot);
+      return;
+    }
     const equipmentButton = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-equipment-good]");
     if (equipmentButton) {
       const good = equipmentButton.dataset.equipmentGood as EquipmentGood;
@@ -295,10 +329,10 @@ export function mountPersonContextMenu(world: World): void {
   });
   window.addEventListener(PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT, () => setMenuOpen(menu.hidden));
   window.addEventListener(PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT, (event) => {
-    const personId = (event as CustomEvent<{ personId: number }>).detail.personId;
-    selectedPersonId = personId;
+    const detail = (event as CustomEvent<{ personId: number; slot?: EquipmentSlot }>).detail;
+    selectedPersonId = detail.personId;
     setMenuOpen(true);
-    renderEquipmentPicker();
+    renderEquipmentPicker(detail.slot);
     picker.hidden = false;
   });
   window.addEventListener(UI_MENU_OPENED_EVENT, () => setMenuOpen(false));
