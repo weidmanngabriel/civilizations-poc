@@ -13,12 +13,14 @@ const hexDistance = (a: Hex, b: Hex): number => {
   return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
 };
 
-test("start world has twelve people, HQ bread, initial roles and forty-two bushes", () => {
+test("start world has twelve people, HQ supplies, initial roles and forty-two bushes", () => {
   const world = createDefaultGameWorld();
   const hq = world.buildings.find((building) => building.id === "hq")!;
 
   assert.equal(world.people.length, 12);
   assert.equal(hq.inventory?.bread, 10);
+  assert.equal(hq.inventory?.woodenTool, 5);
+  assert.equal(hq.inventory?.shoes, 5);
   assert.equal(hq.carriers, 2);
   assert.equal(world.tiles.filter((tile) => tile.bush).length, 42);
   assert.equal(
@@ -154,4 +156,13 @@ test("hunger decay is half speed for idle, walking and active work", () => {
   person.progress = 1;
   for (let i = 0; i < 2; i += 1) advanceHungerTick(world);
   assert.equal(person.hunger, 97);
+});
+
+
+test("neutral simulation worlds do not inherit player starting equipment", () => {
+  const world = createWorld(1);
+  const hq = world.buildings.find((building) => building.id === "hq")!;
+
+  assert.equal(hq.inventory?.woodenTool, 0);
+  assert.equal(hq.inventory?.shoes, 0);
 });
