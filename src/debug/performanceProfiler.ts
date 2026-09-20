@@ -25,6 +25,9 @@ export type PerformanceFeature =
   | "xpResolution"
   | "technologyUnlocks"
   | "workAreaSync"
+  | "wildlife"
+  | "hunting"
+  | "livestockCaptureProximity"
   | "renderWorld"
   | "renderMapSignature"
   | "renderMapDraw"
@@ -38,7 +41,8 @@ export type PerformanceFeature =
   | "overlayHungerStatus"
   | "overlayHungerPosition"
   | "overlayHungerVisual"
-  | "overlayBush";
+  | "overlayBush"
+  | "overlayWildlife";
 
 export type PathReason =
   | "hunger"
@@ -125,6 +129,9 @@ export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
   "xpResolution",
   "technologyUnlocks",
   "workAreaSync",
+  "wildlife",
+  "hunting",
+  "livestockCaptureProximity",
   "renderWorld",
   "renderMapSignature",
   "renderMapDraw",
@@ -139,6 +146,7 @@ export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
   "overlayHungerPosition",
   "overlayHungerVisual",
   "overlayBush",
+  "overlayWildlife",
 ];
 
 export const PERFORMANCE_DETAIL_FEATURES = new Set<PerformanceFeature>([
@@ -189,6 +197,9 @@ const SIMULATION_FEATURES = new Set<PerformanceFeature>([
   "xpResolution",
   "technologyUnlocks",
   "workAreaSync",
+  "wildlife",
+  "hunting",
+  "livestockCaptureProximity",
 ]);
 
 const HISTORY_MS = 30_000;
