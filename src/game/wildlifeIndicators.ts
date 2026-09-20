@@ -82,6 +82,8 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
 
         const position = animalPosition(animal);
         sprite.setPosition(position.x, position.y);
+        if (position.moving && Math.abs(position.directionX) > 0.01)
+          sprite.setFlipX(position.directionX < 0);
         sprite.setAlpha((animal.fleeingUntilTick ?? -1) > world.round ? 0.78 : 1);
 
         let heart = ownershipHearts.get(animal.id);
