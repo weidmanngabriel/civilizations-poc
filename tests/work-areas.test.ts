@@ -106,8 +106,8 @@ test("woodcutters stop instead of claiming resources outside an exhausted flag a
 
 test("carriers receive a work flag at their workplace and reject outside pickup sources", () => {
   const world = createTestWorld({ width: 48, height: 36, population: 2 });
-  const warehouse = buildAt(world, { q: 7, r: 4 }, "warehouse")!;
-  const source = buildAt(world, { q: 30, r: 18 }, "sawmill")!;
+  const warehouse = buildAt(world, { q: -12, r: 0 }, "warehouse")!;
+  const source = buildAt(world, { q: 12, r: 0 }, "sawmill")!;
   source.output = 5;
   assert.equal(changeAssignment(world, warehouse.id, "carrier", 1), true);
   const carrier = world.people.find(
