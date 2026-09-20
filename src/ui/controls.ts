@@ -75,6 +75,7 @@ const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
   pottery: "Töpferei",
   stonemason: "Steinmetzhütte",
   tailor: "Näherei",
+  livestockBreeder: "Viehzüchterei",
 };
 
 const SORTED_BUILDING_KINDS = (Object.keys(BUILDING_NAMES) as BuildableBuildingKind[])
@@ -137,7 +138,8 @@ export function mountControls(w: World, renderMap: () => void): void {
             : b.kind === "bakery" ? "Bäcker"
               : b.kind === "pottery" ? "Töpfer"
                 : b.kind === "stonemason" ? "Steinmetz"
-                  : "Arbeiter";
+                  : b.kind === "livestockBreeder" ? "Viehzüchter"
+                    : "Arbeiter";
   const buildingHeading = (b: Building) => `${buildingIcon(b.kind)}<span>${b.name}</span>`;
   const goodLabel = (good: Good) => `<span class="good-label"><span aria-hidden="true">${GOOD_ICONS[good]}</span><span>${GOODS[good]}</span></span>`;
   const personIcon = (personId: number) => {
@@ -160,6 +162,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       if (workplace?.kind === "carpenter") return "🛠️";
       if (workplace?.kind === "pottery") return "🧱";
       if (workplace?.kind === "stonemason") return "🪨";
+      if (workplace?.kind === "livestockBreeder") return "🐄";
     }
     return "👤";
   };
@@ -390,16 +393,18 @@ export function mountControls(w: World, renderMap: () => void): void {
           ? `Ein Farmer bewirtschaftet bis zu ${CONFIG.farmMaxFields} zufällige Acker im Radius ${CONFIG.farmFieldRadius}. Säen und Ernten dauern je 10 s; nach der Ernte trägt der Farmer den Weizen zurück zur Farm.`
           : b.kind === "well"
             ? `${GOOD_ICONS.water} Unerschöpfliche Wasserquelle ohne zugewiesenen Arbeiter`
-            : b.recipe
-              ? `${recipeInputs.map(([good, amount]) => `${GOOD_ICONS[good]} ${amount} ${GOODS[good]}`).join(" + ")} → ${GOOD_ICONS[b.recipe.output]} ${b.recipe.outputAmount ?? 1} ${GOODS[b.recipe.output]}`
-              : "Produktion";
+            : b.kind === "livestockBreeder"
+              ? `${GOOD_ICONS.wheat} 4 Weizen + ${GOOD_ICONS.water} 4 Wasser + zwei ausgewachsene Tiere → Jungtier`
+              : b.recipe?.output
+                ? `${recipeInputs.map(([good, amount]) => `${GOOD_ICONS[good]} ${amount} ${GOODS[good]}`).join(" + ")} → ${GOOD_ICONS[b.recipe.output]} ${b.recipe.outputAmount ?? 1} ${GOODS[b.recipe.output]}`
+                : "Produktion";
     const inventory = b.kind === "warehouse"
         ? `${(Object.keys(GOODS) as Good[]).map((good) => `<div><span>${goodLabel(good)}</span><strong data-field="warehouse-${good}"></strong></div>`).join("")}`
         : b.kind === "farm"
           ? `<div><span>${goodLabel("wheat")} · Output</span><strong data-field="output"></strong></div>`
           : b.kind === "well"
             ? `<div><span>${goodLabel("water")}</span><strong>∞</strong></div>`
-            : `${recipeInputs.map(([good]) => `<div><span>${goodLabel(good)} · Input</span><strong data-field="input-${good}"></strong></div>`).join("")}${b.recipe ? `<div><span>${goodLabel(b.recipe.output)} · Output</span><strong data-field="output"></strong></div>` : ""}`;
+            : `${recipeInputs.map(([good]) => `<div><span>${goodLabel(good)} · Input</span><strong data-field="input-${good}"></strong></div>`).join("")}${b.recipe?.output ? `<div><span>${goodLabel(b.recipe.output)} · Output</span><strong data-field="output"></strong></div>` : ""}`;
     const merchantStaff = b.kind === "warehouse"
       ? staffSection(b, "merchant", b.merchants ?? 0)
       : "";
