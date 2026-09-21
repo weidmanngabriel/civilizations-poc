@@ -218,7 +218,13 @@ const pathToConstructionSite = (
         ? findCandidateNavigationPath(w, p, site.position, CONFIG.roadSpeedMultiplier)
         : findRequiredNavigationPath(w, p, site.position, CONFIG.roadSpeedMultiplier);
 
+  const occupiedPalisadeCells = new Set(
+    w.buildings
+      .filter((building) => !building.retired && building.kind === "palisade")
+      .map((building) => key(building.position)),
+  );
   const paths = neighbors(site.position)
+    .filter((position) => !occupiedPalisadeCells.has(key(position)))
     .map((position) => {
       const path = w.wayposts === undefined
         ? findPath(w.tiles, p.position, position, CONFIG.roadSpeedMultiplier)
