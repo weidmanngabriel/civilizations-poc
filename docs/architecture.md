@@ -1,8 +1,8 @@
 # Architecture
 
-This file is the current architectural entry point. Detailed unchanged subsystems remain documented in [`architecture-detail.md`](./architecture-detail.md). If the two files conflict, this file describes the newer state.
+This file is the current architectural entry point. Detailed unchanged subsystems remain documented in [`architecture-detail.md`](../architecture-detail.md). If the two files conflict, this file describes the newer state.
 
-The completed fine-grid/resource migration is recorded in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md). It remains the reference for changes to map scale, terrain, resources, loose goods, movement, placement, roads or logistics.
+The completed fine-grid/resource migration is recorded in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](../FINE_GRID_RESOURCE_REWORK_PLAN.md). It remains the reference for changes to map scale, terrain, resources, loose goods, movement, placement, roads or logistics.
 
 Until version 1, backward compatibility is deliberately not maintained when it would require migrations, compatibility defaults, parallel legacy paths or special conditional logic. The current architecture and data formats are authoritative.
 
@@ -266,7 +266,7 @@ The debug profiler keeps short rolling in-memory timing windows for live inspect
 
 ## Existing architecture
 
-All other unchanged systems remain documented in [`architecture-detail.md`](./architecture-detail.md), including production, inventories, merchants, person selection, handbook/PWA behavior and performance diagnostics. Where older detail text conflicts with this file, this file is authoritative.
+All other unchanged systems remain documented in [`architecture-detail.md`](../architecture-detail.md), including production, inventories, merchants, person selection, handbook/PWA behavior and performance diagnostics. Where older detail text conflicts with this file, this file is authoritative.
 
 ## Testing and deployment
 
@@ -305,3 +305,8 @@ Die fachlichen Ausbaukanten liegen zentral in `src/simulation/buildingUpgradeRul
 Die räumliche Prüfung liegt in `buildingPlacement.ts`. Sie berechnet den Zielgrundriss am bestehenden visuellen Anker, ignoriert ausschließlich den aktuellen Gebäudegrundriss und prüft ansonsten dieselben relevanten räumlichen Konflikte wie die normale Platzierung. `upgradePlacementBlockers` liefert die konkreten Konflikte zusätzlich strukturiert an die Präsentation, damit dieselbe autoritative Prüfung sowohl den Ausbau verhindert als auch die Kartenmarkierung speist.
 
 Mehrstufige Produktionsgebäude können `availableRecipes` besitzen; `recipe` bleibt das aktuell aktive Rezept und damit kompatibel mit dem bestehenden Produktionskern. Ein Rezeptwechsel ist nur zulässig, wenn kein alter Output und kein laufender Arbeitsfortschritt vorhanden ist, damit numerischer Gebäude-Output niemals nachträglich als anderer Warentyp interpretiert wird.
+
+
+## Profession integration
+
+For every newly introduced `Profession`, the complete technical integration must be checked: type/union, profession label and icon, experience/unlock rules, `currentProfession`, `workerProfession`, building-profession mappings in `personCommands.ts` including `BUILDING_PROFESSIONS` and workplace compatibility, plus person/building UI integration. A TypeScript build alone is not sufficient because not all profession mappings are modeled as exhaustive `Record` types.

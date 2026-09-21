@@ -1,6 +1,6 @@
 # Produktkonzept
 
-Diese Datei ist der aktuelle Einstieg in das Produktkonzept. Ausführliche unveränderte Regeln bleiben in [`concept-detail.md`](./concept-detail.md) dokumentiert. Bei Widersprüchen beschreibt diese Datei den neueren Stand.
+Diese Datei ist der aktuelle Einstieg in das Produktkonzept. Ausführliche unveränderte Regeln bleiben in [`concept-detail.md`](../concept-detail.md) dokumentiert. Bei Widersprüchen beschreibt diese Datei den neueren Stand.
 
 Der abgeschlossene Umbau auf das feine Raster und physische Ressourcen ist in [`FINE_GRID_RESOURCE_REWORK_PLAN.md`](./FINE_GRID_RESOURCE_REWORK_PLAN.md) dokumentiert.
 
@@ -270,7 +270,7 @@ Nicht Teil dieses Schritts sind unter anderem:
 
 ## Unveränderte Produktbereiche
 
-Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`concept-detail.md`](./concept-detail.md), insbesondere Produktionsketten, Händler, Personenansicht, Technologiebaum und Handbuch. Wo ältere Detailtexte dem hier beschriebenen feinen Raster, den physischen Waren, lokalen Arbeitsbereichen, den aktuellen Gebäude-Definitionen oder den hier beschriebenen Freischaltregeln widersprechen, ist diese Datei maßgeblich.
+Für den vollständigen aktuellen Stand gelten zusätzlich die Details in [`concept-detail.md`](../concept-detail.md), insbesondere Produktionsketten, Händler, Personenansicht, Technologiebaum und Handbuch. Wo ältere Detailtexte dem hier beschriebenen feinen Raster, den physischen Waren, lokalen Arbeitsbereichen, den aktuellen Gebäude-Definitionen oder den hier beschriebenen Freischaltregeln widersprechen, ist diese Datei maßgeblich.
 
 
 ## Character Lab
