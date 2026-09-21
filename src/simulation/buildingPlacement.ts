@@ -22,7 +22,7 @@ import { refinedCellCluster } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
 import { looseGoodStacks } from "./looseGoods";
 import { BUILDING_CONSTRUCTION_REQUIREMENTS } from "./constructionRules";
-import { WAYPOST_BUILD_CLEARANCE, WAYPOST_ORIENTATION_RADIUS } from "./wayposts";
+import { isWithinWaypostOrientation, WAYPOST_BUILD_CLEARANCE } from "./wayposts";
 import { buildingUpgradeRule } from "./buildingUpgradeRules";
 
 export type BuildingPlacementShape = {
@@ -187,14 +187,7 @@ const canPlaceWithLookup = (
   kind: PlaceableBuildingKind,
 ): boolean => {
   const entrance = buildingInteractionAt(kind, anchorPosition);
-  if (
-    lookup.wayposts &&
-    !lookup.wayposts.some(
-      (waypostPosition) =>
-        hexDistance(waypostPosition, entrance) <= WAYPOST_ORIENTATION_RADIUS,
-    )
-  )
-    return false;
+  if (!isWithinWaypostOrientation(lookup.wayposts, entrance)) return false;
 
   const footprint = footprintAt(kind, anchorPosition);
   if (
@@ -282,12 +275,7 @@ export function upgradePlacementBlockers(
   const blockers: UpgradePlacementBlocker[] = [];
 
   const entrance = buildingInteractionAt(rule.to, anchor);
-  if (
-    world.wayposts &&
-    !world.wayposts.some(
-      (waypost) => hexDistance(waypost.position, entrance) <= WAYPOST_ORIENTATION_RADIUS,
-    )
-  ) {
+  if (!isWithinWaypostOrientation(world.wayposts?.map((waypost) => waypost.position), entrance)) {
     pushUpgradeBlocker(blockers, { kind: "orientation", position: entrance });
   }
 
