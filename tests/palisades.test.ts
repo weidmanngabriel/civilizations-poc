@@ -6,7 +6,10 @@ import { WAYPOST_ORIENTATION_RADIUS } from "../src/simulation/wayposts";
 import {
   PALISADE_MAX_SEGMENTS,
   createPalisadeSites,
+  palisadeNewSegmentCount,
+  palisadePlanningTileAvailable,
   planPalisadePath,
+  validPalisadePlanningAnchors,
 } from "../src/simulation/palisades";
 import { createTestWorld } from "./testWorld";
 
@@ -117,4 +120,55 @@ test("one builder continues across adjacent palisade lines and works from a reac
   }
 
   assert.ok(sites.every((site) => site.construction?.complete));
+});
+
+
+test("existing palisades are valid planning cells, including the start, but are not rebuilt", async () => {
+  const world = createTestWorld({ width: 30, height: 14, population: 0 });
+  const existing = createPalisadeSites(world, [
+    { q: 1, r: 2 },
+    { q: 2, r: 2 },
+  ]);
+  assert.equal(existing.length, 2);
+
+  const { key, tileIndex } = await import("../src/simulation/hex");
+  const tiles = tileIndex(world.tiles);
+  for (const site of existing) {
+    site.construction!.complete = true;
+    tiles.get(key(site.position))!.buildingBlocking = true;
+  }
+
+  assert.equal(palisadePlanningTileAvailable(world, { q: 1, r: 2 }), true);
+  assert.ok(validPalisadePlanningAnchors(world).some((position) => position.q === 1 && position.r === 2));
+
+  const path = planPalisadePath(world, { q: 1, r: 2 }, { q: 4, r: 2 });
+  assert.deepEqual(path[0], { q: 1, r: 2 });
+  assert.ok(path.some((position) => position.q === 2 && position.r === 2));
+  assert.equal(path.length, 4);
+  assert.equal(palisadeNewSegmentCount(world, path), 2);
+
+  const created = createPalisadeSites(world, path);
+  assert.deepEqual(created.map((site) => site.position), [
+    { q: 3, r: 2 },
+    { q: 4, r: 2 },
+  ]);
+  assert.equal(world.buildings.filter((building) => building.kind === "palisade" && !building.retired).length, 4);
+});
+
+test("existing palisades still count toward the 50-step planning limit", async () => {
+  const world = createTestWorld({ width: 140, height: 12, population: 0 });
+  const existing = createPalisadeSites(world, Array.from({ length: 10 }, (_, index) => ({
+    q: -60 + index,
+    r: 2,
+  })));
+  const { key, tileIndex } = await import("../src/simulation/hex");
+  const tiles = tileIndex(world.tiles);
+  for (const site of existing) {
+    site.construction!.complete = true;
+    tiles.get(key(site.position))!.buildingBlocking = true;
+  }
+
+  const path = planPalisadePath(world, { q: -60, r: 2 }, { q: 60, r: 2 });
+  assert.equal(path.length, PALISADE_MAX_SEGMENTS);
+  assert.equal(palisadeNewSegmentCount(world, path), PALISADE_MAX_SEGMENTS - existing.length);
 });
