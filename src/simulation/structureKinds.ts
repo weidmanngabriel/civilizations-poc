@@ -2,6 +2,7 @@ import type {
   Building,
   InfrastructureKind,
   ManagedBuildingKind,
+  World,
 } from "./model";
 
 const INFRASTRUCTURE_KINDS = new Set<InfrastructureKind>(["palisade"]);
@@ -25,3 +26,9 @@ export const isManagedBuilding = (
   building: Building,
 ): building is Building & { kind: ManagedBuildingKind } =>
   !building.retired && isManagedBuildingKind(building.kind);
+
+
+export const managedBuildings = (
+  world: World,
+): Array<Building & { kind: ManagedBuildingKind }> =>
+  world.buildings.filter(isManagedBuilding);
