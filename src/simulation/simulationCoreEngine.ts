@@ -20,6 +20,7 @@ import {
   findPathBySteps,
   key,
   movementCost,
+  neighbors,
   pathTravelCost,
   same,
   tileIndex,
@@ -198,6 +199,53 @@ const route = (
   b: Building,
   reason: PathReason = routeReason(p),
 ) => routeToPosition(w, p, b.position, reason);
+
+const constructionPositionReached = (site: Building, position: Hex): boolean =>
+  site.kind === "palisade"
+    ? hexDistance(position, site.position) === 1
+    : same(position, site.position);
+
+const pathToConstructionSite = (
+  w: World,
+  p: Person,
+  site: Building,
+  candidate: boolean,
+): Hex[] | null => {
+  if (site.kind !== "palisade")
+    return w.wayposts === undefined
+      ? findPath(w.tiles, p.position, site.position, CONFIG.roadSpeedMultiplier)
+      : candidate
+        ? findCandidateNavigationPath(w, p, site.position, CONFIG.roadSpeedMultiplier)
+        : findRequiredNavigationPath(w, p, site.position, CONFIG.roadSpeedMultiplier);
+
+  const paths = neighbors(site.position)
+    .map((position) => {
+      const path = w.wayposts === undefined
+        ? findPath(w.tiles, p.position, position, CONFIG.roadSpeedMultiplier)
+        : candidate
+          ? findCandidateNavigationPath(w, p, position, CONFIG.roadSpeedMultiplier)
+          : findRequiredNavigationPath(w, p, position, CONFIG.roadSpeedMultiplier);
+      return path
+        ? { path, cost: pathTravelCost(w.tiles, path, CONFIG.roadSpeedMultiplier) }
+        : undefined;
+    })
+    .filter((entry): entry is { path: Hex[]; cost: number } => Boolean(entry))
+    .sort((a, b) => a.cost - b.cost);
+  return paths[0]?.path ?? null;
+};
+
+const routeToConstructionSite = (
+  w: World,
+  p: Person,
+  site: Building,
+  reason: PathReason = routeReason(p),
+): void => {
+  p.path = performanceProfiler.withPathReason(reason, () =>
+    pathToConstructionSite(w, p, site, false),
+  ) ?? [];
+  p.active = constructionPositionReached(site, p.position) && p.path.length === 0;
+};
+
 const tileAt = (w: World, position: Hex): Tile =>
   tileIndex(w.tiles).get(key(position))!;
 
@@ -412,8 +460,11 @@ function rerouteCurrentTask(w: World, p: Person): void {
   }
   if (p.assignment) {
     const target = w.buildings.find((b) => b.id === p.assignment!.building);
-    if (target) route(w, p, target, "reroute");
-    else p.path = [];
+    if (target) {
+      if (p.assignment.role === "builder" && isUnderConstruction(target))
+        routeToConstructionSite(w, p, target, "reroute");
+      else route(w, p, target, "reroute");
+    } else p.path = [];
     return;
   }
   const hq = w.buildings.find((b) => b.id === "hq");
@@ -639,9 +690,7 @@ function builderCandidates(w: World, person: Person): BuilderCandidate[] {
           assigned(w, b.id, "builder").length < (b.kind === "palisade" ? 1 : 2),
       )
       .map((site) => {
-        const path = w.wayposts === undefined
-          ? findPath(w.tiles, person.position, site.position, CONFIG.roadSpeedMultiplier)
-          : findCandidateNavigationPath(w, person, site.position, CONFIG.roadSpeedMultiplier);
+        const path = pathToConstructionSite(w, person, site, true);
         return path
           ? {
               site,
@@ -683,7 +732,7 @@ function assignBuilder(w: World, p: Person): boolean {
   requestInput(w, p, choice.site);
   if (!p.trip) {
     p.path = choice.path;
-    p.active = same(p.position, choice.site.position);
+    p.active = constructionPositionReached(choice.site, p.position) && !p.path.length;
   }
   return true;
 }
@@ -1288,13 +1337,15 @@ function advanceConstruction(w: World): void {
       continue;
     }
     const activeBuilders = siteBuilders.filter(
-      (p) => p.active && !p.trip && !p.path.length && same(p.position, site.position),
+      (p) => p.active && !p.trip && !p.path.length && constructionPositionReached(site, p.position),
     );
     if (!activeBuilders.length) continue;
     const construction = site.construction!;
     let progressThisTick = 0;
     for (const p of activeBuilders) {
-      const builderProgress = productionMultiplier(p, "builder") * equipmentWorkSpeedMultiplier(p);
+      const builderProgress = site.kind === "palisade"
+        ? 1
+        : productionMultiplier(p, "builder") * equipmentWorkSpeedMultiplier(p);
       progressThisTick += builderProgress;
       gainProfessionExperience(p, "builder");
       recordToolWork(w, p, builderProgress);
@@ -1423,10 +1474,18 @@ export function tick(w: World): void {
           p.trip.picked = true;
           p.trip.transferUntilTick = undefined;
           p.movement = 0;
-          routeWithinWorkArea(w, p, building(w, p.trip.target).position);
+          const constructionTarget = building(w, p.trip.target);
+          if (isUnderConstruction(constructionTarget) && constructionTarget.kind === "palisade")
+            routeToConstructionSite(w, p, constructionTarget, "builder");
+          else
+            routeWithinWorkArea(w, p, constructionTarget.position);
         } else {
           const target = building(w, p.trip.target);
-          if (!same(p.position, target.position)) continue;
+          if (
+            isUnderConstruction(target)
+              ? !constructionPositionReached(target, p.position)
+              : !same(p.position, target.position)
+          ) continue;
           if (p.trip.transferUntilTick === undefined) {
             p.trip.transferUntilTick = w.round + CONFIG.transferDurationTicks;
             p.movement = 0;
@@ -1457,7 +1516,11 @@ export function tick(w: World): void {
           clearWorkRetry(p);
           immediateDecisionPeople.add(p.id);
         }
-      } else if (same(p.position, home.position)) {
+      } else if (
+        isUnderConstruction(home)
+          ? constructionPositionReached(home, p.position)
+          : same(p.position, home.position)
+      ) {
         p.active = true;
       }
     }
@@ -1545,14 +1608,28 @@ export function tick(w: World): void {
       p.assignment &&
       !p.active &&
       !p.path.length &&
-      !p.trip &&
-      !same(p.position, building(w, p.assignment.building).position)
+      !p.trip
     ) {
-      route(w, p, building(w, p.assignment.building));
-      continue;
+      const assignedBuilding = building(w, p.assignment.building);
+      const reached = p.assignment.role === "builder" && isUnderConstruction(assignedBuilding)
+        ? constructionPositionReached(assignedBuilding, p.position)
+        : same(p.position, assignedBuilding.position);
+      if (!reached) {
+        if (p.assignment.role === "builder" && isUnderConstruction(assignedBuilding))
+          routeToConstructionSite(w, p, assignedBuilding);
+        else
+          route(w, p, assignedBuilding);
+        continue;
+      }
     }
-    if (p.assignment && same(p.position, building(w, p.assignment.building).position))
-      p.active = true;
+    if (p.assignment) {
+      const assignedBuilding = building(w, p.assignment.building);
+      if (
+        p.assignment.role === "builder" && isUnderConstruction(assignedBuilding)
+          ? constructionPositionReached(assignedBuilding, p.position)
+          : same(p.position, assignedBuilding.position)
+      ) p.active = true;
+    }
     if (needDueBeforeNewTask(p)) {
       scheduleWorkRetry(w, p);
       continue;
