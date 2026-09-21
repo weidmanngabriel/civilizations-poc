@@ -102,6 +102,18 @@ The authoritative footprint and collision semantics for registered buildings are
 
 Activating another editor-authored runtime building now consists only of replacing `building.json` and the sprite inside the existing same-key asset slot. No additional registry edit is required for current kinds because every current kind is already wired through `register(...)`. When a new `BuildingKind` is introduced in code, its same-key asset slot and registry registration are added in that same implementation run.
 
+## Structure classification
+
+`Building` remains the shared runtime entity for construction-capable static structures so material delivery, `ConstructionState`, builder assignment, save/load and demolition can be reused without a parallel construction engine. Its `kind` is nevertheless classified by product semantics:
+
+- `ManagedBuildingKind` contains normal managed buildings such as HQ, production buildings, warehouses and houses.
+- `InfrastructureKind` contains construction-capable infrastructure. Palisade is the first member; gates and other future constructed infrastructure can extend this union.
+- `field` remains a separate building-backed gameplay entity and belongs to neither category.
+
+`src/simulation/structureKinds.ts` is the central runtime boundary. Building management UI, staffing alerts and the generic editor-authored building sprite path must use this classification instead of adding local `kind !== "palisade"` checks. Infrastructure may still reuse the shared `Building` storage shape internally, but it owns its own placement/rendering/management semantics. The current palisade therefore stays in `World.buildings` for construction compatibility while remaining absent from the normal building browser and building alert system.
+
+The generic building-definition registry intentionally does not register infrastructure. Infrastructure visuals are rendered by their dedicated renderer; adding an editor-authored asset for a future infrastructure kind does not implicitly turn it into a managed building.
+
 ## Placement, clearance and demolition
 
 `src/simulation/buildingPlacement.ts` remains authoritative for placement legality. For registered kinds it uses the editor footprint; otherwise it uses the current hard-coded shape table. The placement clearance is a compact ring of two micro-cells around whichever footprint is authoritative.
