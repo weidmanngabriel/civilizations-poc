@@ -2,13 +2,14 @@ import Phaser from "phaser";
 import type { BuildableBuildingKind, Hex, World } from "../simulation/model";
 import { validBuildingAnchors } from "../simulation/buildingPlacement";
 import { validWaypostAnchors } from "../simulation/wayposts";
+import { validPalisadePlanningAnchors } from "../simulation/palisades";
 import { HEX_RADIUS, pixel } from "./mapGeometry";
 
 const BUILD_MODE_EVENT = "poc-build-mode";
 const HIGHLIGHT_COLOR = 0xd9f2b4;
 const HIGHLIGHT_ALPHA = 0.32;
 
-type BuildModeDetail = { active: boolean; kind?: BuildableBuildingKind | "waypost" };
+type BuildModeDetail = { active: boolean; kind?: BuildableBuildingKind | "waypost" | "palisade" };
 type MainSceneLayers = {
   targetModeOverlay?: Phaser.GameObjects.Graphics;
   targetModeHighlights?: Phaser.GameObjects.Container;
@@ -39,16 +40,18 @@ export function installBuildPlacementHighlights(scene: Phaser.Scene, world: Worl
     const graphics = scene.add.graphics().setDepth(11);
     layers.targetModeHighlights?.setDepth(12);
 
-    let activeKind: BuildableBuildingKind | "waypost" | undefined;
+    let activeKind: BuildableBuildingKind | "waypost" | "palisade" | undefined;
     let observedWaypostRevision = world.waypostRevision ?? 0;
 
-    const showFor = (kind?: BuildableBuildingKind | "waypost") => {
+    const showFor = (kind?: BuildableBuildingKind | "waypost" | "palisade") => {
       graphics.clear();
       if (!kind) return;
 
       const anchors = kind === "waypost"
         ? validWaypostAnchors(world)
-        : validBuildingAnchors(world, kind);
+        : kind === "palisade"
+          ? validPalisadePlanningAnchors(world)
+          : validBuildingAnchors(world, kind);
       graphics.fillStyle(HIGHLIGHT_COLOR, HIGHLIGHT_ALPHA);
       for (const anchor of anchors) graphics.fillPoints(hexPoints(anchor), true);
     };
