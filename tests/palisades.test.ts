@@ -109,6 +109,10 @@ test("one builder continues across adjacent palisade lines and works from a reac
     if (assignedSite?.kind === "palisade" && !builder.trip) {
       const destination = builder.path.at(-1) ?? builder.position;
       assert.equal(hexDistance(destination, assignedSite.position), 1);
+      assert.equal(
+        sites.some((site) => site.id !== assignedSite.id && hexDistance(destination, site.position) === 0),
+        false,
+      );
     }
   }
 
