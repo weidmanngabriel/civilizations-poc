@@ -19,6 +19,7 @@ const ALERT_META: Record<BuildingAlertSeverity, { icon: string; label: string }>
 const BUILDING_LABELS: Record<BuildingKind, string> = {
   hq: "Hauptquartier",
   field: "Acker",
+  palisade: "Palisade",
   farm: "Farm",
   sawmill: "Sägewerk",
   carpenter: "Schreinerei",

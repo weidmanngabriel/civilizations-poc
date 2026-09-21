@@ -10,7 +10,9 @@ const BUILDING_SELECTED_EVENT = "poc-building-selected";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
 
-const BUILDING_NAMES: Record<PlaceableBuildingKind, string> = {
+type BuildMenuKind = PlaceableBuildingKind | "palisade";
+
+const BUILDING_NAMES: Record<BuildMenuKind, string> = {
   warehouse: "Lager",
   house: "Wohnhaus",
   farm: "Farm",
@@ -25,9 +27,10 @@ const BUILDING_NAMES: Record<PlaceableBuildingKind, string> = {
   stonemason2: "Steinmetzhütte 2",
   tailor: "Näherei",
   livestockBreeder: "Viehzüchterei",
+  palisade: "Palisade",
 };
 
-const SORTED_BUILDING_KINDS = (Object.keys(BUILDING_NAMES) as PlaceableBuildingKind[])
+const SORTED_BUILDING_KINDS = (Object.keys(BUILDING_NAMES) as BuildMenuKind[])
   .sort((a, b) => BUILDING_NAMES[a].localeCompare(BUILDING_NAMES[b], "de"));
 
 let allowNextTileSelection = false;
@@ -42,8 +45,8 @@ export function installTileSelectionGuard(): void {
   });
 }
 
-const constructionCost = (kind: PlaceableBuildingKind): string =>
-  (Object.entries(CONSTRUCTION_PLANS[kind].required) as [Good, number | undefined][])
+const constructionCost = (kind: BuildMenuKind): string =>
+  (Object.entries(kind === "palisade" ? { wood: 1 } : CONSTRUCTION_PLANS[kind].required) as [Good, number | undefined][])
     .filter((entry): entry is [Good, number] => entry[1] !== undefined)
     .map(([good, amount]) => `<span class="build-menu-cost-item"><span aria-hidden="true">${GOOD_ICONS[good]}</span>${amount} ${GOODS[good]}</span>`)
     .join("");
@@ -90,8 +93,8 @@ export function mountBuildMenu(world: World): void {
 
   const refreshAvailability = (): void => {
     menu.querySelectorAll<HTMLButtonElement>("button[data-build-kind]").forEach((button) => {
-      const kind = button.dataset.buildKind as PlaceableBuildingKind;
-      button.hidden = !isBuildingUnlocked(world, kind);
+      const kind = button.dataset.buildKind as BuildMenuKind;
+      button.hidden = kind !== "palisade" && !isBuildingUnlocked(world, kind);
     });
   };
 
@@ -112,8 +115,8 @@ export function mountBuildMenu(world: World): void {
     const target = event.target as HTMLElement;
     const button = target.closest<HTMLButtonElement>("button[data-build-kind]");
     if (!button || button.hidden) return;
-    const kind = button.dataset.buildKind as PlaceableBuildingKind;
-    if (!isBuildingUnlocked(world, kind)) return;
+    const kind = button.dataset.buildKind as BuildMenuKind;
+    if (kind !== "palisade" && !isBuildingUnlocked(world, kind)) return;
     const launcherTile = world.tiles.find((tile) => tile.terrain === "grass" || tile.terrain === "road");
     if (!launcherTile) return;
 

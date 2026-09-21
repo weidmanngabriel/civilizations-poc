@@ -117,7 +117,7 @@ function nearestOpenConstructionSite(world: World, person: Person): Building | u
       (site) =>
         !site.retired &&
         isUnderConstruction(site) &&
-        assigned(world, site.id, "builder").length < 2,
+        assigned(world, site.id, "builder").length < (site.kind === "palisade" ? 1 : 2),
     )
     .sort(
       (a, b) =>

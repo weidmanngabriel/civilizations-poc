@@ -303,3 +303,11 @@ Die zweite Stufe kann nach ihrer Freischaltung auch direkt neu gebaut werden. Ih
 Töpferei 2 behält die Backsteinproduktion und erhält zusätzlich **Dachziegel** aus 2 Lehm und 1 Holz. Steinmetzhütte 2 behält die Steinquaderproduktion und erhält zusätzlich **Marmor** aus 2 Bruchstein. Bei Gebäuden mit mehreren Rezepten wählt der Spieler die aktive Produktion. Ein Wechsel ist erst möglich, wenn kein laufender Produktionsvorgang und kein fertiger Output des bisherigen Rezepts mehr im Gebäude liegt.
 
 Vor einem Ausbau wird der Grundriss der Zielstufe an genau demselben visuellen Anker geprüft. Das Bestandsgebäude selbst blockiert seinen Ausbau nicht; alle sonstigen normalen Platzierungsregeln gelten weiterhin. Ist der Zielgrundriss blockiert, kann der Spieler eine Blocker-Ansicht öffnen. Sie zeigt den Zielgrundriss und markiert blockierende Gebäude, natürliche Ressourcen, Gelände, Wegweiser, Bewohner oder lose Waren. Blockierende Gebäude können aus dieser Ansicht direkt ausgewählt werden. Der Ausbau verschiebt oder dreht ein Gebäude niemals automatisch. Soll die zweite Stufe an einem anderen Ort stehen, muss sie dort neu gebaut oder das Bestandsgebäude vorher abgerissen werden.
+
+## Palisaden
+
+Palisaden werden im Baumenu als Linienauftrag geplant. Der Spieler wählt zuerst einen Startpunkt und danach einen Zielpunkt. Zwischen beiden Punkten verwendet die Vorschau die normale räumliche A*-Wegplanung auf grundsätzlich begehbarem Gras oder Weg und darf dadurch um Hindernisse herumführen. Die Vorschau ist auf **höchstens 50 Palisadensegmente** begrenzt. Liegt das Ziel weiter entfernt, ist das kein Fehler: Die Vorschau endet nach 50 Segmenten und genau dieser Teil kann gebaut werden.
+
+Jedes Segment belegt genau eine Mikrokachel und kostet **1 Holz**. Die Segmente werden als einzelne Baustellen angelegt. An einem Palisadensegment arbeitet höchstens **ein Bauarbeiter**; nach vollständig angeliefertem Holz dauert der eigentliche Bau **eine Simulationssekunde**. Eine unfertige Palisade bleibt begehbar. Erst das fertige Segment blockiert Bewegung und beeinflusst danach normale Wegfindung.
+
+Benachbarte fertige Palisaden verbinden sich automatisch in der Darstellung. Die Verbindung ist rein visuell; Kosten, Blocking, Abriss und Speicherung bleiben segmentweise. Ein Segment kann einzeln abgerissen werden.

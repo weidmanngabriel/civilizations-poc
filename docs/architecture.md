@@ -310,3 +310,11 @@ Mehrstufige Produktionsgebäude können `availableRecipes` besitzen; `recipe` bl
 ## Profession integration
 
 For every newly introduced `Profession`, the complete technical integration must be checked: type/union, profession label and icon, experience/unlock rules, `currentProfession`, `workerProfession`, building-profession mappings in `personCommands.ts` including `BUILDING_PROFESSIONS` and workplace compatibility, plus person/building UI integration. A TypeScript build alone is not sufficient because not all profession mappings are modeled as exhaustive `Record` types.
+
+## Palisaden
+
+`src/simulation/palisades.ts` kapselt die linienbasierte Palisadenplanung und die Erzeugung der einzelnen Baustellen. Die Planung ist ein begrenztes A*: Sie nutzt die normalen Bewegungskosten, erweitert aber keinen Pfad über die für höchstens 50 Segmente nötige Tiefe hinaus. Ist das Ziel innerhalb dieser Grenze nicht erreicht, wird der beste gefundene Teilpfad als gültige Vorschau verwendet.
+
+Palisaden sind leichte `Building`-Instanzen mit `kind: "palisade"`, einem Ein-Zellen-Footprint und normalem `ConstructionState`. Dadurch verwenden sie dieselbe physische Baustoffbeschaffung und denselben Bauarbeiter-Pool wie andere Baustellen. Die Bauarbeiter-Kapazität ist für Palisaden auf eins begrenzt. Während der Baustelle bleibt die Bodenkachel unverändert und begehbar; bei Fertigstellung setzt die Simulation ausschließlich `Tile.buildingBlocking`. Beim Abriss wird dieses Overlay wieder entfernt, ohne Gras oder Weg darunter umzuschreiben.
+
+Die Darstellung bleibt abgeleitet: `MainScene` verbindet benachbarte fertige Palisaden beim Rendern, ohne zusätzliche Simulationsobjekte zwischen Kachelzentren zu erzeugen. Save/Load rekonstruiert den Blocking-Overlay aus dem Fertigstellungszustand der Palisaden.

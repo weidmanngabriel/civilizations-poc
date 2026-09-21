@@ -45,3 +45,9 @@ Gebäude können wieder abgerissen werden. Personen im Gebäude brechen ihre akt
 ## Wegweiser bauen
 
 Wegweiser gehören nicht zum Baumenü. Weise einem Bewohner den Beruf **Kundschafter** zu und wähle bei ihm die Aktion **Wegweiser**. Nach der Zielwahl läuft er selbst dorthin und errichtet den Wegweiser in einer simulierten Sekunde. Dafür werden keine Waren benötigt. Wegweiser kannst du anschließend direkt auf der Karte auswählen und über ihr Menü wieder abreißen; dadurch verschwinden auch ihre Verbindungen zu anderen Wegweisern.
+
+## Palisaden
+
+Bei **Palisade** setzt du zuerst einen Startpunkt und danach ein Ziel. Das Spiel sucht einen begehbaren Verlauf zwischen beiden Punkten; die Linie muss also nicht gerade sein. Du kannst das Ziel danach noch verschieben und die Vorschau neu berechnen lassen.
+
+Ein Auftrag enthält höchstens 50 Palisaden. Jede Palisade braucht ein Holz. Unfertige Palisaden können noch durchquert werden; erst fertige Segmente versperren den Weg.

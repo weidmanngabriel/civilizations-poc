@@ -505,15 +505,18 @@ export function removeBuildingWithFootprint(world: World, id: string): boolean {
   if (!existing || existing.kind === "hq" || existing.kind === "field") return false;
   const footprint = buildingFootprint(existing);
   const baseTerrains = existing.baseTerrains;
+  const palisade = existing.kind === "palisade";
   if (!removeBuilding(world, id)) return false;
 
   const tiles = tileIndex(world.tiles);
   for (const position of footprint) {
     const tile = tiles.get(key(position));
     if (!tile) continue;
-    tile.terrain = baseTerrains?.[key(position)] ?? "grass";
+    if (!palisade) {
+      tile.terrain = baseTerrains?.[key(position)] ?? "grass";
+      tile.trafficTicks = undefined;
+    }
     tile.buildingBlocking = undefined;
-    tile.trafficTicks = undefined;
   }
   return true;
 }
