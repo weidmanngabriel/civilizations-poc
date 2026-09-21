@@ -49,7 +49,12 @@ import { BUILDING_SVG, GOOD_ICONS, buildingIcon } from "../icons";
 import { confirmDialog } from "./modalDialog";
 import { buildingUpgradeRule } from "../simulation/buildingUpgradeRules";
 import { isBuildingUnlocked, maxProfessionExperience } from "../simulation/technology";
-import { createPalisadeSites, planPalisadePath } from "../simulation/palisades";
+import {
+  createPalisadeSites,
+  palisadeNewSegmentCount,
+  palisadePlanningTileAvailable,
+  planPalisadePath,
+} from "../simulation/palisades";
 
 const SIMULATION_STEP_MS = 1000 / CONFIG.simulationHz;
 const MAX_FRAME_DELTA_MS = 100;
@@ -184,11 +189,12 @@ export function mountControls(w: World, renderMap: () => void): void {
     return "👤";
   };
   function updateBuildPlacementConfirm(): void {
+    const newPalisadeSegments = palisadeNewSegmentCount(w, palisadePreview);
     buildPlacementConfirm.disabled = !(
       buildPlacementKind &&
       buildPlacementPosition &&
       (buildPlacementKind === "palisade"
-        ? palisadePreview.length > 0
+        ? newPalisadeSegments > 0
         : buildPlacementKind === "waypost"
           ? Boolean(
               waypostScoutId !== undefined &&
@@ -203,8 +209,8 @@ export function mountControls(w: World, renderMap: () => void): void {
       const copy = document.querySelector<HTMLElement>("#build-placement-copy");
       if (copy) {
         copy.innerHTML = palisadeStart
-          ? `<b>Ziel wählen oder verschieben.</b> ${palisadePreview.length} Palisaden · ${palisadePreview.length} Holz · maximal 50.`
-          : "<b>Startpunkt wählen.</b> Danach Zielpunkt wählen; die Vorschau folgt dem normalen Weg.";
+          ? `<b>Ziel wählen oder verschieben.</b> ${palisadePreview.length} Schritte · ${newPalisadeSegments} neue Palisaden · ${newPalisadeSegments} Holz · maximal 50 Schritte.`
+          : "<b>Startpunkt wählen.</b> Grün markiert den gültigen Wegweiserbereich; bestehende Palisaden sind als Startpunkt erlaubt.";
       }
     }
   }
@@ -935,8 +941,16 @@ export function mountControls(w: World, renderMap: () => void): void {
     const detail = (event as CustomEvent<BuildPositionSelectedDetail>).detail;
     if (buildPlacementKind === "palisade") {
       if (!detail.chosen) return;
-      if (!palisadeStart) palisadeStart = { ...detail.position };
       buildPlacementPosition = { ...detail.position };
+      if (!palisadeStart) {
+        if (!palisadePlanningTileAvailable(w, buildPlacementPosition)) {
+          palisadePreview = [];
+          updateBuildPlacementConfirm();
+          renderMap();
+          return;
+        }
+        palisadeStart = { ...buildPlacementPosition };
+      }
       palisadePreview = planPalisadePath(w, palisadeStart, buildPlacementPosition);
       updateBuildPlacementConfirm();
       renderMap();
