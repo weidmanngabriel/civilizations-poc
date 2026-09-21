@@ -1,4 +1,4 @@
-import type { Building, Hex, Tile, World } from "./model";
+import type { Building, Hex, World } from "./model";
 import { CONFIG } from "./scenario";
 import { hexDistance, key, movementCost, neighbors, tileIndex, walkable } from "./hex";
 
