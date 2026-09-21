@@ -1,5 +1,6 @@
 import type { Building, BuildingId, World } from "../simulation/model";
 import { assigned } from "../simulation/simulation";
+import { isManagedBuilding } from "../simulation/structureKinds";
 
 export type BuildingAlertSeverity = "critical" | "warning" | "info";
 
@@ -14,8 +15,8 @@ const isCompleted = (building: Building): boolean =>
 
 export const buildingAlert = (world: World, building: Building): BuildingAlert | undefined => {
   if (
+    isManagedBuilding(building) &&
     isCompleted(building) &&
-    building.kind !== "field" &&
     building.kind !== "hq" &&
     building.workers > 0 &&
     assigned(world, building.id, "worker").length === 0
