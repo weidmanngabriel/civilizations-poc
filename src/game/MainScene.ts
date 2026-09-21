@@ -29,7 +29,11 @@ import {
   wayposts,
 } from "../simulation/wayposts";
 import { buildingVisualAnchor } from "../buildings/buildingDefinitionRegistry";
-import { planPalisadePath } from "../simulation/palisades";
+import {
+  palisadeAt,
+  palisadePlanningTileAvailable,
+  planPalisadePath,
+} from "../simulation/palisades";
 
 const TEXT_RESOLUTION = 3;
 const MIN_FOREST_ALPHA = 0.35;
@@ -277,9 +281,10 @@ export class MainScene extends Phaser.Scene {
       if (this.buildKind === "palisade" && !this.palisadeStart) {
         const tile = this.nearestTileAtScreenPoint(screenX, screenY);
         if (!tile) return;
-        this.palisadeStart = { q: tile.q, r: tile.r };
-        this.buildHover = { ...this.palisadeStart };
-        this.buildPositionChosen = true;
+        this.buildHover = { q: tile.q, r: tile.r };
+        const validStart = palisadePlanningTileAvailable(this.world, this.buildHover);
+        this.buildPositionChosen = validStart;
+        if (validStart) this.palisadeStart = { ...this.buildHover };
         this.emitBuildPosition();
         this.renderWorld();
         return;
@@ -664,19 +669,34 @@ export class MainScene extends Phaser.Scene {
     if (this.buildKind) {
       if (!this.buildHover) return;
       if (this.buildKind === "palisade") {
+        const hoverValid = palisadePlanningTileAvailable(this.world, this.buildHover);
         const path = this.palisadeStart
           ? planPalisadePath(this.world, this.palisadeStart, this.buildHover)
-          : [this.buildHover];
+          : hoverValid
+            ? [this.buildHover]
+            : [];
+
+        if (!hoverValid) {
+          highlights.fillStyle(0xe18b7d, 0.52);
+          highlights.fillPoints(this.hexPoints(this.buildHover), true);
+        }
+
         for (let i = 0; i < path.length; i += 1) {
           const position = path[i]!;
-          highlights.fillStyle(0xc99555, 0.48);
+          const existing = Boolean(palisadeAt(this.world, position));
+          highlights.fillStyle(existing ? 0x89aee8 : 0xc99555, existing ? 0.28 : 0.48);
           highlights.fillPoints(this.hexPoints(position), true);
           const point = pixel(position);
-          highlights.lineStyle(1.35, 0x5b3b22, 0.95);
-          highlights.lineBetween(point.x, point.y + 4, point.x, point.y - 8);
+          if (!existing) {
+            highlights.lineStyle(1.35, 0x5b3b22, 0.95);
+            highlights.lineBetween(point.x, point.y + 4, point.x, point.y - 8);
+          } else {
+            highlights.lineStyle(0.9, 0x8fc1ff, 0.95);
+            highlights.strokePoints(this.hexPoints(position), true);
+          }
           if (i > 0) {
             const before = pixel(path[i - 1]!);
-            highlights.lineStyle(1.6, 0x6f4a2d, 0.9);
+            highlights.lineStyle(1.6, existing ? 0x6e91c7 : 0x6f4a2d, 0.9);
             highlights.lineBetween(before.x, before.y - 2, point.x, point.y - 2);
           }
         }
