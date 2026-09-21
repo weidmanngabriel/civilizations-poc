@@ -40,6 +40,7 @@ export const BUILDING_SVG: Partial<Record<BuildingKind, string>> = {
   stonemason: svg('<path d="M4 19h16M6 19l2-7h8l2 7M9 12l1-5h4l1 5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m5 7 5-3 2 3" fill="none" stroke="currentColor" stroke-width="1.5"/>'),
   stonemason2: svg('<path d="M3 19h18M5 19l2-8h10l2 8M8 11l1-5h6l1 5M7 15h10" fill="none" stroke="currentColor" stroke-width="1.8"/>'),
   livestockBreeder: svg('<path d="M3 20V10l9-6 9 6v10H3Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 20v-6h8v6M6 11h12" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="11" r="1.2" fill="currentColor"/><circle cx="15" cy="11" r="1.2" fill="currentColor"/>'),
+  palisade: svg('<path d="M6 20V6l2-2 2 2v14M14 20V6l2-2 2 2v14M4 11h16M4 16h16" fill="none" stroke="currentColor" stroke-width="1.8"/>'),
 };
 
 export const buildingIcon = (kind: BuildingKind): string =>
