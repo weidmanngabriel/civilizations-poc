@@ -2,6 +2,9 @@ name: Test, build and deploy PoC
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
       validation:
@@ -31,7 +34,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.validation == 'full')
+        if: github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.validation == 'full')
       - uses: actions/configure-pages@v5
         if: github.event_name == 'push'
       - uses: actions/upload-pages-artifact@v3
