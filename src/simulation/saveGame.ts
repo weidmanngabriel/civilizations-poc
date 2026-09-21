@@ -177,6 +177,7 @@ const buildingFootprintFromPosition = (building: SavedBuilding): Hex[] => {
       q: building.position.q + offset.q,
       r: building.position.r + offset.r,
     }));
+  if (building.kind === "palisade") return [{ ...building.position }];
   if (building.kind === "hq") return footprintAt("house", building.position);
   return footprintAt(building.kind as PlaceableBuildingKind, building.position);
 };
@@ -186,7 +187,7 @@ const restoreBuilding = (saved: SavedBuilding): Building => {
   const footprint = buildingFootprintFromPosition(saved);
   building.footprint = footprint;
   if (building.kind === "hq") building.baseTerrain = "grass";
-  else if (building.kind !== "field")
+  else if (building.kind !== "field" && building.kind !== "palisade")
     building.baseTerrains = Object.fromEntries(
       footprint.map((position) => [key(position), "grass"]),
     );
@@ -268,6 +269,10 @@ const reconstructTiles = (
     for (const position of building.footprint ?? [building.position]) {
       const tile = indexed.get(key(position));
       if (!tile) throw new Error(`Gebäude ${building.id} liegt außerhalb der Welt.`);
+      if (building.kind === "palisade") {
+        tile.buildingBlocking = building.construction?.complete ? true : undefined;
+        continue;
+      }
       tile.terrain = building.kind === "field" ? "field" : "building";
       tile.buildingBlocking = blocked.has(key(position)) || undefined;
       tile.trafficTicks = undefined;
