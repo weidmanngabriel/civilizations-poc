@@ -133,7 +133,7 @@ export function createPalisadeSites(world: World, path: readonly Hex[]): Buildin
       carriers: 0,
       input: 0,
       output: 0,
-      baseTerrain: tile.terrain,
+      baseTerrain: tile.terrain === "road" ? "road" : "grass",
       construction: {
         required: { wood: 1 },
         delivered: {},
