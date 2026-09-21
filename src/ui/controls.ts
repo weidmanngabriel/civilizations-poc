@@ -20,6 +20,7 @@ import {
   setRoad,
   status,
   tick,
+  notifyConstructionSiteAdded,
   totalWarehouseStock,
   warehouseStock,
 } from "../simulation/simulation";
@@ -48,6 +49,7 @@ import { BUILDING_SVG, GOOD_ICONS, buildingIcon } from "../icons";
 import { confirmDialog } from "./modalDialog";
 import { buildingUpgradeRule } from "../simulation/buildingUpgradeRules";
 import { isBuildingUnlocked, maxProfessionExperience } from "../simulation/technology";
+import { createPalisadeSites, planPalisadePath } from "../simulation/palisades";
 
 const SIMULATION_STEP_MS = 1000 / CONFIG.simulationHz;
 const MAX_FRAME_DELTA_MS = 100;
@@ -68,7 +70,7 @@ const UPGRADE_PREVIEW_EVENT = "poc-upgrade-preview";
 type BuildingSelectedDetail = { id: BuildingId };
 type WaypostSelectedDetail = { id: WaypostId };
 type TileSelectedDetail = { position: Hex };
-type BuildPositionSelectedDetail = { position: Hex };
+type BuildPositionSelectedDetail = { position: Hex; chosen?: boolean };
 type SimulationSpeed = number;
 
 const BUILDING_NAMES: Record<BuildableBuildingKind, string> = {
@@ -102,7 +104,7 @@ const escapeHtml = (value: string): string =>
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
-  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Farmen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span><b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div id="upgrade-preview-overlay" class="merchant-target-overlay" hidden><div><small>AUSBAUPRÜFUNG</small><strong>Blockaden für den Ausbau</strong><span id="upgrade-preview-summary"></span></div><button id="upgrade-preview-close">Zurück</button></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div><label class="custom-speed"><span>Frei</span><input id="custom-sim-speed" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" value="1.0" aria-label="Benutzerdefiniertes Simulationstempo"></label></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
+  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Farmen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span id="build-placement-copy"><b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div id="upgrade-preview-overlay" class="merchant-target-overlay" hidden><div><small>AUSBAUPRÜFUNG</small><strong>Blockaden für den Ausbau</strong><span id="upgrade-preview-summary"></span></div><button id="upgrade-preview-close">Zurück</button></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div><label class="custom-speed"><span>Frei</span><input id="custom-sim-speed" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" value="1.0" aria-label="Benutzerdefiniertes Simulationstempo"></label></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
 
   let autoplayFrame: number | undefined;
   let lastAutoplayFrame = 0;
@@ -114,8 +116,10 @@ export function mountControls(w: World, renderMap: () => void): void {
   let selectedTile: Hex | undefined;
   let merchantTargetSelection: number | undefined;
   let merchantSelectionWasRunning = false;
-  let buildPlacementKind: BuildableBuildingKind | "waypost" | undefined;
+  let buildPlacementKind: BuildableBuildingKind | "waypost" | "palisade" | undefined;
   let buildPlacementPosition: Hex | undefined;
+  let palisadeStart: Hex | undefined;
+  let palisadePreview: Hex[] = [];
   let waypostScoutId: number | undefined;
   let upgradePreviewBuildingId: BuildingId | undefined;
 
@@ -183,16 +187,26 @@ export function mountControls(w: World, renderMap: () => void): void {
     buildPlacementConfirm.disabled = !(
       buildPlacementKind &&
       buildPlacementPosition &&
-      (buildPlacementKind === "waypost"
-        ? Boolean(
-            waypostScoutId !== undefined &&
-            w.people.some((person) =>
-              person.id === waypostScoutId && currentProfession(w, person) === "scout"
-            ) &&
-            canPlaceWaypost(w, buildPlacementPosition)
-          )
-        : canPlaceBuilding(w, buildPlacementPosition, buildPlacementKind))
+      (buildPlacementKind === "palisade"
+        ? palisadePreview.length > 0
+        : buildPlacementKind === "waypost"
+          ? Boolean(
+              waypostScoutId !== undefined &&
+              w.people.some((person) =>
+                person.id === waypostScoutId && currentProfession(w, person) === "scout"
+              ) &&
+              canPlaceWaypost(w, buildPlacementPosition)
+            )
+          : canPlaceBuilding(w, buildPlacementPosition, buildPlacementKind))
     );
+    if (buildPlacementKind === "palisade") {
+      const copy = document.querySelector<HTMLElement>("#build-placement-copy");
+      if (copy) {
+        copy.innerHTML = palisadeStart
+          ? `<b>Ziel wählen oder verschieben.</b> ${palisadePreview.length} Palisaden · ${palisadePreview.length} Holz · maximal 50.`
+          : "<b>Startpunkt wählen.</b> Danach Zielpunkt wählen; die Vorschau folgt dem normalen Weg.";
+      }
+    }
   }
 
   const staffSection = (b: Building, role: Role, limit: number): string => {
@@ -640,6 +654,8 @@ export function mountControls(w: World, renderMap: () => void): void {
     if (!buildPlacementKind) return;
     buildPlacementKind = undefined;
     buildPlacementPosition = undefined;
+    palisadeStart = undefined;
+    palisadePreview = [];
     waypostScoutId = undefined;
     main.classList.remove("merchant-target-mode");
     buildPlacementOverlay.hidden = true;
@@ -649,7 +665,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   };
 
   const enterBuildPlacementMode = (
-    kind: BuildableBuildingKind | "waypost",
+    kind: BuildableBuildingKind | "waypost" | "palisade",
     scoutId?: number,
   ) => {
     if (kind === "waypost") {
@@ -665,7 +681,9 @@ export function mountControls(w: World, renderMap: () => void): void {
     setDebugOpen(false);
     main.classList.add("merchant-target-mode");
     buildPlacementTitle.textContent =
-      kind === "waypost" ? "Wegweiser platzieren" : `${BUILDING_NAMES[kind]} platzieren`;
+      kind === "waypost" ? "Wegweiser platzieren"
+        : kind === "palisade" ? "Palisade errichten"
+          : `${BUILDING_NAMES[kind]} platzieren`;
     buildPlacementConfirm.textContent = kind === "waypost" ? "Auftrag erteilen" : "Bauen";
     buildPlacementOverlay.hidden = false;
     updateBuildPlacementConfirm();
@@ -677,6 +695,24 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   const confirmBuildPlacement = () => {
     if (!buildPlacementKind || !buildPlacementPosition) return;
+    if (buildPlacementKind === "palisade") {
+      const created = createPalisadeSites(w, palisadePreview);
+      if (!created.length) {
+        updateBuildPlacementConfirm();
+        renderMap();
+        return;
+      }
+      notifyConstructionSiteAdded(w);
+      leaveBuildPlacementMode();
+      selectedTile = undefined;
+      selectedBuildingId = created[0]?.id;
+      if (selectedBuildingId)
+        window.dispatchEvent(new CustomEvent(BUILDING_SELECTION_REQUESTED_EVENT, {
+          detail: { id: selectedBuildingId },
+        }));
+      refresh();
+      return;
+    }
     if (buildPlacementKind === "waypost") {
       const scoutId = waypostScoutId;
       if (scoutId === undefined || !orderScoutWaypost(w, scoutId, buildPlacementPosition)) {
@@ -843,7 +879,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
     if (action === "build") {
-      enterBuildPlacementMode(button.dataset.kind as BuildableBuildingKind);
+      enterBuildPlacementMode(button.dataset.kind as BuildableBuildingKind | "palisade");
       return;
     }
     if (action === "upgrade-blockers" && selectedBuildingId) {
@@ -896,7 +932,17 @@ export function mountControls(w: World, renderMap: () => void): void {
 
   window.addEventListener(BUILD_POSITION_SELECTED_EVENT, (event) => {
     if (!buildPlacementKind) return;
-    buildPlacementPosition = { ...(event as CustomEvent<BuildPositionSelectedDetail>).detail.position };
+    const detail = (event as CustomEvent<BuildPositionSelectedDetail>).detail;
+    if (buildPlacementKind === "palisade") {
+      if (!detail.chosen) return;
+      if (!palisadeStart) palisadeStart = { ...detail.position };
+      buildPlacementPosition = { ...detail.position };
+      palisadePreview = planPalisadePath(w, palisadeStart, buildPlacementPosition);
+      updateBuildPlacementConfirm();
+      renderMap();
+      return;
+    }
+    buildPlacementPosition = { ...detail.position };
     updateBuildPlacementConfirm();
     renderMap();
   });
