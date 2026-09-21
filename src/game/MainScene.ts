@@ -282,9 +282,9 @@ export class MainScene extends Phaser.Scene {
         const tile = this.nearestTileAtScreenPoint(screenX, screenY);
         if (!tile) return;
         this.buildHover = { q: tile.q, r: tile.r };
-        this.buildPositionChosen = true;
-        if (palisadePlanningTileAvailable(this.world, this.buildHover))
-          this.palisadeStart = { ...this.buildHover };
+        const validStart = palisadePlanningTileAvailable(this.world, this.buildHover);
+        this.buildPositionChosen = validStart;
+        if (validStart) this.palisadeStart = { ...this.buildHover };
         this.emitBuildPosition();
         this.renderWorld();
         return;
