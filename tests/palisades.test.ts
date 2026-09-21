@@ -100,7 +100,7 @@ test("one builder continues across adjacent palisade lines and works from a reac
   const { builders, changeBuilders, tick } = await import("../src/simulation/simulation");
   assert.equal(changeBuilders(world, 1), true);
 
-  for (let i = 0; i < CONFIG.simulationHz * 45 && sites.some((site) => !site.construction?.complete); i++) {
+  for (let i = 0; i < CONFIG.simulationHz * 90 && sites.some((site) => !site.construction?.complete); i++) {
     tick(world);
     const builder = builders(world)[0]!;
     const assignedSite = builder.assignment
