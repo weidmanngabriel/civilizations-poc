@@ -1,6 +1,7 @@
 import type { Building, Hex, World } from "./model";
 import { CONFIG } from "./scenario";
 import { hexDistance, key, movementCost, neighbors, tileIndex, walkable } from "./hex";
+import { isWithinWaypostOrientation } from "./wayposts";
 
 export const PALISADE_MAX_SEGMENTS = 50;
 
@@ -25,6 +26,8 @@ const reconstruct = (
 };
 
 export const palisadeTileAvailable = (world: World, position: Hex): boolean => {
+  const waypostPositions = world.wayposts?.map((waypost) => waypost.position);
+  if (!isWithinWaypostOrientation(waypostPositions, position)) return false;
   const tile = tileIndex(world.tiles).get(key(position));
   if (!tile || (tile.terrain !== "grass" && tile.terrain !== "road") || !walkable(tile)) return false;
   return !world.buildings.some(

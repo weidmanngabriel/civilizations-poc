@@ -17,6 +17,15 @@ export const WAYPOST_MAX_CONNECTION_DISTANCE =
   WAYPOST_MAX_CONNECTION_DISTANCE_WORLD_TILES * GRID_REFINEMENT;
 export const WAYPOST_BUILD_CLEARANCE = 1;
 
+export const isWithinWaypostOrientation = (
+  waypostPositions: readonly Hex[] | undefined,
+  position: Hex,
+): boolean =>
+  waypostPositions === undefined ||
+  waypostPositions.some(
+    (waypostPosition) => hexDistance(waypostPosition, position) <= WAYPOST_ORIENTATION_RADIUS,
+  );
+
 export const wayposts = (world: World): Waypost[] => world.wayposts ?? [];
 
 export const usesUnrestrictedGlobalPathfinding = (person: Person): boolean => {

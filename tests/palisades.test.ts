@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CONFIG } from "../src/simulation/scenario";
+import { hexDistance } from "../src/simulation/spatial";
+import { WAYPOST_ORIENTATION_RADIUS } from "../src/simulation/wayposts";
 import {
   PALISADE_MAX_SEGMENTS,
   createPalisadeSites,
@@ -66,4 +68,53 @@ test("at most one builder is assigned to one palisade site", async () => {
   tick(world);
 
   assert.equal(assigned(world, site.id, "builder").length, 1);
+});
+
+
+test("palisade planning stops at the edge of waypost coverage without failing", () => {
+  const world = createTestWorld({ width: 100, height: 20, population: 0 });
+  const waypost = { q: 0, r: 1 };
+  world.wayposts = [{ id: "waypost-test", position: waypost, connections: [] }];
+
+  const path = planPalisadePath(world, { q: 1, r: 1 }, { q: 40, r: 1 });
+
+  assert.ok(path.length > 0);
+  assert.ok(path.length < PALISADE_MAX_SEGMENTS);
+  assert.ok(path.every((position) => hexDistance(position, waypost) <= WAYPOST_ORIENTATION_RADIUS));
+  assert.notDeepEqual(path.at(-1), { q: 40, r: 1 });
+});
+
+test("one builder continues across adjacent palisade lines and works from a reachable side", async () => {
+  const world = createTestWorld({ width: 30, height: 20, population: 1 });
+  const hq = world.buildings.find((building) => building.id === "hq")!;
+  hq.inventory ??= {};
+  hq.inventory.wood = 20;
+
+  const positions = [
+    { q: 2, r: 2 }, { q: 3, r: 2 }, { q: 4, r: 2 },
+    { q: 2, r: 3 }, { q: 3, r: 3 }, { q: 4, r: 3 },
+  ];
+  const sites = createPalisadeSites(world, positions);
+  assert.equal(sites.length, positions.length);
+
+  const { builders, changeBuilders, tick } = await import("../src/simulation/simulation");
+  assert.equal(changeBuilders(world, 1), true);
+
+  for (let i = 0; i < CONFIG.simulationHz * 90 && sites.some((site) => !site.construction?.complete); i++) {
+    tick(world);
+    const builder = builders(world)[0]!;
+    const assignedSite = builder.assignment
+      ? world.buildings.find((building) => building.id === builder.assignment!.building)
+      : undefined;
+    if (assignedSite?.kind === "palisade" && !builder.trip) {
+      const destination = builder.path.at(-1) ?? builder.position;
+      assert.equal(hexDistance(destination, assignedSite.position), 1);
+      assert.equal(
+        sites.some((site) => site.id !== assignedSite.id && hexDistance(destination, site.position) === 0),
+        false,
+      );
+    }
+  }
+
+  assert.ok(sites.every((site) => site.construction?.complete));
 });

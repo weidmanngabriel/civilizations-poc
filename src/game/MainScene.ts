@@ -557,6 +557,11 @@ export class MainScene extends Phaser.Scene {
         )
         .map((building) => key(building.position)),
     );
+    const reservedPalisadeIds = new Set(
+      this.world.people
+        .filter((person) => person.builder && person.assignment?.role === "builder")
+        .map((person) => person.assignment!.building),
+    );
 
     for (const b of this.world.buildings.filter(
       (building) => !building.retired && building.kind !== "field",
@@ -577,6 +582,12 @@ export class MainScene extends Phaser.Scene {
             g.lineStyle(1.2, 0x8a5b32, 0.9);
             g.lineBetween(x, y + 1, target.x, target.y + 1);
           }
+        }
+        if (!complete && reservedPalisadeIds.has(b.id)) {
+          g.lineStyle(0.9, 0x2f67c7, 1);
+          g.lineBetween(x + 3, y - 5, x + 3, y - 14);
+          g.fillStyle(0x3f7de0, 1);
+          g.fillTriangle(x + 3, y - 14, x + 9, y - 11, x + 3, y - 8);
         }
         if (b.id === this.selectedBuildingId) {
           g.lineStyle(1, 0xf4e5a4, 0.95);
