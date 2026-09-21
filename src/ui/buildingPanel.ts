@@ -101,7 +101,7 @@ export function mountBuildingPanel(world: World): void {
   let activeAlertFilter: BuildingAlertFilter = "all";
   let alerts = buildingAlertMap(world);
 
-  const matchingBuildings = (): Building[] =>
+  const matchingBuildings = (): Array<Building & { kind: ManagedBuildingKind }> =>
     world.buildings
       .filter(isVisibleBuilding)
       .filter((building) => {
