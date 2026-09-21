@@ -5,7 +5,7 @@ import { buildPlacementInputModeForPointer } from "./buildPlacementInputMode";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const TAP_MAX_DISTANCE = 8;
 
-type BuildModeDetail = { active: boolean };
+type BuildModeDetail = { active: boolean; kind?: string };
 type BuildPlacementScene = {
   updateBuildHover: (screenX: number, screenY: number, notify?: boolean) => void;
 };
@@ -21,6 +21,7 @@ export function installDesktopBuildPlacement(
   const canvas = game.canvas;
   const placementScene = scene as unknown as BuildPlacementScene;
   let active = false;
+  let activeKind: string | undefined;
   let pointerDown: PointerPosition | undefined;
   let clickEligible = false;
   let lastPointer: PointerPosition | undefined;
@@ -42,12 +43,12 @@ export function installDesktopBuildPlacement(
     const overlay = document.querySelector<HTMLElement>("#build-placement-overlay");
     const copy = overlay?.querySelector<HTMLElement>("span");
     const confirm = document.querySelector<HTMLButtonElement>("#build-placement-confirm");
-    if (copy) {
+    if (copy && activeKind !== "palisade") {
       copy.innerHTML = mode === "desktop"
         ? "<b>Maus bewegen, um die Position zu wählen.</b> Linksklick platziert. Rechtsklick oder Escape bricht ab. Grün ist gültig, rot blockiert."
         : "<b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.";
     }
-    if (confirm) confirm.hidden = mode === "desktop";
+    if (confirm) confirm.hidden = mode === "desktop" && activeKind !== "palisade";
     return mode;
   };
 
@@ -87,7 +88,8 @@ export function installDesktopBuildPlacement(
     if (!active || !clickEligible) return;
     clickEligible = false;
     updateGhost(screenPosition(event.clientX, event.clientY));
-    document.querySelector<HTMLButtonElement>("#build-placement-confirm")?.click();
+    if (activeKind !== "palisade")
+      document.querySelector<HTMLButtonElement>("#build-placement-confirm")?.click();
   });
 
   canvas.addEventListener("contextmenu", (event) => {
@@ -99,6 +101,7 @@ export function installDesktopBuildPlacement(
   window.addEventListener(BUILD_MODE_EVENT, (event) => {
     const detail = (event as CustomEvent<BuildModeDetail>).detail;
     active = detail.active;
+    activeKind = detail.active ? detail.kind : undefined;
     pointerDown = undefined;
     clickEligible = false;
     if (!active) return;
