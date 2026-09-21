@@ -83,6 +83,14 @@ Für ein registriertes Gebäude gilt:
 
 Damit können Bewohner ein Gebäude an einer bewusst definierten Stelle erreichen, während Grafik, belegte Fläche und Kollision exakt dieselbe Editor-Geometrie verwenden.
 
+## Gebäude und Infrastruktur
+
+Nicht jedes baubare Objekt ist ein verwaltbares Gebäude. Normale Gebäude wie Hauptquartier, Produktionsgebäude, Lager und Wohnhäuser erscheinen in der Gebäudeübersicht und können gebäudespezifische Verwaltung, Hinweise und Produktionsfunktionen besitzen.
+
+Palisaden gehören stattdessen zur **Infrastruktur**. Infrastruktur kann Material, Bauzeit, Bauarbeiter, Abriss und Kollision mit Gebäuden teilen, erscheint aber nicht als einzelne Instanz in der normalen Gebäudeübersicht und erzeugt keine normalen Gebäudehinweise. Einzelne Infrastrukturelemente dürfen weiterhin direkt auf der Karte ausgewählt werden, wenn sie dort eigene Aktionen besitzen.
+
+Diese Trennung ist für weitere baubare Infrastruktur vorgesehen, insbesondere Tore und vergleichbare lineare oder netzartige Elemente. Wege können dieselbe Kategorie verwenden, sofern sie als eigenständige konstruierbare Elemente mit Bauzustand modelliert werden; reine Terrain-Wege bleiben dagegen Teil des Kartenuntergrunds.
+
 ## Bauen, Freiraum und Abriss
 
 Gebäude brauchen ihren vollständigen Grundriss plus einen freien Ring von zwei Mikrozellen rundherum. Für registrierte Gebäudetypen kommt der Grundriss aus der aktuellen Editor-Definition; für noch nicht registrierte Typen gilt die derzeitige codebasierte Form.

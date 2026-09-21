@@ -95,6 +95,7 @@ test("registered building kinds always use the current registry definition", () 
 test("placeholder asset slots stay inactive until replaced by a real editor export", () => {
   for (const kind of [
     "field",
+    "palisade",
     "sawmill",
     "carpenter",
     "pottery",

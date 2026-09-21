@@ -86,7 +86,7 @@ Sprite placement is intentionally independent from source-image resolution. `spr
 
 `src/buildings/buildingDefinitionRegistry.ts` is the runtime registry. It maps a gameplay `BuildingKind` to a validated visual/spatial definition and sprite URL. A registered definition is authoritative for every current instance of that building kind; there is no per-instance compatibility or migration gate. `visualDefinitionId` may still be present as runtime/save metadata, but it does not select an older definition or suppress the current registry entry.
 
-Every current `BuildingKind`, including `field`, has a same-key asset slot under `src/assets/buildings/<key>/`. Each slot contains `building.json` plus a sprite file. Types without a finished editor export use an explicit `{"placeholder": true, ...}` JSON and a transparent placeholder image; `tailor` currently uses such a placeholder slot; the registry imports these slots but skips placeholder JSONs, so current gameplay remains unchanged until a real export replaces the two files. Future `BuildingKind`s must receive the same-key slot in the same implementation run. There is intentionally no CI/build failure just for a placeholder slot.
+Every current managed building kind plus `field` has a same-key asset slot under `src/assets/buildings/<key>/`. Each slot contains `building.json` plus a sprite file. Types without a finished editor export use an explicit `{"placeholder": true, ...}` JSON and a transparent placeholder image; `tailor` currently uses such a placeholder slot; the registry imports these managed-building/field slots but skips placeholder JSONs, so current gameplay remains unchanged until a real export replaces the two files. Infrastructure is not registered through this building-visual path even if a legacy or placeholder asset folder exists for it. Future managed building kinds must receive the same-key slot in the same implementation run. There is intentionally no CI/build failure just for a placeholder slot.
 
 The currently active editor definitions are HQ, bakery, farm, well and mill. For a registered building, the editor placement coordinate is the **visual/spatial anchor**. The simulation stores `Building.position` as the gameplay **interaction coordinate**, which is the authored `entrance`. The visual anchor is recovered deterministically as `position - entrance`. This preserves the existing simulation convention that workers, carriers and other systems route to `Building.position`, while the sprite and footprint remain aligned exactly as authored.
 
@@ -101,6 +101,18 @@ The authoritative footprint and collision semantics for registered buildings are
 `src/game/buildingSprites.ts` is the generic Phaser renderer for registered definitions. It loads registered sprites once, creates one sprite per completed building instance of a registered kind, derives the visual anchor from the building interaction coordinate, applies the normalized Phaser origin, and sets the display size from `spriteWorldWidth` plus the source aspect ratio. The renderer does not own placement or collision state.
 
 Activating another editor-authored runtime building now consists only of replacing `building.json` and the sprite inside the existing same-key asset slot. No additional registry edit is required for current kinds because every current kind is already wired through `register(...)`. When a new `BuildingKind` is introduced in code, its same-key asset slot and registry registration are added in that same implementation run.
+
+## Structure classification
+
+`Building` remains the shared runtime entity for construction-capable static structures so material delivery, `ConstructionState`, builder assignment, save/load and demolition can be reused without a parallel construction engine. Its `kind` is nevertheless classified by product semantics:
+
+- `ManagedBuildingKind` contains normal managed buildings such as HQ, production buildings, warehouses and houses.
+- `InfrastructureKind` contains construction-capable infrastructure. Palisade is the first member; gates and other future constructed infrastructure can extend this union.
+- `field` remains a separate building-backed gameplay entity and belongs to neither category.
+
+`src/simulation/structureKinds.ts` is the central runtime boundary. Building management UI, staffing alerts and the generic editor-authored building sprite path must use this classification instead of adding local `kind !== "palisade"` checks. Infrastructure may still reuse the shared `Building` storage shape internally, but it owns its own placement/rendering/management semantics. The current palisade therefore stays in `World.buildings` for construction compatibility while remaining absent from the normal building browser and building alert system.
+
+The generic building-definition registry intentionally does not register infrastructure. Infrastructure visuals are rendered by their dedicated renderer; adding an editor-authored asset for a future infrastructure kind does not implicitly turn it into a managed building.
 
 ## Placement, clearance and demolition
 

@@ -6,7 +6,6 @@ import headquarterJson from "../assets/buildings/hq/building.json";
 import houseJson from "../assets/buildings/house/building.json";
 import millJson from "../assets/buildings/mill/building.json";
 import potteryJson from "../assets/buildings/pottery/building.json";
-import palisadeJson from "../assets/buildings/palisade/building.json";
 import pottery2Json from "../assets/buildings/pottery2/building.json";
 import sawmillJson from "../assets/buildings/sawmill/building.json";
 import stonemasonJson from "../assets/buildings/stonemason/building.json";
@@ -15,12 +14,14 @@ import tailorJson from "../assets/buildings/tailor/building.json";
 import livestockBreederJson from "../assets/buildings/livestockBreeder/building.json";
 import warehouseJson from "../assets/buildings/warehouse/building.json";
 import wellJson from "../assets/buildings/well/building.json";
-import type { Building, BuildingKind, Hex } from "../simulation/model";
+import type { Building, BuildingKind, Hex, ManagedBuildingKind } from "../simulation/model";
 import type { BuildingVisualDefinition } from "./buildingVisualDefinition";
 import { validateBuildingVisualDefinition } from "./buildingVisualDefinition";
 
+type BuildingVisualKind = ManagedBuildingKind | "field";
+
 export type RegisteredBuildingDefinition = {
-  kind: BuildingKind;
+  kind: BuildingVisualKind;
   visual: BuildingVisualDefinition;
   spriteUrl: string;
 };
@@ -39,7 +40,7 @@ const isPlaceholderDefinition = (value: unknown): value is PlaceholderDefinition
   );
 
 const validateRegisteredDefinition = (
-  kind: BuildingKind,
+  kind: BuildingVisualKind,
   definition: BuildingVisualDefinition,
 ): BuildingVisualDefinition => {
   const errors = validateBuildingVisualDefinition(definition);
@@ -49,7 +50,7 @@ const validateRegisteredDefinition = (
 };
 
 const spriteUrlFor = (
-  kind: BuildingKind,
+  kind: BuildingVisualKind,
   definition: BuildingVisualDefinition,
 ): string =>
   new URL(
@@ -57,9 +58,9 @@ const spriteUrlFor = (
     import.meta.url,
   ).href;
 
-const DEFINITIONS = new Map<BuildingKind, RegisteredBuildingDefinition>();
+const DEFINITIONS = new Map<BuildingVisualKind, RegisteredBuildingDefinition>();
 
-const register = (kind: BuildingKind, raw: unknown): void => {
+const register = (kind: BuildingVisualKind, raw: unknown): void => {
   if (isPlaceholderDefinition(raw)) return;
   const visual = validateRegisteredDefinition(
     kind,
@@ -74,7 +75,6 @@ const register = (kind: BuildingKind, raw: unknown): void => {
 
 register("hq", headquarterJson);
 register("field", fieldJson);
-register("palisade", palisadeJson);
 register("farm", farmJson);
 register("sawmill", sawmillJson);
 register("carpenter", carpenterJson);
@@ -95,10 +95,11 @@ export const registeredBuildingDefinitions = (): RegisteredBuildingDefinition[] 
 
 export const buildingDefinition = (
   kind: BuildingKind,
-): RegisteredBuildingDefinition | undefined => DEFINITIONS.get(kind);
+): RegisteredBuildingDefinition | undefined =>
+  kind === "palisade" ? undefined : DEFINITIONS.get(kind);
 
 export const hasBuildingDefinition = (kind: BuildingKind): boolean =>
-  DEFINITIONS.has(kind);
+  kind !== "palisade" && DEFINITIONS.has(kind);
 
 /** Registered definitions are authoritative for their building kind. */
 export const definitionForBuilding = (

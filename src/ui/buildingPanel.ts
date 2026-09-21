@@ -1,4 +1,5 @@
-import type { Building, BuildingId, BuildingKind, World } from "../simulation/model";
+import type { Building, BuildingId, ManagedBuildingKind, World } from "../simulation/model";
+import { managedBuildings } from "../simulation/structureKinds";
 import { buildingIcon } from "../icons";
 import { buildingAlertMap, type BuildingAlertSeverity } from "./buildingAlerts";
 
@@ -16,10 +17,8 @@ const ALERT_META: Record<BuildingAlertSeverity, { icon: string; label: string }>
   info: { icon: "🔵", label: "Info" },
 };
 
-const BUILDING_LABELS: Record<BuildingKind, string> = {
+const BUILDING_LABELS: Record<ManagedBuildingKind, string> = {
   hq: "Hauptquartier",
-  field: "Acker",
-  palisade: "Palisade",
   farm: "Farm",
   sawmill: "Sägewerk",
   carpenter: "Schreinerei",
@@ -43,9 +42,6 @@ const escapeHtml = (value: string): string =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
-
-const isVisibleBuilding = (building: Building): boolean =>
-  !building.retired && building.kind !== "field";
 
 const buildingState = (building: Building): string => {
   if (building.construction && !building.construction.complete) {
@@ -103,9 +99,8 @@ export function mountBuildingPanel(world: World): void {
   let activeAlertFilter: BuildingAlertFilter = "all";
   let alerts = buildingAlertMap(world);
 
-  const matchingBuildings = (): Building[] =>
-    world.buildings
-      .filter(isVisibleBuilding)
+  const matchingBuildings = (): Array<Building & { kind: ManagedBuildingKind }> =>
+    managedBuildings(world)
       .filter((building) => {
         if (activeAlertFilter === "all") return true;
         return alerts.get(building.id)?.severity === activeAlertFilter;
@@ -118,7 +113,7 @@ export function mountBuildingPanel(world: World): void {
 
   const renderList = (): void => {
     const buildings = matchingBuildings();
-    const total = world.buildings.filter(isVisibleBuilding).length;
+    const total = managedBuildings(world).length;
     summary.textContent = `${buildings.length} von ${total} Gebäuden`;
     list.innerHTML = buildings.length
       ? buildings.map((building) => {

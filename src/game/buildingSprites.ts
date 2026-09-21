@@ -5,6 +5,7 @@ import {
   registeredBuildingDefinitions,
 } from "../buildings/buildingDefinitionRegistry";
 import type { Building, World } from "../simulation/model";
+import { isInfrastructureBuilding } from "../simulation/structureKinds";
 import { pixel } from "./mapGeometry";
 import type { MainScene } from "./MainScene";
 
@@ -83,7 +84,10 @@ export function installBuildingSprites(scene: MainScene, world: World): void {
 
   const sync = () => {
     const active = world.buildings.filter(
-      (building) => displayable(building) && definitionForBuilding(building),
+      (building) =>
+        !isInfrastructureBuilding(building) &&
+        displayable(building) &&
+        definitionForBuilding(building),
     );
     const activeIds = new Set(active.map((building) => building.id));
     for (const id of sprites.keys())
