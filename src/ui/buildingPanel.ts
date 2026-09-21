@@ -1,4 +1,5 @@
-import type { Building, BuildingId, BuildingKind, World } from "../simulation/model";
+import type { Building, BuildingId, ManagedBuildingKind, World } from "../simulation/model";
+import { isManagedBuilding } from "../simulation/structureKinds";
 import { buildingIcon } from "../icons";
 import { buildingAlertMap, type BuildingAlertSeverity } from "./buildingAlerts";
 
@@ -16,10 +17,8 @@ const ALERT_META: Record<BuildingAlertSeverity, { icon: string; label: string }>
   info: { icon: "🔵", label: "Info" },
 };
 
-const BUILDING_LABELS: Record<BuildingKind, string> = {
+const BUILDING_LABELS: Record<ManagedBuildingKind, string> = {
   hq: "Hauptquartier",
-  field: "Acker",
-  palisade: "Palisade",
   farm: "Farm",
   sawmill: "Sägewerk",
   carpenter: "Schreinerei",
@@ -44,8 +43,7 @@ const escapeHtml = (value: string): string =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 
-const isVisibleBuilding = (building: Building): boolean =>
-  !building.retired && building.kind !== "field";
+const isVisibleBuilding = isManagedBuilding;
 
 const buildingState = (building: Building): string => {
   if (building.construction && !building.construction.complete) {
