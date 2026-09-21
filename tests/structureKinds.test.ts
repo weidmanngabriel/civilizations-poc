@@ -6,7 +6,9 @@ import {
   isInfrastructureKind,
   isManagedBuilding,
   isManagedBuildingKind,
+  managedBuildings,
 } from "../src/simulation/structureKinds";
+import { createTestWorld } from "./testWorld";
 
 const building = (kind: Building["kind"], retired = false): Building => ({
   id: `test-${kind}`,
@@ -39,4 +41,18 @@ test("normal buildings remain managed while fields stay outside both categories"
 
 test("retired buildings are not part of the managed building UI set", () => {
   assert.equal(isManagedBuilding(building("bakery", true)), false);
+});
+
+
+test("managed building collection excludes palisades from normal building lists", () => {
+  const world = createTestWorld({ width: 20, height: 12, population: 0 });
+  world.buildings.push(
+    building("warehouse"),
+    building("palisade"),
+    building("palisade"),
+  );
+
+  const managed = managedBuildings(world);
+  assert.ok(managed.some((entry) => entry.kind === "warehouse"));
+  assert.equal(managed.some((entry) => entry.kind === "palisade"), false);
 });
