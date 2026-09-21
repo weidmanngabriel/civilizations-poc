@@ -39,6 +39,7 @@ type MainSceneInternals = {
   merchantTargetSourceId?: string;
   buildKind?: string;
   buildHover?: { q: number; r: number };
+  palisadeStart?: { q: number; r: number };
   upgradePreview?: { buildingId: string; targetKind: string };
   drawMap: () => void;
   drawSlots: (
@@ -215,6 +216,7 @@ export class IncrementalMainScene extends MainScene {
       internals.merchantTargetSourceId ?? "",
       internals.buildKind ?? "",
       internals.buildHover ? `${internals.buildHover.q},${internals.buildHover.r}` : "",
+      internals.palisadeStart ? `${internals.palisadeStart.q},${internals.palisadeStart.r}` : "",
       internals.upgradePreview ? `${internals.upgradePreview.buildingId}:${internals.upgradePreview.targetKind}` : "",
       mapSignature,
     ].join("#");
