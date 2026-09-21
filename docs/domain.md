@@ -2,6 +2,14 @@
 
 This file is the primary location for verified domain terms, domain rules, invariants, value ranges, and state transitions; code alone is not sufficient evidence for a domain rule.
 
+## Strukturkategorien
+
+- **Verwaltbare Gebäude** sind normale Gebäudeinstanzen, die in der Gebäudeübersicht erscheinen und gebäudebezogene Verwaltungs- oder Hinweisfunktionen besitzen können.
+- **Infrastruktur** sind baubare statische Elemente, die Baukosten, Bauzeit, Bauarbeiter und Abriss mit Gebäuden teilen können, aber nicht als normale Gebäude verwaltet oder gezählt werden.
+- Palisaden sind Infrastruktur.
+- Ackerflächen bleiben eine eigene, gebäudeintern gespeicherte Domänenkategorie und sind weder verwaltbare Gebäude noch Infrastruktur.
+- Künftige Tore und vergleichbare konstruierbare Elemente sollen die Infrastrukturkategorie erweitern. Wege gehören nur dann dazu, wenn sie als eigenständige konstruierbare Elemente statt als Terrain modelliert werden.
+
 ## Palisaden
 
 - Ein Palisadensegment belegt genau eine Mikrokachel und kostet 1 Holz.
