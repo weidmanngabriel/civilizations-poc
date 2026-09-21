@@ -48,6 +48,6 @@ Wegweiser gehören nicht zum Baumenü. Weise einem Bewohner den Beruf **Kundscha
 
 ## Palisaden
 
-Bei **Palisade** setzt du zuerst einen Startpunkt und danach ein Ziel. Das Spiel sucht einen begehbaren Verlauf zwischen beiden Punkten; die Linie muss also nicht gerade sein. Du kannst das Ziel danach noch verschieben und die Vorschau neu berechnen lassen.
+Bei **Palisade** siehst du wie beim Gebäude-Baumodus sofort die gültige Fläche innerhalb deiner Wegweiser. Setze zuerst einen Startpunkt und danach ein Ziel. Das Spiel sucht einen Verlauf zwischen beiden Punkten; die Linie muss also nicht gerade sein. Start, Ziel und Verlauf dürfen über bereits vorhandene Palisaden führen. Du kannst das Ziel danach noch verschieben und die Vorschau neu berechnen lassen.
 
-Ein Auftrag enthält höchstens 50 Palisaden und bleibt innerhalb der Reichweite deiner Wegweiser. Jede Palisade braucht ein Holz. Bauarbeiter arbeiten von einer erreichbaren Nachbarseite aus und können bei parallelen Linien auf die andere Seite wechseln. Eine kleine blaue Flagge zeigt, welches unfertige Segment bereits einem Bauarbeiter zugewiesen ist. Unfertige Palisaden können noch durchquert werden; erst fertige Segmente versperren den Weg.
+Ein Auftrag umfasst höchstens 50 Routenschritte und bleibt innerhalb der Reichweite deiner Wegweiser. Vorhandene Palisaden zählen dabei mit, werden aber nicht noch einmal gebaut. Nur neue Palisaden brauchen jeweils ein Holz. Bauarbeiter arbeiten von einer erreichbaren Nachbarseite aus und können bei parallelen Linien auf die andere Seite wechseln. Eine kleine blaue Flagge zeigt, welches unfertige Segment bereits einem Bauarbeiter zugewiesen ist. Unfertige Palisaden können noch durchquert werden; erst fertige Segmente versperren den Weg.
