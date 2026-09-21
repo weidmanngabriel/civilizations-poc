@@ -25,18 +25,33 @@ const reconstruct = (
   return path;
 };
 
-export const palisadeTileAvailable = (world: World, position: Hex): boolean => {
-  const waypostPositions = world.wayposts?.map((waypost) => waypost.position);
-  if (!isWithinWaypostOrientation(waypostPositions, position)) return false;
-  const tile = tileIndex(world.tiles).get(key(position));
-  if (!tile || (tile.terrain !== "grass" && tile.terrain !== "road") || !walkable(tile)) return false;
-  return !world.buildings.some(
+export const palisadeAt = (world: World, position: Hex): Building | undefined =>
+  world.buildings.find(
     (building) =>
       !building.retired &&
       building.kind === "palisade" &&
       exactSame(building.position, position),
   );
+
+export const palisadePlanningTileAvailable = (world: World, position: Hex): boolean => {
+  const waypostPositions = world.wayposts?.map((waypost) => waypost.position);
+  if (!isWithinWaypostOrientation(waypostPositions, position)) return false;
+  const tile = tileIndex(world.tiles).get(key(position));
+  if (!tile || (tile.terrain !== "grass" && tile.terrain !== "road")) return false;
+  if (palisadeAt(world, position)) return true;
+  return walkable(tile);
 };
+
+export const palisadeTileAvailable = (world: World, position: Hex): boolean =>
+  palisadePlanningTileAvailable(world, position) && !palisadeAt(world, position);
+
+export const validPalisadePlanningAnchors = (world: World): Hex[] =>
+  world.tiles
+    .filter((tile) => palisadePlanningTileAvailable(world, tile))
+    .map((tile) => ({ q: tile.q, r: tile.r }));
+
+export const palisadeNewSegmentCount = (world: World, path: readonly Hex[]): number =>
+  path.slice(0, PALISADE_MAX_SEGMENTS).filter((position) => palisadeTileAvailable(world, position)).length;
 
 /**
  * Bounded A*: uses normal movement costs, but never expands beyond the number
@@ -49,7 +64,7 @@ export function planPalisadePath(
   target: Hex,
   maxSegments = PALISADE_MAX_SEGMENTS,
 ): Hex[] {
-  if (maxSegments <= 0 || !palisadeTileAvailable(world, start)) return [];
+  if (maxSegments <= 0 || !palisadePlanningTileAvailable(world, start)) return [];
   if (exactSame(start, target)) return [{ ...start }];
 
   const maxMoves = Math.max(0, maxSegments - 1);
@@ -94,7 +109,7 @@ export function planPalisadePath(
 
     for (const next of neighbors(current.position)) {
       const tile = index.get(key(next));
-      if (!tile || !palisadeTileAvailable(world, next)) continue;
+      if (!tile || !palisadePlanningTileAvailable(world, next)) continue;
       const depth = current.depth + 1;
       const cost = current.cost + movementCost(tile, CONFIG.roadSpeedMultiplier);
       const nextKey = key(next);
@@ -151,11 +166,7 @@ export function createPalisadeSites(world: World, path: readonly Hex[]): Buildin
   return created;
 }
 
-export const completedPalisadeAt = (world: World, position: Hex): Building | undefined =>
-  world.buildings.find(
-    (building) =>
-      !building.retired &&
-      building.kind === "palisade" &&
-      building.construction?.complete &&
-      exactSame(building.position, position),
-  );
+export const completedPalisadeAt = (world: World, position: Hex): Building | undefined => {
+  const building = palisadeAt(world, position);
+  return building?.construction?.complete ? building : undefined;
+};
