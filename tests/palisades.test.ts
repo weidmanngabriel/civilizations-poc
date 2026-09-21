@@ -33,3 +33,37 @@ test("palisade sites cost one wood and take one second each", () => {
     assert.equal(site.construction?.complete, false);
   }
 });
+
+
+test("unfinished palisades stay walkable and completed ones block movement", async () => {
+  const world = createTestWorld({ width: 20, height: 12, population: 1 });
+  const [site] = createPalisadeSites(world, [{ q: 2, r: 2 }]);
+  assert.ok(site?.construction);
+
+  const { assigned, changeBuilders, tick } = await import("../src/simulation/simulation");
+  const { key, tileIndex, walkable } = await import("../src/simulation/hex");
+  const tile = tileIndex(world.tiles).get(key(site.position))!;
+  assert.equal(walkable(tile), true);
+
+  site.construction.delivered.wood = 1;
+  assert.equal(changeBuilders(world, 1), true);
+  for (let i = 0; i < CONFIG.simulationHz * 4 && !site.construction.complete; i++) tick(world);
+
+  assert.equal(site.construction.complete, true);
+  assert.equal(tile.buildingBlocking, true);
+  assert.equal(walkable(tile), false);
+  assert.ok(assigned(world, site.id, "builder").length <= 1);
+});
+
+test("at most one builder is assigned to one palisade site", async () => {
+  const world = createTestWorld({ width: 20, height: 12, population: 2 });
+  const [site] = createPalisadeSites(world, [{ q: 2, r: 2 }]);
+  assert.ok(site);
+
+  const { assigned, changeBuilders, tick } = await import("../src/simulation/simulation");
+  assert.equal(changeBuilders(world, 1), true);
+  assert.equal(changeBuilders(world, 1), true);
+  tick(world);
+
+  assert.equal(assigned(world, site.id, "builder").length, 1);
+});
