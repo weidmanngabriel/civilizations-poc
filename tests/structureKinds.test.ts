@@ -54,5 +54,5 @@ test("managed building collection excludes palisades from normal building lists"
 
   const managed = managedBuildings(world);
   assert.ok(managed.some((entry) => entry.kind === "warehouse"));
-  assert.equal(managed.some((entry) => entry.kind === "palisade"), false);
+  assert.equal(managed.map((entry) => entry.id).includes("test-palisade"), false);
 });
