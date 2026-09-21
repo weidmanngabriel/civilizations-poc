@@ -9,8 +9,25 @@ export interface EquippedItem {
 }
 export type BuildingId = string;
 export type WaypostId = string;
-export type BuildingKind = "hq" | "field" | "palisade" | "farm" | "sawmill" | "carpenter" | "mill" | "bakery" | "well" | "pottery" | "pottery2" | "stonemason" | "stonemason2" | "tailor" | "livestockBreeder" | "warehouse" | "house";
-export type BuildableBuildingKind = Exclude<BuildingKind, "hq" | "field" | "house" | "palisade">;
+export type ManagedBuildingKind =
+  | "hq"
+  | "farm"
+  | "sawmill"
+  | "carpenter"
+  | "mill"
+  | "bakery"
+  | "well"
+  | "pottery"
+  | "pottery2"
+  | "stonemason"
+  | "stonemason2"
+  | "tailor"
+  | "livestockBreeder"
+  | "warehouse"
+  | "house";
+export type InfrastructureKind = "palisade";
+export type BuildingKind = ManagedBuildingKind | InfrastructureKind | "field";
+export type BuildableBuildingKind = Exclude<ManagedBuildingKind, "hq" | "house">;
 export type NaturalResourceId = string;
 export type NaturalResourceKind = "forest" | "clay" | "stone";
 export type LooseGoodStackId = string;
