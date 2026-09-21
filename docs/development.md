@@ -8,9 +8,9 @@ For player-facing changes, check whether the in-app handbook under `src/handbook
 
 Documentation should let a capable Coding Agent understand the application and its important product and architecture decisions quickly enough to reconstruct the system at a high level.
 
-Changes are implemented on a temporary branch; intermediate commits are allowed. Before merging, open a pull request against `main`. Pull-request updates run `npm test`; the workflow may also be started manually with validation level `test`.
+Changes are implemented on a temporary branch; intermediate commits are allowed. Before merging, open a pull request against `main`. Pull-request updates do not start CI automatically.
 
-Immediately before every squash merge, full validation must succeed on the final PR head. Run the workflow with validation level `full` or close and reopen the pull request; a `reopened` run is a full-validation trigger. Full validation must pass both `npm test` and `npm run build`. No commits may be added after that successful validation, and the validated commit SHA must exactly match the PR head that is merged.
+Immediately before every squash merge, manually start the workflow on the final feature-branch head with validation level `full`. Full validation must pass both `npm test` and `npm run build`. No commits may be added after that successful validation, and the validated commit SHA must exactly match the PR head that is merged.
 
 At the end of a run, squash-merge the change into `main` so exactly one meaningful commit remains for that adjustment. A push to `main` runs tests and build again and deploys GitHub Pages only when both succeed. Manual workflow runs do not deploy. After the squash merge, verify build and deployment status; fixes use a new temporary branch and another single squash commit.
 
