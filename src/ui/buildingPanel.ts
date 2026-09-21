@@ -1,5 +1,5 @@
 import type { Building, BuildingId, ManagedBuildingKind, World } from "../simulation/model";
-import { isManagedBuilding } from "../simulation/structureKinds";
+import { managedBuildings } from "../simulation/structureKinds";
 import { buildingIcon } from "../icons";
 import { buildingAlertMap, type BuildingAlertSeverity } from "./buildingAlerts";
 
@@ -42,8 +42,6 @@ const escapeHtml = (value: string): string =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
-
-const isVisibleBuilding = isManagedBuilding;
 
 const buildingState = (building: Building): string => {
   if (building.construction && !building.construction.complete) {
@@ -102,8 +100,7 @@ export function mountBuildingPanel(world: World): void {
   let alerts = buildingAlertMap(world);
 
   const matchingBuildings = (): Array<Building & { kind: ManagedBuildingKind }> =>
-    world.buildings
-      .filter(isVisibleBuilding)
+    managedBuildings(world)
       .filter((building) => {
         if (activeAlertFilter === "all") return true;
         return alerts.get(building.id)?.severity === activeAlertFilter;
@@ -116,7 +113,7 @@ export function mountBuildingPanel(world: World): void {
 
   const renderList = (): void => {
     const buildings = matchingBuildings();
-    const total = world.buildings.filter(isVisibleBuilding).length;
+    const total = managedBuildings(world).length;
     summary.textContent = `${buildings.length} von ${total} Gebäuden`;
     list.innerHTML = buildings.length
       ? buildings.map((building) => {
