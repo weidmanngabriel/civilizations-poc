@@ -46,3 +46,29 @@ test("hq and buildings without worker slots do not create staffing alerts", () =
   assert.ok(hq);
   assert.equal(buildingAlert(world, hq), undefined);
 });
+
+
+test("infrastructure never appears in normal building staffing alerts", () => {
+  const world = createWorld(0);
+  const palisade: Building = {
+    id: "palisade-alert-test",
+    kind: "palisade",
+    name: "Palisade",
+    position: { q: 1, r: 1 },
+    workers: 1,
+    carriers: 0,
+    input: 0,
+    output: 0,
+    construction: {
+      required: { wood: 1 },
+      delivered: { wood: 1 },
+      duration: 60,
+      progress: 60,
+      complete: true,
+    },
+  };
+  world.buildings.push(palisade);
+
+  assert.equal(buildingAlert(world, palisade), undefined);
+  assert.equal(buildingAlertMap(world).has(palisade.id), false);
+});
