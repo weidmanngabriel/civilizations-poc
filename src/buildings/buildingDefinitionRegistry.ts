@@ -6,7 +6,6 @@ import headquarterJson from "../assets/buildings/hq/building.json";
 import houseJson from "../assets/buildings/house/building.json";
 import millJson from "../assets/buildings/mill/building.json";
 import potteryJson from "../assets/buildings/pottery/building.json";
-import palisadeJson from "../assets/buildings/palisade/building.json";
 import pottery2Json from "../assets/buildings/pottery2/building.json";
 import sawmillJson from "../assets/buildings/sawmill/building.json";
 import stonemasonJson from "../assets/buildings/stonemason/building.json";
@@ -74,7 +73,6 @@ const register = (kind: BuildingKind, raw: unknown): void => {
 
 register("hq", headquarterJson);
 register("field", fieldJson);
-register("palisade", palisadeJson);
 register("farm", farmJson);
 register("sawmill", sawmillJson);
 register("carpenter", carpenterJson);
