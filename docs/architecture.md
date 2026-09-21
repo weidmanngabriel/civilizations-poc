@@ -305,3 +305,8 @@ Die fachlichen Ausbaukanten liegen zentral in `src/simulation/buildingUpgradeRul
 Die räumliche Prüfung liegt in `buildingPlacement.ts`. Sie berechnet den Zielgrundriss am bestehenden visuellen Anker, ignoriert ausschließlich den aktuellen Gebäudegrundriss und prüft ansonsten dieselben relevanten räumlichen Konflikte wie die normale Platzierung. `upgradePlacementBlockers` liefert die konkreten Konflikte zusätzlich strukturiert an die Präsentation, damit dieselbe autoritative Prüfung sowohl den Ausbau verhindert als auch die Kartenmarkierung speist.
 
 Mehrstufige Produktionsgebäude können `availableRecipes` besitzen; `recipe` bleibt das aktuell aktive Rezept und damit kompatibel mit dem bestehenden Produktionskern. Ein Rezeptwechsel ist nur zulässig, wenn kein alter Output und kein laufender Arbeitsfortschritt vorhanden ist, damit numerischer Gebäude-Output niemals nachträglich als anderer Warentyp interpretiert wird.
+
+
+## Profession integration
+
+For every newly introduced `Profession`, the complete technical integration must be checked: type/union, profession label and icon, experience/unlock rules, `currentProfession`, `workerProfession`, building-profession mappings in `personCommands.ts` including `BUILDING_PROFESSIONS` and workplace compatibility, plus person/building UI integration. A TypeScript build alone is not sufficient because not all profession mappings are modeled as exhaustive `Record` types.
