@@ -636,7 +636,7 @@ function builderCandidates(w: World, person: Person): BuilderCandidate[] {
         (b) =>
           !b.retired &&
           isUnderConstruction(b) &&
-          assigned(w, b.id, "builder").length < 2,
+          assigned(w, b.id, "builder").length < (b.kind === "palisade" ? 1 : 2),
       )
       .map((site) => {
         const path = w.wayposts === undefined
@@ -1115,6 +1115,10 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
   const removed = w.buildings[index]!;
   if (removed.kind === "hq" || removed.kind === "field") return false;
 
+  if (removed.kind === "palisade") {
+    const tile = tileAt(w, removed.position);
+    tile.buildingBlocking = undefined;
+  }
   if (removed.kind === "farm") removeActiveFarmFields(w, removed.id);
 
   for (const p of w.people) {
@@ -1152,11 +1156,14 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
   const footprint = removed.footprint ?? [removed.position];
   for (const position of footprint) {
     const restored = tileAt(w, position);
-    restored.terrain =
-      removed.baseTerrains?.[key(position)] ??
-      (same(position, removed.position) ? removed.baseTerrain : undefined) ??
-      "grass";
-    restored.trafficTicks = undefined;
+    if (removed.kind !== "palisade") {
+      restored.terrain =
+        removed.baseTerrains?.[key(position)] ??
+        (same(position, removed.position) ? removed.baseTerrain : undefined) ??
+        "grass";
+      restored.trafficTicks = undefined;
+    }
+    restored.buildingBlocking = undefined;
   }
   const footprintKeys = new Set(footprint.map(key));
   for (const p of w.people) {
@@ -1298,6 +1305,13 @@ function advanceConstruction(w: World): void {
 
     construction.progress = construction.duration;
     construction.complete = true;
+    if (site.kind === "palisade") {
+      const tile = tileAt(w, site.position);
+      tile.buildingBlocking = true;
+      const blockedKey = key(site.position);
+      for (const person of w.people)
+        if (person.path.some((step) => key(step) === blockedKey)) rerouteCurrentTask(w, person);
+    }
     for (const p of siteBuilders) {
       cancel(w, p);
       p.assignment = undefined;
