@@ -9,7 +9,7 @@ import type {
   Tile,
   World,
 } from "../simulation/model";
-import { hexDistance, key, same } from "../simulation/hex";
+import { hexDistance, key, neighbors, same } from "../simulation/hex";
 import { personWorldPosition } from "../simulation/movement";
 import { personInsideBuilding } from "./personVisibility";
 import { CONFIG } from "../simulation/scenario";
@@ -29,6 +29,7 @@ import {
   wayposts,
 } from "../simulation/wayposts";
 import { buildingVisualAnchor } from "../buildings/buildingDefinitionRegistry";
+import { planPalisadePath } from "../simulation/palisades";
 
 const TEXT_RESOLUTION = 3;
 const MIN_FOREST_ALPHA = 0.35;
@@ -80,7 +81,7 @@ const goodColors: Record<Good, number> = {
 type PointerPosition = { x: number; y: number };
 type CameraSnapshot = { scrollX: number; scrollY: number; zoom: number };
 type MerchantTargetModeDetail = { active: boolean; sourceId?: BuildingId };
-type BuildPlacementKind = BuildableBuildingKind | "waypost";
+type BuildPlacementKind = BuildableBuildingKind | "waypost" | "palisade";
 type BuildModeDetail = { active: boolean; kind?: BuildPlacementKind };
 type UpgradePreviewDetail = { active: boolean; buildingId?: BuildingId; targetKind?: BuildableBuildingKind };
 type WorldBounds = { minX: number; maxX: number; minY: number; maxY: number };
@@ -114,6 +115,7 @@ export class MainScene extends Phaser.Scene {
   private buildKind?: BuildPlacementKind;
   private buildHover?: Hex;
   private buildPositionChosen = false;
+  private palisadeStart?: Hex;
   private upgradePreview?: { buildingId: BuildingId; targetKind: BuildableBuildingKind };
   private cachedWorldBounds?: WorldBounds;
 
@@ -184,6 +186,7 @@ export class MainScene extends Phaser.Scene {
       this.buildKind = detail.active ? detail.kind : undefined;
       this.buildHover = undefined;
       this.buildPositionChosen = false;
+      this.palisadeStart = undefined;
       this.selectedBuildingId = undefined;
       this.selectedTile = undefined;
       this.renderWorld();
@@ -255,7 +258,7 @@ export class MainScene extends Phaser.Scene {
   private emitBuildPosition(): void {
     if (!this.buildHover) return;
     window.dispatchEvent(new CustomEvent(BUILD_POSITION_SELECTED_EVENT, {
-      detail: { position: { ...this.buildHover } },
+      detail: { position: { ...this.buildHover }, chosen: this.buildPositionChosen },
     }));
   }
 
@@ -271,6 +274,16 @@ export class MainScene extends Phaser.Scene {
 
   private selectAtScreenPoint(screenX: number, screenY: number): void {
     if (this.buildKind) {
+      if (this.buildKind === "palisade" && !this.palisadeStart) {
+        const tile = this.nearestTileAtScreenPoint(screenX, screenY);
+        if (!tile) return;
+        this.palisadeStart = { q: tile.q, r: tile.r };
+        this.buildHover = { ...this.palisadeStart };
+        this.buildPositionChosen = true;
+        this.emitBuildPosition();
+        this.renderWorld();
+        return;
+      }
       this.buildPositionChosen = true;
       this.updateBuildHover(screenX, screenY, true);
       return;
@@ -535,10 +548,42 @@ export class MainScene extends Phaser.Scene {
       if (tile.terrain === "field") this.drawField(g, tile, x, y);
     }
 
+    const completedPalisades = new Set(
+      this.world.buildings
+        .filter((building) =>
+          !building.retired &&
+          building.kind === "palisade" &&
+          building.construction?.complete
+        )
+        .map((building) => key(building.position)),
+    );
+
     for (const b of this.world.buildings.filter(
       (building) => !building.retired && building.kind !== "field",
     )) {
       const { x, y } = pixel(b.position);
+      if (b.kind === "palisade") {
+        const complete = Boolean(b.construction?.complete);
+        g.lineStyle(complete ? 2 : 1.4, complete ? 0x5b3b22 : 0x9a7650, complete ? 1 : 0.65);
+        g.lineBetween(x, y + 5, x, y - 9);
+        g.fillStyle(complete ? 0x6f4a2d : 0xb99a78, complete ? 1 : 0.65);
+        g.fillTriangle(x - 2.5, y - 8, x, y - 12, x + 2.5, y - 8);
+        if (complete) {
+          for (const neighbor of neighbors(b.position)) {
+            if (!completedPalisades.has(key(neighbor)) || key(b.position) > key(neighbor)) continue;
+            const target = pixel(neighbor);
+            g.lineStyle(1.8, 0x6f4a2d, 0.95);
+            g.lineBetween(x, y - 3, target.x, target.y - 3);
+            g.lineStyle(1.2, 0x8a5b32, 0.9);
+            g.lineBetween(x, y + 1, target.x, target.y + 1);
+          }
+        }
+        if (b.id === this.selectedBuildingId) {
+          g.lineStyle(1, 0xf4e5a4, 0.95);
+          g.strokePoints(this.hexPoints(b.position), true);
+        }
+        continue;
+      }
       this.mapLabels.add(this.add.text(x, y - 7, this.buildingLabel(b), {
         fontFamily: "system-ui",
         fontSize: "7px",
@@ -607,6 +652,25 @@ export class MainScene extends Phaser.Scene {
 
     if (this.buildKind) {
       if (!this.buildHover) return;
+      if (this.buildKind === "palisade") {
+        const path = this.palisadeStart
+          ? planPalisadePath(this.world, this.palisadeStart, this.buildHover)
+          : [this.buildHover];
+        for (let i = 0; i < path.length; i += 1) {
+          const position = path[i]!;
+          highlights.fillStyle(0xc99555, 0.48);
+          highlights.fillPoints(this.hexPoints(position), true);
+          const point = pixel(position);
+          highlights.lineStyle(1.35, 0x5b3b22, 0.95);
+          highlights.lineBetween(point.x, point.y + 4, point.x, point.y - 8);
+          if (i > 0) {
+            const before = pixel(path[i - 1]!);
+            highlights.lineStyle(1.6, 0x6f4a2d, 0.9);
+            highlights.lineBetween(before.x, before.y - 2, point.x, point.y - 2);
+          }
+        }
+        return;
+      }
       if (this.buildKind === "waypost") {
         const valid = canPlaceWaypost(this.world, this.buildHover);
         const orientationRadius = Math.floor(WAYPOST_ORIENTATION_RADIUS);
