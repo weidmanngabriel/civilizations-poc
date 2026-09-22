@@ -30,6 +30,7 @@ const PERSON_SELECTION_REQUESTED_EVENT = "poc-person-selection-requested";
 const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
 const PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT = "poc-person-context-toggle-requested";
+const PERSON_CONTEXT_OPEN_REQUESTED_EVENT = "poc-person-context-open-requested";
 const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
 const WAYPOST_PLACEMENT_REQUESTED_EVENT = "poc-waypost-placement-requested";
 export const PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT = "poc-person-equipment-picker-requested";
@@ -436,6 +437,7 @@ export function mountPersonContextMenu(world: World): void {
       }));
   });
   window.addEventListener(PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT, () => setMenuOpen(menu.hidden));
+  window.addEventListener(PERSON_CONTEXT_OPEN_REQUESTED_EVENT, () => setMenuOpen(true));
   window.addEventListener(PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT, (event) => {
     const detail = (event as CustomEvent<{ personId: number; slot?: EquipmentSlot }>).detail;
     selectedPersonId = detail.personId;
