@@ -48,7 +48,7 @@ export function installTileSelectionGuard(): void {
 const constructionCost = (kind: BuildMenuKind): string =>
   (Object.entries(kind === "palisade" ? { wood: 1 } : CONSTRUCTION_PLANS[kind].required) as [Good, number | undefined][])
     .filter((entry): entry is [Good, number] => entry[1] !== undefined)
-    .map(([good, amount]) => `<span class="build-menu-cost-item"><span aria-hidden="true">${GOOD_ICONS[good]}</span>${amount} ${GOODS[good]}</span>`)
+    .map(([good, amount]) => `<button type="button" class="build-menu-cost-item wiki-link" data-wiki-good="${good}"><span aria-hidden="true">${GOOD_ICONS[good]}</span>${amount} ${GOODS[good]}</button>`)
     .join("");
 
 export function mountBuildMenu(world: World): void {
@@ -73,13 +73,17 @@ export function mountBuildMenu(world: World): void {
         ${SORTED_BUILDING_KINDS
           .map(
             (kind) => `
-              <button class="build-menu-item" type="button" data-build-kind="${kind}">
-                <span class="build-menu-building-icon" aria-hidden="true">${buildingIcon(kind)}</span>
-                <span class="build-menu-building-copy">
-                  <strong>${BUILDING_NAMES[kind]}</strong>
-                  <span class="build-menu-cost">${constructionCost(kind)}</span>
-                </span>
-              </button>`,
+              <div class="build-menu-item" data-build-entry="${kind}">
+                <button class="build-menu-place" type="button" data-build-kind="${kind}" aria-label="${BUILDING_NAMES[kind]} bauen">
+                  <span class="build-menu-building-icon" aria-hidden="true">${buildingIcon(kind)}</span>
+                  <span class="build-menu-building-copy">
+                    <strong>${BUILDING_NAMES[kind]}</strong>
+                    <span class="build-menu-place-hint">Platzieren</span>
+                  </span>
+                </button>
+                <button class="build-menu-info wiki-link" type="button" data-wiki-building="${kind}" aria-label="Wiki: ${BUILDING_NAMES[kind]}">?</button>
+                <span class="build-menu-cost">${constructionCost(kind)}</span>
+              </div>`,
           )
           .join("")}
       </div>
@@ -92,9 +96,9 @@ export function mountBuildMenu(world: World): void {
   const close = menu.querySelector<HTMLButtonElement>("#build-menu-close")!;
 
   const refreshAvailability = (): void => {
-    menu.querySelectorAll<HTMLButtonElement>("button[data-build-kind]").forEach((button) => {
-      const kind = button.dataset.buildKind as BuildMenuKind;
-      button.hidden = kind !== "palisade" && !isBuildingUnlocked(world, kind);
+    menu.querySelectorAll<HTMLElement>("[data-build-entry]").forEach((entry) => {
+      const kind = entry.dataset.buildEntry as BuildMenuKind;
+      entry.hidden = kind !== "palisade" && !isBuildingUnlocked(world, kind);
     });
   };
 
