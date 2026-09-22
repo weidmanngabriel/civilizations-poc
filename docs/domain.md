@@ -33,5 +33,5 @@ This file is the primary location for verified domain terms, domain rules, invar
 - Unterricht beginnt nur bei Anwesenheit beider Beteiligten an der Schule und benötigt 60 simulierte Sekunden Anwesenheitszeit.
 - Essen oder Schlafen unterbricht den Unterricht ohne Verlust des bisherigen Unterrichtsfortschritts.
 - Während aktivem Unterricht gelten Hunger- und Schlafverbrauch wie bei normaler Arbeit.
-- Erfolgreiche Ausbildung verleiht dem Schüler die Berechtigung zum Zielberuf, aber keine praktische Erfahrung in diesem Beruf.
+- Erfolgreiche Ausbildung verleiht dem Schüler dauerhaft die Berechtigung zum Zielberuf, auch nach späteren Berufswechseln, aber keine praktische Erfahrung in diesem Beruf.
 - Nach erfolgreichem Unterricht wird der Lehrer nach Möglichkeit zu seinem vorherigen Arbeitsplatz zurückgeführt.
