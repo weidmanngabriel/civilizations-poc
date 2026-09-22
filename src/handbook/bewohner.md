@@ -71,3 +71,8 @@ Wenn ein Fischer an der falschen Stelle arbeitet oder kein Wasser erreicht, vers
 ## Details einer Person
 
 Die Personenansicht hält die häufig benötigten Angaben kompakt. Über **Details** klappst du Arbeitsplatz, Wohnung, Erfahrung, getragene Ware und Ausrüstung auf. Arbeitsplatz und Wohnung springen direkt zum konkreten Gebäude. Eine angezeigte getragene Ware kann ihre Warenseite im Wiki öffnen.
+
+
+## Berufe im Wiki
+
+Der aktuelle Beruf einer ausgewählten Person ist anklickbar. Die Berufsseite erklärt kurz die Aufgabe, passende Arbeitsplätze und vorhandene Voraussetzungen.
