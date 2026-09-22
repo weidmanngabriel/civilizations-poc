@@ -53,7 +53,26 @@ test("good articles link producers and consumers from simulation rules", () => {
   assert.match(article, /data-wiki-building="bakery"/);
 });
 
-test("special equipment goods explain their gameplay effect", () => {\n  const tool = renderGoodArticle("woodenTool");\n  assert.match(tool, /Effekt/);\n  assert.match(tool, /arbeiten etwas schneller/);\n\n  const shoes = renderGoodArticle("shoes");\n  assert.match(shoes, /Effekt/);\n  assert.match(shoes, /laufen etwas schneller/);\n\n  const clay = renderGoodArticle("clay");\n  assert.doesNotMatch(clay, />Effekt<\\/h2>/);\n});\n\ntest("professions without experience requirements are documented as directly available only", () => {\n  const hunter = renderProfessionArticle("hunter");\n  assert.match(hunter, /Keine Erfahrungs-Voraussetzung\\. Der Beruf kann direkt gewählt werden\\./);\n  assert.doesNotMatch(hunter, /Keine Erfahrungs-Voraussetzung[^<]*Schule/);\n});\n\ntest("good articles show production recipes and non-building sources", () => {
+test("special equipment goods explain their gameplay effect", () => {
+  const tool = renderGoodArticle("woodenTool");
+  assert.match(tool, /Effekt/);
+  assert.match(tool, /arbeiten etwas schneller/);
+
+  const shoes = renderGoodArticle("shoes");
+  assert.match(shoes, /Effekt/);
+  assert.match(shoes, /laufen etwas schneller/);
+
+  const clay = renderGoodArticle("clay");
+  assert.doesNotMatch(clay, />Effekt<\/h2>/);
+});
+
+test("professions without experience requirements are documented as directly available only", () => {
+  const hunter = renderProfessionArticle("hunter");
+  assert.match(hunter, /Keine Erfahrungs-Voraussetzung\. Der Beruf kann direkt gewählt werden\./);
+  assert.doesNotMatch(hunter, /Keine Erfahrungs-Voraussetzung[^<]*Schule/);
+});
+
+test("good articles show production recipes and non-building sources", () => {
   const shoes = renderGoodArticle("shoes");
   assert.match(shoes, /Rezept/);
   assert.match(shoes, /data-wiki-building="tailor"/);
