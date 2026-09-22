@@ -16,7 +16,6 @@ const PERSON_SELECTION_REQUESTED_EVENT = "poc-person-selection-requested";
 const PERSON_SELECTION_CLEAR_REQUESTED_EVENT = "poc-person-selection-clear-requested";
 const PERSON_CONTEXT_OPEN_REQUESTED_EVENT = "poc-person-context-open-requested";
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
-const TILE_SELECTED_EVENT = "poc-tile-selected";
 const BUILDING_SELECTION_REQUESTED_EVENT = "poc-building-selection-requested";
 const BUILDING_SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
@@ -153,7 +152,6 @@ export function installPersonSelection(scene: Phaser.Scene, world: World): void 
     };
     const onClearRequested = (): void => clearPerson();
     const onBuildingSelected = (): void => clearPerson();
-    const onTileSelected = (): void => clearPerson();
     const onBuildingSelectionRequested = (): void => clearPerson();
     const onBuildMode = (event: Event): void => {
       buildModeActive = (event as CustomEvent<ModeDetail>).detail.active;
@@ -167,7 +165,6 @@ export function installPersonSelection(scene: Phaser.Scene, world: World): void 
     window.addEventListener(PERSON_SELECTION_REQUESTED_EVENT, onSelectionRequested);
     window.addEventListener(PERSON_SELECTION_CLEAR_REQUESTED_EVENT, onClearRequested);
     window.addEventListener(BUILDING_SELECTED_EVENT, onBuildingSelected);
-    window.addEventListener(TILE_SELECTED_EVENT, onTileSelected);
     window.addEventListener(BUILDING_SELECTION_REQUESTED_EVENT, onBuildingSelectionRequested);
     window.addEventListener(BUILD_MODE_EVENT, onBuildMode);
     window.addEventListener(MERCHANT_TARGET_MODE_EVENT, onMerchantTargetMode);
@@ -177,7 +174,6 @@ export function installPersonSelection(scene: Phaser.Scene, world: World): void 
       window.removeEventListener(PERSON_SELECTION_REQUESTED_EVENT, onSelectionRequested);
       window.removeEventListener(PERSON_SELECTION_CLEAR_REQUESTED_EVENT, onClearRequested);
       window.removeEventListener(BUILDING_SELECTED_EVENT, onBuildingSelected);
-      window.removeEventListener(TILE_SELECTED_EVENT, onTileSelected);
       window.removeEventListener(BUILDING_SELECTION_REQUESTED_EVENT, onBuildingSelectionRequested);
       window.removeEventListener(BUILD_MODE_EVENT, onBuildMode);
       window.removeEventListener(MERCHANT_TARGET_MODE_EVENT, onMerchantTargetMode);
