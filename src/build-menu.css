@@ -61,6 +61,7 @@
   border: 1px solid rgb(255 255 255 / 14%);
   box-shadow: 0 12px 32px rgb(0 0 0 / 34%);
   backdrop-filter: blur(10px);
+  color: #eef3e9;
 }
 
 .build-menu-header {
@@ -110,6 +111,7 @@
   border: 1px solid rgb(255 255 255 / 10%);
   border-radius: 10px;
   background: rgb(255 255 255 / 3%);
+  color: inherit;
 }
 
 .build-menu-item[hidden] { display: none; }
@@ -124,6 +126,7 @@
   text-align: left;
   border: 0;
   background: transparent;
+  color: inherit;
 }
 
 .build-menu-place:hover:not(:disabled) {
@@ -222,6 +225,22 @@ main.merchant-target-mode .build-menu-shell {
     max-height: calc(100vh - 154px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     margin-top: 60px;
   }
+}
+
+#game-menu-panel .build-menu-item {
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  text-align: left;
+}
+
+#game-menu-panel .build-menu-building-copy {
+  min-width: 0;
+}
+
+#game-menu-panel .build-menu-building-copy > strong,
+#game-menu-panel .build-menu-building-copy > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .game-menu-runtime {
