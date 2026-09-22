@@ -122,6 +122,8 @@ export function setLearnedProfession(
 ): boolean {
   const person = world.people.find((candidate) => candidate.id === personId);
   if (!person || !canChangePersonProfession(person) || !stopCurrentWork(world, person)) return false;
+  const learned = (person.learnedProfessions ??= []);
+  if (!learned.includes(profession)) learned.push(profession);
   applyProfessionFlags(person, profession);
   syncWorkAreas(world);
   return true;
