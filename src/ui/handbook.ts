@@ -1,4 +1,4 @@
-import type { Good } from "../simulation/model";
+import type { AnimalKind, Good, Profession } from "../simulation/model";
 import welcomeMarkdown from "../handbook/willkommen.md?raw";
 import residentsMarkdown from "../handbook/bewohner.md?raw";
 import buildingMarkdown from "../handbook/bauen.md?raw";
@@ -7,14 +7,19 @@ import worldMarkdown from "../handbook/welt.md?raw";
 import troubleshootingMarkdown from "../handbook/probleme.md?raw";
 import {
   HANDBOOK_OPEN_EVENT,
+  HANDBOOK_VISIBILITY_EVENT,
   type HandbookTarget,
   type WikiBuildingKind,
 } from "./wikiLinks";
 import {
+  renderAnimalArticle,
+  renderAnimalsOverview,
   renderBuildingArticle,
   renderBuildingsOverview,
   renderGoodArticle,
   renderGoodsOverview,
+  renderProfessionArticle,
+  renderProfessionsOverview,
 } from "./wikiCatalog";
 
 const BUILD_MODE_EVENT = "poc-build-mode";
@@ -36,7 +41,9 @@ type HandbookSection = {
 type HandbookRoute =
   | { kind: "page"; id: string }
   | { kind: "good"; id: Good }
-  | { kind: "building"; id: WikiBuildingKind };
+  | { kind: "building"; id: WikiBuildingKind }
+  | { kind: "animal"; id: AnimalKind }
+  | { kind: "profession"; id: Profession };
 
 const PAGES: HandbookPage[] = [
   { id: "welcome", title: "Willkommen", content: welcomeMarkdown },
@@ -44,6 +51,8 @@ const PAGES: HandbookPage[] = [
   { id: "building", title: "Bauen", content: buildingMarkdown },
   { id: "goods", title: "Waren", render: renderGoodsOverview },
   { id: "buildings", title: "Gebäude", render: renderBuildingsOverview },
+  { id: "animals", title: "Tiere", render: renderAnimalsOverview },
+  { id: "professions", title: "Berufe", render: renderProfessionsOverview },
   { id: "logistics", title: "Waren & Logistik", content: logisticsMarkdown },
   { id: "world", title: "Welt & Wege", content: worldMarkdown },
   { id: "troubleshooting", title: "Probleme lösen", content: troubleshootingMarkdown },
@@ -207,6 +216,8 @@ export function mountHandbook(): void {
 
     if (route.kind === "good") content.innerHTML = renderGoodArticle(route.id);
     else if (route.kind === "building") content.innerHTML = renderBuildingArticle(route.id);
+    else if (route.kind === "animal") content.innerHTML = renderAnimalArticle(route.id);
+    else if (route.kind === "profession") content.innerHTML = renderProfessionArticle(route.id);
     else {
       const page = PAGES.find((candidate) => candidate.id === route.id) ?? PAGES[0]!;
       content.innerHTML = page.render ? page.render() : renderHandbookMarkdown(page.content ?? "");
@@ -236,7 +247,9 @@ export function mountHandbook(): void {
   };
 
   const setOpen = (open: boolean) => {
+    if (overlay.hidden === !open) return;
     overlay.hidden = !open;
+    window.dispatchEvent(new CustomEvent(HANDBOOK_VISIBILITY_EVENT, { detail: { open } }));
     toggle.setAttribute("aria-expanded", String(open));
     toggle.classList.toggle("active", open);
     if (open) {
@@ -297,6 +310,20 @@ export function mountHandbook(): void {
       event.preventDefault();
       event.stopPropagation();
       openTarget({ kind: "building", id: buildingLink.dataset.wikiBuilding as WikiBuildingKind });
+      return;
+    }
+    const animalLink = target.closest<HTMLElement>("[data-wiki-animal]");
+    if (animalLink?.dataset.wikiAnimal) {
+      event.preventDefault();
+      event.stopPropagation();
+      openTarget({ kind: "animal", id: animalLink.dataset.wikiAnimal as AnimalKind });
+      return;
+    }
+    const professionLink = target.closest<HTMLElement>("[data-wiki-profession]");
+    if (professionLink?.dataset.wikiProfession) {
+      event.preventDefault();
+      event.stopPropagation();
+      openTarget({ kind: "profession", id: professionLink.dataset.wikiProfession as Profession });
     }
   });
 
