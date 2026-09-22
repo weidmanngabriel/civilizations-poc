@@ -10,12 +10,12 @@ export const WIKI_GOODS = Object.keys(GOODS) as Good[];
 export const WIKI_BUILDINGS: WikiBuildingKind[] = [
   "hq", "house", "farm", "sawmill", "carpenter", "mill", "bakery", "well",
   "pottery", "pottery2", "stonemason", "stonemason2", "tailor",
-  "livestockBreeder", "warehouse", "palisade",
+  "livestockBreeder", "school", "warehouse", "palisade",
 ];
 
 const BUILDABLE = new Set<BuildableBuildingKind>([
   "farm", "sawmill", "carpenter", "mill", "bakery", "well", "pottery",
-  "pottery2", "stonemason", "stonemason2", "tailor", "livestockBreeder", "warehouse",
+  "pottery2", "stonemason", "stonemason2", "tailor", "livestockBreeder", "school", "warehouse",
 ]);
 
 const isBuildable = (kind: WikiBuildingKind): kind is BuildableBuildingKind =>
