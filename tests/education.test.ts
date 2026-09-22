@@ -8,6 +8,7 @@ import {
   startEducation,
 } from "../src/simulation/education";
 import { tick } from "../src/simulation/simulation";
+import { setPersonProfession } from "../src/simulation/personCommands";
 import { personInsideBuilding } from "../src/game/personVisibility";
 import { createTestWorld } from "./testWorld";
 
@@ -80,6 +81,10 @@ test("teacher and student complete a 60-second lesson and teacher returns to wor
 
   assert.equal(student.educationTask, undefined);
   assert.equal(teacher.educationTask, undefined);
+  assert.equal(student.profession, "carpenter");
+  assert.deepEqual(student.learnedProfessions, ["carpenter"]);
+  assert.equal(setPersonProfession(world, student.id, undefined), true);
+  assert.equal(setPersonProfession(world, student.id, "carpenter"), true);
   assert.equal(student.profession, "carpenter");
   assert.deepEqual(teacher.assignment, { building: carpenter.id, role: "worker" });
 });
