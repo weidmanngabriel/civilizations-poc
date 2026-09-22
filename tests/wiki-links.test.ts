@@ -126,6 +126,12 @@ test("animal and profession articles cross-link related game knowledge", () => {
   assert.match(baker, /data-wiki-building="school"/);
 });
 
+test("carrier profession links production buildings that employ carriers", () => {
+  const carrier = renderProfessionArticle("carrier");
+  assert.match(carrier, /data-wiki-building="bakery"/);
+  assert.match(carrier, /data-wiki-building="warehouse"/);
+});
+
 test("profession articles show progression unlocked by experience", () => {
   const hunter = renderProfessionArticle("hunter");
   assert.match(hunter, /Schaltet frei/);
