@@ -1,5 +1,10 @@
 import type { EquipmentGood, EquipmentSlot, Person, Profession, World } from "../simulation/model";
-import {\n  canLearnProfession,\n  currentProfession,\n  PROFESSION_LABELS,\n  PROFESSION_XP_REQUIREMENTS,\n} from "../simulation/experience";
+import {
+  canLearnProfession,
+  currentProfession,
+  PROFESSION_LABELS,
+  PROFESSION_XP_REQUIREMENTS,
+} from "../simulation/experience";
 import {
   canChangePersonProfession,
   commandEat,
