@@ -17,6 +17,7 @@ export const PROFESSION_XP_REQUIREMENTS: Partial<
 };
 
 export function canLearnProfession(p: Person, profession: Profession): boolean {
+  if (p.learnedProfessions?.includes(profession)) return true;
   const requirement = PROFESSION_XP_REQUIREMENTS[profession];
   return !requirement ||
     professionExperience(p, requirement.profession) >= requirement.experience;
