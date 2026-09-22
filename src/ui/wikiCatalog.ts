@@ -1,9 +1,11 @@
 import type { BuildableBuildingKind, Good, GoodAmounts } from "../simulation/model";
-import { ALL_GOODS, GOODS, buildingKindDefinition } from "../simulation/simulation";
+import { GOODS, buildingKindDefinition } from "../simulation/simulation";
 import { BUILDING_CONSTRUCTION_REQUIREMENTS } from "../simulation/constructionRules";
 import { BUILDING_UPGRADE_RULES } from "../simulation/buildingUpgradeRules";
 import { GOOD_ICONS, buildingIcon } from "../icons";
 import { BUILDING_WIKI_LABELS, type WikiBuildingKind } from "./wikiLinks";
+
+export const WIKI_GOODS = Object.keys(GOODS) as Good[];
 
 export const WIKI_BUILDINGS: WikiBuildingKind[] = [
   "hq", "house", "farm", "sawmill", "carpenter", "mill", "bakery", "well",
@@ -67,7 +69,7 @@ export const renderGoodsOverview = (): string => `
   <h1>Waren</h1>
   <p>Alle aktuell im Prototyp verwendeten Waren. Ein Klick öffnet die Detailseite.</p>
   <div class="wiki-grid wiki-goods-grid">
-    ${ALL_GOODS
+    ${WIKI_GOODS
       .map((good) => `<button type="button" class="wiki-overview-card" data-wiki-good="${good}">
         <span class="wiki-overview-icon" aria-hidden="true">${GOOD_ICONS[good]}</span>
         <strong>${GOODS[good]}</strong>
