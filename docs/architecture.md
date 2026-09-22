@@ -341,3 +341,11 @@ School lessons are authoritative simulation tasks stored on the participating pe
 Each participant stores the school, target profession, partner, shared progress and previous profession/workplace needed for restoration. Successfully taught professions are persisted on the person as learned qualifications so they remain selectable after later profession changes. While a lesson is active, generic idle behavior ignores both participants. Hunger and sleep treat active teaching/learning as normal work intensity. Their existing need systems remain authoritative for eating and sleeping; after a need completes, normal task-target restoration points the person back to the school and education processing resumes the lesson once both participants are present.
 
 The profession menu owns only the selection flow: selected resident -> school -> profession -> teacher. It does not own lesson progress or qualification state. School is a normal managed building kind with a placeholder same-key asset slot until a final editor-authored school visual is supplied.
+
+## UI-Entity-Links und Wiki-Navigation
+
+src/ui/wikiLinks.ts definiert die stabilen Wiki-Zieltypen und das zentrale Öffnungsereignis. Statische Wissensziele sind Waren und Gebäudetypen; konkrete Personen und Gebäude verwenden weiterhin die bestehenden Selection-Events und bleiben damit Weltobjekte statt Wiki-Seiten.
+
+src/ui/wikiCatalog.ts erzeugt die Waren- und Gebäudeartikel aus bestehenden Simulationsquellen wie GOODS, Baukosten, Produktionsdefinitionen und Ausbaukanten. Dafür stellt der Simulationskern die unveränderliche Gebäudetyp-Definition lesbar bereit; die UI mutiert diese Daten nicht. Das Handbuch in src/ui/handbook.ts rendert Markdown-Seiten und dynamische Wiki-Routen in derselben Modaloberfläche und verwaltet eine kleine interne Zurück-Historie.
+
+Wiki-Links werden als data-wiki-good beziehungsweise data-wiki-building markiert und zentral delegiert. Komponenten sollen dadurch keine eigene Wiki-Routinglogik duplizieren. Bei zusammengesetzten Controls, insbesondere im Baumenü, müssen Wiki- und Primäraktion getrennte Buttons bleiben, damit Pointer- und Touch-Ereignisse nicht gleichzeitig eine Spielaktion auslösen.

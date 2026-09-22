@@ -1,9 +1,21 @@
+import type { Good } from "../simulation/model";
 import welcomeMarkdown from "../handbook/willkommen.md?raw";
 import residentsMarkdown from "../handbook/bewohner.md?raw";
 import buildingMarkdown from "../handbook/bauen.md?raw";
 import logisticsMarkdown from "../handbook/logistik.md?raw";
 import worldMarkdown from "../handbook/welt.md?raw";
 import troubleshootingMarkdown from "../handbook/probleme.md?raw";
+import {
+  HANDBOOK_OPEN_EVENT,
+  type HandbookTarget,
+  type WikiBuildingKind,
+} from "./wikiLinks";
+import {
+  renderBuildingArticle,
+  renderBuildingsOverview,
+  renderGoodArticle,
+  renderGoodsOverview,
+} from "./wikiCatalog";
 
 const BUILD_MODE_EVENT = "poc-build-mode";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
@@ -12,7 +24,8 @@ const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
 type HandbookPage = {
   id: string;
   title: string;
-  content: string;
+  content?: string;
+  render?: () => string;
 };
 
 type HandbookSection = {
@@ -20,10 +33,17 @@ type HandbookSection = {
   title: string;
 };
 
+type HandbookRoute =
+  | { kind: "page"; id: string }
+  | { kind: "good"; id: Good }
+  | { kind: "building"; id: WikiBuildingKind };
+
 const PAGES: HandbookPage[] = [
   { id: "welcome", title: "Willkommen", content: welcomeMarkdown },
   { id: "residents", title: "Bewohner", content: residentsMarkdown },
   { id: "building", title: "Bauen", content: buildingMarkdown },
+  { id: "goods", title: "Waren", render: renderGoodsOverview },
+  { id: "buildings", title: "Gebäude", render: renderBuildingsOverview },
   { id: "logistics", title: "Waren & Logistik", content: logisticsMarkdown },
   { id: "world", title: "Welt & Wege", content: worldMarkdown },
   { id: "troubleshooting", title: "Probleme lösen", content: troubleshootingMarkdown },
@@ -79,9 +99,7 @@ export const renderHandbookMarkdown = (source: string): string => {
     if (line.startsWith("## ")) {
       flushList();
       sectionIndex += 1;
-      html.push(
-        `<h2 id="handbook-section-${sectionIndex}">${renderInlineMarkdown(line.slice(3))}</h2>`,
-      );
+      html.push(`<h2 id="handbook-section-${sectionIndex}">${renderInlineMarkdown(line.slice(3))}</h2>`);
       continue;
     }
     if (line.startsWith("- ")) {
@@ -122,8 +140,9 @@ export function mountHandbook(): void {
   overlay.innerHTML = `
     <div class="handbook-dialog">
       <header class="handbook-header">
+        <button id="handbook-back" class="handbook-back" type="button" aria-label="Zurück" hidden>←</button>
         <div>
-          <small>SPIELHILFE</small>
+          <small>SPIELHILFE & WIKI</small>
           <strong id="handbook-title">Handbuch</strong>
         </div>
         <button id="handbook-close" type="button" aria-label="Handbuch schließen">×</button>
@@ -146,15 +165,8 @@ export function mountHandbook(): void {
               aria-label="Abschnitte dieser Seite"
               aria-expanded="false"
               aria-controls="handbook-quicknav-menu"
-            >
-              <span aria-hidden="true">☰</span>
-            </button>
-            <nav
-              id="handbook-quicknav-menu"
-              class="handbook-quicknav-menu"
-              aria-label="Abschnitte dieser Seite"
-              hidden
-            >
+            ><span aria-hidden="true">☰</span></button>
+            <nav id="handbook-quicknav-menu" class="handbook-quicknav-menu" aria-label="Abschnitte dieser Seite" hidden>
               <strong>Auf dieser Seite</strong>
               <div class="handbook-quicknav-links"></div>
             </nav>
@@ -166,35 +178,60 @@ export function mountHandbook(): void {
 
   const content = overlay.querySelector<HTMLElement>(".handbook-content")!;
   const close = overlay.querySelector<HTMLButtonElement>("#handbook-close")!;
+  const back = overlay.querySelector<HTMLButtonElement>("#handbook-back")!;
   const quickNav = overlay.querySelector<HTMLElement>(".handbook-quicknav")!;
   const quickNavToggle = overlay.querySelector<HTMLButtonElement>(".handbook-quicknav-toggle")!;
   const quickNavMenu = overlay.querySelector<HTMLElement>(".handbook-quicknav-menu")!;
   const quickNavLinks = overlay.querySelector<HTMLElement>(".handbook-quicknav-links")!;
-  const pageButtons = Array.from(
-    overlay.querySelectorAll<HTMLButtonElement>("[data-handbook-page]"),
-  );
-  let activePageId = PAGES[0]!.id;
+  const pageButtons = Array.from(overlay.querySelectorAll<HTMLButtonElement>("[data-handbook-page]"));
+  let activeRoute: HandbookRoute = { kind: "page", id: PAGES[0]!.id };
+  let history: HandbookRoute[] = [];
 
   const setQuickNavOpen = (open: boolean) => {
     quickNavMenu.hidden = !open;
     quickNavToggle.setAttribute("aria-expanded", String(open));
   };
 
-  const renderPage = (pageId: string) => {
-    const page = PAGES.find((candidate) => candidate.id === pageId) ?? PAGES[0]!;
-    activePageId = page.id;
-    content.innerHTML = renderHandbookMarkdown(page.content);
-    const sections = getHandbookSections(page.content);
+  const dynamicSections = (): HandbookSection[] =>
+    Array.from(content.querySelectorAll<HTMLElement>("h2[id]")).map((heading) => ({
+      id: heading.id,
+      title: heading.textContent?.trim() ?? "",
+    }));
+
+  const renderRoute = (route: HandbookRoute, pushHistory = true) => {
+    if (pushHistory && (
+      activeRoute.kind !== route.kind ||
+      activeRoute.id !== route.id
+    )) history.push(activeRoute);
+    activeRoute = route;
+
+    if (route.kind === "good") content.innerHTML = renderGoodArticle(route.id);
+    else if (route.kind === "building") content.innerHTML = renderBuildingArticle(route.id);
+    else {
+      const page = PAGES.find((candidate) => candidate.id === route.id) ?? PAGES[0]!;
+      content.innerHTML = page.render ? page.render() : renderHandbookMarkdown(page.content ?? "");
+      activeRoute = { kind: "page", id: page.id };
+    }
+
+    const sections = activeRoute.kind === "page"
+      ? (() => {
+          const page = PAGES.find((candidate) => candidate.id === activeRoute.id);
+          return page?.content ? getHandbookSections(page.content) : dynamicSections();
+        })()
+      : dynamicSections();
+
     quickNavLinks.innerHTML = sections
-      .map(
-        (section) =>
-          `<button type="button" data-handbook-section="${section.id}">${escapeHtml(section.title)}</button>`,
-      )
+      .map((section) => `<button type="button" data-handbook-section="${section.id}">${escapeHtml(section.title)}</button>`)
       .join("");
     quickNav.hidden = sections.length === 0;
     setQuickNavOpen(false);
+    back.hidden = history.length === 0;
+
     for (const button of pageButtons)
-      button.setAttribute("aria-pressed", String(button.dataset.handbookPage === page.id));
+      button.setAttribute(
+        "aria-pressed",
+        String(activeRoute.kind === "page" && button.dataset.handbookPage === activeRoute.id),
+      );
     content.scrollTop = 0;
   };
 
@@ -207,40 +244,64 @@ export function mountHandbook(): void {
       const buildPanel = document.querySelector<HTMLElement>("#build-menu-panel");
       if (buildPanel && !buildPanel.hidden)
         document.querySelector<HTMLButtonElement>("#build-menu-close")?.click();
-      renderPage(activePageId);
+      renderRoute(activeRoute, false);
       requestAnimationFrame(() => content.focus({ preventScroll: true }));
     }
   };
 
+  const openTarget = (target: HandbookTarget) => {
+    setOpen(true);
+    renderRoute(target);
+  };
+
   toggle.addEventListener("click", () => setOpen(overlay.hidden));
   close.addEventListener("click", () => setOpen(false));
-  quickNavToggle.addEventListener("click", () => {
-    setQuickNavOpen(quickNavMenu.hidden);
+  back.addEventListener("click", () => {
+    const route = history.pop();
+    if (route) renderRoute(route, false);
   });
-  overlay.addEventListener("click", (event) => {
-    if (event.target === overlay) setOpen(false);
+  quickNavToggle.addEventListener("click", () => setQuickNavOpen(quickNavMenu.hidden));
 
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      setOpen(false);
+      return;
+    }
     const target = event.target as HTMLElement;
     const pageButton = target.closest<HTMLButtonElement>("[data-handbook-page]");
     if (pageButton?.dataset.handbookPage) {
-      renderPage(pageButton.dataset.handbookPage);
+      renderRoute({ kind: "page", id: pageButton.dataset.handbookPage });
       return;
     }
-
     const sectionButton = target.closest<HTMLButtonElement>("[data-handbook-section]");
     if (sectionButton?.dataset.handbookSection) {
       const heading = content.querySelector<HTMLElement>(`#${sectionButton.dataset.handbookSection}`);
-      if (heading) {
-        content.scrollTo({
-          top: Math.max(0, heading.offsetTop - 12),
-          behavior: "smooth",
-        });
-      }
+      if (heading) content.scrollTo({ top: Math.max(0, heading.offsetTop - 12), behavior: "smooth" });
       setQuickNavOpen(false);
       return;
     }
-
     if (!target.closest(".handbook-quicknav")) setQuickNavOpen(false);
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    const goodLink = target.closest<HTMLElement>("[data-wiki-good]");
+    if (goodLink?.dataset.wikiGood) {
+      event.preventDefault();
+      event.stopPropagation();
+      openTarget({ kind: "good", id: goodLink.dataset.wikiGood as Good });
+      return;
+    }
+    const buildingLink = target.closest<HTMLElement>("[data-wiki-building]");
+    if (buildingLink?.dataset.wikiBuilding) {
+      event.preventDefault();
+      event.stopPropagation();
+      openTarget({ kind: "building", id: buildingLink.dataset.wikiBuilding as WikiBuildingKind });
+    }
+  });
+
+  window.addEventListener(HANDBOOK_OPEN_EVENT, (event) => {
+    openTarget((event as CustomEvent<HandbookTarget>).detail);
   });
   document.querySelector<HTMLButtonElement>("#build-menu-toggle")?.addEventListener("click", () => {
     if (!overlay.hidden) setOpen(false);
@@ -256,5 +317,5 @@ export function mountHandbook(): void {
     setOpen(false);
   });
 
-  renderPage(activePageId);
+  renderRoute(activeRoute, false);
 }

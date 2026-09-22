@@ -162,6 +162,12 @@ const BUILDING_LABELS: Record<PlaceableBuildingKind, string> = {
   school: "Schule",
 };
 
+const RESOURCE_GOOD_NODES: Partial<Record<string, "wood" | "clay" | "rubble">> = {
+  wood: "wood",
+  clay: "clay",
+  stone: "rubble",
+};
+
 const NODE_WIDTH = 210;
 const NODE_HEIGHT = 58;
 const CANVAS_WIDTH = 2320;
@@ -178,12 +184,21 @@ const edgeMarkup = (): string => EDGES.map((edge) => {
   return `<path d="M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}" data-tech-to="${edge.to}" ${edge.dashed ? 'class="tech-tree-edge dashed"' : 'class="tech-tree-edge"'} />`;
 }).join("");
 
-const nodeMarkup = (): string => NODES.map((node) => `
-  <div class="tech-tree-node ${node.kind}" style="left:${node.x}px;top:${node.y}px" data-node="${node.id}">
-    <strong>${node.label}</strong>
-    ${node.subtitle ? `<span class="tech-tree-subtitle">${node.subtitle}</span>` : ""}
-    <span class="tech-tree-status"></span>
-  </div>`).join("");
+const nodeMarkup = (): string => NODES.map((node) => {
+  const building = BUILDING_NODES[node.id];
+  const good = RESOURCE_GOOD_NODES[node.id];
+  const label = building
+    ? `<button type="button" class="tech-tree-wiki-link wiki-link" data-wiki-building="${building}">${node.label} <span aria-hidden="true">?</span></button>`
+    : good
+      ? `<button type="button" class="tech-tree-wiki-link wiki-link" data-wiki-good="${good}">${node.label} <span aria-hidden="true">?</span></button>`
+      : `<strong>${node.label}</strong>`;
+  return `
+    <div class="tech-tree-node ${node.kind}" style="left:${node.x}px;top:${node.y}px" data-node="${node.id}">
+      ${label}
+      ${node.subtitle ? `<span class="tech-tree-subtitle">${node.subtitle}</span>` : ""}
+      <span class="tech-tree-status"></span>
+    </div>`;
+}).join("");
 
 const legendMarkup = (): string => `
   <aside class="technology-tree-legend" aria-label="Legende">

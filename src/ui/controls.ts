@@ -164,7 +164,10 @@ export function mountControls(w: World, renderMap: () => void): void {
                   : b.kind === "livestockBreeder" ? "Viehzüchter"
                     : "Arbeiter";
   const buildingHeading = (b: Building) => `${buildingIcon(b.kind)}<span>${b.name}</span>`;
-  const goodLabel = (good: Good) => `<span class="good-label"><span aria-hidden="true">${GOOD_ICONS[good]}</span><span>${GOODS[good]}</span></span>`;
+  const buildingWikiButton = (b: Building) => b.kind === "field"
+    ? ""
+    : `<button type="button" class="selection-wiki-link wiki-link" data-wiki-building="${b.kind}" aria-label="Wiki: ${b.name}">?</button>`;
+  const goodLabel = (good: Good) => `<button type="button" class="good-label wiki-link" data-wiki-good="${good}"><span aria-hidden="true">${GOOD_ICONS[good]}</span><span>${GOODS[good]}</span></button>`;
   const personIcon = (personId: number) => {
     const p = w.people.find((candidate) => candidate.id === personId);
     if (!p) return "👤";
@@ -458,7 +461,7 @@ export function mountControls(w: World, renderMap: () => void): void {
 
     selectionPanel.hidden = false;
     if (b.kind === "hq") {
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Sammelpunkt. Berufe und Arbeitsplätze werden direkt an einzelnen Bewohnern zugewiesen.</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> ohne Beruf</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><div class="building-staff">${staffSection(b, "carrier", b.carriers)}</div><p class="status" data-field="status"></p>`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><div class="selection-title-actions">${buildingWikiButton(b)}<button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div></div><p class="recipe">Sammelpunkt. Berufe und Arbeitsplätze werden direkt an einzelnen Bewohnern zugewiesen.</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> ohne Beruf</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><div class="building-staff">${staffSection(b, "carrier", b.carriers)}</div><p class="status" data-field="status"></p>`;
       updateSelectionLiveState();
       return;
     }
@@ -471,7 +474,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       const materials = (Object.keys(b.construction!.required) as Good[])
         .map((good) => `<div><span>${goodLabel(good)}</span><strong data-field="construction-${good}"></strong></div>`)
         .join("");
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>BAUSTELLE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Bauarbeiter werden automatisch aus dem globalen Pool zugewiesen. Erfahrung erhöht den persönlichen Baufortschritt bis auf das Doppelte.</p><div class="inventory"><div><span>Bauarbeiter</span><strong data-field="builder-count"></strong></div>${materials}<div><span>Baufortschritt</span><strong data-field="construction-progress"></strong></div></div><p class="status" data-field="status"></p>${demolish}`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>BAUSTELLE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><div class="selection-title-actions">${buildingWikiButton(b)}<button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div></div><p class="recipe">Bauarbeiter werden automatisch aus dem globalen Pool zugewiesen. Erfahrung erhöht den persönlichen Baufortschritt bis auf das Doppelte.</p><div class="inventory"><div><span>Bauarbeiter</span><strong data-field="builder-count"></strong></div>${materials}<div><span>Baufortschritt</span><strong data-field="construction-progress"></strong></div></div><p class="status" data-field="status"></p>${demolish}`;
       updateSelectionLiveState();
       return;
     }
@@ -486,11 +489,11 @@ export function mountControls(w: World, renderMap: () => void): void {
         : b.kind === "farm"
           ? `Ein Farmer bewirtschaftet bis zu ${CONFIG.farmMaxFields} zufällige Acker im Radius ${CONFIG.farmFieldRadius}. Säen und Ernten dauern je 10 s; nach der Ernte trägt der Farmer den Weizen zurück zur Farm.`
           : b.kind === "well"
-            ? `${GOOD_ICONS.water} Unerschöpfliche Wasserquelle ohne zugewiesenen Arbeiter`
+            ? `${goodLabel("water")} · Unerschöpfliche Wasserquelle ohne zugewiesenen Arbeiter`
             : b.kind === "livestockBreeder"
-              ? `${GOOD_ICONS.wheat} 4 Weizen + ${GOOD_ICONS.water} 4 Wasser + zwei ausgewachsene Tiere → Jungtier`
+              ? `4 × ${goodLabel("wheat")} + 4 × ${goodLabel("water")} + zwei ausgewachsene Tiere → Jungtier`
               : b.recipe?.output
-                ? `${recipeInputs.map(([good, amount]) => `${GOOD_ICONS[good]} ${amount} ${GOODS[good]}`).join(" + ")} → ${GOOD_ICONS[b.recipe.output]} ${b.recipe.outputAmount ?? 1} ${GOODS[b.recipe.output]}`
+                ? `${recipeInputs.map(([good, amount]) => `${amount} × ${goodLabel(good)}`).join(" + ")} → ${b.recipe.outputAmount ?? 1} × ${goodLabel(b.recipe.output)}`
                 : "Produktion";
     const inventory = b.kind === "warehouse"
         ? `${(Object.keys(GOODS) as Good[]).map((good) => `<div><span>${goodLabel(good)}</span><strong data-field="warehouse-${good}"></strong></div>`).join("")}`
@@ -502,7 +505,7 @@ export function mountControls(w: World, renderMap: () => void): void {
     const merchantStaff = b.kind === "warehouse"
       ? staffSection(b, "merchant", b.merchants ?? 0)
       : "";
-    selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">${recipe}</p>${recipeControls(b)}<div class="building-staff">${staffSection(b, "worker", b.workers)}${staffSection(b, "carrier", b.carriers)}${merchantStaff}</div><div class="inventory">${inventory}</div>${merchantControls(b)}${upgradeControls(b)}<p class="status" data-field="status"></p>${demolish}`;
+    selectionPanel.innerHTML = `<div class="selection-title"><div><small>GEBÄUDE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><div class="selection-title-actions">${buildingWikiButton(b)}<button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div></div><p class="recipe">${recipe}</p>${recipeControls(b)}<div class="building-staff">${staffSection(b, "worker", b.workers)}${staffSection(b, "carrier", b.carriers)}${merchantStaff}</div><div class="inventory">${inventory}</div>${merchantControls(b)}${upgradeControls(b)}<p class="status" data-field="status"></p>${demolish}`;
     updateSelectionLiveState();
   }
 

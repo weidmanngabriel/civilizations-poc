@@ -957,7 +957,7 @@ function assignWaitingExtractors(w: World): void {
   }
 }
 
-const buildingDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | "position" | "baseTerrain"> => {
+export const buildingKindDefinition = (kind: BuildableBuildingKind): Omit<Building, "id" | "position" | "baseTerrain"> => {
   if (kind === "sawmill")
     return {
       kind,
@@ -1131,7 +1131,7 @@ export function applyBuildingKindDefinition(
   building: Building,
   kind: BuildableBuildingKind,
 ): void {
-  Object.assign(building, buildingDefinition(kind));
+  Object.assign(building, buildingKindDefinition(kind));
 }
 
 export function setBuildingRecipe(
@@ -1161,7 +1161,7 @@ export function buildAt(
   const baseTerrain = tile.terrain;
   const number = w.nextBuildingId++;
   const b: Building = {
-    ...buildingDefinition(kind),
+    ...buildingKindDefinition(kind),
     id: `${kind}-${number}`,
     position: { q: tile.q, r: tile.r },
     baseTerrain,

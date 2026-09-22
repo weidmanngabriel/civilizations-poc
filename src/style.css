@@ -333,3 +333,31 @@ h3 { margin: 0; font-size: 17px; font-weight: 600; }
     min-width: 0;
   }
 }
+
+.wiki-link {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+.good-label.wiki-link {
+  min-width: 0;
+  min-height: 26px;
+  padding: 2px 5px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+.good-label.wiki-link:hover:not(:disabled) { background: rgba(40, 75, 55, .08); }
+.selection-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.selection-wiki-link {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  font-weight: 900;
+}
