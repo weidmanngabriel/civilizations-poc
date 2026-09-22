@@ -2,30 +2,11 @@ import type { Good, World } from "../simulation/model";
 import { CONFIG } from "../simulation/scenario";
 import { storageGoodStock } from "../simulation/equipment";
 import { GOOD_ICONS } from "../icons";
+import { GOODS } from "../simulation/simulation";
 
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
 const TILE_SELECTED_EVENT = "poc-tile-selected";
 const SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
-const GOODS: Record<Good, string> = {
-  wood: "Holz",
-  plank: "Bretter",
-  woodenTool: "Holzwerkzeuge",
-  wheat: "Weizen",
-  flour: "Mehl",
-  water: "Wasser",
-  bread: "Brot",
-  fish: "Fisch",
-  meat: "Fleisch",
-  leather: "Leder",
-  wool: "Wolle",
-  shoes: "Schuhe",
-  clay: "Lehm",
-  rubble: "Bruchstein",
-  brick: "Backstein",
-  stoneBlock: "Steinquader",
-  roofTile: "Dachziegel",
-  marble: "Marmor",
-};
 const ALL_GOODS = Object.keys(GOODS) as Good[];
 
 export function installHqStoragePanel(world: World): void {
@@ -80,7 +61,7 @@ export function installHqStoragePanel(world: World): void {
     if (!hqSelected || panel.hidden) return;
     if (!panel.querySelector("[data-hq-storage-addon]")) {
       const inventory = ALL_GOODS.map(
-        (good) => `<div><span><span class="good-label"><span aria-hidden="true">${GOOD_ICONS[good]}</span><span>${GOODS[good]}</span></span></span><strong data-hq-good="${good}"></strong></div>`,
+        (good) => `<div><span><button type="button" class="good-label wiki-link" data-wiki-good="${good}"><span aria-hidden="true">${GOOD_ICONS[good]}</span><span>${GOODS[good]}</span></button></span><strong data-hq-good="${good}"></strong></div>`,
       ).join("");
       panel.insertAdjacentHTML(
         "beforeend",
