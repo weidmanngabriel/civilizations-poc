@@ -387,7 +387,9 @@ export const renderAnimalArticle = (kind: AnimalKind): string => {
 };
 
 export const renderProfessionArticle = (profession: Profession): string => {
-  const workplaces = sortedBuildings(PROFESSION_BUILDINGS[profession] ?? []);
+  const workplaces = sortedBuildings(
+    WIKI_BUILDINGS.filter((kind) => buildingProfessions(kind).includes(profession)),
+  );
   const requirement = PROFESSION_XP_REQUIREMENTS[profession];
   const unlocks = professionUnlockTargets(profession);
   const hasUnlocks = unlocks.professions.length > 0 || unlocks.buildings.length > 0;
