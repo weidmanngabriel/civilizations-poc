@@ -184,6 +184,7 @@ export function mountPersonContextMenu(world: World): void {
     const professions = (Object.entries(PROFESSION_LABELS) as [Profession, string][])
       .filter(([profession]) =>
         profession !== current &&
+        !canLearnProfession(person, profession) &&
         educationTeacherCandidates(world, person.id, profession).length > 0
       )
       .sort((a, b) => a[1].localeCompare(b[1], "de"));
