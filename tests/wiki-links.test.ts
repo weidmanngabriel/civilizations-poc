@@ -53,6 +53,25 @@ test("good articles link producers and consumers from simulation rules", () => {
   assert.match(article, /data-wiki-building="bakery"/);
 });
 
+test("special equipment goods explain their gameplay effect", () => {
+  const tool = renderGoodArticle("woodenTool");
+  assert.match(tool, /Effekt/);
+  assert.match(tool, /arbeiten etwas schneller/);
+
+  const shoes = renderGoodArticle("shoes");
+  assert.match(shoes, /Effekt/);
+  assert.match(shoes, /laufen etwas schneller/);
+
+  const clay = renderGoodArticle("clay");
+  assert.doesNotMatch(clay, />Effekt<\/h2>/);
+});
+
+test("professions without experience requirements are documented as directly available only", () => {
+  const hunter = renderProfessionArticle("hunter");
+  assert.match(hunter, /Keine Erfahrungs-Voraussetzung\. Der Beruf kann direkt gewählt werden\./);
+  assert.doesNotMatch(hunter, /Keine Erfahrungs-Voraussetzung[^<]*Schule/);
+});
+
 test("good articles show production recipes and non-building sources", () => {
   const shoes = renderGoodArticle("shoes");
   assert.match(shoes, /Rezept/);
