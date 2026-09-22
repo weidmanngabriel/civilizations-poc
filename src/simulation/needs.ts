@@ -191,6 +191,8 @@ const foodCandidate = (
 };
 
 const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
+  if (person.educationTask)
+    return world.buildings.find((building) => building.id === person.educationTask!.schoolId)?.position;
   if (person.farmTask) return person.farmTask.target;
   if (person.trip) {
     if (!person.trip.picked && person.trip.sourcePosition) return person.trip.sourcePosition;
