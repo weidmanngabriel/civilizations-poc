@@ -22,6 +22,7 @@ import {
   upgradePlacementBlockers,
 } from "../simulation/buildingPlacement";
 import { HEX_RADIUS, nearestTileAtWorldPoint, pixel } from "./mapGeometry";
+import { DESKTOP_TAP_MAX_DISTANCE, isWithinTapDistance } from "./mapInputGestures";
 import {
   WAYPOST_MIN_DISTANCE,
   WAYPOST_ORIENTATION_RADIUS,
@@ -40,10 +41,8 @@ const MIN_FOREST_ALPHA = 0.35;
 const MIN_CAMERA_ZOOM = 0.7;
 const MAX_CAMERA_ZOOM = 10;
 const WHEEL_ZOOM_SENSITIVITY = 0.0015;
-const TAP_MAX_DISTANCE = 8;
 const TARGET_MODE_DIM_ALPHA = 0.22;
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
-const TILE_SELECTED_EVENT = "poc-tile-selected";
 const BUILDING_SELECTION_REQUESTED_EVENT = "poc-building-selection-requested";
 const SELECTION_CLEARED_EVENT = "poc-building-selection-cleared";
 const MERCHANT_TARGET_MODE_EVENT = "poc-merchant-target-mode";
@@ -357,14 +356,7 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    const tileCandidate = this.nearestTileAtScreenPoint(screenX, screenY);
-    if (!tileCandidate) return;
-    this.selectedBuildingId = undefined;
-    this.selectedTile = { q: tileCandidate.q, r: tileCandidate.r };
-    this.renderWorld();
-    window.dispatchEvent(new CustomEvent(TILE_SELECTED_EVENT, {
-      detail: { position: this.selectedTile },
-    }));
+    window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
   }
 
   private isTouch(pointer: Phaser.Input.Pointer): boolean {
@@ -444,7 +436,7 @@ export class MainScene extends Phaser.Scene {
       if (
         start &&
         wasSinglePointer &&
-        Phaser.Math.Distance.Between(start.x, start.y, pointer.x, pointer.y) <= TAP_MAX_DISTANCE
+        isWithinTapDistance(start, { x: pointer.x, y: pointer.y }, DESKTOP_TAP_MAX_DISTANCE)
       ) {
         this.selectAtScreenPoint(pointer.x, pointer.y);
       }
