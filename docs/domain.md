@@ -23,3 +23,15 @@ This file is the primary location for verified domain terms, domain rules, invar
 - Nach vollständiger Materialanlieferung benötigt ein Palisadensegment genau eine Simulationssekunde Bauarbeit.
 - Bauarbeiter und Materiallieferung bedienen Palisaden von einer erreichbaren Nachbarzelle; die Seite ist nicht festgelegt und kann je nach Erreichbarkeit wechseln.
 - Die blaue Flagge an einer unfertigen Palisade ist eine abgeleitete Anzeige einer bestehenden Bauarbeiter-Zuweisung und kein eigener Simulationszustand.
+
+
+## Schule und Ausbildung
+
+- Eine Schule kostet 4 Holz, 2 Backsteine, 2 Steinblöcke und 2 Dachziegel.
+- Ein Unterricht verbindet genau einen Lehrer und einen Schüler mit genau einer fertigen Schule und einem Zielberuf.
+- Ein Lehrer darf höchstens an einem aktiven Unterricht beteiligt sein.
+- Unterricht beginnt nur bei Anwesenheit beider Beteiligten an der Schule und benötigt 60 simulierte Sekunden Anwesenheitszeit.
+- Essen oder Schlafen unterbricht den Unterricht ohne Verlust des bisherigen Unterrichtsfortschritts.
+- Während aktivem Unterricht gelten Hunger- und Schlafverbrauch wie bei normaler Arbeit.
+- Erfolgreiche Ausbildung verleiht dem Schüler die Berechtigung zum Zielberuf, aber keine praktische Erfahrung in diesem Beruf.
+- Nach erfolgreichem Unterricht wird der Lehrer nach Möglichkeit zu seinem vorherigen Arbeitsplatz zurückgeführt.
