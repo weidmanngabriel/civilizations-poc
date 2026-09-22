@@ -98,9 +98,15 @@ test("building articles expose linked construction, recipes and concise help", (
   assert.match(bakery, /data-wiki-good="flour"/);
   assert.match(bakery, /data-wiki-good="water"/);
   assert.match(bakery, /data-wiki-good="bread"/);
+  assert.match(bakery, /data-wiki-profession="baker"/);
+  assert.match(bakery, /data-wiki-profession="carrier"/);
 
   const pottery2 = renderBuildingArticle("pottery2");
   assert.equal((pottery2.match(/wiki-recipe-row/g) ?? []).length, 2);
+
+  const warehouse = renderBuildingArticle("warehouse");
+  assert.match(warehouse, /data-wiki-profession="carrier"/);
+  assert.match(warehouse, /data-wiki-profession="merchant"/);
 
   const school = renderBuildingArticle("school");
   assert.match(school, /So funktioniert es/);
