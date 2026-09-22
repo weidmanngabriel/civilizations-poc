@@ -1,5 +1,6 @@
 import type { PlaceableBuildingKind, Profession, World } from "./model";
 import { professionExperience } from "./experience";
+import { isTechnologyCheatEnabled } from "./debugCheats";
 import {
   BUILDING_CONSTRUCTION_REQUIREMENTS,
   requiredProductionBuildings,
@@ -81,6 +82,7 @@ function unlockRequirementsMet(world: World, technology: TechnologyId): boolean 
  * The player-facing scenario supplies an explicit unlock list and therefore uses progression.
  */
 export function isTechnologyUnlocked(world: World, technology: TechnologyId): boolean {
+  if (isTechnologyCheatEnabled(world)) return true;
   if (!world.unlockedTechnologies) return true;
   return world.unlockedTechnologies.includes(technology);
 }
