@@ -67,3 +67,8 @@ Fischer arbeiten ohne eigenes Gebäude an der Wasserkante. Jeder Fischer besitzt
 Mit zunehmender Berufserfahrung wird ein Fischer zuverlässiger. Erfahrung bekommt er nur für einen erfolgreichen Fang. Jeder vollständig eingeholte Angelversuch beendet eine Arbeitsaktion. Ist der Fischer danach hungrig, geht er zuerst essen – auch nach einem Fehlfang. Einen bereits gefangenen Fisch behält er dabei bei sich und trägt ihn nach dem Essen zur Arbeitsflagge, wo er ihn als lose Ware ablegt. Danach kann der Fisch wie andere Bodenware abgeholt und eingelagert werden.
 
 Wenn ein Fischer an der falschen Stelle arbeitet oder kein Wasser erreicht, versetze seine Arbeitsflagge näher an eine gut zugängliche Uferzone.
+
+
+## Details einer Person
+
+Die Personenansicht hält die häufig benötigten Angaben kompakt. Über **Details** klappst du Arbeitsplatz, Wohnung, Erfahrung, getragene Ware und Ausrüstung auf. Arbeitsplatz und Wohnung springen direkt zum konkreten Gebäude. Eine angezeigte getragene Ware kann ihre Warenseite im Wiki öffnen.
