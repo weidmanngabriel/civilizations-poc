@@ -8,6 +8,17 @@ export const personProfessionLabel = (world: World, person: Person): string => {
 };
 
 export const personActivityLabel = (person: Person): string => {
+  if (person.educationTask) {
+    if (person.hungerState || person.sleepState) {
+      // Need labels below take precedence while a lesson is paused.
+    } else if (person.educationTask.active) {
+      return person.educationTask.role === "teacher" ? "Unterrichtet" : "Lernt";
+    } else {
+      return person.path.length
+        ? (person.educationTask.role === "teacher" ? "Geht zur Schule" : "Geht zur Schule")
+        : (person.educationTask.role === "teacher" ? "Wartet auf Schüler" : "Wartet auf Lehrer");
+    }
+  }
   if (person.equipmentTask)
     return person.equipmentTask.slot === "tool" ? "Holt Werkzeug" : "Holt Schuhe";
   if (person.hungerState) {
