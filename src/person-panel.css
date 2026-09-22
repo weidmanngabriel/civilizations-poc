@@ -702,3 +702,35 @@ main.person-staff-picker-open::after {
     grid-template-columns: 1fr;
   }
 }
+
+.person-details {
+  margin-top: 8px;
+  border-top: 1px solid rgb(255 255 255 / 9%);
+}
+.person-details summary {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+.person-details .person-facts { margin-top: 0; }
+.person-fact-link {
+  min-width: 0;
+  min-height: 28px;
+  padding: 2px 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  text-align: right;
+}
+.person-fact-link:hover:not(:disabled) { background: rgb(255 255 255 / 7%); }
+@media (max-width: 700px) {
+  .person-details[open] {
+    max-height: 42vh;
+    overflow: auto;
+  }
+}
