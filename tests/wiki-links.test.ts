@@ -34,6 +34,7 @@ test("wiki covers all current managed building types plus palisade", () => {
       "stonemason2",
       "tailor",
       "livestockBreeder",
+      "school",
       "warehouse",
       "house",
       "palisade",
