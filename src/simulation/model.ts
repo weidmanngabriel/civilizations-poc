@@ -284,6 +284,8 @@ export interface Person {
   idleTarget?: Hex;
   builder?: boolean;
   experience?: Partial<Record<Profession, number>>;
+  /** Professions permanently learned through school training. */
+  learnedProfessions?: Profession[];
   experienceActionProgress?: Partial<Record<Profession, number>>;
   /** Temporary school lesson. Teacher and student remain physically present while active. */
   educationTask?: EducationTask;
