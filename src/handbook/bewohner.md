@@ -68,7 +68,6 @@ Mit zunehmender Berufserfahrung wird ein Fischer zuverlässiger. Erfahrung bekom
 
 Wenn ein Fischer an der falschen Stelle arbeitet oder kein Wasser erreicht, versetze seine Arbeitsflagge näher an eine gut zugängliche Uferzone.
 
-
 ## Details einer Person
 
 Die Personenansicht hält die häufig benötigten Angaben kompakt. Über **Details** klappst du Arbeitsplatz, Wohnung, Erfahrung, getragene Ware und Ausrüstung auf. Arbeitsplatz und Wohnung springen direkt zum konkreten Gebäude. Eine angezeigte getragene Ware kann ihre Warenseite im Wiki öffnen.
