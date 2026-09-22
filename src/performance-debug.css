@@ -150,3 +150,33 @@
   .perf-section-title { align-items: flex-start; flex-direction: column; gap: 2px; }
   .perf-section-title small { text-align: left; }
 }
+
+.debug-cheat-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0 0 14px;
+  padding: 10px;
+  border: 1px solid #daddd0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.52);
+}
+.debug-cheat-controls > strong {
+  font-size: 11px;
+}
+.debug-cheat-controls > small {
+  color: #65715f;
+  font-size: 9px;
+}
+.debug-cheat-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.debug-cheat-buttons button {
+  min-height: 32px;
+}
+.debug-cheat-buttons button[aria-pressed="true"] {
+  font-weight: 700;
+  box-shadow: inset 0 0 0 2px currentColor;
+}
