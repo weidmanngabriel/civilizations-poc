@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildWithFootprint,
+  startBuildingUpgrade,
   validBuildingAnchors,
 } from "../src/simulation/buildingPlacement";
 import {
@@ -60,4 +61,26 @@ test("material cheat pre-delivers wood for newly placed palisades", () => {
   assert.ok(palisade?.construction);
   assert.deepEqual(palisade.construction.delivered, { wood: 1 });
   assert.equal(palisade.construction.complete, false);
+});
+
+test("material cheat pre-delivers materials for newly started upgrades", () => {
+  const world = createDefaultGameWorld();
+  setTechnologyCheatEnabled(world, true);
+  setMaterialCheatEnabled(world, true);
+
+  const targetAnchors = new Set(validBuildingAnchors(world, "pottery2").map((position) => `${position.q},${position.r}`));
+  const anchor = validBuildingAnchors(world, "pottery")
+    .find((position) => targetAnchors.has(`${position.q},${position.r}`));
+  assert.ok(anchor);
+
+  const building = buildWithFootprint(world, anchor, "pottery");
+  assert.ok(building);
+  assert.ok(building.construction);
+  building.construction.complete = true;
+  building.construction.progress = building.construction.duration;
+
+  assert.equal(startBuildingUpgrade(world, building), true);
+  assert.ok(building.construction);
+  assert.deepEqual(building.construction.delivered, building.construction.required);
+  assert.equal(building.construction.complete, false);
 });
