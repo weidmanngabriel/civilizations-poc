@@ -15,6 +15,7 @@ export const BUILDING_CONSTRUCTION_REQUIREMENTS: Record<PlaceableBuildingKind, G
   stonemason2: { wood: 6, rubble: 2, stoneBlock: 2 },
   tailor: { wood: 4 },
   livestockBreeder: { wood: 4 },
+  school: { wood: 4, brick: 2, stoneBlock: 2, roofTile: 2 },
 };
 
 /** Construction goods that come directly from extraction and need no processing building. */
@@ -25,6 +26,7 @@ export const CONSTRUCTION_GOOD_PRODUCERS: Partial<Record<Good, PlaceableBuilding
   plank: "sawmill",
   brick: "pottery",
   stoneBlock: "stonemason",
+  roofTile: "pottery2",
 };
 
 export function requiredProductionBuildings(kind: PlaceableBuildingKind): PlaceableBuildingKind[] {

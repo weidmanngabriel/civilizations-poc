@@ -40,6 +40,7 @@ import { measureResourcePerformance } from "../debug/resourcePerformance";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
 import { advanceWildlife, captureNearbyLivestock } from "./wildlife";
 import { advanceLivestockBreeding } from "./livestockBreeding";
+import { advanceEducation } from "./education";
 import { advanceHunting } from "./hunting";
 import { resolveEquipmentPickups } from "./equipment";
 
@@ -365,6 +366,7 @@ export function tick(world: World): void {
   );
   syncManualMoveOrders(world);
   coreTick(world);
+  advanceEducation(world);
   performanceProfiler.profileFeature("production", () =>
     advanceLivestockBreeding(world),
   );

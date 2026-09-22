@@ -38,7 +38,9 @@ export type SavedActivity =
   | "extracting-resource"
   | "building"
   | "producing"
-  | "fishing";
+  | "fishing"
+  | "teaching"
+  | "learning";
 
 type SavedPerson = {
   id: string;
@@ -76,7 +78,8 @@ const cloneJson = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 export const currentActivity = (person: Person): SavedActivity => {
   if (person.sleepState) return "sleeping";
-  if (person.hungerState?.foodSource || person.hungerState?.foodBush) return "seeking-food";
+  if (person.hungerState?.foodSource || person.hungerState?.foodBush || person.hungerState?.foodLooseGood) return "seeking-food";
+  if (person.educationTask?.active) return person.educationTask.role === "teacher" ? "teaching" : "learning";
   if (person.trip) return person.trip.picked ? "transporting-good" : "picking-up-good";
   if (person.outdoorCarry) return "transporting-good";
   if (person.scoutWaypostTask) return person.path.length ? "moving" : "building";

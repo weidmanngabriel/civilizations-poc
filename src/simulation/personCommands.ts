@@ -99,6 +99,36 @@ const stopCurrentWork = (world: World, person: Person): boolean => {
 export const canChangePersonProfession = (person: Person): boolean =>
   !person.trip?.picked && !person.outdoorCarry;
 
+const applyProfessionFlags = (person: Person, profession: Profession | undefined): void => {
+  person.profession = profession;
+  if (profession === "woodcutter") person.woodcutter = true;
+  else if (profession === "fisher") person.fisher = true;
+  else if (profession === "hunter") person.hunter = true;
+  else if (profession === "clayDigger") person.extractor = "clay";
+  else if (profession === "stonecutter") person.extractor = "stone";
+  else if (profession === "builder") person.builder = true;
+};
+
+export function preparePersonForEducation(world: World, personId: number): boolean {
+  const person = world.people.find((candidate) => candidate.id === personId);
+  if (!person || person.educationTask || !canChangePersonProfession(person)) return false;
+  return stopCurrentWork(world, person);
+}
+
+export function setLearnedProfession(
+  world: World,
+  personId: number,
+  profession: Profession,
+): boolean {
+  const person = world.people.find((candidate) => candidate.id === personId);
+  if (!person || !canChangePersonProfession(person) || !stopCurrentWork(world, person)) return false;
+  const learned = (person.learnedProfessions ??= []);
+  if (!learned.includes(profession)) learned.push(profession);
+  applyProfessionFlags(person, profession);
+  syncWorkAreas(world);
+  return true;
+}
+
 export function setPersonProfession(
   world: World,
   personId: number,
@@ -112,13 +142,7 @@ export function setPersonProfession(
     !stopCurrentWork(world, person)
   ) return false;
 
-  person.profession = profession;
-  if (profession === "woodcutter") person.woodcutter = true;
-  else if (profession === "fisher") person.fisher = true;
-  else if (profession === "hunter") person.hunter = true;
-  else if (profession === "clayDigger") person.extractor = "clay";
-  else if (profession === "stonecutter") person.extractor = "stone";
-  else if (profession === "builder") person.builder = true;
+  applyProfessionFlags(person, profession);
 
   syncWorkAreas(world);
   return true;

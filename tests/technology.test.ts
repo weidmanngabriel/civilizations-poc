@@ -5,7 +5,7 @@ import type { Building, PlaceableBuildingKind, World } from "../src/simulation/m
 import { createDefaultGameWorld } from "../src/simulation/scenario";
 import { createTestWorld } from "./testWorld";
 import { tick } from "../src/simulation/simulation";
-import { requiredProductionBuildings } from "../src/simulation/constructionRules";
+import { BUILDING_CONSTRUCTION_REQUIREMENTS, requiredProductionBuildings } from "../src/simulation/constructionRules";
 import {
   IMPLEMENTED_TECHNOLOGIES,
   STARTING_TECHNOLOGIES,
@@ -140,4 +140,24 @@ test("neutral test worlds stay permissive for low-level simulation scenarios", (
   assert.equal(world.unlockedTechnologies, undefined);
   for (const technology of IMPLEMENTED_TECHNOLOGIES)
     assert.equal(isBuildingUnlocked(world, technology), true);
+});
+
+
+test("school uses advanced construction materials and unlocks only after their producers exist", () => {
+  assert.deepEqual(BUILDING_CONSTRUCTION_REQUIREMENTS.school, {
+    wood: 4,
+    brick: 2,
+    stoneBlock: 2,
+    roofTile: 2,
+  });
+
+  const world = createProgressionTestWorld();
+  addCompletedBuilding(world, "pottery");
+  addCompletedBuilding(world, "stonemason");
+  updateTechnologyUnlocks(world);
+  assert.equal(isBuildingUnlocked(world, "school"), false);
+
+  addCompletedBuilding(world, "pottery2");
+  updateTechnologyUnlocks(world);
+  assert.equal(isBuildingUnlocked(world, "school"), true);
 });

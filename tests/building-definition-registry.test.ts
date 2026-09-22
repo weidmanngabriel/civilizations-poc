@@ -102,6 +102,7 @@ test("placeholder asset slots stay inactive until replaced by a real editor expo
     "stonemason",
     "warehouse",
     "house",
+    "school",
   ] as const) {
     assert.equal(buildingDefinition(kind), undefined);
   }
