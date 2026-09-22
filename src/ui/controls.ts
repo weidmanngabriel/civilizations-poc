@@ -795,7 +795,12 @@ export function mountControls(w: World, renderMap: () => void): void {
       if (handbookWasRunning) stopAutoplay();
       return;
     }
-    if (handbookWasRunning && !isRunning()) startAutoplay();
+    if (
+      handbookWasRunning &&
+      !isRunning() &&
+      merchantTargetSelection === undefined &&
+      !buildPlacementKind
+    ) startAutoplay();
     handbookWasRunning = false;
   });
 
