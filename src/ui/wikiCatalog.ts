@@ -174,6 +174,21 @@ const PROFESSION_BUILDINGS: Partial<Record<Profession, WikiBuildingKind[]>> = {
   stockfarmer: ["livestockBreeder"],
 };
 
+const buildingProfessions = (kind: WikiBuildingKind): Profession[] => {
+  const professions = new Set<Profession>();
+  for (const [profession, workplaces] of Object.entries(PROFESSION_BUILDINGS) as [Profession, WikiBuildingKind[] | undefined][]) {
+    if (workplaces?.includes(kind)) professions.add(profession);
+  }
+  if (isBuildable(kind)) {
+    const definition = buildingKindDefinition(kind);
+    if (definition.carriers > 0) professions.add("carrier");
+    if (definition.merchants) professions.add("merchant");
+  } else if (kind === "hq") {
+    professions.add("carrier");
+  }
+  return [...professions].sort((a, b) => PROFESSION_LABELS[a].localeCompare(PROFESSION_LABELS[b], "de"));
+};
+
 const ANIMAL_DROPS: Record<AnimalKind, Good[]> = {
   hare: ["meat"],
   boar: ["meat", "leather"],
@@ -332,6 +347,7 @@ export const renderBuildingArticle = (kind: WikiBuildingKind): string => {
   else if (kind === "house") staffing = "Kein Produktionspersonal.";
   else if (kind === "palisade") staffing = "Kein Personal.";
 
+  const professions = buildingProfessions(kind);
   const upgrade = kind === "pottery" || kind === "stonemason" ? BUILDING_UPGRADE_RULES[kind] : undefined;
   const special = SPECIAL_BUILDING_HELP[kind];
 
@@ -346,6 +362,7 @@ export const renderBuildingArticle = (kind: WikiBuildingKind): string => {
     ${isBuildable(kind) ? renderRecipes(kind) : "<p>Keine Warenproduktion.</p>"}
     <h2 id="handbook-section-${special ? 4 : 3}">Personal</h2>
     <p>${staffing}</p>
+    ${professions.length ? `<div class="wiki-link-list">${professions.map(professionButton).join("")}</div>` : ""}
     ${upgrade ? `<h2 id="handbook-section-${special ? 5 : 4}">Ausbau</h2><p>Kann zu ${buildingButton(upgrade.to)} ausgebaut werden. Zusätzliche Materialien: ${amountLinks(upgrade.required)}</p>` : ""}
     <p class="wiki-overview-return"><button type="button" class="wiki-link" data-handbook-page="buildings">← Alle Gebäude</button></p>
   `;
@@ -370,7 +387,9 @@ export const renderAnimalArticle = (kind: AnimalKind): string => {
 };
 
 export const renderProfessionArticle = (profession: Profession): string => {
-  const workplaces = sortedBuildings(PROFESSION_BUILDINGS[profession] ?? []);
+  const workplaces = sortedBuildings(
+    WIKI_BUILDINGS.filter((kind) => buildingProfessions(kind).includes(profession)),
+  );
   const requirement = PROFESSION_XP_REQUIREMENTS[profession];
   const unlocks = professionUnlockTargets(profession);
   const hasUnlocks = unlocks.professions.length > 0 || unlocks.buildings.length > 0;

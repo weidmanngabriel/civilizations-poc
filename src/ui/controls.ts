@@ -50,6 +50,12 @@ import { confirmDialog } from "./modalDialog";
 import { buildingUpgradeRule } from "../simulation/buildingUpgradeRules";
 import { isBuildingUnlocked, maxProfessionExperience } from "../simulation/technology";
 import {
+  isMaterialCheatEnabled,
+  isTechnologyCheatEnabled,
+  setMaterialCheatEnabled,
+  setTechnologyCheatEnabled,
+} from "../simulation/debugCheats";
+import {
   createPalisadeSites,
   palisadeNewSegmentCount,
   palisadePlanningTileAvailable,
@@ -111,7 +117,7 @@ const escapeHtml = (value: string): string =>
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
-  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Farmen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span id="build-placement-copy"><b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div id="upgrade-preview-overlay" class="merchant-target-overlay" hidden><div><small>AUSBAUPRÜFUNG</small><strong>Blockaden für den Ausbau</strong><span id="upgrade-preview-summary"></span></div><button id="upgrade-preview-close">Zurück</button></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div><label class="custom-speed"><span>Frei</span><input id="custom-sim-speed" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" value="1.0" aria-label="Benutzerdefiniertes Simulationstempo"></label></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div id="people"></div></section></main>`;
+  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Farmen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span id="build-placement-copy"><b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div id="upgrade-preview-overlay" class="merchant-target-overlay" hidden><div><small>AUSBAUPRÜFUNG</small><strong>Blockaden für den Ausbau</strong><span id="upgrade-preview-summary"></span></div><button id="upgrade-preview-close">Zurück</button></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div><label class="custom-speed"><span>Frei</span><input id="custom-sim-speed" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" value="1.0" aria-label="Benutzerdefiniertes Simulationstempo"></label></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div class="debug-cheat-controls"><strong>Cheats</strong><div class="debug-cheat-buttons"><button type="button" data-debug-cheat="technologies" aria-pressed="false">Technologien: AUS</button><button type="button" data-debug-cheat="materials" aria-pressed="false">Materialien: AUS</button></div><small>Nur für die aktuelle Sitzung; bestehende Baustellen bleiben unverändert.</small></div><div id="people"></div></section></main>`;
 
   let autoplayFrame: number | undefined;
   let lastAutoplayFrame = 0;
@@ -144,6 +150,8 @@ export function mountControls(w: World, renderMap: () => void): void {
   const buildPlacementTitle = document.querySelector<HTMLElement>("#build-placement-title")!;
   const debugPanel = document.querySelector<HTMLElement>("#debug-panel")!;
   const debugToggle = document.querySelector<HTMLButtonElement>("#debug-toggle")!;
+  const technologyCheatButton = debugPanel.querySelector<HTMLButtonElement>('[data-debug-cheat="technologies"]')!;
+  const materialCheatButton = debugPanel.querySelector<HTMLButtonElement>('[data-debug-cheat="materials"]')!;
 
   const canRemovePopulation = () =>
     freePeople(w).some((p) => same(p.position, building(w, "hq").position));
@@ -656,10 +664,23 @@ export function mountControls(w: World, renderMap: () => void): void {
     autoplayFrame = window.requestAnimationFrame(frame);
   };
 
+  const refreshCheatButtons = (): void => {
+    const technologyEnabled = isTechnologyCheatEnabled(w);
+    technologyCheatButton.setAttribute("aria-pressed", String(technologyEnabled));
+    technologyCheatButton.textContent = `Technologien: ${technologyEnabled ? "AN" : "AUS"}`;
+
+    const materialsEnabled = isMaterialCheatEnabled(w);
+    materialCheatButton.setAttribute("aria-pressed", String(materialsEnabled));
+    materialCheatButton.textContent = `Materialien: ${materialsEnabled ? "AN" : "AUS"}`;
+  };
+
   const setDebugOpen = (open: boolean) => {
     debugPanel.hidden = !open;
     debugToggle.setAttribute("aria-pressed", String(open));
-    if (open) refreshPanels();
+    if (open) {
+      refreshCheatButtons();
+      refreshPanels();
+    }
   };
 
   const leaveBuildPlacementMode = () => {
@@ -825,6 +846,16 @@ export function mountControls(w: World, renderMap: () => void): void {
     if (event.key === "Enter") customSpeedInput.blur();
   });
   debugToggle.addEventListener("click", () => setDebugOpen(debugPanel.hidden));
+  technologyCheatButton.addEventListener("click", () => {
+    setTechnologyCheatEnabled(w, !isTechnologyCheatEnabled(w));
+    refreshCheatButtons();
+    renderSelectionPanel();
+    renderMap();
+  });
+  materialCheatButton.addEventListener("click", () => {
+    setMaterialCheatEnabled(w, !isMaterialCheatEnabled(w));
+    refreshCheatButtons();
+  });
   document.querySelector("#debug-close")!.addEventListener("click", () => setDebugOpen(false));
   merchantTargetCancel.addEventListener("click", leaveMerchantTargetMode);
   buildPlacementConfirm.addEventListener("click", confirmBuildPlacement);

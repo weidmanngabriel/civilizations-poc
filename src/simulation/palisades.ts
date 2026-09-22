@@ -1,5 +1,6 @@
 import type { Building, Hex, World } from "./model";
 import { CONFIG } from "./scenario";
+import { isMaterialCheatEnabled } from "./debugCheats";
 import { hexDistance, key, movementCost, neighbors, tileIndex, walkable } from "./hex";
 import { isWithinWaypostOrientation } from "./wayposts";
 
@@ -154,7 +155,7 @@ export function createPalisadeSites(world: World, path: readonly Hex[]): Buildin
       baseTerrain: tile.terrain === "road" ? "road" : "grass",
       construction: {
         required: { wood: 1 },
-        delivered: {},
+        delivered: isMaterialCheatEnabled(world) ? { wood: 1 } : {},
         duration: CONFIG.simulationHz,
         progress: 0,
         complete: false,

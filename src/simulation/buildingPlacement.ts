@@ -18,6 +18,7 @@ import { hexDistance, key, neighbors, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 import { applyBuildingKindDefinition, buildAt, notifyConstructionSiteAdded, removeBuilding } from "./simulation";
 import { isBuildingUnlocked } from "./technology";
+import { isMaterialCheatEnabled } from "./debugCheats";
 import { refinedCellCluster } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
 import { looseGoodStacks } from "./looseGoods";
@@ -411,7 +412,7 @@ export function startBuildingUpgrade(world: World, building: Building): boolean 
   const plan = constructionPlan(rule.required);
   building.construction = {
     required: { ...plan.required },
-    delivered: {},
+    delivered: isMaterialCheatEnabled(world) ? { ...plan.required } : {},
     duration: plan.duration,
     progress: 0,
     complete: false,
@@ -468,7 +469,7 @@ export function buildWithFootprint(
   const plan = CONSTRUCTION_PLANS[kind];
   created.construction = {
     required: { ...plan.required },
-    delivered: {},
+    delivered: isMaterialCheatEnabled(world) ? { ...plan.required } : {},
     duration: plan.duration,
     progress: 0,
     complete: false,
