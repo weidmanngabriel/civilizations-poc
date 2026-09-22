@@ -351,3 +351,34 @@
   gap: 6px;
 }
 .wiki-overview-return { margin-top: 28px !important; }
+
+.wiki-intro {
+  max-width: 720px;
+  margin-top: -2px !important;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.wiki-recipe-list {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+.wiki-recipe-row {
+  min-height: 36px;
+  padding: 7px 9px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 3%);
+}
+.person-profession-link {
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}

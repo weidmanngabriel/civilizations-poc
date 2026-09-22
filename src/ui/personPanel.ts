@@ -395,7 +395,9 @@ export function mountPersonPanel(world: World): void {
           <span class="person-context-toggle-icon" aria-hidden="true"></span><span>Aktionen</span>
         </button>
         <div class="person-inspector-identity">
-          <small>${escapeHtml(professionText)}</small>
+          ${profession
+            ? `<button type="button" class="person-profession-link wiki-link" data-wiki-profession="${profession}">${escapeHtml(professionText)}</button>`
+            : `<small>${escapeHtml(professionText)}</small>`}
           <strong>${escapeHtml(personName(person.id))}</strong>
         </div>
         <button class="person-inspector-close" type="button" data-person-action="close-inspector" aria-label="Person schließen">×</button>

@@ -1,6 +1,7 @@
-import type { Good, ManagedBuildingKind } from "../simulation/model";
+import type { AnimalKind, Good, ManagedBuildingKind, Profession } from "../simulation/model";
 
 export const HANDBOOK_OPEN_EVENT = "poc-handbook-open";
+export const HANDBOOK_VISIBILITY_EVENT = "poc-handbook-visibility";
 
 export type WikiBuildingKind = ManagedBuildingKind | "palisade";
 
@@ -27,13 +28,9 @@ export const BUILDING_WIKI_LABELS: Record<WikiBuildingKind, string> = {
 export type HandbookTarget =
   | { kind: "good"; id: Good }
   | { kind: "building"; id: WikiBuildingKind }
-  | { kind: "page"; id: "goods" | "buildings" };
-
-export const goodWikiButton = (good: Good, label: string): string =>
-  `<button type="button" class="wiki-link" data-wiki-good="${good}">${label}</button>`;
-
-export const buildingWikiButton = (kind: WikiBuildingKind, label: string): string =>
-  `<button type="button" class="wiki-link" data-wiki-building="${kind}">${label}</button>`;
+  | { kind: "animal"; id: AnimalKind }
+  | { kind: "profession"; id: Profession }
+  | { kind: "page"; id: "goods" | "buildings" | "animals" | "professions" };
 
 export const requestHandbookTarget = (target: HandbookTarget): void => {
   window.dispatchEvent(new CustomEvent<HandbookTarget>(HANDBOOK_OPEN_EVENT, { detail: target }));

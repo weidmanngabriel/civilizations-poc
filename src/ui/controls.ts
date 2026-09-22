@@ -71,6 +71,7 @@ const PERSON_SELECTION_REQUESTED_EVENT = "poc-person-selection-requested";
 const PERSON_STAFF_PICKER_REQUESTED_EVENT = "poc-person-staff-picker-requested";
 const WORLD_REPLACED_EVENT = "poc-world-replaced";
 const UPGRADE_PREVIEW_EVENT = "poc-upgrade-preview";
+const HANDBOOK_VISIBILITY_EVENT = "poc-handbook-visibility";
 
 type BuildingSelectedDetail = { id: BuildingId };
 type WaypostSelectedDetail = { id: WaypostId };
@@ -122,6 +123,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   let selectedTile: Hex | undefined;
   let merchantTargetSelection: number | undefined;
   let merchantSelectionWasRunning = false;
+  let handbookWasRunning = false;
   let buildPlacementKind: BuildableBuildingKind | "waypost" | "palisade" | undefined;
   let buildPlacementPosition: Hex | undefined;
   let palisadeStart: Hex | undefined;
@@ -785,6 +787,22 @@ export function mountControls(w: World, renderMap: () => void): void {
     }));
     renderSelectionPanel();
   };
+
+  window.addEventListener(HANDBOOK_VISIBILITY_EVENT, (event) => {
+    const open = Boolean((event as CustomEvent<{ open?: boolean }>).detail?.open);
+    if (open) {
+      handbookWasRunning = isRunning();
+      if (handbookWasRunning) stopAutoplay();
+      return;
+    }
+    if (
+      handbookWasRunning &&
+      !isRunning() &&
+      merchantTargetSelection === undefined &&
+      !buildPlacementKind
+    ) startAutoplay();
+    handbookWasRunning = false;
+  });
 
   autoplayButton.addEventListener("click", () => {
     if (!isRunning()) startAutoplay();

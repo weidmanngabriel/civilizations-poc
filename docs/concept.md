@@ -340,3 +340,12 @@ Das bestehende Handbuch ist zugleich die zentrale Wissensoberfläche. Es besitzt
 Im Spiel werden Wissensbegriffe dort verlinkt, wo sie bereits als UI-Information erscheinen. Im Baumenü bleiben Platzierung und Wiki ausdrücklich getrennte Aktionen: die normale Bauauswahl startet unverändert den Platzierungsmodus, während der Info-Button eines Gebäudes und die angezeigten Bauwaren das Wiki öffnen. Dasselbe gilt für Waren in Gebäudeinventaren und Produktionsinformationen sowie für passende Knoten im Technologiebaum. Natürliche Ressourcen und Warenobjekte direkt auf der Karte erhalten keine Wiki-Klickfläche, damit Karteninteraktion und Touch-Steuerung eindeutig bleiben.
 
 Ein konkretes Gebäude oder eine konkrete Person ist kein Wiki-Artikel. Klicks auf solche Laufzeitobjekte fokussieren weiterhin das Objekt in der Welt und öffnen dessen normalen Dialog. In der Personenansicht bleiben der aktuelle Zustand und die Bedürfnisse direkt sichtbar; Arbeitsplatz, Wohnung, Erfahrung, getragene Ware und Ausrüstung liegen im einklappbaren Bereich **Details**. Arbeitsplatz und Wohnung springen zum konkreten Gebäude, angezeigte Waren können ins Wiki führen.
+
+
+### Erweiterte Wiki-Kategorien
+
+Das Handbuch pausiert die Simulation, solange es geöffnet ist, und stellt beim Schließen den vorherigen Laufzustand wieder her. Neben Waren und Gebäuden besitzt es Übersichten und Detailseiten für alle aktuellen Tierarten und Berufe. Mehrfachlisten werden nach dem deutschen Anzeigenamen alphabetisch sortiert.
+
+Gebäudeseiten beginnen mit einem kurzen Einordnungstext. Besondere Gebäude können zusätzlich einen knappen Abschnitt **„So funktioniert es“** erhalten, der die wesentliche Bedienfolge beschreibt. Produktionsgebäude stellen jedes Rezept als eigene Zeile dar.
+
+Berufsseiten erklären Aufgabe, feste Arbeitsplätze und vorhandene Erfahrungs-Voraussetzungen und verlinken passende Gebäude beziehungsweise vorausgehende Berufe. Tierseiten zeigen Jagdbeute, relevante Berufe und bei Nutztieren die Viehzüchterei. Der aktuelle Beruf in der Personenansicht ist direkt mit seiner Berufsseite verlinkt.

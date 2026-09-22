@@ -32,3 +32,8 @@ Ein Viehzüchter braucht zwei ausgewachsene Tiere derselben Art sowie Weizen und
 
 Aktuell kann nur eine Viehzüchterei gebaut werden. Wird sie abgerissen, kehren die Nutztiere wieder zum Hauptquartier zurück.
 
+
+
+## Tiere im Wiki
+
+Das Handbuch enthält eine Übersicht der aktuellen Tierarten. Die Tierseiten verlinken Jagdbeute, passende Berufe und bei Kühen und Schafen die Viehzucht.
