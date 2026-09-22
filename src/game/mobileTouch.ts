@@ -1,13 +1,14 @@
 import Phaser from "phaser";
+import { MOBILE_LONG_PRESS_MS, MOBILE_TAP_MAX_DISTANCE, isWithinTapDistance } from "./mapInputGestures";
 
 const MIN_CAMERA_ZOOM = 0.7;
 const MAX_CAMERA_ZOOM = 10;
-const TAP_MAX_DISTANCE = 18;
 
 type Point = { x: number; y: number };
 type SelectableScene = Phaser.Scene;
 type SceneWithSelection = Phaser.Scene & {
   selectAtScreenPoint?: (screenX: number, screenY: number) => void;
+  longPressPersonAtScreenPoint?: (screenX: number, screenY: number) => boolean;
 };
 
 const clampZoom = (zoom: number): number =>
@@ -21,6 +22,26 @@ export function installMobileMapTouchControls(
   let previousTouches = new Map<number, Point>();
   let tapStart: Point | undefined;
   let tapMoved = false;
+  let longPressTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const clearLongPressTimer = (): void => {
+    if (longPressTimer === undefined) return;
+    clearTimeout(longPressTimer);
+    longPressTimer = undefined;
+  };
+
+  const scheduleLongPress = (): void => {
+    clearLongPressTimer();
+    longPressTimer = setTimeout(() => {
+      longPressTimer = undefined;
+      if (!tapStart || tapMoved || previousTouches.size !== 1) return;
+      const handled = (scene as SceneWithSelection).longPressPersonAtScreenPoint?.(
+        tapStart.x,
+        tapStart.y,
+      ) ?? false;
+      if (handled) tapMoved = true;
+    }, MOBILE_LONG_PRESS_MS);
+  };
 
   const toGamePoint = (clientX: number, clientY: number): Point => {
     const rect = canvas.getBoundingClientRect();
@@ -48,7 +69,9 @@ export function installMobileMapTouchControls(
     if (event.touches.length === 1) {
       tapStart = [...previousTouches.values()][0];
       tapMoved = false;
+      scheduleLongPress();
     } else {
+      clearLongPressTimer();
       tapStart = undefined;
       tapMoved = true;
     }
@@ -62,6 +85,7 @@ export function installMobileMapTouchControls(
     const current = Array.from(nextTouches.entries());
 
     if (current.length >= 2) {
+      clearLongPressTimer();
       tapStart = undefined;
       tapMoved = true;
       const first = current[0];
@@ -109,8 +133,10 @@ export function installMobileMapTouchControls(
       if (!only) return;
       const [id, now] = only;
       const before = previousTouches.get(id);
-      if (tapStart && Phaser.Math.Distance.Between(tapStart.x, tapStart.y, now.x, now.y) > TAP_MAX_DISTANCE)
+      if (tapStart && !isWithinTapDistance(tapStart, now, MOBILE_TAP_MAX_DISTANCE)) {
         tapMoved = true;
+        clearLongPressTimer();
+      }
       if (before) {
         camera.scrollX -= (now.x - before.x) / camera.zoom;
         camera.scrollY -= (now.y - before.y) / camera.zoom;
@@ -122,6 +148,7 @@ export function installMobileMapTouchControls(
 
   const onTouchEnd = (event: TouchEvent): void => {
     captureTouch(event);
+    clearLongPressTimer();
     if (event.touches.length === 0 && tapStart && !tapMoved)
       (scene as SceneWithSelection).selectAtScreenPoint?.(tapStart.x, tapStart.y);
     previousTouches = snapshotTouches(event.touches);
