@@ -398,7 +398,7 @@ export function mountControls(w: World, renderMap: () => void): void {
         return;
       }
       selectionPanel.hidden = false;
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>WEGWEISER</small><h3>🪧 Wegweiser</h3></div><div class="selection-title-actions">${buildingWikiButton(b)}<button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div></div><p class="recipe">Lokaler Zugang zum übergeordneten Wegenetz · ${selectedWaypost.connections?.length ?? 0} direkte Verbindungen</p><button data-action="demolish-waypost" class="danger">Abreißen</button>`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>WEGWEISER</small><h3>🪧 Wegweiser</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div><p class="recipe">Lokaler Zugang zum übergeordneten Wegenetz · ${selectedWaypost.connections?.length ?? 0} direkte Verbindungen</p><button data-action="demolish-waypost" class="danger">Abreißen</button>`;
       return;
     }
 
@@ -440,7 +440,7 @@ export function mountControls(w: World, renderMap: () => void): void {
                   ? "Fluss"
                   : "Belegt";
       selectionPanel.hidden = false;
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>KACHEL</small><h3>${tileName}</h3></div><div class="selection-title-actions">${buildingWikiButton(b)}<button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div></div>${buildable ? `<p class="recipe">Gebäude wählen. Danach Position auf der Karte wählen und bestätigen.</p><div class="stepper build-choice-grid">${SORTED_BUILDING_KINDS.map((kind) => `<button class="icon-button" data-action="build" data-kind="${kind}">${buildingIcon(kind)}<span>${BUILDING_NAMES[kind]}</span></button>`).join("")}</div>` : `<p class="recipe">Auf dieser Kachel kann aktuell nicht gebaut werden.</p>`}${roadAction ? `<div class="stepper">${roadAction}</div>` : ""}`;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>KACHEL</small><h3>${tileName}</h3></div><button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div>${buildable ? `<p class="recipe">Gebäude wählen. Danach Position auf der Karte wählen und bestätigen.</p><div class="stepper build-choice-grid">${SORTED_BUILDING_KINDS.map((kind) => `<button class="icon-button" data-action="build" data-kind="${kind}">${buildingIcon(kind)}<span>${BUILDING_NAMES[kind]}</span></button>`).join("")}</div>` : `<p class="recipe">Auf dieser Kachel kann aktuell nicht gebaut werden.</p>`}${roadAction ? `<div class="stepper">${roadAction}</div>` : ""}`;
       return;
     }
 
