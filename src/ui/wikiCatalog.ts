@@ -9,6 +9,7 @@ import { GOODS, buildingKindDefinition } from "../simulation/simulation";
 import { BUILDING_CONSTRUCTION_REQUIREMENTS } from "../simulation/constructionRules";
 import { BUILDING_UPGRADE_RULES } from "../simulation/buildingUpgradeRules";
 import { PROFESSION_LABELS, PROFESSION_XP_REQUIREMENTS } from "../simulation/experience";
+import { TECHNOLOGY_UNLOCK_RULES } from "../simulation/technology";
 import { GOOD_ICONS, buildingIcon } from "../icons";
 import { BUILDING_WIKI_LABELS, type WikiBuildingKind } from "./wikiLinks";
 
@@ -180,6 +181,58 @@ const ANIMAL_DROPS: Record<AnimalKind, Good[]> = {
   sheep: ["meat", "wool"],
 };
 
+const GOOD_SOURCE_PROFESSIONS: Partial<Record<Good, Profession[]>> = {
+  wood: ["woodcutter"],
+  clay: ["clayDigger"],
+  rubble: ["stonecutter"],
+  fish: ["fisher"],
+  meat: ["hunter"],
+  leather: ["hunter"],
+  wool: ["hunter"],
+};
+
+const sourceAnimalsForGood = (good: Good): AnimalKind[] =>
+  WIKI_ANIMALS.filter((kind) => ANIMAL_DROPS[kind].includes(good));
+
+const recipeRowsForGood = (good: Good): string[] => {
+  const rows: string[] = [];
+  for (const kind of WIKI_BUILDINGS) {
+    if (!isBuildable(kind)) continue;
+    const definition = buildingKindDefinition(kind);
+    const recipes = definition.availableRecipes?.length
+      ? definition.availableRecipes
+      : definition.recipe ? [definition.recipe] : [];
+    for (const recipe of recipes) {
+      if (recipe.output !== good) continue;
+      const inputs = recipe.inputs ?? (recipe.input ? { [recipe.input]: recipe.amount } : {});
+      rows.push(
+        `<div class="wiki-recipe-row">${buildingButton(kind)}: ${amountLinks(inputs)} → ${recipe.outputAmount ?? 1} × ${goodButton(good)}</div>`,
+      );
+    }
+  }
+  return rows;
+};
+
+const professionUnlockTargets = (
+  profession: Profession,
+): { professions: Profession[]; buildings: WikiBuildingKind[] } => {
+  const professions = (Object.entries(PROFESSION_XP_REQUIREMENTS) as [
+    Profession,
+    { profession: Profession; experience: number } | undefined,
+  ][])
+    .filter(([, requirement]) => requirement?.profession === profession)
+    .map(([target]) => target)
+    .sort((a, b) => PROFESSION_LABELS[a].localeCompare(PROFESSION_LABELS[b], "de"));
+
+  const buildings = sortedBuildings(
+    TECHNOLOGY_UNLOCK_RULES
+      .filter((rule) => rule.profession === profession)
+      .map((rule) => rule.technology as WikiBuildingKind),
+  );
+
+  return { professions, buildings };
+};
+
 const ANIMAL_INTRO: Record<AnimalKind, string> = {
   hare: "Wildtier, das bei der Jagd Fleisch liefert.",
   boar: "Wildtier, das bei der Jagd Fleisch und Leder liefert.",
@@ -222,13 +275,21 @@ export const renderProfessionsOverview = (): string => `
 export const renderGoodArticle = (good: Good): string => {
   const producers = buildingProducersForGood(good);
   const consumers = buildingConsumersForGood(good);
+  const sourceProfessions = GOOD_SOURCE_PROFESSIONS[good] ?? [];
+  const sourceAnimals = sourceAnimalsForGood(good);
+  const recipeRows = recipeRowsForGood(good);
+  const hasSources = producers.length > 0 || sourceProfessions.length > 0 || sourceAnimals.length > 0;
   return `
     <div class="wiki-article-kicker">WARE</div>
     <h1><span aria-hidden="true">${GOOD_ICONS[good]}</span> ${GOODS[good]}</h1>
     <h2 id="handbook-section-1">Herstellung und Gewinnung</h2>
-    ${producers.length ? `<div class="wiki-link-list">${producers.map(buildingButton).join("")}</div>` :
-      "<p>Keine Produktionsstätte erzeugt diese Ware direkt.</p>"}
-    <h2 id="handbook-section-2">Verwendung</h2>
+    ${hasSources ? `
+      ${producers.length ? `<div class="wiki-link-list">${producers.map(buildingButton).join("")}</div>` : ""}
+      ${sourceProfessions.length ? `<div class="wiki-link-list">${sourceProfessions.map(professionButton).join("")}</div>` : ""}
+      ${sourceAnimals.length ? `<div class="wiki-link-list">${sourceAnimals.map(animalButton).join("")}</div>` : ""}
+    ` : "<p>Für diese Ware ist aktuell keine direkte Quelle hinterlegt.</p>"}
+    ${recipeRows.length ? `<h2 id="handbook-section-2">Rezept</h2><div class="wiki-recipe-list">${recipeRows.join("")}</div>` : ""}
+    <h2 id="handbook-section-${recipeRows.length ? 3 : 2}">Verwendung</h2>
     ${consumers.length ? `<div class="wiki-link-list">${consumers.map(buildingButton).join("")}</div>` :
       "<p>Aktuell ist keine Gebäudeproduktion oder Bauanforderung hinterlegt.</p>"}
     <p class="wiki-overview-return"><button type="button" class="wiki-link" data-handbook-page="goods">← Alle Waren</button></p>
@@ -304,6 +365,8 @@ export const renderAnimalArticle = (kind: AnimalKind): string => {
 export const renderProfessionArticle = (profession: Profession): string => {
   const workplaces = sortedBuildings(PROFESSION_BUILDINGS[profession] ?? []);
   const requirement = PROFESSION_XP_REQUIREMENTS[profession];
+  const unlocks = professionUnlockTargets(profession);
+  const hasUnlocks = unlocks.professions.length > 0 || unlocks.buildings.length > 0;
   return `
     <div class="wiki-article-kicker">BERUF</div>
     <h1><span aria-hidden="true">${PROFESSION_ICONS[profession]}</span> ${PROFESSION_LABELS[profession]}</h1>
@@ -315,6 +378,13 @@ export const renderProfessionArticle = (profession: Profession): string => {
     ${requirement
       ? `<p>Benötigt ${requirement.experience} Erfahrung als ${professionButton(requirement.profession)} oder kann über die ${buildingButton("school")} erlernt werden.</p>`
       : `<p>Keine Erfahrungs-Voraussetzung. Der Beruf kann direkt gewählt oder über die ${buildingButton("school")} erlernt werden.</p>`}
+    ${hasUnlocks ? `
+      <h2 id="handbook-section-3">Schaltet frei</h2>
+      <div class="wiki-link-list">
+        ${unlocks.professions.map(professionButton).join("")}
+        ${unlocks.buildings.map(buildingButton).join("")}
+      </div>
+    ` : ""}
     <p class="wiki-overview-return"><button type="button" class="wiki-link" data-handbook-page="professions">← Alle Berufe</button></p>
   `;
 };
