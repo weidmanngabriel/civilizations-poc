@@ -31,6 +31,7 @@ const BUILDING_LABELS: Record<ManagedBuildingKind, string> = {
   stonemason2: "Steinmetzhütte 2",
   tailor: "Näherei",
   livestockBreeder: "Viehzüchterei",
+  school: "Schule",
   warehouse: "Lager",
   house: "Wohnhaus",
 };
