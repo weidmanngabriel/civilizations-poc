@@ -181,7 +181,12 @@ const ANIMAL_DROPS: Record<AnimalKind, Good[]> = {
   sheep: ["meat", "wool"],
 };
 
-const SPECIAL_GOOD_EFFECTS: Partial<Record<Good, string>> = {\n  woodenTool: "Ausgerüstete Bewohner arbeiten etwas schneller.",\n  shoes: "Ausgerüstete Bewohner laufen etwas schneller.",\n};\n\nconst GOOD_SOURCE_PROFESSIONS: Partial<Record<Good, Profession[]>> = {
+const SPECIAL_GOOD_EFFECTS: Partial<Record<Good, string>> = {
+  woodenTool: "Ausgerüstete Bewohner arbeiten etwas schneller.",
+  shoes: "Ausgerüstete Bewohner laufen etwas schneller.",
+};
+
+const GOOD_SOURCE_PROFESSIONS: Partial<Record<Good, Profession[]>> = {
   wood: ["woodcutter"],
   clay: ["clayDigger"],
   rubble: ["stonecutter"],
