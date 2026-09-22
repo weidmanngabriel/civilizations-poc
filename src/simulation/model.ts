@@ -23,6 +23,7 @@ export type ManagedBuildingKind =
   | "stonemason2"
   | "tailor"
   | "livestockBreeder"
+  | "school"
   | "warehouse"
   | "house";
 export type InfrastructureKind = "palisade";
@@ -33,6 +34,7 @@ export type NaturalResourceKind = "forest" | "clay" | "stone";
 export type LooseGoodStackId = string;
 export type PlaceableBuildingKind = BuildableBuildingKind | "house";
 export type Role = "worker" | "carrier" | "merchant" | "builder";
+export type EducationRole = "teacher" | "student";
 export type Profession =
   | "woodcutter"
   | "fisher"
@@ -222,6 +224,17 @@ export interface SleepState {
   resumeExtractor?: "clay" | "stone";
   resumeResourceTarget?: NaturalResourceId;
 }
+export interface EducationTask {
+  role: EducationRole;
+  schoolId: BuildingId;
+  profession: Profession;
+  partnerId: number;
+  progressTicks: number;
+  active: boolean;
+  returnProfession?: Profession;
+  returnAssignment?: { building: BuildingId; role: Role };
+}
+
 export interface Person {
   id: number;
   position: Hex;
@@ -272,6 +285,8 @@ export interface Person {
   builder?: boolean;
   experience?: Partial<Record<Profession, number>>;
   experienceActionProgress?: Partial<Record<Profession, number>>;
+  /** Temporary school lesson. Teacher and student remain physically present while active. */
+  educationTask?: EducationTask;
   /** Manually equipped items. */
   equipment?: Partial<Record<EquipmentSlot, EquippedItem>>;
   /** Manual slot preferences survive wear and drive automatic replacement. */
