@@ -14,6 +14,7 @@ const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
 const PERSON_SELECTION_REQUESTED_EVENT = "poc-person-selection-requested";
 const PERSON_SELECTION_CLEAR_REQUESTED_EVENT = "poc-person-selection-clear-requested";
+const PERSON_CONTEXT_OPEN_REQUESTED_EVENT = "poc-person-context-open-requested";
 const BUILDING_SELECTED_EVENT = "poc-building-selected";
 const TILE_SELECTED_EVENT = "poc-tile-selected";
 const BUILDING_SELECTION_REQUESTED_EVENT = "poc-building-selection-requested";
@@ -24,6 +25,7 @@ const BUILD_MODE_EVENT = "poc-build-mode";
 type SelectableScene = Phaser.Scene & {
   create?: () => void;
   selectAtScreenPoint?: (screenX: number, screenY: number) => void;
+  longPressPersonAtScreenPoint?: (screenX: number, screenY: number) => boolean;
 };
 
 type ModeDetail = { active: boolean };
@@ -94,6 +96,15 @@ export function installPersonSelection(scene: Phaser.Scene, world: World): void 
       detail: { id: personId },
     }));
     window.dispatchEvent(new CustomEvent(BUILDING_SELECTION_CLEARED_EVENT));
+  };
+
+  selectableScene.longPressPersonAtScreenPoint = (screenX: number, screenY: number): boolean => {
+    if (buildModeActive || merchantTargetModeActive) return false;
+    const person = nearestPersonAtScreenPoint(scene, world, screenX, screenY);
+    if (!person) return false;
+    selectPerson(person.id);
+    window.dispatchEvent(new CustomEvent(PERSON_CONTEXT_OPEN_REQUESTED_EVENT));
+    return true;
   };
 
   if (originalSelectAtScreenPoint) {
