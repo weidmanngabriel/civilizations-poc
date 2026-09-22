@@ -332,3 +332,12 @@ For every newly introduced `Profession`, the complete technical integration must
 Palisaden sind leichte `Building`-Instanzen mit `kind: "palisade"`, einem Ein-Zellen-Footprint und normalem `ConstructionState`. Dadurch verwenden sie dieselbe physische Baustoffbeschaffung und denselben Bauarbeiter-Pool wie andere Baustellen. Die Bauarbeiter-Kapazität ist für Palisaden auf eins begrenzt. Im Unterschied zu normalen Gebäudebaustellen ist die Palisadenzelle selbst nicht die Arbeitsposition: Bauarbeiter und Materiallieferung wählen per normaler Wegfindung die günstigste erreichbare Nachbarzelle. Damit kann eine Baustelle bei blockierter Seite von einer anderen Seite bedient werden. Während der Baustelle bleibt die Bodenkachel unverändert und begehbar; bei Fertigstellung setzt die Simulation ausschließlich `Tile.buildingBlocking`. Beim Abriss wird dieses Overlay wieder entfernt, ohne Gras oder Weg darunter umzuschreiben.
 
 Die Darstellung bleibt abgeleitet: `MainScene` verbindet benachbarte fertige Palisaden beim Rendern, ohne zusätzliche Simulationsobjekte zwischen Kachelzentren zu erzeugen. Eine kleine blaue Flagge an unfertigen Segmenten wird direkt aus einer vorhandenen `builder`-Zuweisung auf die Palisaden-ID abgeleitet; dafür existiert kein eigener Reservierungszustand. Save/Load rekonstruiert den Blocking-Overlay aus dem Fertigstellungszustand der Palisaden.
+
+
+## UI-Entity-Links und Wiki-Navigation
+
+src/ui/wikiLinks.ts definiert die stabilen Wiki-Zieltypen und das zentrale Öffnungsereignis. Statische Wissensziele sind Waren und Gebäudetypen; konkrete Personen und Gebäude verwenden weiterhin die bestehenden Selection-Events und bleiben damit Weltobjekte statt Wiki-Seiten.
+
+src/ui/wikiCatalog.ts erzeugt die Waren- und Gebäudeartikel aus bestehenden Simulationsquellen wie GOODS, Baukosten, Produktionsdefinitionen und Ausbaukanten. Dafür stellt der Simulationskern die unveränderliche Gebäudetyp-Definition lesbar bereit; die UI mutiert diese Daten nicht. Das Handbuch in src/ui/handbook.ts rendert Markdown-Seiten und dynamische Wiki-Routen in derselben Modaloberfläche und verwaltet eine kleine interne Zurück-Historie.
+
+Wiki-Links werden als data-wiki-good beziehungsweise data-wiki-building markiert und zentral delegiert. Komponenten sollen dadurch keine eigene Wiki-Routinglogik duplizieren. Bei zusammengesetzten Controls, insbesondere im Baumenü, müssen Wiki- und Primäraktion getrennte Buttons bleiben, damit Pointer- und Touch-Ereignisse nicht gleichzeitig eine Spielaktion auslösen.
