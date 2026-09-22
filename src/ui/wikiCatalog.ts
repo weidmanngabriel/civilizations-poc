@@ -283,6 +283,7 @@ export const renderGoodArticle = (good: Good): string => {
   const sourceProfessions = GOOD_SOURCE_PROFESSIONS[good] ?? [];
   const sourceAnimals = sourceAnimalsForGood(good);
   const recipeRows = recipeRowsForGood(good);
+  const effect = SPECIAL_GOOD_EFFECTS[good];
   const hasSources = producers.length > 0 || sourceProfessions.length > 0 || sourceAnimals.length > 0;
   return `
     <div class="wiki-article-kicker">WARE</div>
@@ -294,7 +295,8 @@ export const renderGoodArticle = (good: Good): string => {
       ${sourceAnimals.length ? `<div class="wiki-link-list">${sourceAnimals.map(animalButton).join("")}</div>` : ""}
     ` : "<p>Für diese Ware ist aktuell keine direkte Quelle hinterlegt.</p>"}
     ${recipeRows.length ? `<h2 id="handbook-section-2">Rezept</h2><div class="wiki-recipe-list">${recipeRows.join("")}</div>` : ""}
-    <h2 id="handbook-section-${recipeRows.length ? 3 : 2}">Verwendung</h2>
+    ${effect ? `<h2 id="handbook-section-${recipeRows.length ? 3 : 2}">Effekt</h2><p>${effect}</p>` : ""}
+    <h2 id="handbook-section-${2 + (recipeRows.length ? 1 : 0) + (effect ? 1 : 0)}">Verwendung</h2>
     ${consumers.length ? `<div class="wiki-link-list">${consumers.map(buildingButton).join("")}</div>` :
       "<p>Aktuell ist keine Gebäudeproduktion oder Bauanforderung hinterlegt.</p>"}
     <p class="wiki-overview-return"><button type="button" class="wiki-link" data-handbook-page="goods">← Alle Waren</button></p>
