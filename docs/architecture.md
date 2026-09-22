@@ -334,6 +334,14 @@ Palisaden sind leichte `Building`-Instanzen mit `kind: "palisade"`, einem Ein-Ze
 Die Darstellung bleibt abgeleitet: `MainScene` verbindet benachbarte fertige Palisaden beim Rendern, ohne zusätzliche Simulationsobjekte zwischen Kachelzentren zu erzeugen. Eine kleine blaue Flagge an unfertigen Segmenten wird direkt aus einer vorhandenen `builder`-Zuweisung auf die Palisaden-ID abgeleitet; dafür existiert kein eigener Reservierungszustand. Save/Load rekonstruiert den Blocking-Overlay aus dem Fertigstellungszustand der Palisaden.
 
 
+## School education tasks
+
+School lessons are authoritative simulation tasks stored on the participating people rather than normal building worker assignments. The education simulation module owns lesson creation, teacher eligibility, routing to the selected school, synchronized 60-second progress, need-driven pausing, completion and teacher restoration.
+
+Each participant stores the school, target profession, partner, shared progress and previous profession/workplace needed for restoration. Successfully taught professions are persisted on the person as learned qualifications so they remain selectable after later profession changes. While a lesson is active, generic idle behavior ignores both participants. Hunger and sleep treat active teaching/learning as normal work intensity. Their existing need systems remain authoritative for eating and sleeping; after a need completes, normal task-target restoration points the person back to the school and education processing resumes the lesson once both participants are present.
+
+The profession menu owns only the selection flow: selected resident -> school -> profession -> teacher. It does not own lesson progress or qualification state. School is a normal managed building kind with a placeholder same-key asset slot until a final editor-authored school visual is supplied.
+
 ## UI-Entity-Links und Wiki-Navigation
 
 src/ui/wikiLinks.ts definiert die stabilen Wiki-Zieltypen und das zentrale Öffnungsereignis. Statische Wissensziele sind Waren und Gebäudetypen; konkrete Personen und Gebäude verwenden weiterhin die bestehenden Selection-Events und bleiben damit Weltobjekte statt Wiki-Seiten.
