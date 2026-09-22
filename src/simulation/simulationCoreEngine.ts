@@ -1059,6 +1059,15 @@ export const buildingKindDefinition = (kind: BuildableBuildingKind): Omit<Buildi
       output: 0,
       recipe: { input: "leather", amount: 1, output: "shoes", duration: CONFIG.duration },
     };
+  if (kind === "school")
+    return {
+      kind,
+      name: "Schule",
+      workers: 0,
+      carriers: 0,
+      input: 0,
+      output: 0,
+    };
   if (kind === "livestockBreeder")
     return {
       kind,
