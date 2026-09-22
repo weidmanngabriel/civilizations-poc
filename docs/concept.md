@@ -321,6 +321,18 @@ Jedes neu anzulegende Segment belegt genau eine Mikrokachel und kostet **1 Holz*
 Benachbarte fertige Palisaden verbinden sich automatisch in der Darstellung. Unfertige Segmente, die aktuell einem Bauarbeiter zugewiesen sind, tragen eine kleine blaue Flagge; diese Markierung verschwindet bei Verlust der Zuweisung oder Fertigstellung. Die Verbindung und die Reservierungsflagge sind rein visuell; Kosten, Blocking, Abriss und Speicherung bleiben segmentweise. Ein Segment kann einzeln abgerissen werden.
 
 
+## Schule und Berufsausbildung
+
+Die Schule ist ein verwaltbares Gebäude. Sie kostet **4 Holz, 2 Backsteine, 2 Steinblöcke und 2 Dachziegel**. Weil Dachziegel von Töpferei 2 hergestellt werden, setzt der Schulbau die fortgeschrittene Baustoffkette voraus.
+
+Ausbildung wird von einem konkreten Schüler aus dessen Beruf-Menü gestartet. Wenn mindestens eine fertige Schule existiert, steht dort oben **„Erlernen in …“**. Bei mehreren Schulen wird zuerst die Schule gewählt, danach der Zielberuf und schließlich ein geeigneter Lehrer. Der bereits ausgewählte Bewohner ist automatisch der Schüler; eine gesonderte Schülerauswahl gibt es in dieser Version nicht.
+
+Ein Unterricht besteht aktuell aus genau **einem Lehrer und einem Schüler**. Als Lehrer können Bewohner gewählt werden, die den Zielberuf nach den normalen Berufsregeln ausüben könnten und nicht bereits an einem anderen Unterricht beteiligt sind. Ein Lehrer kann während eines laufenden Unterrichts keinen zweiten Schüler oder weiteren Beruf unterrichten.
+
+Lehrer und Schüler laufen physisch zur ausgewählten Schule. Der Unterricht beginnt erst, wenn beide dort angekommen sind, und dauert **60 simulierte Sekunden**. Währenddessen zeigt der Lehrer die Tätigkeit **„Unterrichtet“**, der Schüler **„Lernt“**. Hunger und Schlaf sinken mit derselben Rate wie während normaler Arbeit. Muss einer der beiden essen oder schlafen, pausiert der Unterricht; nach dem Bedürfnis kehrt die Person zur Schule zurück und der vorhandene Fortschritt wird fortgesetzt.
+
+Nach erfolgreichem Abschluss hat der Schüler den gewählten Beruf dauerhaft erlernt und kann ihn auch nach späteren Berufswechseln wieder auswählen. Er startet darin aber ohne zusätzliche praktische Berufserfahrung. Der Lehrer wird anschließend wieder seinem vorherigen Beruf und, sofern weiterhin möglich, seinem vorherigen Arbeitsplatz zugewiesen. Zusätzliche Waren werden während des Unterrichts aktuell nicht verbraucht.
+
 ## Verlinktes Handbuch und Wiki
 
 Das bestehende Handbuch ist zugleich die zentrale Wissensoberfläche. Es besitzt Übersichten für alle aktuellen Waren und Gebäudetypen sowie dynamisch erzeugte Detailartikel. Warenartikel zeigen aktuelle produzierende und verwendende Gebäude; Gebäudeartikel zeigen Baukosten, Produktion/Funktion, Personal und vorhandene Ausbaukanten. Diese Angaben werden soweit möglich direkt aus den aktuellen Simulationsregeln erzeugt, damit kein paralleler Regelbestand gepflegt wird.
