@@ -8,6 +8,7 @@ import {
   startEducation,
 } from "../src/simulation/education";
 import { tick } from "../src/simulation/simulation";
+import { personInsideBuilding } from "../src/game/personVisibility";
 import { createTestWorld } from "./testWorld";
 
 const addCompletedSchool = (world: World): Building => {
@@ -66,6 +67,8 @@ test("teacher and student complete a 60-second lesson and teacher returns to wor
   teacher.active = true;
 
   assert.equal(startEducation(world, student.id, school.id, "carpenter", teacher.id), true);
+  assert.equal(personInsideBuilding(world, student), true);
+  assert.equal(personInsideBuilding(world, teacher), true);
   assert.equal(student.assignment, undefined);
   assert.equal(teacher.assignment, undefined);
 
