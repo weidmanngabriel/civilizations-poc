@@ -181,7 +181,7 @@ const ANIMAL_DROPS: Record<AnimalKind, Good[]> = {
   sheep: ["meat", "wool"],
 };
 
-const GOOD_SOURCE_PROFESSIONS: Partial<Record<Good, Profession[]>> = {
+const SPECIAL_GOOD_EFFECTS: Partial<Record<Good, string>> = {\n  woodenTool: "Ausgerüstete Bewohner arbeiten etwas schneller.",\n  shoes: "Ausgerüstete Bewohner laufen etwas schneller.",\n};\n\nconst GOOD_SOURCE_PROFESSIONS: Partial<Record<Good, Profession[]>> = {
   wood: ["woodcutter"],
   clay: ["clayDigger"],
   rubble: ["stonecutter"],
@@ -377,7 +377,7 @@ export const renderProfessionArticle = (profession: Profession): string => {
     <h2 id="handbook-section-2">Voraussetzung</h2>
     ${requirement
       ? `<p>Benötigt ${requirement.experience} Erfahrung als ${professionButton(requirement.profession)} oder kann über die ${buildingButton("school")} erlernt werden.</p>`
-      : `<p>Keine Erfahrungs-Voraussetzung. Der Beruf kann direkt gewählt oder über die ${buildingButton("school")} erlernt werden.</p>`}
+      : "<p>Keine Erfahrungs-Voraussetzung. Der Beruf kann direkt gewählt werden.</p>"}
     ${hasUnlocks ? `
       <h2 id="handbook-section-3">Schaltet frei</h2>
       <div class="wiki-link-list">
