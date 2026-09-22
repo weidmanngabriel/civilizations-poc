@@ -15,6 +15,7 @@ import {
   type PersonCommandMode,
 } from "../game/personCommandInteraction";
 import { WORK_AREA_MODE_EVENT } from "../game/workAreaInteraction";
+import { personName } from "../simulation/personIdentity";
 import { assignEquipment, EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentPendingForSlot, equipmentStock } from "../simulation/equipment";
 import { completedSchools, educationTeacherCandidates, startEducation } from "../simulation/education";
 
@@ -114,6 +115,7 @@ export function mountPersonContextMenu(world: World): void {
       : world.people.find((person) => person.id === selectedPersonId);
 
   const actionVisible = (action: Action, person: Person): boolean => {
+    if (person.educationTask && action.id !== "eat" && action.id !== "sleep") return false;
     if (action.id === "profession") return canChangePersonProfession(person) && !person.educationTask;
     if (action.id === "workplace") return validWorkplaces(world, person.id).length > 0;
     if (action.id === "home") return validHomes(world).length > 0;
@@ -205,7 +207,7 @@ export function mountPersonContextMenu(world: World): void {
           .map((teacher) => {
             const teacherProfession = currentProfession(world, teacher);
             const detail = teacherProfession ? PROFESSION_LABELS[teacherProfession] : "Frei";
-            return `<button type="button" data-education-teacher="${teacher.id}">Person ${teacher.id}<small>${detail}</small></button>`;
+            return `<button type="button" data-education-teacher="${teacher.id}">${personName(teacher.id)}<small>${detail}</small></button>`;
           })
           .join("")
       : `<div class="person-context-empty">Kein verfügbarer Lehrer.</div>`;
