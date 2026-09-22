@@ -15,11 +15,14 @@ import { BUILDING_WIKI_LABELS, type WikiBuildingKind } from "./wikiLinks";
 export const WIKI_GOODS = (Object.keys(GOODS) as Good[])
   .sort((a, b) => GOODS[a].localeCompare(GOODS[b], "de"));
 
-export const WIKI_BUILDINGS: WikiBuildingKind[] = [
+const WIKI_BUILDING_KINDS: WikiBuildingKind[] = [
   "hq", "house", "farm", "sawmill", "carpenter", "mill", "bakery", "well",
   "pottery", "pottery2", "stonemason", "stonemason2", "tailor",
   "livestockBreeder", "school", "warehouse", "palisade",
-].sort((a, b) => BUILDING_WIKI_LABELS[a].localeCompare(BUILDING_WIKI_LABELS[b], "de"));
+];
+
+export const WIKI_BUILDINGS: WikiBuildingKind[] = [...WIKI_BUILDING_KINDS]
+  .sort((a, b) => BUILDING_WIKI_LABELS[a].localeCompare(BUILDING_WIKI_LABELS[b], "de"));
 
 export const ANIMAL_LABELS: Record<AnimalKind, string> = {
   hare: "Hase",
