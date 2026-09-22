@@ -110,6 +110,18 @@ const cargoLabel = (person: Person): string =>
     ? `${GOOD_ICONS[person.trip.good]} ${GOODS[person.trip.good]}`
     : "—";
 
+const buildingFactMarkup = (world: World, buildingId: BuildingId | undefined, fallback: string): string => {
+  if (!buildingId) return escapeHtml(fallback);
+  const building = world.buildings.find((candidate) => candidate.id === buildingId && !candidate.retired);
+  if (!building) return escapeHtml(fallback);
+  return `<button type="button" class="person-fact-link" data-person-building-id="${building.id}">${escapeHtml(building.name)} <span aria-hidden="true">⌖</span></button>`;
+};
+
+const cargoMarkup = (person: Person): string =>
+  person.trip?.picked
+    ? `<button type="button" class="person-fact-link wiki-link" data-wiki-good="${person.trip.good}"><span aria-hidden="true">${GOOD_ICONS[person.trip.good]}</span> ${GOODS[person.trip.good]}</button>`
+    : "—";
+
 export function mountPersonPanel(world: World): void {
   const main = document.querySelector<HTMLElement>("main");
   const leftMenu = document.querySelector<HTMLElement>(".left-menu");
@@ -375,6 +387,7 @@ export function mountPersonPanel(world: World): void {
     ].join("|");
     if (signature === inspectorSignature && !inspector.hidden) return;
     inspectorSignature = signature;
+    const detailsOpen = inspector.querySelector<HTMLDetailsElement>(".person-details")?.open ?? false;
     inspector.hidden = false;
     inspector.innerHTML = `
       <header class="person-panel-header person-inspector-header">
@@ -399,20 +412,25 @@ export function mountPersonPanel(world: World): void {
           <strong>${sleep}</strong>
         </div>
       </div>
-      <dl class="person-facts">
+      <dl class="person-facts person-facts-primary">
         <div><dt>Aktuell</dt><dd>${escapeHtml(activity)}</dd></div>
-        <div><dt>Arbeitsplatz</dt><dd>${escapeHtml(workplace)}</dd></div>
-        <div><dt>Wohnung</dt><dd>${escapeHtml(home)}</dd></div>
-        <div><dt>Erfahrung</dt><dd>${experience === undefined ? "—" : `${experience} %`}</dd></div>
-        <div><dt>Getragen</dt><dd>${cargo}</dd></div>
       </dl>
-      <section class="person-equipment">
-        <small>AUSRÜSTUNG</small>
-        <div class="person-equipment-grid">
-          ${equipmentSlot("tool")}
-          ${equipmentSlot("shoes")}
-        </div>
-      </section>`;
+      <details class="person-details" ${detailsOpen ? "open" : ""}>
+        <summary>Details</summary>
+        <dl class="person-facts">
+          <div><dt>Arbeitsplatz</dt><dd>${buildingFactMarkup(world, person.assignment?.building, workplace)}</dd></div>
+          <div><dt>Wohnung</dt><dd>${buildingFactMarkup(world, person.home, home)}</dd></div>
+          <div><dt>Erfahrung</dt><dd>${experience === undefined ? "—" : `${experience} %`}</dd></div>
+          <div><dt>Getragen</dt><dd>${cargoMarkup(person)}</dd></div>
+        </dl>
+        <section class="person-equipment">
+          <small>AUSRÜSTUNG</small>
+          <div class="person-equipment-grid">
+            ${equipmentSlot("tool")}
+            ${equipmentSlot("shoes")}
+          </div>
+        </section>
+      </details>`;
   };
 
   const resetBrowserFilters = (): void => {
@@ -570,6 +588,18 @@ export function mountPersonPanel(world: World): void {
     }
     if (action === "open-context") {
       window.dispatchEvent(new CustomEvent(PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT));
+      return;
+    }
+    const buildingLink = target.closest<HTMLButtonElement>("[data-person-building-id]");
+    if (buildingLink?.dataset.personBuildingId) {
+      const buildingId = buildingLink.dataset.personBuildingId;
+      setBrowserOpen(false);
+      window.dispatchEvent(new CustomEvent(BUILDING_SELECTION_REQUESTED_EVENT, {
+        detail: { id: buildingId, focus: true },
+      }));
+      window.dispatchEvent(new CustomEvent(BUILDING_SELECTED_EVENT, {
+        detail: { id: buildingId },
+      }));
       return;
     }
     const equipmentButton = target.closest<HTMLButtonElement>("[data-equipment-slot]");
