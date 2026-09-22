@@ -18,6 +18,7 @@ export const BUILDING_WIKI_LABELS: Record<WikiBuildingKind, string> = {
   stonemason2: "Steinmetzhütte 2",
   tailor: "Näherei",
   livestockBreeder: "Viehzüchterei",
+  school: "Schule",
   warehouse: "Lager",
   house: "Wohnhaus",
   palisade: "Palisade",
