@@ -27,6 +27,7 @@ const BUILDING_NAMES: Record<BuildMenuKind, string> = {
   stonemason2: "Steinmetzhütte 2",
   tailor: "Näherei",
   livestockBreeder: "Viehzüchterei",
+  school: "Schule",
   palisade: "Palisade",
 };
 
