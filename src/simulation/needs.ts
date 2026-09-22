@@ -94,7 +94,7 @@ const hungerValue = (person: Person): number => {
 const secondsPerHungerPoint = (person: Person): number => {
   if (person.trip?.picked) return 2;
   if (person.hungerState) return person.path.length > 0 ? 4 : 8;
-  if (person.progress > 0 || (person.farmTask && person.path.length === 0)) return 2;
+  if (person.educationTask?.active || person.progress > 0 || (person.farmTask && person.path.length === 0)) return 2;
   if (person.path.length > 0) return 4;
   return 8;
 };
@@ -191,6 +191,8 @@ const foodCandidate = (
 };
 
 const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
+  if (person.educationTask)
+    return world.buildings.find((building) => building.id === person.educationTask!.schoolId)?.position;
   if (person.farmTask) return person.farmTask.target;
   if (person.trip) {
     if (!person.trip.picked && person.trip.sourcePosition) return person.trip.sourcePosition;

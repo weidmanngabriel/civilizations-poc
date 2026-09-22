@@ -92,6 +92,7 @@ const SHAPES: Record<PlaceableBuildingKind, BuildingPlacementShape> = {
   stonemason2: COMPACT_SHAPE,
   tailor: COMPACT_SHAPE,
   livestockBreeder: COMPACT_SHAPE,
+  school: COMPACT_SHAPE,
 };
 
 export const footprintFromShape = (shape: BuildingPlacementShape, anchorPosition: Hex): Hex[] =>

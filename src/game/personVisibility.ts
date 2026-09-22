@@ -36,6 +36,16 @@ export function personInsideBuilding(world: World, person: Person): boolean {
     if (source && same(person.position, source.position)) return true;
   }
 
+  if (person.educationTask) {
+    const school = world.buildings.find((building) =>
+      building.id === person.educationTask!.schoolId &&
+      building.kind === "school" &&
+      !building.retired &&
+      isCompletedBuilding(building)
+    );
+    if (school && same(person.position, school.position)) return true;
+  }
+
   if (person.sleepState?.kind === "house" && person.sleepState.progress > 0) {
     const house = world.buildings.find((building) =>
       building.kind === "house" && !building.retired && same(building.position, person.sleepState!.target));

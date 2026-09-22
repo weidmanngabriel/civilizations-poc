@@ -15,7 +15,9 @@ import {
   type PersonCommandMode,
 } from "../game/personCommandInteraction";
 import { WORK_AREA_MODE_EVENT } from "../game/workAreaInteraction";
+import { personName } from "../simulation/personIdentity";
 import { assignEquipment, EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentPendingForSlot, equipmentStock } from "../simulation/equipment";
+import { completedSchools, educationTeacherCandidates, startEducation } from "../simulation/education";
 
 const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
@@ -104,6 +106,8 @@ export function mountPersonContextMenu(world: World): void {
 
   let selectedPersonId: number | undefined;
   let activeMode: PersonCommandMode | undefined;
+  let selectedEducationSchoolId: string | undefined;
+  let selectedEducationProfession: Profession | undefined;
 
   const selectedPerson = (): Person | undefined =>
     selectedPersonId === undefined
@@ -111,7 +115,8 @@ export function mountPersonContextMenu(world: World): void {
       : world.people.find((person) => person.id === selectedPersonId);
 
   const actionVisible = (action: Action, person: Person): boolean => {
-    if (action.id === "profession") return canChangePersonProfession(person);
+    if (person.educationTask && action.id !== "eat" && action.id !== "sleep") return false;
+    if (action.id === "profession") return canChangePersonProfession(person) && !person.educationTask;
     if (action.id === "workplace") return validWorkplaces(world, person.id).length > 0;
     if (action.id === "home") return validHomes(world).length > 0;
     if (action.id === "workarea") return supportsWorkArea(person);
@@ -144,7 +149,11 @@ export function mountPersonContextMenu(world: World): void {
     professionList.hidden = false;
     equipmentList.hidden = true;
     const current = currentProfession(world, person);
+    const schools = completedSchools(world);
     professionList.innerHTML = [
+      ...(schools.length > 0
+        ? [`<button type="button" data-education-start>🏫 Erlernen in …</button>`]
+        : []),
       `<button type="button" data-profession="" aria-pressed="${current === undefined}">👤 Frei</button>`,
       ...(Object.entries(PROFESSION_LABELS) as [Profession, string][])
         .filter(([profession]) => canLearnProfession(person, profession))
@@ -153,6 +162,56 @@ export function mountPersonContextMenu(world: World): void {
           `<button type="button" data-profession="${profession}" aria-pressed="${current === profession}">${label}</button>`,
         ),
     ].join("");
+  };
+
+  const renderEducationSchoolPicker = (): void => {
+    const schools = completedSchools(world);
+    pickerTitle.textContent = "Schule wählen";
+    professionList.hidden = false;
+    equipmentList.hidden = true;
+    professionList.innerHTML = schools
+      .map((school) => `<button type="button" data-education-school="${school.id}">🏫 ${school.name}</button>`)
+      .join("");
+  };
+
+  const renderEducationProfessionPicker = (schoolId: string): void => {
+    const person = selectedPerson();
+    if (!person) return;
+    selectedEducationSchoolId = schoolId;
+    selectedEducationProfession = undefined;
+    pickerTitle.textContent = "Beruf erlernen";
+    const current = currentProfession(world, person);
+    const professions = (Object.entries(PROFESSION_LABELS) as [Profession, string][])
+      .filter(([profession]) =>
+        profession !== current &&
+        !canLearnProfession(person, profession) &&
+        educationTeacherCandidates(world, person.id, profession).length > 0
+      )
+      .sort((a, b) => a[1].localeCompare(b[1], "de"));
+    professionList.innerHTML = professions.length
+      ? professions
+          .map(([profession, label]) =>
+            `<button type="button" data-education-profession="${profession}">${label}</button>`,
+          )
+          .join("")
+      : `<div class="person-context-empty">Kein Beruf kann aktuell unterrichtet werden.</div>`;
+  };
+
+  const renderEducationTeacherPicker = (profession: Profession): void => {
+    const person = selectedPerson();
+    if (!person) return;
+    selectedEducationProfession = profession;
+    pickerTitle.textContent = `Lehrer für ${PROFESSION_LABELS[profession]} wählen`;
+    const teachers = educationTeacherCandidates(world, person.id, profession);
+    professionList.innerHTML = teachers.length
+      ? teachers
+          .map((teacher) => {
+            const teacherProfession = currentProfession(world, teacher);
+            const detail = teacherProfession ? PROFESSION_LABELS[teacherProfession] : "Frei";
+            return `<button type="button" data-education-teacher="${teacher.id}">${personName(teacher.id)}<small>${detail}</small></button>`;
+          })
+          .join("")
+      : `<div class="person-context-empty">Kein verfügbarer Lehrer.</div>`;
   };
 
   const renderEquipmentPicker = (slot?: EquipmentSlot): void => {
@@ -280,10 +339,46 @@ export function mountPersonContextMenu(world: World): void {
     const close = (event.target as HTMLElement).closest("[data-context-close-picker]");
     if (close) {
       pickerBackdrop.hidden = true;
+      selectedEducationSchoolId = undefined;
+      selectedEducationProfession = undefined;
       return;
     }
     const person = selectedPerson();
     if (!person) return;
+
+    const educationStart = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-education-start]");
+    if (educationStart) {
+      const schools = completedSchools(world);
+      if (schools.length === 1) renderEducationProfessionPicker(schools[0]!.id);
+      else renderEducationSchoolPicker();
+      return;
+    }
+
+    const schoolButton = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-education-school]");
+    if (schoolButton?.dataset.educationSchool) {
+      renderEducationProfessionPicker(schoolButton.dataset.educationSchool);
+      return;
+    }
+
+    const educationProfessionButton = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-education-profession]");
+    if (educationProfessionButton?.dataset.educationProfession) {
+      renderEducationTeacherPicker(educationProfessionButton.dataset.educationProfession as Profession);
+      return;
+    }
+
+    const teacherButton = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-education-teacher]");
+    if (teacherButton?.dataset.educationTeacher && selectedEducationSchoolId && selectedEducationProfession) {
+      const teacherId = Number(teacherButton.dataset.educationTeacher);
+      if (!startEducation(world, person.id, selectedEducationSchoolId, selectedEducationProfession, teacherId)) return;
+      selectedEducationSchoolId = undefined;
+      selectedEducationProfession = undefined;
+      setMenuOpen(false);
+      window.dispatchEvent(new CustomEvent(PERSON_SELECTION_REQUESTED_EVENT, {
+        detail: { id: person.id, focus: false },
+      }));
+      return;
+    }
+
     const equipmentSlotButton = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-equipment-slot-choice]");
     if (equipmentSlotButton) {
       const slot = equipmentSlotButton.dataset.equipmentSlotChoice as EquipmentSlot;
@@ -362,6 +457,8 @@ export function mountPersonContextMenu(world: World): void {
       event.preventDefault();
       event.stopImmediatePropagation();
       pickerBackdrop.hidden = true;
+      selectedEducationSchoolId = undefined;
+      selectedEducationProfession = undefined;
       return;
     }
     if (event.key === "Escape" && !menu.hidden) {
