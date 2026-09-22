@@ -43,8 +43,6 @@ Die Viehzüchterei kann einen Viehzüchter und bis zu zwei Träger beschäftigen
 
 Für einen Zuchtvorgang werden vier Weizen und vier Wasser verbraucht. Fehlen Vorräte oder geeignete ausgewachsene Tiere, wartet der Viehzüchter automatisch.
 
-
-
 ## Waren im Wiki
 
 Im Handbuch findest du eine Übersicht aller aktuellen Waren. Eine Warenseite zeigt, welche Gebäude sie herstellen und welche Gebäude sie für Produktion oder Bau benötigen. Warenbegriffe in Inventaren, Baukosten und Produktionsinformationen sind ebenfalls direkt mit diesen Seiten verlinkt.
