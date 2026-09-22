@@ -1161,7 +1161,7 @@ export function buildAt(
   const baseTerrain = tile.terrain;
   const number = w.nextBuildingId++;
   const b: Building = {
-    ...buildingDefinition(kind),
+    ...buildingKindDefinition(kind),
     id: `${kind}-${number}`,
     position: { q: tile.q, r: tile.r },
     baseTerrain,
