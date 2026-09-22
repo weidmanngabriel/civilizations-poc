@@ -349,3 +349,10 @@ src/ui/wikiLinks.ts definiert die stabilen Wiki-Zieltypen und das zentrale Öffn
 src/ui/wikiCatalog.ts erzeugt die Waren- und Gebäudeartikel aus bestehenden Simulationsquellen wie GOODS, Baukosten, Produktionsdefinitionen und Ausbaukanten. Dafür stellt der Simulationskern die unveränderliche Gebäudetyp-Definition lesbar bereit; die UI mutiert diese Daten nicht. Das Handbuch in src/ui/handbook.ts rendert Markdown-Seiten und dynamische Wiki-Routen in derselben Modaloberfläche und verwaltet eine kleine interne Zurück-Historie.
 
 Wiki-Links werden als data-wiki-good beziehungsweise data-wiki-building markiert und zentral delegiert. Komponenten sollen dadurch keine eigene Wiki-Routinglogik duplizieren. Bei zusammengesetzten Controls, insbesondere im Baumenü, müssen Wiki- und Primäraktion getrennte Buttons bleiben, damit Pointer- und Touch-Ereignisse nicht gleichzeitig eine Spielaktion auslösen.
+
+
+### Weitere Wiki-Zieltypen und Pausenintegration
+
+Die zentralen Wiki-Ziele umfassen zusätzlich `AnimalKind` und `Profession`. `wikiCatalog.ts` erzeugt deren Übersichten und Detailartikel aus den bestehenden Typen, `PROFESSION_LABELS`, Erfahrungsregeln und den fachlich relevanten Tierdaten. Alle Übersichts- und Beziehungslisten werden anhand ihrer deutschen Anzeigenamen sortiert.
+
+Das Handbuch signalisiert seinen Sichtbarkeitszustand über `poc-handbook-visibility`. Die Controls bleiben alleiniger Besitzer des Simulations-Loops: Beim Öffnen merken sie sich, ob die Simulation lief, pausieren gegebenenfalls und starten beim Schließen nur dann wieder, wenn sie vor dem Handbuch lief. Das Wiki selbst startet oder tickt keine Simulation.
