@@ -32,7 +32,7 @@ const NODES: TechNode[] = [
   { id: "house", label: "Wohnhaus", subtitle: "von Anfang an verfügbar", x: 70, y: 1040, kind: "building" },
   { id: "farmBuilding", label: "Farm", subtitle: "von Anfang an verfügbar", x: 70, y: 1130, kind: "building" },
   { id: "well", label: "Brunnen", subtitle: "nach fertiger Steinmetzhütte", x: 70, y: 1220, kind: "building" },
-  { id: "school", label: "🏫 Schule", subtitle: "noch nicht im Prototyp", x: 70, y: 1410, kind: "special" },
+  { id: "school", label: "🏫 Schule", subtitle: "Ausbildung von Berufen", x: 70, y: 1410, kind: "building" },
 
   { id: "wood", label: "⛏ Abbauer Holz", x: 350, y: 40, kind: "base" },
   { id: "clay", label: "⛏ Abbauer Lehm", x: 350, y: 130, kind: "base" },
@@ -141,6 +141,7 @@ const BUILDING_NODES: Partial<Record<string, PlaceableBuildingKind>> = {
   mason2: "stonemason2",
   tailor1: "tailor",
   cattle: "livestockBreeder",
+  school: "school",
 };
 
 const BUILDING_LABELS: Record<PlaceableBuildingKind, string> = {
@@ -158,6 +159,7 @@ const BUILDING_LABELS: Record<PlaceableBuildingKind, string> = {
   stonemason2: "Steinmetzhütte II",
   tailor: "Näherei",
   livestockBreeder: "Viehzüchterei",
+  school: "Schule",
 };
 
 const NODE_WIDTH = 210;
