@@ -143,20 +143,32 @@ const validAnimalTile = (world: World, position: Hex): boolean => {
   );
 };
 
-const validFollowingTile = (
-  world: World,
-  animal: Animal,
-  position: Hex,
-): boolean => {
-  if (validAnimalTile(world, position)) return true;
-  if (animal.followingBreederId === undefined || !animal.breedingReservedAt) return false;
+const guidedBreederEntry = (world: World, animal: Animal): Hex | undefined => {
+  if (animal.followingBreederId === undefined || !animal.breedingReservedAt)
+    return undefined;
   const breeder = world.buildings.find(
     (building) =>
       building.id === animal.breedingReservedAt &&
       building.kind === "livestockBreeder" &&
       !building.retired,
   );
-  if (!breeder || !same(position, breeder.position)) return false;
+  const gathering = breeder?.breedingGathering;
+  if (
+    !gathering ||
+    gathering.currentParentId !== animal.id ||
+    !gathering.currentEntry
+  ) return undefined;
+  return gathering.currentEntry;
+};
+
+const validFollowingTile = (
+  world: World,
+  animal: Animal,
+  position: Hex,
+): boolean => {
+  if (validAnimalTile(world, position)) return true;
+  const entry = guidedBreederEntry(world, animal);
+  if (!entry || !same(position, entry)) return false;
   const tile = tileIndex(world.tiles).get(key(position));
   return Boolean(tile && walkable(tile));
 };
@@ -708,14 +720,20 @@ export function advanceWildlife(world: World): void {
         animal.movement = 0;
         continue;
       }
-      if (!same(animal.position, breeder.position)) {
+      const entry = guidedBreederEntry(world, animal);
+      if (!entry) {
+        animal.path = [];
+        animal.movement = 0;
+        continue;
+      }
+      if (!same(animal.position, entry)) {
         const endpoint = animal.path.at(-1);
-        if (!endpoint || !same(endpoint, breeder.position)) {
+        if (!endpoint || !same(endpoint, entry)) {
           animal.path =
             findPath(
               world.tiles,
               animal.position,
-              breeder.position,
+              entry,
               1,
               (tile) => tile.terrain !== "building",
             ) ?? [];
