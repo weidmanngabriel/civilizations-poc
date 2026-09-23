@@ -331,6 +331,8 @@ Ein Unterricht besteht aktuell aus genau **einem Lehrer und einem Schüler**. Al
 
 Lehrer und Schüler laufen physisch zur ausgewählten Schule. Der Unterricht beginnt erst, wenn beide dort angekommen sind, und dauert **60 simulierte Sekunden**. Währenddessen zeigt der Lehrer die Tätigkeit **„Unterrichtet“**, der Schüler **„Lernt“**. Hunger und Schlaf sinken mit derselben Rate wie während normaler Arbeit. Muss einer der beiden essen oder schlafen, pausiert der Unterricht; nach dem Bedürfnis kehrt die Person zur Schule zurück und der vorhandene Fortschritt wird fortgesetzt.
 
+Der Gebäude-Dialog der Schule zeigt einen laufenden Unterricht direkt an: **Fortschritt in Prozent**, Zielberuf, Lehrer, Schüler und den aktuellen Zustand. Der Prozentwert basiert ausschließlich auf den bereits absolvierten Unterrichtsticks; Anmarsch und Bedürfnispausen erhöhen ihn nicht. Der Zustand unterscheidet laufenden Unterricht, Warten auf Teilnehmer und Pausen durch Hunger oder Schlaf. Ohne aktive Ausbildung steht dort **„Kein Unterricht“**.
+
 Nach erfolgreichem Abschluss hat der Schüler den gewählten Beruf dauerhaft erlernt und kann ihn auch nach späteren Berufswechseln wieder auswählen. Er startet darin aber ohne zusätzliche praktische Berufserfahrung. Der Lehrer wird anschließend wieder seinem vorherigen Beruf und, sofern weiterhin möglich, seinem vorherigen Arbeitsplatz zugewiesen. Zusätzliche Waren werden während des Unterrichts aktuell nicht verbraucht.
 
 ## Verlinktes Handbuch und Wiki
