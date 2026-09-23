@@ -125,10 +125,20 @@ test("blocked required navigation is an important person alert", () => {
   person.hunger = 100;
   person.sleep = 100;
   person.navigationBlocked = true;
+  person.navigationBlockedReason = "workplace";
 
   assert.deepEqual(personAlert(world, person), {
     severity: "warning",
     code: "no-route",
-    label: "Kein Weg über Wegweiser",
+    label: "Kein Weg zur Arbeitsstätte",
   });
+
+  person.navigationBlockedReason = "resource";
+  assert.equal(personAlert(world, person)?.label, "Kein Weg zur Ressource");
+
+  person.navigationBlockedReason = "food";
+  assert.equal(personAlert(world, person)?.label, "Kein Weg zu Nahrung");
+
+  person.navigationBlockedReason = undefined;
+  assert.equal(personAlert(world, person)?.label, "Kein Weg zum Ziel");
 });
