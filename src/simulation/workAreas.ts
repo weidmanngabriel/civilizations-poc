@@ -9,7 +9,7 @@ import {
 } from "./localNavigation";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { awardProfessionExperience, professionExperience } from "./experience";
-import { startEatingAfterCompletedAction } from "./needs";
+import { pauseForNeedBeforeNewTask } from "./workNeeds";
 import { equipmentWorkSpeedMultiplier, recordToolWork } from "./equipment";
 import {
   availableLooseGoodAmount,
@@ -318,8 +318,7 @@ function enforceFisher(world: World, person: Person): void {
       return;
     }
     finishFishingCycle(world, person);
-    if (startEatingAfterCompletedAction(world, person)) return;
-    if (person.hungerState) return;
+    if (pauseForNeedBeforeNewTask(world, person)) return;
     if (person.outdoorCarry) {
       routeOutdoorCarryToFlag(world, person);
       return;
