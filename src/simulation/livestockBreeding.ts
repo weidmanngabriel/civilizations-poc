@@ -188,7 +188,13 @@ const finishBreeding = (world: World, building: Building): void => {
       person.assignment?.building === building.id &&
       person.assignment.role === "worker",
   );
-  if (worker) awardProfessionExperience(worker, "stockfarmer");
+  if (worker) {
+    awardProfessionExperience(worker, "stockfarmer");
+    worker.idleTarget = undefined;
+    worker.path = [];
+    worker.movement = 0;
+    worker.active = false;
+  }
   building.breeding = undefined;
 };
 
@@ -388,6 +394,10 @@ const advanceGathering = (world: World, building: Building): void => {
     untilTick: world.round + LIVESTOCK_BREEDING_DURATION_TICKS,
   };
   building.breedingGathering = undefined;
+  worker.idleTarget = undefined;
+  worker.path = [];
+  worker.movement = 0;
+  worker.active = true;
 };
 
 export function advanceLivestockBreeding(world: World): void {
