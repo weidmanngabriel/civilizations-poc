@@ -283,8 +283,12 @@ export interface Person {
   fishingStartedAtTick?: number;
   /** Simulation tick at which the current fishing cycle finishes and the line is reeled in. */
   fishingWaitUntilTick?: number;
-  /** Exactly one outdoor-produced unit currently carried back to this person's work flag. */
+  /** Exactly one outdoor-produced unit currently carried back toward this person's work flag area. */
   outdoorCarry?: Good;
+  /** Stable ground cell selected for the current outdoor carried unit. */
+  outdoorDropTarget?: Hex;
+  /** Simulation tick when the one-second outdoor ground drop completes. */
+  outdoorDropUntilTick?: number;
   extractor?: "clay" | "stone";
   resourceTarget?: NaturalResourceId;
   /** Local resource-collection area for extractors and carriers. */
