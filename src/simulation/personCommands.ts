@@ -184,7 +184,7 @@ export function setPersonWorkplace(world: World, personId: number, buildingId: B
   person.movement = 0;
   person.path = person.active
     ? []
-    : findRequiredNavigationPath(world, person, target.position, CONFIG.roadSpeedMultiplier) ?? [];
+    : findRequiredNavigationPath(world, person, target.position, CONFIG.roadSpeedMultiplier, "workplace") ?? [];
   if (role === "carrier" && (target.kind === "warehouse" || target.kind === "hq"))
     ensureWorkArea(world, person, target.position);
   else clearWorkArea(person);
@@ -205,7 +205,7 @@ export function setPersonHome(world: World, personId: number, buildingId: Buildi
 export function orderPersonMove(world: World, personId: number, target: Hex): boolean {
   const person = world.people.find((candidate) => candidate.id === personId);
   if (!person || !world.tiles.some((tile) => same(tile, target))) return false;
-  const path = findRequiredNavigationPath(world, person, target, CONFIG.roadSpeedMultiplier);
+  const path = findRequiredNavigationPath(world, person, target, CONFIG.roadSpeedMultiplier, "manual");
   if (!path) return false;
   cancelEquipmentPickup(world, person);
   interruptEating(world, person);
@@ -227,7 +227,7 @@ export function syncManualMoveOrders(world: World): void {
       continue;
     }
     if (person.path.length) continue;
-    const path = findRequiredNavigationPath(world, person, target, CONFIG.roadSpeedMultiplier);
+    const path = findRequiredNavigationPath(world, person, target, CONFIG.roadSpeedMultiplier, "manual");
     if (!path) {
       person.manualMoveTarget = undefined;
       continue;
