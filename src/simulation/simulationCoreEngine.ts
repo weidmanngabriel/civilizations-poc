@@ -145,7 +145,7 @@ const clearWorkRetry = (p: Person): void => {
 const scheduleWorkRetry = (w: World, p: Person): void => {
   workRetryAfterTick.set(p, w.round + CONFIG.decisionIntervalTicks);
 };
-const scheduleImmediateWorkDecision = (_w: World, p: Person): void => {
+export const requestImmediateWorkDecision = (_w: World, p: Person): void => {
   workRetryAfterTick.delete(p);
   immediateWorkDecisionPeople.add(p);
 };
@@ -503,7 +503,7 @@ export function changeAssignment(
     if (role === "merchant") p.merchantRoute = { good: "wood" };
     p.active = same(p.position, b.position);
     p.movement = 0;
-    scheduleImmediateWorkDecision(w, p);
+    requestImmediateWorkDecision(w, p);
     if (!(b.kind === "farm" && role === "worker")) route(w, p, b);
     return true;
   }
@@ -541,7 +541,7 @@ export function setMerchantRoute(
   p.merchantRoute = { good: good ?? p.merchantRoute?.good ?? "wood", target };
   p.active = same(p.position, source.position);
   p.movement = 0;
-  scheduleImmediateWorkDecision(w, p);
+  requestImmediateWorkDecision(w, p);
   if (!p.active) route(w, p, source);
   return true;
 }
