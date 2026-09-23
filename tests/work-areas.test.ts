@@ -369,6 +369,33 @@ test("hungry fishers eat after every completed fishing cycle", () => {
   }
 });
 
+test("tired fishers sleep after a completed fishing cycle before starting another", () => {
+  const world = createWorld(1);
+  assert.equal(changeFishers(world, 1), true);
+  const fisher = fishers(world)[0]!;
+  assert.ok(fisher.fishingSpot);
+
+  fisher.position = { ...fisher.fishingSpot! };
+  fisher.path = [];
+  fisher.movement = 0;
+  fisher.active = false;
+  fisher.hunger = 100;
+  fisher.sleep = 40;
+  world.rngState = 1000;
+
+  tick(world);
+  assert.ok(fisher.fishingWaitUntilTick !== undefined);
+
+  let guard = 10_000;
+  while (fisher.fishingWaitUntilTick !== undefined && guard-- > 0) tick(world);
+  assert.ok(guard > 0);
+
+  assert.ok(fisher.sleepState, "a completed fishing cycle must become a sleep boundary");
+  assert.equal(fisher.fishingStartedAtTick, undefined);
+  assert.equal(fisher.fishingWaitUntilTick, undefined);
+  assert.equal(fisher.outdoorCarry, undefined);
+});
+
 test("failed fishing cycles do not award profession experience", () => {
   const world = createWorld(1);
   assert.equal(changeFishers(world, 1), true);
