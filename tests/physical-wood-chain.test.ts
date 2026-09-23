@@ -96,6 +96,23 @@ test("wood extraction creates a ground stack and sawmill workers collect from it
   assert.deepEqual(worker.trip!.sourcePosition, stack.position);
   assert.equal(world.looseGoods?.find((candidate) => candidate.id === stack.id)?.reserved, 1);
 
+  let pickupGuard = 2_000;
+  while ((worker.path.length > 0 || !worker.trip) && pickupGuard-- > 0) tick(world);
+  assert.ok(pickupGuard > 0);
+  assert.equal(worker.trip!.picked, false);
+
+  tick(world);
+  assert.equal(worker.trip!.picked, false, "ground pickup must not happen immediately on arrival");
+  assert.equal(
+    worker.trip!.transferUntilTick,
+    world.round - 1 + CONFIG.looseGoodPickupDurationTicks,
+  );
+  assert.ok(world.looseGoods?.some((candidate) => candidate.id === stack.id));
+  const pickupFinishesAt = worker.trip!.transferUntilTick!;
+  while (world.round < pickupFinishesAt) tick(world);
+  assert.equal(worker.trip!.picked, true, "ground pickup should complete after one second");
+  assert.equal(world.looseGoods?.some((candidate) => candidate.id === stack.id), false);
+
   for (let i = 0; i < 2_000 && sawmill.input < 1; i += 1) tick(world);
 
   assert.equal(sawmill.input, 1, "physical wood should be delivered into the sawmill input");
