@@ -432,8 +432,9 @@ function rerouteCurrentTask(w: World, p: Person): void {
     return;
   }
   if (p.outdoorCarry && p.workArea) {
-    if (!same(p.position, p.workArea.center))
-      routeWithinWorkArea(w, p, p.workArea.center, "reroute");
+    const target = p.outdoorDropTarget ?? p.workArea.center;
+    if (!same(p.position, target))
+      routeWithinWorkArea(w, p, target, "reroute");
     else {
       p.path = [];
       p.movement = 0;
