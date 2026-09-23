@@ -63,6 +63,11 @@ import {
 import { interruptSleep } from "./sleep";
 import { LIVESTOCK_BREEDING_LIMIT, ownedLivestockCount } from "./livestockBreeding";
 import {
+  cancelImmediateWorkDecision,
+  consumeImmediateWorkDecision,
+  requestImmediateWorkDecision,
+} from "./workScheduling";
+import {
   availableLooseGoodAmount,
   findLooseGoodDropPosition,
   looseGoodStack,
@@ -138,16 +143,15 @@ const needDueBeforeNewTask = (p: Person): boolean =>
 
 const workRetryAfterTick = new WeakMap<Person, number>();
 const observedWaypostRevision = new WeakMap<World, number>();
-const immediateWorkDecisionPeople = new WeakSet<Person>();
 const clearWorkRetry = (p: Person): void => {
   workRetryAfterTick.delete(p);
 };
 const scheduleWorkRetry = (w: World, p: Person): void => {
   workRetryAfterTick.set(p, w.round + CONFIG.decisionIntervalTicks);
 };
-export const requestImmediateWorkDecision = (_w: World, p: Person): void => {
+const scheduleImmediateWorkDecision = (w: World, p: Person): void => {
   workRetryAfterTick.delete(p);
-  immediateWorkDecisionPeople.add(p);
+  scheduleImmediateWorkDecision(w, p);
 };
 const workRetryDue = (w: World, p: Person): boolean =>
   (workRetryAfterTick.get(p) ?? Number.POSITIVE_INFINITY) <= w.round;
@@ -397,7 +401,7 @@ function cancel(w: World, p: Person): void {
   p.pendingFarmBonus = undefined;
   clearFarmTask(p);
   clearWorkRetry(p);
-  immediateWorkDecisionPeople.delete(p);
+  cancelImmediateWorkDecision(p);
   p.progress = 0;
   p.movement = 0;
   p.path = [];
@@ -503,7 +507,7 @@ export function changeAssignment(
     if (role === "merchant") p.merchantRoute = { good: "wood" };
     p.active = same(p.position, b.position);
     p.movement = 0;
-    requestImmediateWorkDecision(w, p);
+    scheduleImmediateWorkDecision(w, p);
     if (!(b.kind === "farm" && role === "worker")) route(w, p, b);
     return true;
   }
@@ -541,7 +545,7 @@ export function setMerchantRoute(
   p.merchantRoute = { good: good ?? p.merchantRoute?.good ?? "wood", target };
   p.active = same(p.position, source.position);
   p.movement = 0;
-  requestImmediateWorkDecision(w, p);
+  scheduleImmediateWorkDecision(w, p);
   if (!p.active) route(w, p, source);
   return true;
 }
@@ -1220,7 +1224,7 @@ export function removeBuilding(w: World, id: BuildingId): boolean {
       p.merchantRoute = undefined;
       clearFarmTask(p);
       clearWorkRetry(p);
-      immediateWorkDecisionPeople.delete(p);
+      cancelImmediateWorkDecision(p);
       p.active = false;
       p.progress = 0;
       p.movement = 0;
@@ -1421,7 +1425,7 @@ export function tick(w: World): void {
     (w.round - 1) % CONFIG.decisionIntervalTicks === 0;
   const immediateDecisionPeople = new Set<number>();
   for (const p of w.people) {
-    if (immediateWorkDecisionPeople.delete(p)) immediateDecisionPeople.add(p.id);
+    if (consumeImmediateWorkDecision(p)) immediateDecisionPeople.add(p.id);
   }
   const movingAtTickStart = new Set(
     w.people.filter((p) => p.path.length > 0).map((p) => p.id),
