@@ -1,4 +1,4 @@
-import type { Person, World } from "../simulation/model";
+import type { NavigationBlockReason, Person, World } from "../simulation/model";
 import { currentProfession } from "../simulation/experience";
 import { hungerStatus } from "../simulation/needs";
 import { sleepStatus } from "../simulation/sleep";
@@ -23,6 +23,20 @@ const hasNoExtractableResource = (world: World, person: Person): boolean => {
       resource.remaining > 0 &&
       hexDistance(area.center, resource.position) <= area.radius,
   );
+};
+
+const NAVIGATION_BLOCK_LABELS: Record<NavigationBlockReason, string> = {
+  workplace: "Kein Weg zur Arbeitsstätte",
+  resource: "Kein Weg zur Ressource",
+  food: "Kein Weg zu Nahrung",
+  sleep: "Kein Weg zum Schlafplatz",
+  storage: "Kein Weg zum Lager",
+  construction: "Kein Weg zur Baustelle",
+  school: "Kein Weg zur Schule",
+  equipment: "Kein Weg zur Ausrüstung",
+  "work-area": "Kein Weg zum Arbeitsgebiet",
+  manual: "Kein Weg zum Ziel",
+  destination: "Kein Weg zum Ziel",
 };
 
 const isTrulyIdle = (world: World, person: Person): boolean =>
@@ -55,7 +69,11 @@ export const personAlert = (world: World, person: Person): PersonAlert | undefin
     return { severity: "warning", code: "sleep", label: "Müde" };
   }
   if (person.navigationBlocked) {
-    return { severity: "warning", code: "no-route", label: "Kein Weg über Wegweiser" };
+    return {
+      severity: "warning",
+      code: "no-route",
+      label: NAVIGATION_BLOCK_LABELS[person.navigationBlockedReason ?? "destination"],
+    };
   }
   if (hasNoExtractableResource(world, person)) {
     return { severity: "warning", code: "no-extractable-resource", label: "Nichts mehr abzubauen" };
