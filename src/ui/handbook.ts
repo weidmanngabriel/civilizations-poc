@@ -1,10 +1,4 @@
 import type { AnimalKind, Good, Profession } from "../simulation/model";
-import welcomeMarkdown from "../handbook/willkommen.md?raw";
-import residentsMarkdown from "../handbook/bewohner.md?raw";
-import buildingMarkdown from "../handbook/bauen.md?raw";
-import logisticsMarkdown from "../handbook/logistik.md?raw";
-import worldMarkdown from "../handbook/welt.md?raw";
-import troubleshootingMarkdown from "../handbook/probleme.md?raw";
 import {
   HANDBOOK_OPEN_EVENT,
   HANDBOOK_VISIBILITY_EVENT,
@@ -29,8 +23,7 @@ const UI_MENU_OPENED_EVENT = "poc-ui-menu-opened";
 type HandbookPage = {
   id: string;
   title: string;
-  content?: string;
-  render?: () => string;
+  render: () => string;
 };
 
 type HandbookSection = {
@@ -46,16 +39,10 @@ type HandbookRoute =
   | { kind: "profession"; id: Profession };
 
 const PAGES: HandbookPage[] = [
-  { id: "welcome", title: "Willkommen", content: welcomeMarkdown },
-  { id: "residents", title: "Bewohner", content: residentsMarkdown },
-  { id: "building", title: "Bauen", content: buildingMarkdown },
   { id: "goods", title: "Waren", render: renderGoodsOverview },
   { id: "buildings", title: "Gebäude", render: renderBuildingsOverview },
   { id: "animals", title: "Tiere", render: renderAnimalsOverview },
   { id: "professions", title: "Berufe", render: renderProfessionsOverview },
-  { id: "logistics", title: "Waren & Logistik", content: logisticsMarkdown },
-  { id: "world", title: "Welt & Wege", content: worldMarkdown },
-  { id: "troubleshooting", title: "Probleme lösen", content: troubleshootingMarkdown },
 ];
 
 const escapeHtml = (value: string): string =>
@@ -220,16 +207,11 @@ export function mountHandbook(): void {
     else if (route.kind === "profession") content.innerHTML = renderProfessionArticle(route.id);
     else {
       const page = PAGES.find((candidate) => candidate.id === route.id) ?? PAGES[0]!;
-      content.innerHTML = page.render ? page.render() : renderHandbookMarkdown(page.content ?? "");
+      content.innerHTML = page.render();
       activeRoute = { kind: "page", id: page.id };
     }
 
-    const sections = activeRoute.kind === "page"
-      ? (() => {
-          const page = PAGES.find((candidate) => candidate.id === activeRoute.id);
-          return page?.content ? getHandbookSections(page.content) : dynamicSections();
-        })()
-      : dynamicSections();
+    const sections = dynamicSections();
 
     quickNavLinks.innerHTML = sections
       .map((section) => `<button type="button" data-handbook-section="${section.id}">${escapeHtml(section.title)}</button>`)
