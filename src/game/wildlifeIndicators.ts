@@ -19,6 +19,9 @@ const ANIMAL_EMOJI_WORLD_SIZE: Record<Animal["kind"], { width: number; height: n
 };
 
 const ANIMAL_EMOJI_RENDER_SIZE = "128px";
+const OWNERSHIP_HEART_EMOJI = "❤️";
+const OWNERSHIP_HEART_RENDER_SIZE = "64px";
+const OWNERSHIP_HEART_WORLD_SIZE = 3.2;
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
 
@@ -106,14 +109,12 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
         if (animal.owner === "player") {
           if (!heart) {
             heart = scene.add
-              .text(0, 0, "♥", {
-                fontFamily: "Arial, sans-serif",
-                fontSize: "9px",
-                color: "#e53935",
-                stroke: "#ffffff",
-                strokeThickness: 1.5,
+              .text(0, 0, OWNERSHIP_HEART_EMOJI, {
+                fontFamily: "Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif",
+                fontSize: OWNERSHIP_HEART_RENDER_SIZE,
               })
               .setOrigin(0.5, 1)
+              .setDisplaySize(OWNERSHIP_HEART_WORLD_SIZE, OWNERSHIP_HEART_WORLD_SIZE)
               .setDepth(1760);
             ownershipHearts.set(animal.id, heart);
           }
