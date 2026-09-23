@@ -3,6 +3,7 @@ import { findPath, key, neighbors, same, tileIndex, walkable } from "./hex";
 import { hexDistance } from "./spatial";
 import { SIMULATION_HZ } from "./timing";
 import { awardProfessionExperience } from "./experience";
+import { requestImmediateWorkDecision } from "./simulationCoreEngine";
 
 export type LivestockKind = "cow" | "sheep";
 
@@ -194,6 +195,7 @@ const finishBreeding = (world: World, building: Building): void => {
     worker.path = [];
     worker.movement = 0;
     worker.active = false;
+    requestImmediateWorkDecision(world, worker);
   }
   building.breeding = undefined;
 };
