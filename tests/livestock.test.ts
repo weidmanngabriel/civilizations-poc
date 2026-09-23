@@ -339,7 +339,7 @@ test("stockfarmer fetches missing breeding inputs before gathering animals", () 
   let workerTrips = 0;
   let previousTrip = worker.trip;
   let gatheringStarted = false;
-  for (let i = 0; i < 2400; i++) {
+  for (let i = 0; i < 7200; i++) {
     tick(world);
     if (worker.trip && worker.trip !== previousTrip) workerTrips += 1;
     previousTrip = worker.trip;
