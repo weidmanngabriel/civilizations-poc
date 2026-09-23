@@ -3,7 +3,7 @@ import { findPath, key, neighbors, same, tileIndex, walkable } from "./hex";
 import { hexDistance } from "./spatial";
 import { SIMULATION_HZ } from "./timing";
 import { awardProfessionExperience } from "./experience";
-import { requestImmediateWorkDecision } from "./simulationCoreEngine";
+import { requestImmediateWorkDecision } from "./workScheduling";
 
 export type LivestockKind = "cow" | "sheep";
 
