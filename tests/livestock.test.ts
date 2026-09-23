@@ -373,6 +373,72 @@ test("stockfarmer fetches missing breeding inputs before gathering animals", () 
   );
 });
 
+test("completed breeding immediately reschedules the stockfarmer for missing inputs", () => {
+  const world = createWorld(1);
+  world.animals = [];
+  world.animalGroups = [];
+
+  const hq = world.buildings.find((building) => building.kind === "hq")!;
+  hq.inventory ??= {};
+  hq.inventory.wheat = 10;
+  hq.inventory.water = 10;
+
+  const breederPosition = grassNear(world, hq.position, 2);
+  const breeder: Building = {
+    id: "livestockBreeder-restart",
+    kind: "livestockBreeder",
+    name: "Viehzüchterei",
+    position: { ...breederPosition },
+    workers: 1,
+    carriers: 0,
+    input: 0,
+    inputInventory: { wheat: 0, water: 0 },
+    output: 0,
+    recipe: {
+      inputs: { wheat: 4, water: 4 },
+      amount: 1,
+      duration: LIVESTOCK_BREEDING_DURATION_TICKS,
+    },
+  };
+  world.buildings.push(breeder);
+
+  const worker = world.people[0]!;
+  worker.assignment = { building: breeder.id, role: "worker" };
+  worker.position = { ...breeder.position };
+  worker.path = [];
+  worker.active = true;
+  worker.hunger = 100;
+  worker.sleep = 100;
+
+  const group = spawnAnimalGroup(world, "cow", breeder.position, 2)!;
+  const parents = world.animals!.filter((animal) => animal.groupId === group.id);
+  for (const animal of parents) {
+    animal.owner = "player";
+    animal.position = { ...breeder.position };
+    animal.path = [];
+    animal.breedingAt = breeder.id;
+    animal.breedingReservedAt = breeder.id;
+  }
+  breeder.breeding = {
+    kind: "cow",
+    parentIds: parents.map((animal) => animal.id),
+    untilTick: world.round + 1,
+  };
+
+  tick(world);
+  assert.equal(breeder.breeding, undefined);
+  assert.equal(
+    world.people.find((person) => person.id === worker.id)?.trip,
+    undefined,
+  );
+
+  tick(world);
+  const resupplyTrip = world.people.find((person) => person.id === worker.id)?.trip;
+  assert.ok(resupplyTrip);
+  assert.equal(resupplyTrip.target, breeder.id);
+  assert.ok(resupplyTrip.good === "wheat" || resupplyTrip.good === "water");
+});
+
 test("full simulation tick brings livestock through a real breeder entrance", () => {
   const world = createWorld(1);
   world.animals = [];
