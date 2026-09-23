@@ -352,7 +352,8 @@ test("breeding skips a species that already has twelve owned animals", () => {
   }
 
   advanceLivestockBreeding(world);
-  assert.equal(breeder.breeding?.kind, "sheep");
+  assert.equal(breeder.breeding, undefined);
+  assert.equal(breeder.breedingGathering?.kind, "sheep");
 });
 
 test("completed livestock breeder becomes the pasture home and demolition falls back to HQ", () => {
