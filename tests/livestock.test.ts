@@ -430,9 +430,10 @@ test("completed breeding immediately reschedules the stockfarmer for missing inp
   assert.equal(worker.trip, undefined);
 
   tick(world);
-  assert.ok(worker.trip);
-  assert.equal(worker.trip.target, breeder.id);
-  assert.ok(worker.trip.good === "wheat" || worker.trip.good === "water");
+  const resupplyTrip = worker.trip;
+  assert.ok(resupplyTrip);
+  assert.equal(resupplyTrip.target, breeder.id);
+  assert.ok(resupplyTrip.good === "wheat" || resupplyTrip.good === "water");
 });
 
 test("full simulation tick brings livestock through a real breeder entrance", () => {
