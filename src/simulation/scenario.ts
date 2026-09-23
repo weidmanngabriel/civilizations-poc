@@ -46,6 +46,7 @@ export const CONFIG = {
   carryCapacity: 1,
   transferDurationTicks: 3 * 60,
   looseGoodPickupDurationTicks: 1 * 60,
+  looseGoodDropDurationTicks: 1 * 60,
   inputCapacity: 10,
   outputCapacity: 10,
   forestOutputCapacity: 3,
