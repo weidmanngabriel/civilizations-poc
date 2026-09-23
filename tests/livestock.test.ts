@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { advanceHunting } from "../src/simulation/hunting";
-import type { Building } from "../src/simulation/model";
+import type { Animal, Building } from "../src/simulation/model";
 import { setPersonProfession } from "../src/simulation/personCommands";
 import { createWorld } from "../src/simulation/scenario";
 import { buildWithFootprint, validBuildingAnchors } from "../src/simulation/buildingPlacement";
@@ -215,7 +215,9 @@ test("stockfarmer physically gathers both parents before breeding", () => {
   advanceLivestockBreeding(world);
   const breeder = world.buildings.find((building) => building.id === "livestockBreeder-test")!;
   assert.equal(breeder.breeding, undefined);
-  assert.equal(breeder.breedingGathering?.kind, "cow");
+  const gathering = breeder.breedingGathering;
+  assert.ok(gathering);
+  assert.equal(gathering.kind, "cow");
   assert.equal(breeder.breederNextKind, "sheep");
   assert.equal(breeder.inputInventory?.wheat, 6);
   assert.equal(breeder.inputInventory?.water, 6);
@@ -225,29 +227,31 @@ test("stockfarmer physically gathers both parents before breeding", () => {
     assert.equal(animal.breedingAt, undefined);
   }
 
-  const parentIds = [...breeder.breedingGathering!.parentIds];
+  const parentIds = [...gathering.parentIds];
   for (const parentId of parentIds) {
-    const parent = world.animals!.find((animal) => animal.id === parentId)!;
-    worker.position = { ...parent.position };
+    const parentAnimal: Animal = world.animals!.find((animal) => animal.id === parentId)!;
+    worker.position = { ...parentAnimal.position };
     worker.path = [];
     advanceLivestockBreeding(world);
-    assert.equal(parent.followingBreederId, worker.id);
-    assert.equal(parent.breedingAt, undefined);
+    assert.equal(parentAnimal.followingBreederId, worker.id);
+    assert.equal(parentAnimal.breedingAt, undefined);
 
     worker.position = { ...breeder.position };
     worker.path = [];
-    parent.position = { ...breeder.position };
-    parent.path = [];
+    parentAnimal.position = { ...breeder.position };
+    parentAnimal.path = [];
     advanceLivestockBreeding(world);
-    assert.equal(parent.followingBreederId, undefined);
-    assert.equal(parent.breedingAt, breeder.id);
+    assert.equal(parentAnimal.followingBreederId, undefined);
+    assert.equal(parentAnimal.breedingAt, breeder.id);
   }
 
   assert.equal(breeder.breedingGathering, undefined);
-  assert.equal(breeder.breeding?.kind, "cow");
-  assert.deepEqual(breeder.breeding?.parentIds, parentIds);
+  const activeBreeding = world.buildings.find((building) => building.id === breeder.id)!.breeding;
+  assert.ok(activeBreeding);
+  assert.equal(activeBreeding.kind, "cow");
+  assert.deepEqual(activeBreeding.parentIds, parentIds);
 
-  world.round = breeder.breeding!.untilTick;
+  world.round = activeBreeding.untilTick;
   advanceLivestockBreeding(world);
 
   const cows = world.animals!.filter((animal) => animal.owner === "player" && animal.kind === "cow");
@@ -264,7 +268,9 @@ test("stockfarmer physically gathers both parents before breeding", () => {
 
   advanceLivestockBreeding(world);
   assert.equal(breeder.breeding, undefined);
-  assert.equal(breeder.breedingGathering?.kind, "sheep");
+  const nextGathering = world.buildings.find((building) => building.id === breeder.id)!.breedingGathering;
+  assert.ok(nextGathering);
+  assert.equal(nextGathering.kind, "sheep");
   assert.equal(
     world.animals!.filter((animal) => animal.groupId === sheepGroup.id && animal.breedingReservedAt === breeder.id).length,
     2,
