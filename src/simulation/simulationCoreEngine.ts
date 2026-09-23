@@ -787,7 +787,12 @@ const collectionSourceAllowed = (
   return Boolean(collectionPath && collectionPath.length <= CONFIG.warehouseCollectionRadius);
 };
 
-function requestInput(w: World, p: Person, b: Building): boolean {
+function requestInput(
+  w: World,
+  p: Person,
+  b: Building,
+  onlyMissingForNextBatch = false,
+): boolean {
   const construction = isUnderConstruction(b) ? b.construction! : undefined;
   const pathReason: PathReason = construction ? "builder" : "logistics";
   const isStorageCollection = isStorageBuilding(b) && !construction;
@@ -805,9 +810,11 @@ function requestInput(w: World, p: Person, b: Building): boolean {
       )
     : isStorageCollection
       ? ALL_GOODS
-      : missingForNextBatch.length
+      : onlyMissingForNextBatch
         ? missingForNextBatch
-        : recipeGoods;
+        : missingForNextBatch.length
+          ? missingForNextBatch
+          : recipeGoods;
   if (!goods.length) return false;
 
   const collectSources = (candidateGoods: Good[]): SourceCandidate[] => {
@@ -855,7 +862,13 @@ function requestInput(w: World, p: Person, b: Building): boolean {
     return sources;
   };
   let sources = collectSources(goods);
-  if (!sources.length && !construction && !isStorageCollection && missingForNextBatch.length)
+  if (
+    !sources.length &&
+    !construction &&
+    !isStorageCollection &&
+    !onlyMissingForNextBatch &&
+    missingForNextBatch.length
+  )
     sources = collectSources(recipeGoods);
   const source = sources[0];
   if (!source) return false;
@@ -1683,11 +1696,17 @@ export function tick(w: World): void {
       else scheduleWorkRetry(w, p);
       continue;
     }
-    if (
-      b.kind === "livestockBreeder" &&
-      p.assignment.role === "worker" &&
-      (b.breedingGathering || b.breeding)
-    ) continue;
+    if (b.kind === "livestockBreeder" && p.assignment.role === "worker") {
+      if (b.breedingGathering || b.breeding) continue;
+      if (!hasRecipeInputs(b)) {
+        const started = performanceNow();
+        const planned = requestInput(w, p, b, true);
+        decisionTransportMs += performanceNow() - started;
+        if (planned) clearWorkRetry(p);
+        else scheduleWorkRetry(w, p);
+      }
+      continue;
+    }
     const recipe = b.recipe;
     const requirements = recipeRequirements(b);
     const recipeGoods = Object.keys(requirements) as Good[];

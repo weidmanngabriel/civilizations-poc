@@ -12,7 +12,7 @@ import {
   advanceLivestockBreeding,
 } from "../src/simulation/livestockBreeding";
 import { hexDistance } from "../src/simulation/spatial";
-import { tick } from "../src/simulation/simulation";
+import { changeAssignment, tick } from "../src/simulation/simulation";
 import {
   LIVESTOCK_CAPTURE_RADIUS,
   OWNED_LIVESTOCK_PASTURE_RADIUS,
@@ -279,6 +279,91 @@ test("stockfarmer physically gathers both parents before breeding", () => {
   assert.equal(
     world.animals!.filter((animal) => animal.groupId === cowGroup.id && animal.breedingAt === breeder.id).length,
     0,
+  );
+});
+
+test("stockfarmer fetches missing breeding inputs before gathering animals", () => {
+  const world = createWorld(1);
+  world.animals = [];
+  world.animalGroups = [];
+
+  const hq = world.buildings.find((building) => building.kind === "hq")!;
+  hq.inventory ??= {};
+  hq.inventory.wheat = 10;
+  hq.inventory.water = 10;
+
+  const breederPosition = grassNear(world, hq.position, 2);
+  const breeder: Building = {
+    id: "livestockBreeder-resupply",
+    kind: "livestockBreeder",
+    name: "Viehzüchterei",
+    position: { q: breederPosition.q, r: breederPosition.r },
+    workers: 1,
+    carriers: 0,
+    input: 0,
+    inputInventory: { wheat: 0, water: 0 },
+    output: 0,
+    recipe: {
+      inputs: { wheat: 4, water: 4 },
+      amount: 1,
+      duration: LIVESTOCK_BREEDING_DURATION_TICKS,
+    },
+    breederNextKind: "sheep",
+  };
+  world.buildings.push(breeder);
+
+  const worker = world.people[0]!;
+  worker.hunger = 100;
+  worker.sleep = 100;
+  assert.equal(changeAssignment(world, breeder.id, "worker", 1), true);
+
+  const sheepGroup = spawnAnimalGroup(
+    world,
+    "sheep",
+    grassNear(world, breeder.position, 4),
+    2,
+  )!;
+  const sheep = world.animals!.filter((animal) => animal.groupId === sheepGroup.id);
+  for (const [index, animal] of sheep.entries()) {
+    animal.owner = "player";
+    animal.position = { ...grassNear(world, breeder.position, 4 + index) };
+    animal.path = [];
+    animal.nextMoveTick = Number.MAX_SAFE_INTEGER;
+  }
+
+  for (let i = 0; i < 120 && !worker.trip; i++) tick(world);
+  assert.ok(worker.trip);
+  assert.equal(worker.trip.target, breeder.id);
+  assert.equal(breeder.breedingGathering, undefined);
+
+  let workerTrips = 0;
+  let previousTrip = worker.trip;
+  let gatheringStarted = false;
+  for (let i = 0; i < 7200; i++) {
+    tick(world);
+    if (worker.trip && worker.trip !== previousTrip) workerTrips += 1;
+    previousTrip = worker.trip;
+
+    const hasPhysicalInputs =
+      (breeder.inputInventory?.wheat ?? 0) >= 4 &&
+      (breeder.inputInventory?.water ?? 0) >= 4;
+    if (!hasPhysicalInputs && worker.trip)
+      assert.equal(breeder.breedingGathering, undefined);
+
+    if (breeder.breedingGathering) {
+      gatheringStarted = true;
+      break;
+    }
+  }
+
+  assert.equal(gatheringStarted, true);
+  assert.ok(workerTrips >= 1);
+  assert.equal(worker.trip, undefined);
+  assert.equal(breeder.inputInventory?.wheat, 0);
+  assert.equal(breeder.inputInventory?.water, 0);
+  assert.equal(
+    sheep.filter((animal) => animal.breedingReservedAt === breeder.id).length,
+    2,
   );
 });
 
