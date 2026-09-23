@@ -220,6 +220,15 @@ test("existing loose goods on an outdoor work flag are moved outside the visible
   assert.equal(changeWoodcutters(world, 1), true);
   tick(world);
   const worker = woodcutters(world)[0]!;
+  const clearFlagTile = world.tiles.find(
+    (tile) =>
+      tile.terrain === "grass" &&
+      world.naturalResources.every(
+        (resource) => hexDistance(tile, resource.position) > GRID_REFINEMENT,
+      ),
+  );
+  assert.ok(clearFlagTile);
+  assert.equal(setWorkAreaCenter(world, worker.id, clearFlagTile), true);
   const center = { ...worker.workArea!.center };
 
   assert.ok(placeLooseGood(world, center, "wood", 1));
