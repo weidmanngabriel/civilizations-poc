@@ -711,7 +711,14 @@ export function advanceWildlife(world: World): void {
       if (!same(animal.position, breeder.position)) {
         const endpoint = animal.path.at(-1);
         if (!endpoint || !same(endpoint, breeder.position)) {
-          animal.path = findPath(world.tiles, animal.position, breeder.position, 1) ?? [];
+          animal.path =
+            findPath(
+              world.tiles,
+              animal.position,
+              breeder.position,
+              1,
+              (tile) => tile.terrain !== "building",
+            ) ?? [];
           animal.movement = 0;
         }
         advanceAnimalMovement(world, animal);
