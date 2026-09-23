@@ -1,4 +1,4 @@
-import type { Hex, Person, Tile, Waypost, World } from "./model";
+import type { Hex, NavigationBlockReason, Person, Tile, Waypost, World } from "./model";
 import { findPath, hexDistance, key, neighbors, pathTravelCost, same, tileIndex, walkable } from "./hex";
 import { GRID_REFINEMENT } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
