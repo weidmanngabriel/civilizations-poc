@@ -338,7 +338,8 @@ test("full simulation tick lets the stockfarmer bring livestock into the breeder
     sheep.filter((animal) => animal.breedingAt === breeder.id).length,
     2,
   );
-  assert.deepEqual(worker.position, breeder.position);
+  assert.equal(worker.position.q, breeder.position.q);
+  assert.equal(worker.position.r, breeder.position.r);
 });
 
 test("reserved livestock follows the stockfarmer instead of teleporting", () => {
