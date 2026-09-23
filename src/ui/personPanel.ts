@@ -235,12 +235,11 @@ export function mountPersonPanel(world: World): void {
         const requiredProfession = staffPickerProfession();
         if (staffPicker && requiredProfession && !canLearnProfession(person, requiredProfession))
           return false;
-        if (!staffPicker) {
-          if (activeAlertFilter !== "all" && alert?.severity !== activeAlertFilter) return false;
-          if (activeFilter === "free" && profession) return false;
-          if (activeFilter !== "all" && activeFilter !== "free" && profession !== activeFilter)
-            return false;
-        }
+        if (!staffPicker && activeAlertFilter !== "all" && alert?.severity !== activeAlertFilter)
+          return false;
+        if (activeFilter === "free" && profession) return false;
+        if (activeFilter !== "all" && activeFilter !== "free" && profession !== activeFilter)
+          return false;
         if (!query) return true;
         return (
           personName(person.id).toLocaleLowerCase("de-DE").includes(query) ||
@@ -474,7 +473,7 @@ export function mountPersonPanel(world: World): void {
       ? `${PROFESSION_LABELS[profession]} · ${building?.name ?? "Gebäude"}`
       : (building?.name ?? "Gebäude");
     alertFilters.hidden = true;
-    professionFilters.hidden = true;
+    professionFilters.hidden = false;
     browser.classList.add("person-staff-picker");
   };
 
