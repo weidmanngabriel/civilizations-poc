@@ -127,6 +127,8 @@ export interface Building {
     parentIds: AnimalId[];
     collectedIds: AnimalId[];
     currentParentId?: AnimalId;
+    /** Stable walkable footprint-edge cell used for the current physical handoff. */
+    currentEntry?: Hex;
   };
   /** Active breeding cycle owned by this building after both parents arrived. */
   breeding?: {

@@ -143,6 +143,36 @@ const validAnimalTile = (world: World, position: Hex): boolean => {
   );
 };
 
+const guidedBreederEntry = (world: World, animal: Animal): Hex | undefined => {
+  if (animal.followingBreederId === undefined || !animal.breedingReservedAt)
+    return undefined;
+  const breeder = world.buildings.find(
+    (building) =>
+      building.id === animal.breedingReservedAt &&
+      building.kind === "livestockBreeder" &&
+      !building.retired,
+  );
+  const gathering = breeder?.breedingGathering;
+  if (
+    !gathering ||
+    gathering.currentParentId !== animal.id ||
+    !gathering.currentEntry
+  ) return undefined;
+  return gathering.currentEntry;
+};
+
+const validFollowingTile = (
+  world: World,
+  animal: Animal,
+  position: Hex,
+): boolean => {
+  if (validAnimalTile(world, position)) return true;
+  const entry = guidedBreederEntry(world, animal);
+  if (!entry || !same(position, entry)) return false;
+  const tile = tileIndex(world.tiles).get(key(position));
+  return Boolean(tile && walkable(tile));
+};
+
 const nearestValidSpawn = (world: World, requested: Hex): Hex | undefined =>
   [...world.tiles]
     .filter((tile) => validAnimalTile(world, tile))
@@ -599,7 +629,7 @@ function advanceAnimalMovement(world: World, animal: Animal): void {
         candidate.position.q === next.q &&
         candidate.position.r === next.r,
     );
-    if (!validAnimalTile(world, next) || occupied) {
+    if (!validFollowingTile(world, animal, next) || occupied) {
       animal.path = [];
       animal.movement = 0;
       animal.nextMoveTick = world.round;
@@ -690,10 +720,23 @@ export function advanceWildlife(world: World): void {
         animal.movement = 0;
         continue;
       }
-      if (!same(animal.position, breeder.position)) {
+      const entry = guidedBreederEntry(world, animal);
+      if (!entry) {
+        animal.path = [];
+        animal.movement = 0;
+        continue;
+      }
+      if (!same(animal.position, entry)) {
         const endpoint = animal.path.at(-1);
-        if (!endpoint || !same(endpoint, breeder.position)) {
-          animal.path = findPath(world.tiles, animal.position, breeder.position, 1) ?? [];
+        if (!endpoint || !same(endpoint, entry)) {
+          animal.path =
+            findPath(
+              world.tiles,
+              animal.position,
+              entry,
+              1,
+              (tile) => tile.terrain !== "building",
+            ) ?? [];
           animal.movement = 0;
         }
         advanceAnimalMovement(world, animal);

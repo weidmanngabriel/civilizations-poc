@@ -39,10 +39,10 @@ type HandbookRoute =
   | { kind: "profession"; id: Profession };
 
 const PAGES: HandbookPage[] = [
-  { id: "goods", title: "Waren", render: renderGoodsOverview },
+  { id: "professions", title: "Berufe", render: renderProfessionsOverview },
   { id: "buildings", title: "Gebäude", render: renderBuildingsOverview },
   { id: "animals", title: "Tiere", render: renderAnimalsOverview },
-  { id: "professions", title: "Berufe", render: renderProfessionsOverview },
+  { id: "goods", title: "Waren", render: renderGoodsOverview },
 ];
 
 const escapeHtml = (value: string): string =>

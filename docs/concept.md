@@ -339,7 +339,7 @@ Nach erfolgreichem Abschluss hat der Schüler den gewählten Beruf dauerhaft erl
 
 ## Verlinktes Handbuch und Wiki
 
-Das Handbuch ist aktuell bewusst auf die vier datengetriebenen Kataloge **Waren**, **Gebäude**, **Tiere** und **Berufe** reduziert. Reine allgemeine Textseiten werden vorerst nicht angeboten. Aus den vier Übersichten führen dynamisch erzeugte Detailseiten zu den jeweiligen Wissensobjekten.
+Das Handbuch ist aktuell bewusst auf die vier datengetriebenen Kataloge **Berufe**, **Gebäude**, **Tiere** und **Waren** reduziert. Die Haupttabs sind alphabetisch nach ihrem deutschen Anzeigenamen sortiert. Reine allgemeine Textseiten werden vorerst nicht angeboten. Aus den vier Übersichten führen dynamisch erzeugte Detailseiten zu den jeweiligen Wissensobjekten.
 
 Warenartikel zeigen produzierende und verwendende Gebäude, Produktionsrezepte sowie direkte Quellen aus Berufen und Tieren. Gebäudeartikel zeigen Baukosten, Produktion oder Funktion, Personal und vorhandene Ausbaukanten. Berufsartikel zeigen Voraussetzungen, Arbeitsplätze und Freischaltungen. Tierseiten zeigen Jagdbeute, relevante Berufe und bei Nutztieren die Viehzüchterei. Die Inhalte werden soweit möglich direkt aus den aktuellen Simulationsregeln erzeugt.
 
