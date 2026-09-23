@@ -122,7 +122,7 @@ export function installWildlifeIndicators(scene: Phaser.Scene, world: World): vo
             .setVisible(true)
             .setPosition(
               position.x,
-              position.y - (animal.kind === "cow" ? 10 : 8) * growthScale,
+              position.y - (animal.kind === "cow" ? 7 : 6) * growthScale,
             );
         } else if (heart) {
           heart.setVisible(false);
