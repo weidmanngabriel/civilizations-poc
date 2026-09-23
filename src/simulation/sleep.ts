@@ -328,6 +328,17 @@ const startSleeping = (world: World, person: Person, context: SleepSearchContext
   person.path = same(person.position, candidate.target) ? [] : candidate.path;
 };
 
+export const startSleepingAfterCompletedAction = (world: World, person: Person): boolean => {
+  if (
+    person.sleepState ||
+    sleepValue(person) > WANTS_TO_SLEEP_THRESHOLD ||
+    (person.sleepGraceTicks ?? 0) > 0
+  )
+    return false;
+  startSleeping(world, person, {});
+  return true;
+};
+
 export const commandSleep = (world: World, personId: number): boolean => {
   const person = world.people.find((candidate) => candidate.id === personId);
   if (!person || (person.sleep ?? SLEEP_MAX) >= SLEEP_MAX) return false;

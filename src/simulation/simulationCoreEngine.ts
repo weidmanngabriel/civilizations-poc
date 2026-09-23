@@ -62,6 +62,7 @@ import {
   takeStoredEquipment,
 } from "./equipment";
 import { interruptSleep } from "./sleep";
+import { needDueBeforeNewTask } from "./workNeeds";
 import { LIVESTOCK_BREEDING_LIMIT, ownedLivestockCount } from "./livestockBreeding";
 import {
   cancelImmediateWorkDecision,
@@ -135,13 +136,6 @@ const naturalOutputCapacity = (resource: NaturalResource): number =>
   resource.kind === "forest" ? CONFIG.forestOutputCapacity : CONFIG.resourceOutputCapacity;
 const naturalResourceProfession = (resource: NaturalResource): "woodcutter" | "clayDigger" | "stonecutter" =>
   resource.kind === "forest" ? "woodcutter" : resource.kind === "clay" ? "clayDigger" : "stonecutter";
-const foodDueBeforeNewTask = (p: Person): boolean =>
-  Boolean(p.hungerState) || (p.hunger ?? 100) <= 40;
-const sleepDueBeforeNewTask = (p: Person): boolean =>
-  Boolean(p.sleepState) || (p.sleep ?? 100) <= 40;
-const needDueBeforeNewTask = (p: Person): boolean =>
-  foodDueBeforeNewTask(p) || sleepDueBeforeNewTask(p);
-
 const workRetryAfterTick = new WeakMap<Person, number>();
 const observedWaypostRevision = new WeakMap<World, number>();
 const clearWorkRetry = (p: Person): void => {

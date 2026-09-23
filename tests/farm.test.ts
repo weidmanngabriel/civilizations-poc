@@ -5,7 +5,7 @@ import { findPathBySteps } from "../src/simulation/hex";
 import { canPlaceBuilding } from "../src/simulation/buildingPlacement";
 import { placeLooseGood } from "../src/simulation/looseGoods";
 import { assigned, buildAt, changeAssignment, tick, warehouseStock } from "../src/simulation/simulation";
-import { activeFarmFieldCount } from "../src/simulation/farm";
+import { activeFarmFieldCount, planFarmWorker } from "../src/simulation/farm";
 import type { Building, BuildableBuildingKind, Hex, World } from "../src/simulation/model";
 
 const rounds = (w: World, count: number) => {
@@ -224,6 +224,25 @@ test("farmer waits to harvest while farm output is full", () => {
   assert.equal(farmer.trip, undefined);
 });
 
+
+test("full farm output does not pull an idle farmer back into the farm", () => {
+  const w = createWorld();
+  const { farm, farmer } = finishedFarm(w);
+  addField(w, farm, nearbyGrass(w, farm.position), 4);
+  farm.output = CONFIG.outputCapacity;
+
+  const waitingPosition = nearbyGrass(w, farm.position);
+  farmer.position = { ...waitingPosition };
+  farmer.path = [];
+  farmer.movement = 0;
+  farmer.active = true;
+
+  assert.equal(planFarmWorker(w, farmer, farm), false);
+  assert.deepEqual(farmer.position, waitingPosition);
+  assert.equal(farmer.path.length, 0);
+  assert.equal(farmer.farmTask, undefined);
+  assert.equal(farmer.trip, undefined);
+});
 
 test("farmers use the farm as a local navigation node without global wayposts", () => {
   const w = createWorld();
