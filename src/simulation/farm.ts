@@ -189,6 +189,14 @@ export function planFarmWorker(w: World, p: Person, farm: Building): boolean {
   )
     return false;
 
+  const ripeFields = farmFields(w, farm.id).filter((field) => field.fieldStage === 4);
+  const incomingWheat = w.people.filter(
+    (person) => person.trip?.target === farm.id && person.trip.good === "wheat",
+  ).length;
+  const harvestHasSpace = farm.output + incomingWheat < CONFIG.outputCapacity;
+
+  if (ripeFields.length && !harvestHasSpace) return false;
+
   const node = farmNavigationNode(farm);
   if (!node.contains(p.position)) {
     const path = findPathIntoLocalNavigationNode(
@@ -212,12 +220,8 @@ export function planFarmWorker(w: World, p: Person, farm: Building): boolean {
     return Boolean(path);
   }
 
-  const ripeFields = farmFields(w, farm.id).filter((field) => field.fieldStage === 4);
-  const incomingWheat = w.people.filter(
-    (person) => person.trip?.target === farm.id && person.trip.good === "wheat",
-  ).length;
   if (
-    farm.output + incomingWheat < CONFIG.outputCapacity &&
+    harvestHasSpace &&
     assignFieldTask(
       w,
       farm,
