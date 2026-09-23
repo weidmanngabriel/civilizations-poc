@@ -1,5 +1,5 @@
 import type { Animal, AnimalGroup, Building, Person, World } from "./model";
-import { findPath, key, same, walkable } from "./hex";
+import { findPath, key, neighbors, same, tileIndex, walkable } from "./hex";
 import { hexDistance } from "./spatial";
 import { SIMULATION_HZ } from "./timing";
 import { awardProfessionExperience } from "./experience";
@@ -169,12 +169,13 @@ const finishBreeding = (world: World, building: Building): void => {
   const group = ensureOwnedGroup(world, cycle.kind, building.position);
   const babyId = nextAnimalId(world);
   const babyTarget = freePasturePosition(world, building.position, new Set());
+  const babyEntry = livestockBreederEntry(world, building, babyTarget);
   const baby: Animal = {
     id: babyId,
     kind: cycle.kind,
     groupId: group.id,
-    position: { ...building.position },
-    path: findPath(world.tiles, building.position, babyTarget, 1) ?? [],
+    position: { ...babyEntry },
+    path: findPath(world.tiles, babyEntry, babyTarget, 1) ?? [],
     movement: 0,
     nextMoveTick: world.round,
     owner: "player",
@@ -226,6 +227,42 @@ const assignedStockfarmer = (world: World, building: Building): Person | undefin
       person.assignment?.building === building.id &&
       person.assignment.role === "worker",
   );
+
+const livestockBreederEntry = (
+  world: World,
+  building: Building,
+  approachFrom: Building["position"],
+): Building["position"] => {
+  const tiles = tileIndex(world.tiles);
+  const footprint = building.footprint?.length
+    ? building.footprint
+    : [building.position];
+  const reachableEdges = footprint.filter((position) => {
+    const tile = tiles.get(key(position));
+    if (!tile || !walkable(tile)) return false;
+    return neighbors(position).some((neighbor) => {
+      const neighborTile = tiles.get(key(neighbor));
+      return Boolean(
+        neighborTile &&
+        walkable(neighborTile) &&
+        neighborTile.terrain !== "building",
+      );
+    });
+  });
+  const authoredEntrance = reachableEdges.find((position) =>
+    same(position, building.position),
+  );
+  if (authoredEntrance) return { ...authoredEntrance };
+  const fallback = reachableEdges
+    .sort(
+      (a, b) =>
+        hexDistance(a, approachFrom) - hexDistance(b, approachFrom) ||
+        hexDistance(a, building.position) - hexDistance(b, building.position) ||
+        a.q - b.q ||
+        a.r - b.r,
+    )[0];
+  return fallback ? { ...fallback } : { ...building.position };
+};
 
 const routePerson = (
   world: World,
@@ -308,6 +345,9 @@ const advanceGathering = (world: World, building: Building): void => {
     cancelGathering(world, building);
     return;
   }
+  const entry =
+    gathering.currentEntry ??
+    (gathering.currentEntry = livestockBreederEntry(world, building, animal.position));
 
   if (animal.followingBreederId !== worker.id) {
     if (!same(worker.position, animal.position)) {
@@ -316,20 +356,20 @@ const advanceGathering = (world: World, building: Building): void => {
       return;
     }
     animal.followingBreederId = worker.id;
-    if (!routePerson(world, worker, building.position)) {
+    if (!routePerson(world, worker, entry)) {
       cancelGathering(world, building);
       return;
     }
     return;
   }
 
-  if (!same(worker.position, building.position)) {
-    if (worker.path.length === 0 && !routePerson(world, worker, building.position))
+  if (!same(worker.position, entry)) {
+    if (worker.path.length === 0 && !routePerson(world, worker, entry))
       cancelGathering(world, building);
     return;
   }
 
-  if (!same(animal.position, building.position)) return;
+  if (!same(animal.position, entry)) return;
 
   animal.followingBreederId = undefined;
   animal.breedingReservedAt = undefined;
@@ -338,6 +378,7 @@ const advanceGathering = (world: World, building: Building): void => {
   animal.movement = 0;
   gathering.collectedIds.push(animal.id);
   gathering.currentParentId = undefined;
+  gathering.currentEntry = undefined;
 
   if (gathering.collectedIds.length < gathering.parentIds.length) return;
 
