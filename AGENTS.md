@@ -12,3 +12,13 @@ This file defines how project documentation is organized and maintained.
 Before implementation, read the documents relevant to the planned change. Product-facing changes require `concept.md`; technical changes require `architecture.md`; domain changes require `domain.md`; test-strategy changes require `testing.md`; repository-workflow changes require `development.md`.
 
 Documentation is updated together with the related code change, only where affected. Do not add information speculatively, silently resolve contradictions between code and documentation, overwrite maintained rationale or domain rules without cause, or duplicate information unnecessarily. Leave topics empty until reliable project-specific information exists.
+
+
+# Engineering discipline
+
+Keep the implementation structurally simple and prefer fixing root causes over accumulating local exceptions.
+
+- If the same problem requires a second implementation iteration, explicitly reassess whether the underlying issue should be solved through a more general abstraction, invariant, state transition, or scheduling boundary instead of another local patch.
+- Avoid profession-, building-, or feature-specific branches when the behavior belongs to a shared system concern. Prefer one authoritative mechanism that specialized subsystems can call into.
+- Treat growing chains of special-case `if` conditions, duplicated retry/routing/state logic, and feature-specific bypasses as architecture smells. Do not add another exception without first checking whether the common mechanism should be improved instead.
+- When a general solution is practical, choose it even if the local patch would be shorter. The highest priority is keeping the codebase coherent, testable, and free of spaghetti-style exception logic.
