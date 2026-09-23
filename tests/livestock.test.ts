@@ -311,34 +311,44 @@ test("full simulation tick brings livestock through a real breeder entrance", ()
   worker.hunger = 100;
   worker.sleep = 100;
 
-  const sheepGroup = spawnAnimalGroup(
-    world,
-    "sheep",
-    grassNear(world, breeder.position, 5),
-    2,
-  )!;
+  const footprint = breeder.footprint ?? [];
+  const nearbyPasture = world.tiles
+    .filter(
+      (tile) =>
+        tile.terrain === "grass" &&
+        !tile.resourceBlocking &&
+        !tile.buildingBlocking &&
+        footprint.some((cell) => hexDistance(tile, cell) === 1),
+    )
+    .slice(0, 2);
+  assert.equal(nearbyPasture.length, 2);
+
+  const sheepGroup = spawnAnimalGroup(world, "sheep", nearbyPasture[0]!, 2)!;
   const sheep = world.animals!.filter((animal) => animal.groupId === sheepGroup.id);
   for (const [index, animal] of sheep.entries()) {
     animal.owner = "player";
-    animal.position = { ...grassNear(world, breeder.position, 4 + index) };
+    animal.position = { ...nearbyPasture[index]! };
     animal.path = [];
     animal.nextMoveTick = Number.MAX_SAFE_INTEGER;
   }
 
   let sawFollowing = false;
-  let sawAnimalAtEntrance = false;
+  let sawAnimalInsideBuilding = false;
   let startedBreeding = false;
-  for (let i = 0; i < 2400; i++) {
+  for (let i = 0; i < 600; i++) {
     tick(world);
     if (sheep.some((animal) => animal.followingBreederId === worker.id))
       sawFollowing = true;
     if (
-      sheep.some(
-        (animal) =>
-          animal.position.q === breeder.position.q &&
-          animal.position.r === breeder.position.r,
-      )
-    ) sawAnimalAtEntrance = true;
+      sheep.some((animal) => {
+        const tile = world.tiles.find(
+          (candidate) =>
+            candidate.q === animal.position.q &&
+            candidate.r === animal.position.r,
+        );
+        return tile?.terrain === "building";
+      })
+    ) sawAnimalInsideBuilding = true;
     if (breeder.breeding) {
       startedBreeding = true;
       break;
@@ -346,7 +356,7 @@ test("full simulation tick brings livestock through a real breeder entrance", ()
   }
 
   assert.equal(sawFollowing, true);
-  assert.equal(sawAnimalAtEntrance, true);
+  assert.equal(sawAnimalInsideBuilding, true);
   assert.equal(startedBreeding, true);
   assert.equal(breeder.breedingGathering, undefined);
   assert.equal(breeder.breeding?.kind, "sheep");
@@ -354,8 +364,10 @@ test("full simulation tick brings livestock through a real breeder entrance", ()
     sheep.filter((animal) => animal.breedingAt === breeder.id).length,
     2,
   );
-  assert.equal(worker.position.q, breeder.position.q);
-  assert.equal(worker.position.r, breeder.position.r);
+  const workerTile = world.tiles.find(
+    (tile) => tile.q === worker.position.q && tile.r === worker.position.r,
+  );
+  assert.equal(workerTile?.terrain, "building");
 });
 
 test("reserved livestock follows the stockfarmer instead of teleporting", () => {
