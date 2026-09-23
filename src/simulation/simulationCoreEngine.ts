@@ -151,7 +151,7 @@ const scheduleWorkRetry = (w: World, p: Person): void => {
 };
 const scheduleImmediateWorkDecision = (w: World, p: Person): void => {
   workRetryAfterTick.delete(p);
-  scheduleImmediateWorkDecision(w, p);
+  requestImmediateWorkDecision(w, p);
 };
 const workRetryDue = (w: World, p: Person): boolean =>
   (workRetryAfterTick.get(p) ?? Number.POSITIVE_INFINITY) <= w.round;
