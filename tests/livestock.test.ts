@@ -282,25 +282,27 @@ test("stockfarmer physically gathers both parents before breeding", () => {
   );
 });
 
-test("full simulation tick lets the stockfarmer bring livestock into the breeder", () => {
+test("full simulation tick brings livestock through a real breeder entrance", () => {
   const world = createWorld(1);
   world.animals = [];
   world.animalGroups = [];
-  const breederPosition = grassNear(world, world.buildings[0]!.position, 7);
-  const breeder: Building = {
-    id: "livestockBreeder-integration",
-    kind: "livestockBreeder",
-    name: "Viehzüchterei",
-    position: { ...breederPosition },
-    workers: 1,
-    carriers: 2,
-    input: 0,
-    inputInventory: { wheat: 10, water: 10 },
-    output: 0,
-    recipe: { inputs: { wheat: 4, water: 4 }, amount: 1, duration: LIVESTOCK_BREEDING_DURATION_TICKS },
-    breederNextKind: "sheep",
-  };
-  world.buildings.push(breeder);
+
+  const anchor = validBuildingAnchors(world, "livestockBreeder")[0];
+  assert.ok(anchor);
+  const breeder = buildWithFootprint(world, anchor, "livestockBreeder");
+  assert.ok(breeder);
+  assert.ok(breeder.construction);
+  breeder.construction.complete = true;
+  breeder.construction.progress = breeder.construction.duration;
+  breeder.inputInventory = { wheat: 10, water: 10 };
+  breeder.breederNextKind = "sheep";
+
+  const entranceTile = world.tiles.find(
+    (tile) => tile.q === breeder.position.q && tile.r === breeder.position.r,
+  );
+  assert.equal(entranceTile?.terrain, "building");
+  assert.notEqual(entranceTile?.buildingBlocking, true);
+
   const worker = world.people[0]!;
   worker.assignment = { building: breeder.id, role: "worker" };
   worker.position = { ...breeder.position };
@@ -309,21 +311,34 @@ test("full simulation tick lets the stockfarmer bring livestock into the breeder
   worker.hunger = 100;
   worker.sleep = 100;
 
-  const group = spawnAnimalGroup(world, "sheep", breeder.position, 2)!;
-  const sheep = world.animals!.filter((animal) => animal.groupId === group.id);
+  const sheepGroup = spawnAnimalGroup(
+    world,
+    "sheep",
+    grassNear(world, breeder.position, 5),
+    2,
+  )!;
+  const sheep = world.animals!.filter((animal) => animal.groupId === sheepGroup.id);
   for (const [index, animal] of sheep.entries()) {
     animal.owner = "player";
-    animal.position = { ...grassNear(world, breeder.position, 2 + index) };
+    animal.position = { ...grassNear(world, breeder.position, 4 + index) };
     animal.path = [];
     animal.nextMoveTick = Number.MAX_SAFE_INTEGER;
   }
 
   let sawFollowing = false;
+  let sawAnimalAtEntrance = false;
   let startedBreeding = false;
-  for (let i = 0; i < 1800; i++) {
+  for (let i = 0; i < 2400; i++) {
     tick(world);
     if (sheep.some((animal) => animal.followingBreederId === worker.id))
       sawFollowing = true;
+    if (
+      sheep.some(
+        (animal) =>
+          animal.position.q === breeder.position.q &&
+          animal.position.r === breeder.position.r,
+      )
+    ) sawAnimalAtEntrance = true;
     if (breeder.breeding) {
       startedBreeding = true;
       break;
@@ -331,6 +346,7 @@ test("full simulation tick lets the stockfarmer bring livestock into the breeder
   }
 
   assert.equal(sawFollowing, true);
+  assert.equal(sawAnimalAtEntrance, true);
   assert.equal(startedBreeding, true);
   assert.equal(breeder.breedingGathering, undefined);
   assert.equal(breeder.breeding?.kind, "sheep");
