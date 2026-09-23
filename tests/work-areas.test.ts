@@ -206,9 +206,11 @@ test("each extracted unit is carried to the personal work flag before becoming a
   const wood = (world.looseGoods ?? []).filter((stack) => stack.good === "wood");
   assert.equal(wood.reduce((sum, stack) => sum + stack.amount, 0), 1);
   assert.ok(
-    wood.every(
-      (stack) => hexDistance(stack.position, worker.workArea!.center) <= GRID_REFINEMENT,
-    ),
+    wood.every((stack) => {
+      const distance = hexDistance(stack.position, worker.workArea!.center);
+      return distance >= 1 && distance <= GRID_REFINEMENT;
+    }),
+    "extracted goods must be dropped around the work flag, never on the flag itself",
   );
 });
 
@@ -308,9 +310,11 @@ test("fishers use one five-second cast cycle and carry a catch to their flag", (
   const fish = (world.looseGoods ?? []).filter((stack) => stack.good === "fish");
   assert.equal(fish.reduce((sum, stack) => sum + stack.amount, 0), 1);
   assert.ok(
-    fish.every(
-      (stack) => hexDistance(stack.position, fisher.workArea!.center) <= GRID_REFINEMENT,
-    ),
+    fish.every((stack) => {
+      const distance = hexDistance(stack.position, fisher.workArea!.center);
+      return distance >= 1 && distance <= GRID_REFINEMENT;
+    }),
+    "caught goods must be dropped around the work flag, never on the flag itself",
   );
 });
 
