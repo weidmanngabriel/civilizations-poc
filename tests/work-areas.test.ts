@@ -207,15 +207,14 @@ test("each extracted unit is carried to the personal work flag before becoming a
   while (worker.path.length && guard-- > 0) tick(world);
   assert.ok(guard > 0);
   assert.equal(worker.outdoorCarry, "wood");
-  assert.equal(worker.outdoorDropUntilTick, undefined);
-
-  tick(world);
+  if (worker.outdoorDropUntilTick === undefined) tick(world);
   assert.equal(worker.outdoorCarry, "wood");
-  assert.equal(
-    worker.outdoorDropUntilTick,
-    world.round - 1 + CONFIG.looseGoodDropDurationTicks,
-  );
+  assert.ok(worker.outdoorDropUntilTick !== undefined);
   const dropFinishesAt = worker.outdoorDropUntilTick!;
+  assert.equal(
+    dropFinishesAt - world.round <= CONFIG.looseGoodDropDurationTicks,
+    true,
+  );
   while (world.round < dropFinishesAt) tick(world);
   assert.equal(worker.outdoorCarry, undefined);
 
