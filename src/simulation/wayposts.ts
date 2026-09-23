@@ -291,9 +291,11 @@ const findUnrestrictedNavigationPath = (
   person: Person,
   end: Hex,
   roadSpeedMultiplier: number,
+  blockedReason: NavigationBlockReason,
 ): Hex[] | null => {
   const path = findPath(world.tiles, person.position, end, roadSpeedMultiplier);
   person.navigationBlocked = path ? undefined : true;
+  person.navigationBlockedReason = path ? undefined : blockedReason;
   resetNavigationFailures(person);
   return path;
 };
@@ -303,13 +305,15 @@ export function findCandidateNavigationPath(
   person: Person,
   end: Hex,
   roadSpeedMultiplier = 1.3,
+  blockedReason: NavigationBlockReason = "destination",
 ): Hex[] | null {
   if (same(person.position, end)) {
     person.navigationBlocked = undefined;
+    person.navigationBlockedReason = undefined;
     return [];
   }
   if (usesUnrestrictedGlobalPathfinding(person))
-    return findUnrestrictedNavigationPath(world, person, end, roadSpeedMultiplier);
+    return findUnrestrictedNavigationPath(world, person, end, roadSpeedMultiplier, blockedReason);
 
   const revision = world.waypostRevision ?? 0;
   if (person.navigationFailureRevision !== revision) {
@@ -320,16 +324,19 @@ export function findCandidateNavigationPath(
   const targetKey = navigationTargetKey(end);
   if (person.navigationFailedTargets?.includes(targetKey)) {
     person.navigationBlocked = true;
+    person.navigationBlockedReason = blockedReason;
     return null;
   }
 
   const path = findNavigationPath(world, person.position, end, roadSpeedMultiplier);
   if (path) {
     person.navigationBlocked = undefined;
+    person.navigationBlockedReason = undefined;
     return path;
   }
 
   person.navigationBlocked = true;
+  person.navigationBlockedReason = blockedReason;
   person.navigationFailedTargets ??= [];
   if (!person.navigationFailedTargets.includes(targetKey))
     person.navigationFailedTargets.push(targetKey);
@@ -341,14 +348,16 @@ export function findRequiredNavigationPath(
   person: Person,
   end: Hex,
   roadSpeedMultiplier = 1.3,
+  blockedReason: NavigationBlockReason = "destination",
 ): Hex[] | null {
   if (same(person.position, end)) {
     person.navigationBlocked = undefined;
+    person.navigationBlockedReason = undefined;
     resetNavigationFailures(person);
     return [];
   }
   if (usesUnrestrictedGlobalPathfinding(person))
-    return findUnrestrictedNavigationPath(world, person, end, roadSpeedMultiplier);
+    return findUnrestrictedNavigationPath(world, person, end, roadSpeedMultiplier, blockedReason);
 
   const revision = world.waypostRevision ?? 0;
   if (person.navigationFailureRevision !== revision) {
@@ -359,17 +368,20 @@ export function findRequiredNavigationPath(
   const targetKey = navigationTargetKey(end);
   if (person.navigationFailedTargets?.includes(targetKey)) {
     person.navigationBlocked = true;
+    person.navigationBlockedReason = blockedReason;
     return null;
   }
 
   const path = findNavigationPath(world, person.position, end, roadSpeedMultiplier);
   if (path) {
     person.navigationBlocked = undefined;
+    person.navigationBlockedReason = undefined;
     resetNavigationFailures(person);
     return path;
   }
 
   person.navigationBlocked = true;
+  person.navigationBlockedReason = blockedReason;
   person.navigationFailedTargets ??= [];
   if (!person.navigationFailedTargets.includes(targetKey))
     person.navigationFailedTargets.push(targetKey);
@@ -378,6 +390,7 @@ export function findRequiredNavigationPath(
 
 export const clearNavigationBlocked = (person: Person): void => {
   person.navigationBlocked = undefined;
+  person.navigationBlockedReason = undefined;
   resetNavigationFailures(person);
 };
 
