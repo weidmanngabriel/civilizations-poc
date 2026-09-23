@@ -427,10 +427,13 @@ test("completed breeding immediately reschedules the stockfarmer for missing inp
 
   tick(world);
   assert.equal(breeder.breeding, undefined);
-  assert.equal(worker.trip, undefined);
+  assert.equal(
+    world.people.find((person) => person.id === worker.id)?.trip,
+    undefined,
+  );
 
   tick(world);
-  const resupplyTrip = worker.trip;
+  const resupplyTrip = world.people.find((person) => person.id === worker.id)?.trip;
   assert.ok(resupplyTrip);
   assert.equal(resupplyTrip.target, breeder.id);
   assert.ok(resupplyTrip.good === "wheat" || resupplyTrip.good === "water");
