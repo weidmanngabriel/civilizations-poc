@@ -140,6 +140,57 @@ export const pickupReservedLooseGood = (
   amount = 1,
 ): boolean => Boolean(pickupReservedLooseGoodWithState(world, id, amount));
 
+export const findEmptyLooseGoodDropPosition = (
+  world: World,
+  origin: Hex,
+  maxRadius: number,
+  minRadius = 0,
+): Hex | undefined => {
+  if (
+    !Number.isInteger(maxRadius) ||
+    maxRadius < 0 ||
+    !Number.isInteger(minRadius) ||
+    minRadius < 0 ||
+    minRadius > maxRadius
+  ) return undefined;
+
+  const tiles = tileIndex(world.tiles);
+  const resourcePositions = activeResourceCells(world);
+  const stackByPosition = new Set(looseGoodStacks(world).map((stack) => key(stack.position)));
+  const visited = new Set<string>([key(origin)]);
+  let frontier: Hex[] = [{ ...origin }];
+
+  for (let distance = 0; distance <= maxRadius; distance += 1) {
+    const candidates = distance < minRadius
+      ? []
+      : frontier
+      .filter((position) => {
+        const tile = tiles.get(key(position));
+        if (!tile) return false;
+        if (tile.terrain === "river" || tile.terrain === "mountain" || tile.terrain === "building")
+          return false;
+        if (resourcePositions.has(key(position))) return false;
+        return !stackByPosition.has(key(position));
+      })
+      .sort((a, b) => a.q - b.q || a.r - b.r);
+    if (candidates[0]) return { ...candidates[0] };
+
+    const next: Hex[] = [];
+    for (const position of frontier) {
+      for (const neighbor of neighbors(position)) {
+        const neighborKey = key(neighbor);
+        if (visited.has(neighborKey)) continue;
+        visited.add(neighborKey);
+        if (!tiles.has(neighborKey)) continue;
+        next.push(neighbor);
+      }
+    }
+    frontier = next;
+  }
+
+  return undefined;
+};
+
 /**
  * Find where an extractor should deposit one physical unit.
  * Existing compatible non-full stacks always win over empty cells. Ties are
@@ -176,39 +227,5 @@ export const findLooseGoodDropPosition = (
     )[0];
   if (compatible) return { ...compatible.position };
 
-  const tiles = tileIndex(world.tiles);
-  const resourcePositions = activeResourceCells(world);
-  const stackByPosition = new Map(looseGoodStacks(world).map((stack) => [key(stack.position), stack]));
-  const visited = new Set<string>([key(origin)]);
-  let frontier: Hex[] = [{ ...origin }];
-
-  for (let distance = 0; distance <= maxRadius; distance += 1) {
-    const candidates = distance < minRadius
-      ? []
-      : frontier
-      .filter((position) => {
-        const tile = tiles.get(key(position));
-        if (!tile) return false;
-        if (tile.terrain === "river" || tile.terrain === "mountain" || tile.terrain === "building")
-          return false;
-        if (resourcePositions.has(key(position))) return false;
-        return !stackByPosition.has(key(position));
-      })
-      .sort((a, b) => a.q - b.q || a.r - b.r);
-    if (candidates[0]) return { ...candidates[0] };
-
-    const next: Hex[] = [];
-    for (const position of frontier) {
-      for (const neighbor of neighbors(position)) {
-        const neighborKey = key(neighbor);
-        if (visited.has(neighborKey)) continue;
-        visited.add(neighborKey);
-        if (!tiles.has(neighborKey)) continue;
-        next.push(neighbor);
-      }
-    }
-    frontier = next;
-  }
-
-  return undefined;
+  return findEmptyLooseGoodDropPosition(world, origin, maxRadius, minRadius);
 };

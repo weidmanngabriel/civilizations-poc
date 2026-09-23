@@ -258,7 +258,7 @@ Das Ladefenster zeigt die im Browser gespeicherten Spielstände. Zusätzlich kan
 
 Jeder Browser-Spielstand erhält beim Speichern automatisch ein Vorschaubild der Siedlung. Für dessen Ausschnitt zählen ausschließlich alle nicht abgerissenen **Gebäude einschließlich Hauptquartier und Baustellen**. Felder, Wege, Bewohner, Ressourcen und lose Waren vergrößern den Bildausschnitt nicht. Die Vorschau lässt einen kleinen Rand um die äußeren Gebäude, behält das aktuelle Seitenverhältnis des Spiel-Canvas unverändert bei und verändert die aktuelle Spieler-Kamera nach dem Speichern nicht dauerhaft.
 
-Lose Waren, die ein Freiluftarbeiter zu seiner persönlichen Arbeitsfahne zurückbringt, werden auf dem nächstgelegenen freien Feld **rund um** die Fahne abgelegt. Die Fahnenzelle selbst bleibt frei. Vorhandene passende, noch nicht volle Stapel in der Umgebung dürfen weiterhin aufgefüllt werden.
+Lose Waren, die ein Freiluftarbeiter zu seiner persönlichen Arbeitsfahne zurückbringt, werden auf dem nächstgelegenen freien Feld **außerhalb der sichtbaren Fahnenkachel** abgelegt. Der Ablageabstand beginnt direkt außerhalb des alten Kachel-Footprints des 5×-Feinrasters. Bereits vorhandene, nicht reservierte Stapel direkt auf der Fahnenzelle werden dorthin verschoben; passende, noch nicht volle Stapel in der Umgebung dürfen weiterhin aufgefüllt werden.
 
 Der vollständige autoritative Simulationszustand bleibt menschenlesbares JSON. Browser-Speicherung, Download und Datei-Import verwenden dasselbe Saveformat. Dazu gehören auch die zuletzt gewählte Simulationsgeschwindigkeit sowie individuelle Zustände gebrauchter Werkzeuge und Schuhe in Personeninventaren, Lagern, Bodenstapeln und laufenden Transporten.
 
