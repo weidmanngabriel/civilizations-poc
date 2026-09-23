@@ -127,7 +127,7 @@ function fishingCandidate(
       : undefined;
     const path = node
       ? findLocalNavigationPath(world, person, node, position, CONFIG.roadSpeedMultiplier)
-      : findRequiredNavigationPath(world, person, position, CONFIG.roadSpeedMultiplier);
+      : findRequiredNavigationPath(world, person, position, CONFIG.roadSpeedMultiplier, "resource");
     if (path) return { position: { q: position.q, r: position.r }, path };
   }
   return undefined;
@@ -373,7 +373,7 @@ function initializeResourceWorker(world: World, person: Person): boolean {
   const candidates: ResourceCandidate[] = [];
   for (const resource of world.naturalResources) {
     if (resource.kind !== kind || resource.depleted || resource.remaining <= 0 || claimedByOther(world, person, resource)) continue;
-    const path = findRequiredNavigationPath(world, person, resource.position, CONFIG.roadSpeedMultiplier);
+    const path = findRequiredNavigationPath(world, person, resource.position, CONFIG.roadSpeedMultiplier, "resource");
     if (!path) continue;
     candidates.push({
       resource,
