@@ -43,6 +43,17 @@ const livestockGatheringBusy = (world: World, person: Person): boolean => {
   );
 };
 
+const livestockResupplyPending = (world: World, person: Person): boolean => {
+  const assignedBuilding = workplace(world, person);
+  return Boolean(
+    assignedBuilding?.kind === "livestockBreeder" &&
+    person.assignment?.role === "worker" &&
+    !assignedBuilding.breedingGathering &&
+    !assignedBuilding.breeding &&
+    !productionReady(assignedBuilding)
+  );
+};
+
 const idleAnchor = (world: World, person: Person): Hex | undefined => {
   if ((person.woodcutter || person.fisher || person.extractor) && person.workArea) return person.workArea.center;
   const assignedBuilding = workplace(world, person);
@@ -187,6 +198,10 @@ export function wakeIdlePeople(world: World): void {
       continue;
     }
     const assignedBuilding = workplace(world, person);
+    if (assignedBuilding && livestockResupplyPending(world, person)) {
+      returnToBuilding(world, person, assignedBuilding);
+      continue;
+    }
     if (
       assignedBuilding &&
       (
@@ -219,7 +234,11 @@ export function syncIdleBehavior(world: World): void {
   }
 
   for (const person of world.people) {
-    if (isBusy(person) || livestockGatheringBusy(world, person)) {
+    if (
+      isBusy(person) ||
+      livestockGatheringBusy(world, person) ||
+      livestockResupplyPending(world, person)
+    ) {
       if (person.idleTarget) reserved.delete(key(person.idleTarget));
       person.idleTarget = undefined;
       continue;
