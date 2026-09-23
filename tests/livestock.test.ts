@@ -13,6 +13,7 @@ import {
 } from "../src/simulation/livestockBreeding";
 import { hexDistance } from "../src/simulation/spatial";
 import { changeAssignment, tick } from "../src/simulation/simulation";
+import { personActivityLabel } from "../src/personPresentation";
 import {
   LIVESTOCK_CAPTURE_RADIUS,
   OWNED_LIVESTOCK_PASTURE_RADIUS,
@@ -251,6 +252,10 @@ test("stockfarmer physically gathers both parents before breeding", () => {
   assert.ok(activeBreeding);
   assert.equal(activeBreeding.kind, "cow");
   assert.deepEqual(activeBreeding.parentIds, parentIds);
+  assert.equal(worker.active, true);
+  assert.equal(worker.idleTarget, undefined);
+  assert.equal(worker.path.length, 0);
+  assert.equal(personActivityLabel(worker), "Arbeitet");
 
   world.round = activeBreeding.untilTick;
   advanceLivestockBreeding(world);
@@ -266,6 +271,7 @@ test("stockfarmer physically gathers both parents before breeding", () => {
     cows.find((animal) => (animal.breedingCooldownUntilTick ?? 0) > world.round)!.breedingCooldownUntilTick,
     world.round + LIVESTOCK_BREEDING_COOLDOWN_TICKS,
   );
+  assert.equal(worker.active, false);
 
   advanceLivestockBreeding(world);
   assert.equal(breeder.breeding, undefined);
