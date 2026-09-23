@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { CONFIG, createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
 import { createTestWorld } from "./testWorld";
 import { GRID_REFINEMENT } from "../src/simulation/spatial";
+import { placeLooseGood } from "../src/simulation/looseGoods";
 import { hexDistance, neighbors, same } from "../src/simulation/hex";
 import {
   buildAt,
@@ -208,9 +209,33 @@ test("each extracted unit is carried to the personal work flag before becoming a
   assert.ok(
     wood.every((stack) => {
       const distance = hexDistance(stack.position, worker.workArea!.center);
-      return distance >= 1 && distance <= GRID_REFINEMENT;
+      return distance >= Math.floor(GRID_REFINEMENT / 2) + 1 && distance <= GRID_REFINEMENT;
     }),
     "extracted goods must be dropped around the work flag, never on the flag itself",
+  );
+});
+
+test("existing loose goods on an outdoor work flag are moved outside the visible flag tile", () => {
+  const world = createForestTestWorld();
+  assert.equal(changeWoodcutters(world, 1), true);
+  tick(world);
+  const worker = woodcutters(world)[0]!;
+  const center = { ...worker.workArea!.center };
+
+  assert.ok(placeLooseGood(world, center, "wood", 1));
+  assert.equal(
+    (world.looseGoods ?? []).some((stack) => same(stack.position, center)),
+    true,
+  );
+
+  tick(world);
+
+  const stack = (world.looseGoods ?? []).find((candidate) => candidate.good === "wood");
+  assert.ok(stack);
+  assert.equal(same(stack.position, center), false);
+  assert.equal(
+    hexDistance(stack.position, center) >= Math.floor(GRID_REFINEMENT / 2) + 1,
+    true,
   );
 });
 
@@ -312,7 +337,7 @@ test("fishers use one five-second cast cycle and carry a catch to their flag", (
   assert.ok(
     fish.every((stack) => {
       const distance = hexDistance(stack.position, fisher.workArea!.center);
-      return distance >= 1 && distance <= GRID_REFINEMENT;
+      return distance >= Math.floor(GRID_REFINEMENT / 2) + 1 && distance <= GRID_REFINEMENT;
     }),
     "caught goods must be dropped around the work flag, never on the flag itself",
   );
