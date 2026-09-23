@@ -40,6 +40,7 @@ import {
   upgradePlacementBlockers,
 } from "../simulation/buildingPlacement";
 import { CONFIG } from "../simulation/scenario";
+import { EDUCATION_DURATION_TICKS } from "../simulation/education";
 import { normalizeSimulationSpeed } from "../simulation/timing";
 import { same } from "../simulation/hex";
 import { canPlaceWaypost, removeWaypost, wayposts } from "../simulation/wayposts";
@@ -202,6 +203,40 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
     return "👤";
   };
+
+  const schoolLesson = (school: Building) => {
+    const student = w.people.find(
+      (person) =>
+        person.educationTask?.role === "student" &&
+        person.educationTask.schoolId === school.id,
+    );
+    if (!student?.educationTask) return undefined;
+
+    const task = student.educationTask;
+    const teacher = w.people.find((person) => person.id === task.partnerId);
+    const progress = Math.max(
+      0,
+      Math.min(100, Math.round((task.progressTicks / EDUCATION_DURATION_TICKS) * 100)),
+    );
+
+    let state = "Unterricht pausiert";
+    if (!teacher) state = "Unterricht wird beendet";
+    else if (student.hungerState) state = "Pausiert – Schüler isst";
+    else if (student.sleepState) state = "Pausiert – Schüler schläft";
+    else if (teacher.hungerState) state = "Pausiert – Lehrer isst";
+    else if (teacher.sleepState) state = "Pausiert – Lehrer schläft";
+    else {
+      const studentHere = same(student.position, school.position);
+      const teacherHere = same(teacher.position, school.position);
+      if (!studentHere && !teacherHere) state = "Wartet auf Lehrer und Schüler";
+      else if (!studentHere) state = "Wartet auf Schüler";
+      else if (!teacherHere) state = "Wartet auf Lehrer";
+      else if (task.active) state = "Unterricht läuft";
+    }
+
+    return { student, teacher, task, progress, state };
+  };
+
   function updateBuildPlacementConfirm(): void {
     const newPalisadeSegments = palisadeNewSegmentCount(w, palisadePreview);
     buildPlacementConfirm.disabled = !(
@@ -352,6 +387,21 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
 
     setField("status", status(w, b));
+    if (b.kind === "school" && !isUnderConstruction(b)) {
+      const lesson = schoolLesson(b);
+      setField("school-progress", lesson ? `${lesson.progress} %` : "—");
+      setField(
+        "school-profession",
+        lesson ? PROFESSION_LABELS[lesson.task.profession] : "—",
+      );
+      setField(
+        "school-teacher",
+        lesson?.teacher ? personName(lesson.teacher.id) : "—",
+      );
+      setField("school-student", lesson ? personName(lesson.student.id) : "—");
+      setField("school-state", lesson?.state ?? "Kein Unterricht");
+      return;
+    }
     if (b.kind === "hq") {
       setField("population-count", String(w.people.length));
       setField("free-count", String(freePeople(w).length));
@@ -494,7 +544,9 @@ export function mountControls(w: World, renderMap: () => void): void {
       : b.recipe?.input
         ? [[b.recipe.input, b.recipe.amount] as [Good, number]]
         : [];
-    const recipe = b.kind === "warehouse"
+    const recipe = b.kind === "school"
+        ? "Berufsausbildung · 1 Lehrer + 1 Schüler · 60 s Unterricht"
+        : b.kind === "warehouse"
         ? "Lagert bis zu 20 Einheiten je Warentyp"
         : b.kind === "farm"
           ? `Ein Farmer bewirtschaftet bis zu ${CONFIG.farmMaxFields} zufällige Acker im Radius ${CONFIG.farmFieldRadius}. Säen und Ernten dauern je 10 s; nach der Ernte trägt der Farmer den Weizen zurück zur Farm.`
@@ -505,7 +557,9 @@ export function mountControls(w: World, renderMap: () => void): void {
               : b.recipe?.output
                 ? `${recipeInputs.map(([good, amount]) => `${amount} × ${goodLabel(good)}`).join(" + ")} → ${b.recipe.outputAmount ?? 1} × ${goodLabel(b.recipe.output)}`
                 : "Produktion";
-    const inventory = b.kind === "warehouse"
+    const inventory = b.kind === "school"
+        ? `<div><span>Unterricht</span><strong data-field="school-progress"></strong></div><div><span>Zielberuf</span><strong data-field="school-profession"></strong></div><div><span>Lehrer</span><strong data-field="school-teacher"></strong></div><div><span>Schüler</span><strong data-field="school-student"></strong></div><div><span>Zustand</span><strong data-field="school-state"></strong></div>`
+        : b.kind === "warehouse"
         ? `${(Object.keys(GOODS) as Good[]).map((good) => `<div><span>${goodLabel(good)}</span><strong data-field="warehouse-${good}"></strong></div>`).join("")}`
         : b.kind === "farm"
           ? `<div><span>${goodLabel("wheat")} · Output</span><strong data-field="output"></strong></div>`
