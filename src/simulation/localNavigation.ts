@@ -42,5 +42,5 @@ export function findPathIntoLocalNavigationNode(
     clearNavigationBlocked(person);
     return [];
   }
-  return findRequiredNavigationPath(world, person, node.entry, roadSpeedMultiplier);
+  return findRequiredNavigationPath(world, person, node.entry, roadSpeedMultiplier, "work-area");
 }
