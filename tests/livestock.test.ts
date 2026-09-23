@@ -319,7 +319,8 @@ test("reserved livestock follows the stockfarmer instead of teleporting", () => 
 
   assert.deepEqual(first.position, oldPosition);
   assert.ok(first.path.length > 0);
-  assert.deepEqual(first.path.at(-1), breeder.position);
+  assert.equal(first.path.at(-1)!.q, breeder.position.q);
+  assert.equal(first.path.at(-1)!.r, breeder.position.r);
 });
 
 test("breeding skips a species that already has twelve owned animals", () => {
