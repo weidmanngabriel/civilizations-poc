@@ -150,14 +150,22 @@ export const findLooseGoodDropPosition = (
   origin: Hex,
   good: Good,
   maxRadius: number,
+  minRadius = 0,
 ): Hex | undefined => {
-  if (!Number.isInteger(maxRadius) || maxRadius < 0) return undefined;
+  if (
+    !Number.isInteger(maxRadius) ||
+    maxRadius < 0 ||
+    !Number.isInteger(minRadius) ||
+    minRadius < 0 ||
+    minRadius > maxRadius
+  ) return undefined;
 
   const compatible = looseGoodStacks(world)
     .filter(
       (stack) =>
         stack.good === good &&
         stack.amount < LOOSE_GOOD_STACK_CAPACITY &&
+        hexDistance(origin, stack.position) >= minRadius &&
         hexDistance(origin, stack.position) <= maxRadius,
     )
     .sort((a, b) =>
@@ -175,7 +183,9 @@ export const findLooseGoodDropPosition = (
   let frontier: Hex[] = [{ ...origin }];
 
   for (let distance = 0; distance <= maxRadius; distance += 1) {
-    const candidates = frontier
+    const candidates = distance < minRadius
+      ? []
+      : frontier
       .filter((position) => {
         const tile = tiles.get(key(position));
         if (!tile) return false;

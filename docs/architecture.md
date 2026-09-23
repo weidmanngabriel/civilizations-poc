@@ -62,7 +62,7 @@ Terrain describes only underlying ground. Trees, clay and stone are independent 
 The physical raw-resource chain is:
 
 ```text
-natural source -> extractor carries one unit -> personal work flag -> loose ground stack -> pickup -> consumer/storage
+natural source -> extractor carries one unit -> personal work flag -> nearest free ground cell around flag -> loose ground stack -> pickup -> consumer/storage
 ```
 
 There is no fake natural-resource mirror for loose goods and no hidden HQ storage proxy.

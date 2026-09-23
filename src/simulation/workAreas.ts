@@ -231,7 +231,7 @@ export function routeOutdoorCarryToFlag(
     return false;
   }
 
-  const drop = findLooseGoodDropPosition(world, area.center, good, GRID_REFINEMENT);
+  const drop = findLooseGoodDropPosition(world, area.center, good, GRID_REFINEMENT, 1);
   if (!drop || !placeLooseGood(world, drop, good, 1)) {
     person.active = false;
     area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
