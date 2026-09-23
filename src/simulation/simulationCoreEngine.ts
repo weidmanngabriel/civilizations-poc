@@ -1679,6 +1679,11 @@ export function tick(w: World): void {
       else scheduleWorkRetry(w, p);
       continue;
     }
+    if (
+      b.kind === "livestockBreeder" &&
+      p.assignment.role === "worker" &&
+      (b.breedingGathering || b.breeding)
+    ) continue;
     const recipe = b.recipe;
     const requirements = recipeRequirements(b);
     const recipeGoods = Object.keys(requirements) as Good[];
@@ -1762,6 +1767,10 @@ export function status(w: World, b: Building): string {
       const label = b.breeding.kind === "cow" ? "Kühe" : "Schafe";
       const remaining = Math.max(0, Math.ceil((b.breeding.untilTick - w.round) / CONFIG.simulationHz));
       return `Züchtet ${label} · noch ${remaining} s · Kühe ${cows}/${LIVESTOCK_BREEDING_LIMIT} · Schafe ${sheep}/${LIVESTOCK_BREEDING_LIMIT}`;
+    }
+    if (b.breedingGathering) {
+      const label = b.breedingGathering.kind === "cow" ? "Kühe" : "Schafe";
+      return `Viehzüchter holt ${label} · ${b.breedingGathering.collectedIds.length}/2 im Gebäude`;
     }
     if (workers.some((p) => p.trip)) return "Viehzüchter beschafft Rohstoffe";
     const missing: string[] = [];
