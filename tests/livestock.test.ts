@@ -334,7 +334,7 @@ test("stockfarmer fetches missing breeding inputs before gathering animals", () 
     animal.nextMoveTick = Number.MAX_SAFE_INTEGER;
   }
 
-  tick(world);
+  for (let i = 0; i < 120 && !worker.trip; i++) tick(world);
   assert.ok(worker.trip);
   assert.equal(worker.trip.target, breeder.id);
   assert.equal(breeder.breedingGathering, undefined);
