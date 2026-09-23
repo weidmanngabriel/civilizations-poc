@@ -35,3 +35,13 @@ This file is the primary location for verified domain terms, domain rules, invar
 - Während aktivem Unterricht gelten Hunger- und Schlafverbrauch wie bei normaler Arbeit.
 - Erfolgreiche Ausbildung verleiht dem Schüler dauerhaft die Berechtigung zum Zielberuf, auch nach späteren Berufswechseln, aber keine praktische Erfahrung in diesem Beruf.
 - Nach erfolgreichem Unterricht wird der Lehrer nach Möglichkeit zu seinem vorherigen Arbeitsplatz zurückgeführt.
+
+
+## Viehzüchterei und Zucht
+
+- Eine neue Zucht reserviert genau zwei ausgewachsene, zuchtfähige Tiere derselben Art.
+- Der Viehzüchter holt beide Elterntiere nacheinander physisch ab; ein abgeholtes Tier folgt dem Viehzüchter bis zur Viehzüchterei.
+- Die eigentliche Zuchtzeit beginnt erst, wenn beide reservierten Elterntiere die Viehzüchterei erreicht haben.
+- Eine Zucht verbraucht 4 Weizen und 4 Wasser.
+- Die eigentliche Zucht dauert 10 simulierte Sekunden.
+- Nach Abschluss verlassen die beiden Elterntiere und das Jungtier das Gebäude wieder in Richtung der umliegenden Weide.
