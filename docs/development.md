@@ -4,7 +4,7 @@ This file contains the project-specific development and repository workflow rule
 
 Keep solutions as small and understandable as possible. Prefer simple, established solutions over complex architectures. Make reasonable technical decisions independently within the documented constraints. If a product function is not yet defined, do not invent extensive domain logic; create a clean foundation instead.
 
-For player-facing changes, check whether the in-app handbook under `src/handbook/*.md` must be updated. Player-facing handbook content stays concise, player-centered, and free of internal implementation details or unnecessary balance numbers.
+For player-facing changes, check whether the data-driven in-app wiki in `src/ui/wikiCatalog.ts` must be updated. Player-facing wiki content stays concise, player-centered, and free of internal implementation details or unnecessary balance numbers.
 
 Documentation should let a capable Coding Agent understand the application and its important product and architecture decisions quickly enough to reconstruct the system at a high level.
 
