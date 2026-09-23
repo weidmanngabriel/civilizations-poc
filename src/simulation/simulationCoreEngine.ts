@@ -1626,10 +1626,14 @@ export function tick(w: World): void {
       !p.trip
     ) {
       const assignedBuilding = building(w, p.assignment.building);
+      const livestockGatheringOwnsMovement =
+        assignedBuilding.kind === "livestockBreeder" &&
+        p.assignment.role === "worker" &&
+        Boolean(assignedBuilding.breedingGathering);
       const reached = p.assignment.role === "builder" && isUnderConstruction(assignedBuilding)
         ? constructionPositionReached(assignedBuilding, p.position)
         : same(p.position, assignedBuilding.position);
-      if (!reached) {
+      if (!reached && !livestockGatheringOwnsMovement) {
         if (p.assignment.role === "builder" && isUnderConstruction(assignedBuilding))
           routeToConstructionSite(w, p, assignedBuilding);
         else

@@ -12,6 +12,7 @@ import {
   advanceLivestockBreeding,
 } from "../src/simulation/livestockBreeding";
 import { hexDistance } from "../src/simulation/spatial";
+import { tick } from "../src/simulation/simulation";
 import {
   LIVESTOCK_CAPTURE_RADIUS,
   OWNED_LIVESTOCK_PASTURE_RADIUS,
@@ -279,6 +280,66 @@ test("stockfarmer physically gathers both parents before breeding", () => {
     world.animals!.filter((animal) => animal.groupId === cowGroup.id && animal.breedingAt === breeder.id).length,
     0,
   );
+});
+
+test("full simulation tick lets the stockfarmer bring livestock into the breeder", () => {
+  const world = createWorld(1);
+  world.animals = [];
+  world.animalGroups = [];
+  const breederPosition = grassNear(world, world.buildings[0]!.position, 7);
+  const breeder: Building = {
+    id: "livestockBreeder-integration",
+    kind: "livestockBreeder",
+    name: "Viehzüchterei",
+    position: { ...breederPosition },
+    workers: 1,
+    carriers: 2,
+    input: 0,
+    inputInventory: { wheat: 10, water: 10 },
+    output: 0,
+    recipe: { inputs: { wheat: 4, water: 4 }, amount: 1, duration: LIVESTOCK_BREEDING_DURATION_TICKS },
+    breederNextKind: "sheep",
+  };
+  world.buildings.push(breeder);
+  const worker = world.people[0]!;
+  worker.assignment = { building: breeder.id, role: "worker" };
+  worker.position = { ...breeder.position };
+  worker.active = true;
+  worker.path = [];
+  worker.hunger = 100;
+  worker.sleep = 100;
+
+  const group = spawnAnimalGroup(world, "sheep", breeder.position, 2)!;
+  const sheep = world.animals!.filter((animal) => animal.groupId === group.id);
+  for (const [index, animal] of sheep.entries()) {
+    animal.owner = "player";
+    animal.position = { ...grassNear(world, breeder.position, 2 + index) };
+    animal.path = [];
+    animal.nextMoveTick = Number.MAX_SAFE_INTEGER;
+  }
+
+  let sawFollowing = false;
+  let startedBreeding = false;
+  for (let i = 0; i < 1800; i++) {
+    tick(world);
+    if (sheep.some((animal) => animal.followingBreederId === worker.id))
+      sawFollowing = true;
+    if (breeder.breeding) {
+      startedBreeding = true;
+      break;
+    }
+  }
+
+  assert.equal(sawFollowing, true);
+  assert.equal(startedBreeding, true);
+  assert.equal(breeder.breedingGathering, undefined);
+  assert.equal(breeder.breeding?.kind, "sheep");
+  assert.equal(
+    sheep.filter((animal) => animal.breedingAt === breeder.id).length,
+    2,
+  );
+  assert.equal(worker.position.q, breeder.position.q);
+  assert.equal(worker.position.r, breeder.position.r);
 });
 
 test("reserved livestock follows the stockfarmer instead of teleporting", () => {

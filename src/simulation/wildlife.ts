@@ -595,6 +595,7 @@ function advanceAnimalMovement(world: World, animal: Animal): void {
     const occupied = animalList(world).some(
       (candidate) =>
         candidate.id !== animal.id &&
+        !candidate.breedingAt &&
         candidate.position.q === next.q &&
         candidate.position.r === next.r,
     );

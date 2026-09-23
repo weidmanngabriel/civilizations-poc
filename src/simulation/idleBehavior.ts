@@ -34,6 +34,15 @@ const workplace = (world: World, person: Person): Building | undefined =>
     ? world.buildings.find((building) => building.id === person.assignment!.building && !building.retired)
     : undefined;
 
+const livestockGatheringBusy = (world: World, person: Person): boolean => {
+  const assignedBuilding = workplace(world, person);
+  return Boolean(
+    assignedBuilding?.kind === "livestockBreeder" &&
+    person.assignment?.role === "worker" &&
+    assignedBuilding.breedingGathering
+  );
+};
+
 const idleAnchor = (world: World, person: Person): Hex | undefined => {
   if ((person.woodcutter || person.fisher || person.extractor) && person.workArea) return person.workArea.center;
   const assignedBuilding = workplace(world, person);
@@ -173,7 +182,7 @@ export function wakeIdlePeople(world: World): void {
       person.active = false;
       continue;
     }
-    if (isBusy(person)) {
+    if (isBusy(person) || livestockGatheringBusy(world, person)) {
       person.idleTarget = undefined;
       continue;
     }
@@ -210,7 +219,7 @@ export function syncIdleBehavior(world: World): void {
   }
 
   for (const person of world.people) {
-    if (isBusy(person)) {
+    if (isBusy(person) || livestockGatheringBusy(world, person)) {
       if (person.idleTarget) reserved.delete(key(person.idleTarget));
       person.idleTarget = undefined;
       continue;
