@@ -203,7 +203,8 @@ const releaseOrphanedBreedingAnimals = (world: World): void => {
   if (!home) return;
 
   for (const animal of world.animals ?? []) {
-    if (!animal.breedingAt || activeBreederIds.has(animal.breedingAt)) continue;
+    const breederId = animal.breedingAt ?? animal.breedingReservedAt;
+    if (!breederId || activeBreederIds.has(breederId)) continue;
     releaseAnimal(world, animal, home, new Set([animal.id]));
   }
 };
