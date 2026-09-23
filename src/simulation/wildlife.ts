@@ -143,6 +143,24 @@ const validAnimalTile = (world: World, position: Hex): boolean => {
   );
 };
 
+const validFollowingTile = (
+  world: World,
+  animal: Animal,
+  position: Hex,
+): boolean => {
+  if (validAnimalTile(world, position)) return true;
+  if (animal.followingBreederId === undefined || !animal.breedingReservedAt) return false;
+  const breeder = world.buildings.find(
+    (building) =>
+      building.id === animal.breedingReservedAt &&
+      building.kind === "livestockBreeder" &&
+      !building.retired,
+  );
+  if (!breeder || !same(position, breeder.position)) return false;
+  const tile = tileIndex(world.tiles).get(key(position));
+  return Boolean(tile && walkable(tile));
+};
+
 const nearestValidSpawn = (world: World, requested: Hex): Hex | undefined =>
   [...world.tiles]
     .filter((tile) => validAnimalTile(world, tile))
@@ -599,7 +617,7 @@ function advanceAnimalMovement(world: World, animal: Animal): void {
         candidate.position.q === next.q &&
         candidate.position.r === next.r,
     );
-    if (!validAnimalTile(world, next) || occupied) {
+    if (!validFollowingTile(world, animal, next) || occupied) {
       animal.path = [];
       animal.movement = 0;
       animal.nextMoveTick = world.round;
