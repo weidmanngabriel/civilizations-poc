@@ -71,7 +71,11 @@ export function ensureWorkArea(world: World, person: Person, preferredCenter?: H
   person.outdoorDropUntilTick = undefined;
 }
 
-export function clearWorkArea(person: Person): void { person.workArea = undefined; }
+export function clearWorkArea(person: Person): void {
+  person.workArea = undefined;
+  person.outdoorDropTarget = undefined;
+  person.outdoorDropUntilTick = undefined;
+}
 
 
 export function fishingCatchChance(person: Person): number {
@@ -615,6 +619,8 @@ export function setWorkAreaCenter(world: World, personId: number, center: Hex): 
   if (!world.tiles.some((tile) => tile.q === center.q && tile.r === center.r)) return false;
   ensureWorkArea(world, person, center);
   person.workArea = { center: { q: center.q, r: center.r }, radius: workAreaRadiusFor(person) };
+  person.outdoorDropTarget = undefined;
+  person.outdoorDropUntilTick = undefined;
   if (person.resourceTarget) {
     const target = world.naturalResources.find((resource) => resource.id === person.resourceTarget);
     if (!target || !workAreaContains(person, target.position)) {
