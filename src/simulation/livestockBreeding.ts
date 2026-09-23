@@ -1,5 +1,5 @@
-import type { Animal, AnimalGroup, Building, World } from "./model";
-import { key, walkable } from "./hex";
+import type { Animal, AnimalGroup, Building, Person, World } from "./model";
+import { findPath, key, same, walkable } from "./hex";
 import { hexDistance } from "./spatial";
 import { SIMULATION_HZ } from "./timing";
 import { awardProfessionExperience } from "./experience";
@@ -53,6 +53,7 @@ const eligibleParents = (
         animal.owner === "player" &&
         animal.kind === kind &&
         !animal.breedingAt &&
+        !animal.breedingReservedAt &&
         livestockIsAdult(world, animal) &&
         (animal.breedingCooldownUntilTick ?? 0) <= world.round &&
         hexDistance(animal.position, building.position) <= 10,
@@ -133,13 +134,15 @@ const releaseAnimal = (
   excludedIds: Set<string>,
 ): void => {
   const group = ensureOwnedGroup(world, animal.kind as LivestockKind, building.position);
+  const target = freePasturePosition(world, building.position, excludedIds);
   animal.groupId = group.id;
-  animal.position = freePasturePosition(world, building.position, excludedIds);
-  animal.path = [];
+  animal.path = findPath(world.tiles, animal.position, target, 1) ?? [];
   animal.movement = 0;
+  animal.breedingReservedAt = undefined;
+  animal.followingBreederId = undefined;
   animal.breedingAt = undefined;
-  animal.returningToHq = undefined;
-  animal.nextMoveTick = world.round + 5 * SIMULATION_HZ;
+  animal.returningToHq = true;
+  animal.nextMoveTick = world.round;
   excludedIds.delete(animal.id);
 };
 
@@ -165,15 +168,17 @@ const finishBreeding = (world: World, building: Building): void => {
 
   const group = ensureOwnedGroup(world, cycle.kind, building.position);
   const babyId = nextAnimalId(world);
+  const babyTarget = freePasturePosition(world, building.position, new Set());
   const baby: Animal = {
     id: babyId,
     kind: cycle.kind,
     groupId: group.id,
-    position: freePasturePosition(world, building.position, new Set()),
-    path: [],
+    position: { ...building.position },
+    path: findPath(world.tiles, building.position, babyTarget, 1) ?? [],
     movement: 0,
-    nextMoveTick: world.round + 5 * SIMULATION_HZ,
+    nextMoveTick: world.round,
     owner: "player",
+    returningToHq: true,
     matureAtTick: world.round + LIVESTOCK_GROWTH_TICKS,
   };
   (world.animals ??= []).push(baby);
@@ -198,7 +203,8 @@ const releaseOrphanedBreedingAnimals = (world: World): void => {
   if (!home) return;
 
   for (const animal of world.animals ?? []) {
-    if (!animal.breedingAt || activeBreederIds.has(animal.breedingAt)) continue;
+    const breederId = animal.breedingAt ?? animal.breedingReservedAt;
+    if (!breederId || activeBreederIds.has(breederId)) continue;
     releaseAnimal(world, animal, home, new Set([animal.id]));
   }
 };
@@ -214,7 +220,49 @@ const chooseKind = (
   return undefined;
 };
 
-const startBreeding = (
+const assignedStockfarmer = (world: World, building: Building): Person | undefined =>
+  world.people.find(
+    (person) =>
+      person.assignment?.building === building.id &&
+      person.assignment.role === "worker",
+  );
+
+const routePerson = (
+  world: World,
+  person: Person,
+  target: Building["position"],
+): boolean => {
+  if (same(person.position, target)) {
+    person.path = [];
+    person.movement = 0;
+    return true;
+  }
+  const path = findPath(world.tiles, person.position, target, 1);
+  if (!path) return false;
+  person.path = path;
+  person.movement = 0;
+  person.active = false;
+  return true;
+};
+
+const cancelGathering = (world: World, building: Building): void => {
+  const gathering = building.breedingGathering;
+  if (!gathering) return;
+  for (const id of gathering.parentIds) {
+    const animal = (world.animals ?? []).find((candidate) => candidate.id === id);
+    if (!animal) continue;
+    animal.breedingReservedAt = undefined;
+    animal.followingBreederId = undefined;
+    animal.breedingAt = undefined;
+    animal.path = [];
+    animal.movement = 0;
+    animal.returningToHq = true;
+    animal.nextMoveTick = world.round;
+  }
+  building.breedingGathering = undefined;
+};
+
+const startGathering = (
   world: World,
   building: Building,
   kind: LivestockKind,
@@ -224,18 +272,81 @@ const startBreeding = (
 
   consumeBreedingInputs(building);
   for (const parent of parents) {
-    parent.breedingAt = building.id;
+    parent.breedingReservedAt = building.id;
+    parent.followingBreederId = undefined;
     parent.path = [];
     parent.movement = 0;
-    parent.position = { ...building.position };
     parent.returningToHq = undefined;
   }
-  building.breeding = {
+  building.breedingGathering = {
     kind,
     parentIds: parents.map((parent) => parent.id),
-    untilTick: world.round + LIVESTOCK_BREEDING_DURATION_TICKS,
+    collectedIds: [],
   };
   building.breederNextKind = kind === "cow" ? "sheep" : "cow";
+};
+
+const advanceGathering = (world: World, building: Building): void => {
+  const gathering = building.breedingGathering;
+  if (!gathering) return;
+  const worker = assignedStockfarmer(world, building);
+  if (!worker) {
+    cancelGathering(world, building);
+    return;
+  }
+  if (worker.hungerState || worker.sleepState) return;
+
+  let currentId = gathering.currentParentId;
+  if (!currentId) {
+    currentId = gathering.parentIds.find((id) => !gathering.collectedIds.includes(id));
+    gathering.currentParentId = currentId;
+  }
+  if (!currentId) return;
+
+  const animal = (world.animals ?? []).find((candidate) => candidate.id === currentId);
+  if (!animal || animal.breedingReservedAt !== building.id) {
+    cancelGathering(world, building);
+    return;
+  }
+
+  if (animal.followingBreederId !== worker.id) {
+    if (!same(worker.position, animal.position)) {
+      if (worker.path.length === 0 && !routePerson(world, worker, animal.position))
+        cancelGathering(world, building);
+      return;
+    }
+    animal.followingBreederId = worker.id;
+    if (!routePerson(world, worker, building.position)) {
+      cancelGathering(world, building);
+      return;
+    }
+    return;
+  }
+
+  if (!same(worker.position, building.position)) {
+    if (worker.path.length === 0 && !routePerson(world, worker, building.position))
+      cancelGathering(world, building);
+    return;
+  }
+
+  if (!same(animal.position, building.position)) return;
+
+  animal.followingBreederId = undefined;
+  animal.breedingReservedAt = undefined;
+  animal.breedingAt = building.id;
+  animal.path = [];
+  animal.movement = 0;
+  gathering.collectedIds.push(animal.id);
+  gathering.currentParentId = undefined;
+
+  if (gathering.collectedIds.length < gathering.parentIds.length) return;
+
+  building.breeding = {
+    kind: gathering.kind,
+    parentIds: [...gathering.parentIds],
+    untilTick: world.round + LIVESTOCK_BREEDING_DURATION_TICKS,
+  };
+  building.breedingGathering = undefined;
 };
 
 export function advanceLivestockBreeding(world: World): void {
@@ -248,13 +359,13 @@ export function advanceLivestockBreeding(world: World): void {
     return;
   }
 
-  const workerPresent = world.people.some(
-    (person) =>
-      person.assignment?.building === building.id &&
-      person.assignment.role === "worker",
-  );
-  if (!workerPresent || !hasBreedingInputs(building)) return;
+  if (building.breedingGathering) {
+    advanceGathering(world, building);
+    return;
+  }
+
+  if (!assignedStockfarmer(world, building) || !hasBreedingInputs(building)) return;
 
   const kind = chooseKind(world, building);
-  if (kind) startBreeding(world, building, kind);
+  if (kind) startGathering(world, building, kind);
 }

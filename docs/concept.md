@@ -295,7 +295,9 @@ Die Viehzüchterei ist der zentrale Betrieb für eingefangene Kühe und Schafe. 
 
 Die Viehzüchterei beschäftigt einen **Viehzüchter** und bis zu zwei **Träger**. Sie lagert höchstens zehn Weizen und zehn Wasser. Eine Zucht verbraucht vier Weizen und vier Wasser und benötigt zwei ausgewachsene, zuchtfähige Tiere derselben Art. Kühe und Schafe verwenden dieselbe Mechanik. Die Viehzüchterei versucht grundsätzlich abwechselnd Kühe und Schafe zu züchten; ist die nächste Art nicht zuchtfähig oder besitzt der Spieler bereits mindestens zwölf Tiere dieser Art, wird die andere Art versucht.
 
-Nach zehn simulierten Sekunden entsteht ein Jungtier. Es startet deutlich kleiner und wächst innerhalb von drei simulierten Minuten linear auf die volle Tiergröße. Eines der beiden Elterntiere erhält nach jeder erfolgreichen Zucht drei simulierte Minuten Zuchtpause. Jungtiere zählen bereits zum spielerweiten Bestand. Die Zahl zwölf ist eine Startgrenze für neue Zuchten und kein hartes Populationslimit: durch bereits laufende Vorgänge oder andere Zugänge darf der Bestand darüber liegen.
+Vor Beginn der eigentlichen Zucht holt der Viehzüchter die beiden ausgewählten Elterntiere **nacheinander physisch von der Weide ab**. Er läuft zum Tier und führt es anschließend zurück zur Viehzüchterei; das Tier folgt ihm sichtbar. Erst wenn beide Elterntiere im Gebäude angekommen sind, beginnt die eigentliche Zuchtzeit. Nach Abschluss verlassen Eltern und Jungtier die Viehzüchterei wieder und verteilen sich auf der Weide rund um das Gebäude.
+
+Nach zehn simulierten Sekunden eigentlicher Zucht entsteht ein Jungtier. Es startet deutlich kleiner und wächst innerhalb von drei simulierten Minuten linear auf die volle Tiergröße. Eines der beiden Elterntiere erhält nach jeder erfolgreichen Zucht drei simulierte Minuten Zuchtpause. Jungtiere zählen bereits zum spielerweiten Bestand. Die Zahl zwölf ist eine Startgrenze für neue Zuchten und kein hartes Populationslimit: durch bereits laufende Vorgänge oder andere Zugänge darf der Bestand darüber liegen.
 
 ## Produktionsgebäude Stufe 2
 
@@ -337,21 +339,13 @@ Nach erfolgreichem Abschluss hat der Schüler den gewählten Beruf dauerhaft erl
 
 ## Verlinktes Handbuch und Wiki
 
-Das bestehende Handbuch ist zugleich die zentrale Wissensoberfläche. Es besitzt Übersichten für alle aktuellen Waren und Gebäudetypen sowie dynamisch erzeugte Detailartikel. Warenartikel zeigen aktuelle produzierende und verwendende Gebäude, konkrete Produktionsrezepte sowie direkte Gewinnungsquellen aus Berufen und Tieren, wenn eine Ware nicht aus einem Produktionsgebäude stammt. Waren mit einer besonderen Gameplay-Wirkung erhalten zusätzlich einen Abschnitt „Effekt“; aktuell erklärt dieser bei Holzwerkzeugen die erhöhte Arbeitsgeschwindigkeit und bei Schuhen die erhöhte Laufgeschwindigkeit. Normale Rohstoffe erhalten keinen solchen Abschnitt. Gebäudeartikel zeigen Baukosten, Produktion/Funktion, Personal und vorhandene Ausbaukanten. Zugehörige Berufe werden im Personalabschnitt direkt verlinkt, einschließlich Trägern und Händlern, sofern das Gebäude diese Rollen beschäftigt. Berufsartikel zeigen neben Voraussetzung und Arbeitsplatz auch die Berufe und Gebäude, die durch ihre Erfahrung freigeschaltet werden. Diese Angaben werden soweit möglich direkt aus den aktuellen Simulationsregeln erzeugt, damit kein paralleler Regelbestand gepflegt wird.
+Das Handbuch ist aktuell bewusst auf die vier datengetriebenen Kataloge **Waren**, **Gebäude**, **Tiere** und **Berufe** reduziert. Reine allgemeine Textseiten werden vorerst nicht angeboten. Aus den vier Übersichten führen dynamisch erzeugte Detailseiten zu den jeweiligen Wissensobjekten.
 
-Im Spiel werden Wissensbegriffe dort verlinkt, wo sie bereits als UI-Information erscheinen. Im Baumenü bleiben Platzierung und Wiki ausdrücklich getrennte Aktionen: die normale Bauauswahl startet unverändert den Platzierungsmodus, während der Info-Button eines Gebäudes und die angezeigten Bauwaren das Wiki öffnen. Dasselbe gilt für Waren in Gebäudeinventaren und Produktionsinformationen sowie für passende Knoten im Technologiebaum. Natürliche Ressourcen und Warenobjekte direkt auf der Karte erhalten keine Wiki-Klickfläche, damit Karteninteraktion und Touch-Steuerung eindeutig bleiben.
+Warenartikel zeigen produzierende und verwendende Gebäude, Produktionsrezepte sowie direkte Quellen aus Berufen und Tieren. Gebäudeartikel zeigen Baukosten, Produktion oder Funktion, Personal und vorhandene Ausbaukanten. Berufsartikel zeigen Voraussetzungen, Arbeitsplätze und Freischaltungen. Tierseiten zeigen Jagdbeute, relevante Berufe und bei Nutztieren die Viehzüchterei. Die Inhalte werden soweit möglich direkt aus den aktuellen Simulationsregeln erzeugt.
 
-Ein konkretes Gebäude oder eine konkrete Person ist kein Wiki-Artikel. Klicks auf solche Laufzeitobjekte fokussieren weiterhin das Objekt in der Welt und öffnen dessen normalen Dialog. In der Personenansicht bleiben der aktuelle Zustand und die Bedürfnisse direkt sichtbar; Arbeitsplatz, Wohnung, Erfahrung, getragene Ware und Ausrüstung liegen im einklappbaren Bereich **Details**. Arbeitsplatz und Wohnung springen zum konkreten Gebäude, angezeigte Waren können ins Wiki führen.
+Im Spiel werden Wissensbegriffe dort verlinkt, wo sie bereits als UI-Information erscheinen. Im Baumenü bleiben Platzierung und Wiki getrennte Aktionen. Konkrete Gebäude und Personen bleiben Weltobjekte und sind keine Wiki-Artikel.
 
-
-### Erweiterte Wiki-Kategorien
-
-Das Handbuch pausiert die Simulation, solange es geöffnet ist, und stellt beim Schließen den vorherigen Laufzustand wieder her. Neben Waren und Gebäuden besitzt es Übersichten und Detailseiten für alle aktuellen Tierarten und Berufe. Mehrfachlisten werden nach dem deutschen Anzeigenamen alphabetisch sortiert.
-
-Gebäudeseiten beginnen mit einem kurzen Einordnungstext. Besondere Gebäude können zusätzlich einen knappen Abschnitt **„So funktioniert es“** erhalten, der die wesentliche Bedienfolge beschreibt. Produktionsgebäude stellen jedes Rezept als eigene Zeile dar.
-
-Berufsseiten erklären Aufgabe, feste Arbeitsplätze und vorhandene Erfahrungs-Voraussetzungen und verlinken passende Gebäude beziehungsweise vorausgehende Berufe. Tierseiten zeigen Jagdbeute, relevante Berufe und bei Nutztieren die Viehzüchterei. Der aktuelle Beruf in der Personenansicht ist direkt mit seiner Berufsseite verlinkt.
-
+Das Handbuch pausiert die Simulation, solange es geöffnet ist, und stellt beim Schließen den vorherigen Laufzustand wieder her. Mehrfachlisten werden nach dem deutschen Anzeigenamen alphabetisch sortiert.
 
 ## Debug-Cheats
 

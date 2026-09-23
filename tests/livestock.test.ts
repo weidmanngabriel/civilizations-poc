@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { advanceHunting } from "../src/simulation/hunting";
-import type { Building } from "../src/simulation/model";
+import type { Animal, Building } from "../src/simulation/model";
 import { setPersonProfession } from "../src/simulation/personCommands";
 import { createWorld } from "../src/simulation/scenario";
 import { buildWithFootprint, validBuildingAnchors } from "../src/simulation/buildingPlacement";
@@ -177,7 +177,7 @@ test("only one livestock breeder can be placed", () => {
   assert.equal(validBuildingAnchors(world, "livestockBreeder").length, 0);
 });
 
-test("livestock breeder alternates species and creates a growing juvenile", () => {
+test("stockfarmer physically gathers both parents before breeding", () => {
   const world = createWorld(1);
   world.animals = [];
   world.animalGroups = [];
@@ -195,28 +195,63 @@ test("livestock breeder alternates species and creates a growing juvenile", () =
     recipe: { inputs: { wheat: 4, water: 4 }, amount: 1, duration: LIVESTOCK_BREEDING_DURATION_TICKS },
     breederNextKind: "cow",
   });
-  world.people[0]!.assignment = { building: "livestockBreeder-test", role: "worker" };
+  const worker = world.people[0]!;
+  worker.assignment = { building: "livestockBreeder-test", role: "worker" };
+  worker.position = { ...breederPosition };
 
   const cowGroup = spawnAnimalGroup(world, "cow", breederPosition, 2)!;
   const sheepGroup = spawnAnimalGroup(world, "sheep", breederPosition, 2)!;
-  for (const animal of world.animals!) {
+  for (const [index, animal] of world.animals!.entries()) {
     animal.owner = "player";
-    animal.position = { ...grassNear(world, breederPosition, animal.kind === "cow" ? 4 : 6) };
+    animal.position = { ...grassNear(world, breederPosition, animal.kind === "cow" ? 4 + index : 7 + index) };
     animal.path = [];
   }
+  const cowPositions = new Map(
+    world.animals!
+      .filter((animal) => animal.kind === "cow")
+      .map((animal) => [animal.id, { ...animal.position }]),
+  );
 
   advanceLivestockBreeding(world);
   const breeder = world.buildings.find((building) => building.id === "livestockBreeder-test")!;
-  assert.equal(breeder.breeding?.kind, "cow");
+  assert.equal(breeder.breeding, undefined);
+  const gathering = breeder.breedingGathering;
+  assert.ok(gathering);
+  assert.equal(gathering.kind, "cow");
   assert.equal(breeder.breederNextKind, "sheep");
   assert.equal(breeder.inputInventory?.wheat, 6);
   assert.equal(breeder.inputInventory?.water, 6);
-  assert.equal(
-    world.animals!.filter((animal) => animal.groupId === cowGroup.id && animal.breedingAt === breeder.id).length,
-    2,
-  );
+  for (const animal of world.animals!.filter((candidate) => candidate.kind === "cow")) {
+    assert.deepEqual(animal.position, cowPositions.get(animal.id));
+    assert.equal(animal.breedingReservedAt, breeder.id);
+    assert.equal(animal.breedingAt, undefined);
+  }
 
-  world.round = breeder.breeding!.untilTick;
+  const parentIds = [...gathering.parentIds];
+  for (const parentId of parentIds) {
+    const parentAnimal: Animal = world.animals!.find((animal) => animal.id === parentId)!;
+    worker.position = { ...parentAnimal.position };
+    worker.path = [];
+    advanceLivestockBreeding(world);
+    assert.equal(parentAnimal.followingBreederId, worker.id);
+    assert.equal(parentAnimal.breedingAt, undefined);
+
+    worker.position = { ...breeder.position };
+    worker.path = [];
+    parentAnimal.position = { ...breeder.position };
+    parentAnimal.path = [];
+    advanceLivestockBreeding(world);
+    assert.equal(parentAnimal.followingBreederId, undefined);
+    assert.equal(parentAnimal.breedingAt, breeder.id);
+  }
+
+  assert.equal(breeder.breedingGathering, undefined);
+  const activeBreeding = world.buildings.find((building) => building.id === breeder.id)!.breeding;
+  assert.ok(activeBreeding);
+  assert.equal(activeBreeding.kind, "cow");
+  assert.deepEqual(activeBreeding.parentIds, parentIds);
+
+  world.round = activeBreeding.untilTick;
   advanceLivestockBreeding(world);
 
   const cows = world.animals!.filter((animal) => animal.owner === "player" && animal.kind === "cow");
@@ -224,6 +259,7 @@ test("livestock breeder alternates species and creates a growing juvenile", () =
   const calf = cows.find((animal) => animal.matureAtTick !== undefined)!;
   assert.ok(calf);
   assert.equal(calf.matureAtTick, world.round + LIVESTOCK_GROWTH_TICKS);
+  assert.equal(calf.returningToHq, true);
   assert.equal(cows.filter((animal) => (animal.breedingCooldownUntilTick ?? 0) > world.round).length, 1);
   assert.equal(
     cows.find((animal) => (animal.breedingCooldownUntilTick ?? 0) > world.round)!.breedingCooldownUntilTick,
@@ -231,11 +267,66 @@ test("livestock breeder alternates species and creates a growing juvenile", () =
   );
 
   advanceLivestockBreeding(world);
-  assert.equal(breeder.breeding?.kind, "sheep");
+  assert.equal(breeder.breeding, undefined);
+  const nextGathering = world.buildings.find((building) => building.id === breeder.id)!.breedingGathering;
+  assert.ok(nextGathering);
+  assert.equal(nextGathering.kind, "sheep");
   assert.equal(
-    world.animals!.filter((animal) => animal.groupId === sheepGroup.id && animal.breedingAt === breeder.id).length,
+    world.animals!.filter((animal) => animal.groupId === sheepGroup.id && animal.breedingReservedAt === breeder.id).length,
     2,
   );
+  assert.equal(
+    world.animals!.filter((animal) => animal.groupId === cowGroup.id && animal.breedingAt === breeder.id).length,
+    0,
+  );
+});
+
+test("reserved livestock follows the stockfarmer instead of teleporting", () => {
+  const world = createWorld(1);
+  world.animals = [];
+  world.animalGroups = [];
+  const breederPosition = grassNear(world, world.buildings[0]!.position, 7);
+  const breeder: Building = {
+    id: "livestockBreeder-follow",
+    kind: "livestockBreeder",
+    name: "Viehzüchterei",
+    position: { ...breederPosition },
+    workers: 1,
+    carriers: 2,
+    input: 0,
+    inputInventory: { wheat: 10, water: 10 },
+    output: 0,
+    recipe: { inputs: { wheat: 4, water: 4 }, amount: 1, duration: LIVESTOCK_BREEDING_DURATION_TICKS },
+  };
+  world.buildings.push(breeder);
+  const worker = world.people[0]!;
+  worker.assignment = { building: breeder.id, role: "worker" };
+
+  spawnAnimalGroup(world, "cow", breederPosition, 2);
+  for (const [index, animal] of world.animals!.entries()) {
+    animal.owner = "player";
+    animal.position = { ...grassNear(world, breederPosition, 4 + index) };
+    animal.path = [];
+  }
+
+  advanceLivestockBreeding(world);
+  const first = world.animals!.find(
+    (animal) => animal.id === breeder.breedingGathering!.parentIds[0],
+  )!;
+  worker.position = { ...first.position };
+  worker.path = [];
+  advanceLivestockBreeding(world);
+  assert.equal(first.followingBreederId, worker.id);
+
+  const oldPosition = { ...first.position };
+  worker.position = { ...breeder.position };
+  worker.path = [];
+  advanceWildlife(world);
+
+  assert.deepEqual(first.position, oldPosition);
+  assert.ok(first.path.length > 0);
+  assert.equal(first.path.at(-1)!.q, breeder.position.q);
+  assert.equal(first.path.at(-1)!.r, breeder.position.r);
 });
 
 test("breeding skips a species that already has twelve owned animals", () => {
@@ -268,7 +359,8 @@ test("breeding skips a species that already has twelve owned animals", () => {
   }
 
   advanceLivestockBreeding(world);
-  assert.equal(breeder.breeding?.kind, "sheep");
+  assert.equal(breeder.breeding, undefined);
+  assert.equal(breeder.breedingGathering?.kind, "sheep");
 });
 
 test("completed livestock breeder becomes the pasture home and demolition falls back to HQ", () => {

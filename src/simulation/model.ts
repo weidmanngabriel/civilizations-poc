@@ -121,7 +121,14 @@ export interface Building {
   fieldGrowthProgress?: number;
   /** Livestock type preferred for the next successful breeding cycle. */
   breederNextKind?: "cow" | "sheep";
-  /** Active breeding cycle owned by this building. */
+  /** Animals reserved while the stockfarmer physically gathers both parents. */
+  breedingGathering?: {
+    kind: "cow" | "sheep";
+    parentIds: AnimalId[];
+    collectedIds: AnimalId[];
+    currentParentId?: AnimalId;
+  };
+  /** Active breeding cycle owned by this building after both parents arrived. */
   breeding?: {
     kind: "cow" | "sheep";
     parentIds: AnimalId[];
@@ -355,6 +362,10 @@ export interface Animal {
   matureAtTick?: number;
   /** Simulation tick before which this animal cannot be used for another breeding cycle. */
   breedingCooldownUntilTick?: number;
+  /** Building that has reserved this animal for an upcoming breeding cycle. */
+  breedingReservedAt?: BuildingId;
+  /** Stockfarmer this animal is currently following back to the breeder. */
+  followingBreederId?: number;
   /** Building that currently keeps this animal inside during breeding. */
   breedingAt?: BuildingId;
 }

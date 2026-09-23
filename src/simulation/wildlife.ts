@@ -1,5 +1,5 @@
 import type { Animal, AnimalGroup, AnimalKind, Hex, World } from "./model";
-import { findPath, key, neighbors, tileIndex, walkable } from "./hex";
+import { findPath, key, neighbors, same, tileIndex, walkable } from "./hex";
 import { SIMULATION_HZ } from "./timing";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import { randomFraction, randomInt } from "./random";
@@ -676,6 +676,33 @@ export function advanceWildlife(world: World): void {
   advanceAnimalGroups(world);
   for (const animal of animalList(world)) {
     if (animal.breedingAt) continue;
+    if (animal.followingBreederId !== undefined) {
+      const breeder = world.people.find((person) => person.id === animal.followingBreederId);
+      if (!breeder) {
+        animal.followingBreederId = undefined;
+        animal.path = [];
+        animal.movement = 0;
+        continue;
+      }
+      if (breeder.hungerState || breeder.sleepState) {
+        animal.path = [];
+        animal.movement = 0;
+        continue;
+      }
+      if (!same(animal.position, breeder.position)) {
+        const endpoint = animal.path.at(-1);
+        if (!endpoint || !same(endpoint, breeder.position)) {
+          animal.path = findPath(world.tiles, animal.position, breeder.position, 1) ?? [];
+          animal.movement = 0;
+        }
+        advanceAnimalMovement(world, animal);
+      } else {
+        animal.path = [];
+        animal.movement = 0;
+      }
+      continue;
+    }
+    if (animal.breedingReservedAt) continue;
     if (animal.owner === "player" && animal.returningToHq) {
       const home = ownedLivestockHome(world);
       if (!home) continue;

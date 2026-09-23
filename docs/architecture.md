@@ -17,7 +17,7 @@ src/
   buildings/    shared building visual/spatial contracts and registry
   assets/       runtime-ready building exports and other assets
   ui/           DOM overlays and controls
-  handbook/     player-facing Markdown help
+  ui/wikiCatalog.ts  data-driven player knowledge catalog
   debug/        performance diagnostics
 
 building-editor/   desktop-first building authoring subpage
@@ -168,7 +168,7 @@ Physical pickup and dropoff are timed simulation interactions. Picking up a loos
 
 ## Handbook navigation
 
-The in-app handbook remains Markdown-backed under `src/handbook/*.md` and is rendered by `src/ui/handbook.ts`. The existing topic navigation is the first level. Second-level quick navigation is derived directly from each page's `##` headings; the renderer assigns matching section IDs and the floating section menu scrolls the existing article container rather than creating separate handbook pages. This keeps content, desktop behavior and touch behavior on one shared path without a second navigation data model.
+The in-app handbook is currently a catalog-only knowledge surface rendered by `src/ui/handbook.ts` and `src/ui/wikiCatalog.ts`. Its top level contains only the generated lists for goods, buildings, animals and professions. Static Markdown topic pages are intentionally absent. Dynamic detail routes and the internal back history remain available from those four catalogs.
 
 ## Idle positions, indoor visibility and staffing markers
 
@@ -304,7 +304,7 @@ Character Lab visual review runs in the separate `.github/workflows/character-la
 
 src/simulation/livestockBreeding.ts owns the deterministic breeding state for player-owned cows and sheep. The breeder remains a normal building for staffing and demand-driven input logistics: its one worker and up to two carriers use the existing assignment and transport systems, while wheat and water live in the building's normal multi-input inventory with the shared per-good capacity of ten. The building recipe is intentionally input-only; animal creation is handled by the livestock system rather than the generic goods-output production loop.
 
-A completed livestockBreeder becomes the dynamic home of both owned livestock groups. wildlife.ts retargets those groups between the completed breeder and HQ fallback without introducing a second animal representation. Breeding cycles reserve their two concrete parent animal IDs by marking them as inside the building, consume four wheat and four water at cycle start, and create a new persistent owned animal on completion. Juvenile maturity and the selected parent's breeding cooldown are absolute simulation ticks, so pause, save/load and simulation speed preserve deterministic timing. Rendering derives juvenile scale from the remaining fixed growth duration instead of storing presentation state.
+A completed livestockBreeder becomes the dynamic home of both owned livestock groups. wildlife.ts retargets those groups between the completed breeder and HQ fallback without introducing a second animal representation. A breeding attempt first reserves two concrete parent animal IDs in building state. The assigned stockfarmer then walks to the parents one after another; the currently collected animal stores the stockfarmer id and follows that person's authoritative position through the existing wildlife movement loop. Only after both animals have physically reached the breeder are they marked as inside and the fixed breeding timer starts. Four wheat and four water are consumed when gathering starts. On completion, both parents and the juvenile leave from the breeder through normal animal paths back into the surrounding pasture. Juvenile maturity and the selected parent's breeding cooldown are absolute simulation ticks, so pause, save/load and simulation speed preserve deterministic timing. Rendering derives juvenile scale from the remaining fixed growth duration instead of storing presentation state.
 
 The current product intentionally permits only one non-retired livestock breeder, including construction sites. The placement layer enforces this invariant; demolition makes a new breeder placeable and causes owned livestock to return to the HQ pasture.
 
@@ -346,7 +346,7 @@ The profession menu owns only the selection flow: selected resident -> school ->
 
 src/ui/wikiLinks.ts definiert die stabilen Wiki-Zieltypen und das zentrale Öffnungsereignis. Statische Wissensziele sind Waren und Gebäudetypen; konkrete Personen und Gebäude verwenden weiterhin die bestehenden Selection-Events und bleiben damit Weltobjekte statt Wiki-Seiten.
 
-src/ui/wikiCatalog.ts erzeugt die Waren- und Gebäudeartikel aus bestehenden Simulationsquellen wie GOODS, Baukosten, Produktionsdefinitionen und Ausbaukanten. Dafür stellt der Simulationskern die unveränderliche Gebäudetyp-Definition lesbar bereit; die UI mutiert diese Daten nicht. Das Handbuch in src/ui/handbook.ts rendert Markdown-Seiten und dynamische Wiki-Routen in derselben Modaloberfläche und verwaltet eine kleine interne Zurück-Historie.
+src/ui/wikiCatalog.ts erzeugt die Waren-, Gebäude-, Tier- und Berufsartikel aus bestehenden Simulationsquellen wie GOODS, Baukosten, Produktionsdefinitionen und Ausbaukanten. Dafür stellt der Simulationskern die unveränderlichen Regeldaten lesbar bereit; die UI mutiert diese Daten nicht. Das Handbuch in src/ui/handbook.ts zeigt ausschließlich die vier datengetriebenen Kataloge und deren dynamische Detailrouten in derselben Modaloberfläche und verwaltet eine kleine interne Zurück-Historie.
 
 Wiki-Links werden als data-wiki-good beziehungsweise data-wiki-building markiert und zentral delegiert. Komponenten sollen dadurch keine eigene Wiki-Routinglogik duplizieren. Bei zusammengesetzten Controls, insbesondere im Baumenü, müssen Wiki- und Primäraktion getrennte Buttons bleiben, damit Pointer- und Touch-Ereignisse nicht gleichzeitig eine Spielaktion auslösen.
 
