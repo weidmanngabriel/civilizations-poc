@@ -251,9 +251,12 @@ test("one woodcutter occupies one tree while physical wood is capped at three un
     height: 24,
     resources: [{ kind: "forest", offset: { q: 8, r: 0 } }],
   });
-  const { forest } = woodcutterAtForest(w);
+  const { p, forest } = woodcutterAtForest(w);
   assert.equal(w.people.filter((person) => person.resourceTarget === forest.id).length, 1);
   rounds(w, CONFIG.duration * CONFIG.forestYield);
+  let dropGuard = 2_000;
+  while (p.outdoorCarry && dropGuard-- > 0) tick(w);
+  assert.ok(dropGuard > 0);
   assert.equal(forest.output, 0);
   assert.equal(forest.remaining, 0);
   assert.equal((w.looseGoods ?? []).filter((stack) => stack.good === "wood").reduce((sum, stack) => sum + stack.amount, 0), CONFIG.forestYield);

@@ -37,6 +37,20 @@ const centralGrass = (world: ReturnType<typeof createWorld>) => {
     )[0]!;
 };
 
+const completeOutdoorGroundDrop = (
+  world: ReturnType<typeof createWorld>,
+  hunter: ReturnType<typeof createWorld>["people"][number],
+): void => {
+  advanceHunting(world);
+  assert.ok(hunter.outdoorDropTarget);
+  hunter.position = { ...hunter.outdoorDropTarget! };
+  hunter.path = [];
+  advanceHunting(world);
+  assert.ok(hunter.outdoorDropUntilTick !== undefined);
+  world.round = hunter.outdoorDropUntilTick!;
+  advanceHunting(world);
+};
+
 test("hunter hit chance scales with experience and fleeing halves it", () => {
   const world = createWorld(1);
   const hunter = world.people[0]!;
@@ -169,7 +183,7 @@ test("hunter aims for two seconds, fires a locked shot, and retrieves meat", () 
 
   hunter.position = { ...hunter.workArea!.center };
   hunter.path = [];
-  advanceHunting(world);
+  completeOutdoorGroundDrop(world, hunter);
   assert.equal(hunter.outdoorCarry, undefined);
   assert.ok(world.looseGoods?.some(
     (stack) => stack.good === "meat" && hexDistance(stack.position, hunter.workArea!.center) <= 5,
@@ -336,7 +350,7 @@ test("a killed boar yields meat and leather that the hunter carries to the flag 
 
   hunter.position = { ...hunter.workArea!.center };
   hunter.path = [];
-  advanceHunting(world);
+  completeOutdoorGroundDrop(world, hunter);
   assert.equal(hunter.outdoorCarry, undefined);
   assert.equal(hunter.huntLootTarget, leather!.id);
   assert.equal(hunter.huntLootQueue, undefined);
@@ -351,7 +365,7 @@ test("a killed boar yields meat and leather that the hunter carries to the flag 
 
   hunter.position = { ...hunter.workArea!.center };
   hunter.path = [];
-  advanceHunting(world);
+  completeOutdoorGroundDrop(world, hunter);
 
   assert.equal(hunter.outdoorCarry, undefined);
   assert.equal(hunter.huntLootTarget, undefined);
@@ -592,7 +606,7 @@ test("hunter uses global pathfinding to carry loot back from outside the hunting
 
   hunter.position = { ...hunter.workArea!.center };
   hunter.path = [];
-  advanceHunting(world);
+  completeOutdoorGroundDrop(world, hunter);
 
   assert.equal(hunter.outdoorCarry, undefined);
   assert.ok(world.looseGoods?.some(

@@ -58,6 +58,13 @@ test("clay extraction creates exactly ten physical ground units and retires the 
     assignedPerson.hunger = 100;
     assignedPerson.sleep = 100;
   }
+  let dropGuard = 2_000;
+  while (assignedPerson.outdoorCarry && dropGuard-- > 0) {
+    tick(world);
+    assignedPerson.hunger = 100;
+    assignedPerson.sleep = 100;
+  }
+  assert.ok(dropGuard > 0);
   assert.equal(deposit.remaining, 0);
   assert.equal(deposit.depleted, true);
   assert.equal(deposit.output, 0);
@@ -88,6 +95,13 @@ test("stone extraction creates physical rubble and removes footprint blocking on
     worker.hunger = 100;
     worker.sleep = 100;
   }
+  let dropGuard = 2_000;
+  while (worker.outdoorCarry && dropGuard-- > 0) {
+    tick(world);
+    worker.hunger = 100;
+    worker.sleep = 100;
+  }
+  assert.ok(dropGuard > 0);
   assert.equal(deposit.depleted, true);
   assert.equal(deposit.output, 0);
   assert.equal(
