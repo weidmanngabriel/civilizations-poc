@@ -1,8 +1,22 @@
 import type { Person, World } from "../simulation/model";
 import { same } from "../simulation/hex";
+import { buildingFootprint } from "../simulation/buildingPlacement";
 
 const isCompletedBuilding = (building: World["buildings"][number]): boolean =>
   !building.construction || building.construction.complete;
+
+const workerHasInternalActivity = (
+  building: World["buildings"][number],
+  person: Person,
+): boolean =>
+  person.progress > 0 ||
+  (building.kind === "livestockBreeder" && Boolean(building.breeding));
+
+const personOnBuildingFootprint = (
+  building: World["buildings"][number],
+  person: Person,
+): boolean =>
+  buildingFootprint(building).some((position) => same(position, person.position));
 
 export function personInsideBuilding(world: World, person: Person): boolean {
   if (person.path.length) return false;
@@ -52,10 +66,18 @@ export function personInsideBuilding(world: World, person: Person): boolean {
     if (house && same(person.position, house.position)) return true;
   }
 
-  if (person.assignment?.role === "worker" && person.progress > 0 && !person.farmTask) {
+  if (person.assignment?.role === "worker" && !person.farmTask) {
     const workplace = world.buildings.find((building) =>
-      building.id === person.assignment!.building && !building.retired);
-    if (workplace && workplace.kind !== "farm" && same(person.position, workplace.position)) return true;
+      building.id === person.assignment!.building &&
+      !building.retired &&
+      isCompletedBuilding(building));
+    if (
+      workplace &&
+      workplace.kind !== "farm" &&
+      workplace.kind !== "well" &&
+      workerHasInternalActivity(workplace, person) &&
+      personOnBuildingFootprint(workplace, person)
+    ) return true;
   }
 
   return false;

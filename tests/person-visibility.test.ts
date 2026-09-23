@@ -5,6 +5,53 @@ import { personInsideBuilding } from "../src/game/personVisibility";
 import { buildAt } from "../src/simulation/simulation";
 import { personActivityLabel } from "../src/personPresentation";
 
+test("internal workplace activity hides assigned workers across the workplace footprint", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const workplace = buildAt(world, { q: 5, r: 0 }, "sawmill")!;
+
+  person.assignment = { building: workplace.id, role: "worker" };
+  person.position = { ...workplace.position };
+  person.path = [];
+  person.progress = 1;
+  assert.equal(
+    personInsideBuilding(world, person),
+    true,
+    "normal internal production should hide the worker",
+  );
+
+  person.progress = 0;
+  assert.equal(
+    personInsideBuilding(world, person),
+    false,
+    "assigned but idle workers remain visible",
+  );
+
+  workplace.kind = "livestockBreeder";
+  workplace.footprint = [
+    { ...workplace.position },
+    { q: workplace.position.q + 1, r: workplace.position.r },
+  ];
+  workplace.breeding = {
+    kind: "sheep",
+    parentIds: ["animal-1", "animal-2"],
+    untilTick: world.round + 60,
+  };
+  person.position = { q: workplace.position.q + 1, r: workplace.position.r };
+  assert.equal(
+    personInsideBuilding(world, person),
+    true,
+    "building-owned internal work should hide the worker anywhere on its footprint",
+  );
+
+  person.position = { q: workplace.position.q + 2, r: workplace.position.r };
+  assert.equal(
+    personInsideBuilding(world, person),
+    false,
+    "internal work must not hide a worker who is actually outside the workplace",
+  );
+});
+
 test("timed transfers hide residents only when the interaction happens at a building", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
