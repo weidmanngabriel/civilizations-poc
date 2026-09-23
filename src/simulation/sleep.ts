@@ -46,7 +46,7 @@ const decaySleep = (person: Person): void => {
 
 const routeTo = (world: World, person: Person, target: Hex): Hex[] | undefined =>
   performanceProfiler.withPathReason("sleep", () =>
-    findRequiredNavigationPath(world, person, target, CONFIG.roadSpeedMultiplier),
+    findRequiredNavigationPath(world, person, target, CONFIG.roadSpeedMultiplier, "sleep"),
   ) ?? undefined;
 
 const localRouteTo = (

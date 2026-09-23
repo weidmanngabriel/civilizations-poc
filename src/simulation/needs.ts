@@ -109,7 +109,7 @@ const decayHunger = (person: Person): void => {
 };
 
 const routeTo = (world: World, person: Person, target: Hex, reason: PathReason = "hunger"): Hex[] | undefined =>
-  performanceProfiler.withPathReason(reason, () => findRequiredNavigationPath(world, person, target, ROAD_SPEED_MULTIPLIER)) ?? undefined;
+  performanceProfiler.withPathReason(reason, () => findRequiredNavigationPath(world, person, target, ROAD_SPEED_MULTIPLIER, "food")) ?? undefined;
 
 const localRouteTo = (
   world: World,

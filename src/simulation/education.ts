@@ -45,6 +45,7 @@ const routeToSchool = (world: World, person: Person, school: Building): boolean 
     person,
     school.position,
     CONFIG.roadSpeedMultiplier,
+    "school",
   );
   if (!path) return false;
   person.path = path;
@@ -105,10 +106,10 @@ export function startEducation(
 
   const studentRoute = same(student.position, school.position)
     ? []
-    : findRequiredNavigationPath(world, student, school.position, CONFIG.roadSpeedMultiplier);
+    : findRequiredNavigationPath(world, student, school.position, CONFIG.roadSpeedMultiplier, "school");
   const teacherRoute = same(teacher.position, school.position)
     ? []
-    : findRequiredNavigationPath(world, teacher, school.position, CONFIG.roadSpeedMultiplier);
+    : findRequiredNavigationPath(world, teacher, school.position, CONFIG.roadSpeedMultiplier, "school");
   if (!studentRoute || !teacherRoute) return false;
 
   if (!preparePersonForEducation(world, student.id)) return false;

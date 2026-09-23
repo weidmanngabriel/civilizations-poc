@@ -247,8 +247,9 @@ test("failed required routes are cached until the waypost network revision chang
   assert.ok(end);
 
   const initialRevision = world.waypostRevision ?? 0;
-  assert.equal(findRequiredNavigationPath(world, person, end), null);
+  assert.equal(findRequiredNavigationPath(world, person, end, 1.3, "resource"), null);
   assert.equal(person.navigationBlocked, true);
+  assert.equal(person.navigationBlockedReason, "resource");
   assert.deepEqual(person.navigationFailedTargets, [`${end.q},${end.r}`]);
 
   const manualSecond = {
@@ -267,9 +268,10 @@ test("failed required routes are cached until the waypost network revision chang
   );
 
   world.waypostRevision = initialRevision + 1;
-  const retried = findRequiredNavigationPath(world, person, end);
+  const retried = findRequiredNavigationPath(world, person, end, 1.3, "resource");
   assert.ok(retried, "network revision change must allow one fresh route search");
   assert.equal(person.navigationBlocked, undefined);
+  assert.equal(person.navigationBlockedReason, undefined);
   assert.equal(person.navigationFailedTargets, undefined);
 });
 

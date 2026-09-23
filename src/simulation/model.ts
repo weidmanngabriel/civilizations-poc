@@ -34,6 +34,18 @@ export type NaturalResourceKind = "forest" | "clay" | "stone";
 export type LooseGoodStackId = string;
 export type PlaceableBuildingKind = BuildableBuildingKind | "house";
 export type Role = "worker" | "carrier" | "merchant" | "builder";
+export type NavigationBlockReason =
+  | "workplace"
+  | "resource"
+  | "food"
+  | "sleep"
+  | "storage"
+  | "construction"
+  | "school"
+  | "equipment"
+  | "work-area"
+  | "manual"
+  | "destination";
 export type EducationRole = "teacher" | "student";
 export type Profession =
   | "woodcutter"
@@ -330,6 +342,8 @@ export interface Person {
   path: Hex[];
   /** True while a required destination cannot be reached through the waypost network. */
   navigationBlocked?: boolean;
+  /** Player-facing category of the currently blocked destination. */
+  navigationBlockedReason?: NavigationBlockReason;
   /** Waypost-network revision for which navigationFailedTargets was computed. */
   navigationFailureRevision?: number;
   /** Required destinations already proven unreachable in the current waypost-network revision. */

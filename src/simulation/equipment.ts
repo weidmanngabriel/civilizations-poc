@@ -136,12 +136,12 @@ const equipmentSources = (
 ): EquipmentSource[] => {
   const sources: EquipmentSource[] = [];
   for (const source of world.buildings.filter((building) => storageGoodStock(building, good) > 0)) {
-    const path = findRequiredNavigationPath(world, person, source.position, CONFIG.roadSpeedMultiplier);
+    const path = findRequiredNavigationPath(world, person, source.position, CONFIG.roadSpeedMultiplier, "equipment");
     if (path) sources.push({ kind: "storage", source, path });
   }
   for (const source of looseGoodStacks(world)) {
     if (source.good !== good || availableLooseGoodAmount(source) < 1) continue;
-    const path = findRequiredNavigationPath(world, person, source.position, CONFIG.roadSpeedMultiplier);
+    const path = findRequiredNavigationPath(world, person, source.position, CONFIG.roadSpeedMultiplier, "equipment");
     if (path) sources.push({ kind: "looseGood", source, path });
   }
   return sources.sort(
