@@ -17,7 +17,7 @@ src/
   buildings/    shared building visual/spatial contracts and registry
   assets/       runtime-ready building exports and other assets
   ui/           DOM overlays and controls
-  handbook/     player-facing Markdown help
+  ui/wikiCatalog.ts  data-driven player knowledge catalog
   debug/        performance diagnostics
 
 building-editor/   desktop-first building authoring subpage
@@ -168,7 +168,7 @@ Physical pickup and dropoff are timed simulation interactions. Picking up a loos
 
 ## Handbook navigation
 
-The in-app handbook remains Markdown-backed under `src/handbook/*.md` and is rendered by `src/ui/handbook.ts`. The existing topic navigation is the first level. Second-level quick navigation is derived directly from each page's `##` headings; the renderer assigns matching section IDs and the floating section menu scrolls the existing article container rather than creating separate handbook pages. This keeps content, desktop behavior and touch behavior on one shared path without a second navigation data model.
+The in-app handbook is currently a catalog-only knowledge surface rendered by `src/ui/handbook.ts` and `src/ui/wikiCatalog.ts`. Its top level contains only the generated lists for goods, buildings, animals and professions. Static Markdown topic pages are intentionally absent. Dynamic detail routes and the internal back history remain available from those four catalogs.
 
 ## Idle positions, indoor visibility and staffing markers
 
@@ -346,7 +346,7 @@ The profession menu owns only the selection flow: selected resident -> school ->
 
 src/ui/wikiLinks.ts definiert die stabilen Wiki-Zieltypen und das zentrale Öffnungsereignis. Statische Wissensziele sind Waren und Gebäudetypen; konkrete Personen und Gebäude verwenden weiterhin die bestehenden Selection-Events und bleiben damit Weltobjekte statt Wiki-Seiten.
 
-src/ui/wikiCatalog.ts erzeugt die Waren- und Gebäudeartikel aus bestehenden Simulationsquellen wie GOODS, Baukosten, Produktionsdefinitionen und Ausbaukanten. Dafür stellt der Simulationskern die unveränderliche Gebäudetyp-Definition lesbar bereit; die UI mutiert diese Daten nicht. Das Handbuch in src/ui/handbook.ts rendert Markdown-Seiten und dynamische Wiki-Routen in derselben Modaloberfläche und verwaltet eine kleine interne Zurück-Historie.
+src/ui/wikiCatalog.ts erzeugt die Waren-, Gebäude-, Tier- und Berufsartikel aus bestehenden Simulationsquellen wie GOODS, Baukosten, Produktionsdefinitionen und Ausbaukanten. Dafür stellt der Simulationskern die unveränderlichen Regeldaten lesbar bereit; die UI mutiert diese Daten nicht. Das Handbuch in src/ui/handbook.ts zeigt ausschließlich die vier datengetriebenen Kataloge und deren dynamische Detailrouten in derselben Modaloberfläche und verwaltet eine kleine interne Zurück-Historie.
 
 Wiki-Links werden als data-wiki-good beziehungsweise data-wiki-building markiert und zentral delegiert. Komponenten sollen dadurch keine eigene Wiki-Routinglogik duplizieren. Bei zusammengesetzten Controls, insbesondere im Baumenü, müssen Wiki- und Primäraktion getrennte Buttons bleiben, damit Pointer- und Touch-Ereignisse nicht gleichzeitig eine Spielaktion auslösen.
 
