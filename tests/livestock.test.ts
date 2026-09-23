@@ -12,7 +12,7 @@ import {
   advanceLivestockBreeding,
 } from "../src/simulation/livestockBreeding";
 import { hexDistance } from "../src/simulation/spatial";
-import { tick } from "../src/simulation/simulation";
+import { changeAssignment, tick } from "../src/simulation/simulation";
 import {
   LIVESTOCK_CAPTURE_RADIUS,
   OWNED_LIVESTOCK_PASTURE_RADIUS,
@@ -313,12 +313,9 @@ test("stockfarmer fetches missing breeding inputs before gathering animals", () 
   world.buildings.push(breeder);
 
   const worker = world.people[0]!;
-  worker.assignment = { building: breeder.id, role: "worker" };
-  worker.position = { ...breeder.position };
-  worker.path = [];
-  worker.active = true;
   worker.hunger = 100;
   worker.sleep = 100;
+  assert.equal(changeAssignment(world, breeder.id, "worker", 1), true);
 
   const sheepGroup = spawnAnimalGroup(
     world,
