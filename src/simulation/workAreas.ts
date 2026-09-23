@@ -13,8 +13,10 @@ import { startEatingAfterCompletedAction } from "./needs";
 import { equipmentWorkSpeedMultiplier, recordToolWork } from "./equipment";
 import {
   availableLooseGoodAmount,
+  findEmptyLooseGoodDropPosition,
   findLooseGoodDropPosition,
   looseGoodStack,
+  looseGoodStackAt,
   looseGoodStacks,
   placeLooseGood,
   releaseLooseGoodReservation,
@@ -25,6 +27,7 @@ export const WORK_AREA_RADIUS_WORLD_TILES = 2.5;
 export const WORK_AREA_RADIUS = WORK_AREA_RADIUS_WORLD_TILES * GRID_REFINEMENT;
 export const HUNTER_WORK_AREA_RADIUS_WORLD_TILES = WORK_AREA_RADIUS_WORLD_TILES * 4;
 export const HUNTER_WORK_AREA_RADIUS = HUNTER_WORK_AREA_RADIUS_WORLD_TILES * GRID_REFINEMENT;
+const WORK_FLAG_DROP_MIN_RADIUS = Math.floor(GRID_REFINEMENT / 2) + 1;
 
 const workAreaRadiusFor = (person: Person): number =>
   person.hunter ? HUNTER_WORK_AREA_RADIUS : WORK_AREA_RADIUS;
@@ -231,7 +234,13 @@ export function routeOutdoorCarryToFlag(
     return false;
   }
 
-  const drop = findLooseGoodDropPosition(world, area.center, good, GRID_REFINEMENT, 1);
+  const drop = findLooseGoodDropPosition(
+    world,
+    area.center,
+    good,
+    GRID_REFINEMENT,
+    WORK_FLAG_DROP_MIN_RADIUS,
+  );
   if (!drop || !placeLooseGood(world, drop, good, 1)) {
     person.active = false;
     area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
@@ -525,6 +534,19 @@ function enforceStorageCarrier(world: World, person: Person): void {
   if (!planLocalStorageCarrier(world, person)) area.retryAfterTick = world.round + CONFIG.decisionIntervalTicks;
 }
 
+function clearOutdoorWorkFlagCell(world: World, person: Person): void {
+  if (!person.workArea || !(person.woodcutter || person.extractor || person.fisher || person.hunter)) return;
+  const stack = looseGoodStackAt(world, person.workArea.center);
+  if (!stack || stack.reserved > 0) return;
+  const drop = findEmptyLooseGoodDropPosition(
+    world,
+    person.workArea.center,
+    GRID_REFINEMENT,
+    WORK_FLAG_DROP_MIN_RADIUS,
+  );
+  if (drop) stack.position = { ...drop };
+}
+
 export function syncWorkAreas(world: World): void {
   for (const person of world.people) {
     const resourceWorker = Boolean(person.woodcutter || person.extractor);
@@ -534,6 +556,7 @@ export function syncWorkAreas(world: World): void {
     if (!resourceWorker && !fisher && !hunter && !storageCarrier) { clearWorkArea(person); continue; }
     if (resourceWorker && !person.workArea && !initializeResourceWorker(world, person)) continue;
     ensureWorkArea(world, person);
+    clearOutdoorWorkFlagCell(world, person);
 
     const node = workAreaNavigationNode(person)!;
     const outsideLocalNode = !node.contains(person.position);
