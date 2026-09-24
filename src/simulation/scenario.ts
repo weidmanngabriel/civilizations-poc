@@ -22,6 +22,7 @@ import { hexDistance as fineHexDistance, key, tileIndex, walkable } from "./hex"
 import { ensureInitialWaypost } from "./wayposts";
 import { spawnAnimalGroup } from "./wildlife";
 import { SIMULATION_HZ } from "./timing";
+import { initializeFishSchools, FISH_REGROW_INTERVAL_TICKS, FISH_SCHOOL_CAPACITY } from "./fishSchools";
 import {
   naturalResourceBlocksMovement,
   naturalResourceFootprint,
@@ -56,6 +57,8 @@ export const CONFIG = {
   forestYield: 3,
   resourceYield: 10,
   resourceOutputCapacity: 3,
+  fishSchoolCapacity: FISH_SCHOOL_CAPACITY,
+  fishRegrowIntervalTicks: FISH_REGROW_INTERVAL_TICKS,
   farmMaxFields: 4,
   farmFieldRadiusWorldTiles: 3,
   farmFieldRadius: 3 * GRID_REFINEMENT,
@@ -482,6 +485,8 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     tiles,
     people,
   };
+
+  initializeFishSchools(world);
 
   if (suppliedStart) {
     ensureInitialWaypost(world);
