@@ -378,6 +378,8 @@ export interface Animal {
   path: Hex[];
   movement: number;
   nextMoveTick: number;
+  /** First tick on which the current next step was blocked by another animal. */
+  movementBlockedSinceTick?: number;
   fleeingUntilTick?: number;
   fleeFrom?: Hex;
   /** Player ownership is persistent and makes livestock invalid hunting targets. */
