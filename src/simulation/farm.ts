@@ -108,7 +108,24 @@ const fieldAreaIsFree = (
   });
 };
 
-const sowCandidates = (w: World, farm: Building, p: Person): { tile: Tile; path: Hex[] }[] => {
+const randomReachableCandidate = <T>(
+  w: World,
+  candidates: T[],
+  pathTo: (candidate: T) => Hex[] | null,
+): { candidate: T; path: Hex[] } | undefined => {
+  while (candidates.length) {
+    const index = randomIndex(w, candidates.length);
+    const candidate = candidates[index]!;
+    const path = pathTo(candidate);
+    if (path) return { candidate, path };
+
+    const last = candidates.pop()!;
+    if (index < candidates.length) candidates[index] = last;
+  }
+  return undefined;
+};
+
+const sowCandidateTiles = (w: World, farm: Building, p: Person): Tile[] => {
   const reserved = new Set<string>();
   for (const person of w.people) {
     if (person.id === p.id || person.farmTask?.kind !== "sow") continue;
@@ -120,35 +137,19 @@ const sowCandidates = (w: World, farm: Building, p: Person): { tile: Tile; path:
   return farmAreaPositions(farm)
     .map((position) => tiles.get(key(position)))
     .filter((tile): tile is Tile => Boolean(tile?.terrain === "grass"))
-    .filter((tile) => fieldAreaIsFree(w, tile, reserved, occupiedByPeople, physicalObstacles))
-    .map((tile) => {
-      const path = routeTo(w, p, farm, tile);
-      return path ? { tile, path } : undefined;
-    })
-    .filter((candidate): candidate is { tile: Tile; path: Hex[] } => Boolean(candidate));
+    .filter((tile) => fieldAreaIsFree(w, tile, reserved, occupiedByPeople, physicalObstacles));
 };
 
-const fieldCandidates = (
-  w: World,
-  farm: Building,
-  p: Person,
-  predicate: (field: Building) => boolean,
-): { field: Building; path: Hex[] }[] =>
-  farmFields(w, farm.id)
-    .filter(predicate)
-    .map((field) => {
-      const path = routeTo(w, p, farm, field.position);
-      return path ? { field, path } : undefined;
-    })
-    .filter((candidate): candidate is { field: Building; path: Hex[] } => Boolean(candidate));
-
 const assignSowTask = (w: World, farm: Building, p: Person): boolean => {
-  const candidates = sowCandidates(w, farm, p);
-  if (!candidates.length) return false;
-  const choice = candidates[randomIndex(w, candidates.length)]!;
+  const choice = randomReachableCandidate(
+    w,
+    sowCandidateTiles(w, farm, p),
+    (tile) => routeTo(w, p, farm, tile),
+  );
+  if (!choice) return false;
   p.farmTask = {
     kind: "sow",
-    target: { q: choice.tile.q, r: choice.tile.r },
+    target: { q: choice.candidate.q, r: choice.candidate.r },
     progress: 0,
   };
   p.path = choice.path;
@@ -163,13 +164,16 @@ const assignFieldTask = (
   kind: "fertilize" | "harvest",
   predicate: (field: Building) => boolean,
 ): boolean => {
-  const candidates = fieldCandidates(w, farm, p, predicate);
-  if (!candidates.length) return false;
-  const choice = candidates[randomIndex(w, candidates.length)]!;
+  const choice = randomReachableCandidate(
+    w,
+    farmFields(w, farm.id).filter(predicate),
+    (field) => routeTo(w, p, farm, field.position),
+  );
+  if (!choice) return false;
   p.farmTask = {
     kind,
-    target: { ...choice.field.position },
-    fieldId: choice.field.id,
+    target: { ...choice.candidate.position },
+    fieldId: choice.candidate.id,
     progress: 0,
     outputMultiplier: kind === "harvest" ? productionMultiplier(p, "farmer") : undefined,
   };
