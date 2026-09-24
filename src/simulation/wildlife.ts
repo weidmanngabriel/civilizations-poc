@@ -256,6 +256,18 @@ export const LIVESTOCK_CAPTURE_RADIUS = 2;
 export const OWNED_LIVESTOCK_PASTURE_RADIUS = 10;
 const OWNED_LIVESTOCK_ARRIVAL_MIN_RADIUS = 4;
 const OWNED_LIVESTOCK_ARRIVAL_MAX_RADIUS = 8;
+const ANIMAL_BLOCK_REPLAN_TICKS = Math.max(1, Math.round(SIMULATION_HZ / 2));
+const RESERVED_PATH_PREFIX_STEPS = 2;
+
+export type WildlifeStats = {
+  blockedSteps: number;
+  blockageReplans: number;
+  pastureTargetSearches: number;
+  pastureCandidateChecks: number;
+  pastureTargetSearchMs: number;
+};
+
+const wildlifeNow = (): number => globalThis.performance?.now?.() ?? Date.now();
 
 const ownedRestRange = (kind: "cow" | "sheep"): [number, number] =>
   kind === "cow"
@@ -292,6 +304,7 @@ const syncOwnedLivestockHomes = (world: World): void => {
         animal.returningToHq = true;
         animal.path = [];
         animal.movement = 0;
+        animal.movementBlockedSinceTick = undefined;
         animal.nextMoveTick = world.round;
       }
     }
@@ -322,7 +335,10 @@ const ownedPastureTarget = (
   home: Hex,
   minRadius: number,
   maxRadius: number,
+  stats?: WildlifeStats,
 ): Hex | undefined => {
+  const started = stats ? wildlifeNow() : 0;
+  if (stats) stats.pastureTargetSearches += 1;
   const occupied = occupiedAnimalCells(world, animal.id);
   const reserved = reservedAnimalEndpoints(world, animal.id);
   const sameKindOwned = animalList(world).filter(
@@ -331,26 +347,36 @@ const ownedPastureTarget = (
       candidate.owner === "player" &&
       candidate.kind === animal.kind,
   );
+  const tiles = tileIndex(world.tiles);
+  const candidates: Hex[] = [];
 
-  const candidates = world.tiles
-    .filter((tile) => {
-      if (!validAnimalTile(world, tile)) return false;
-      const homeDistance = hexDistance(home, tile);
-      if (homeDistance < minRadius || homeDistance > maxRadius) return false;
-      if (occupied.has(key(tile)) || reserved.has(key(tile))) return false;
-      return sameKindOwned.every(
-        (other) =>
-          hexDistance(tile, other.position) >=
-          ANIMAL_BEHAVIOR[animal.kind].separationDistance,
-      );
-    })
-    .sort(
-      (a, b) =>
-        hexDistance(animal.position, a) - hexDistance(animal.position, b) ||
-        a.q - b.q ||
-        a.r - b.r,
-    );
+  for (let dq = -maxRadius; dq <= maxRadius; dq += 1) {
+    for (let dr = -maxRadius; dr <= maxRadius; dr += 1) {
+      const candidate = { q: home.q + dq, r: home.r + dr };
+      const homeDistance = hexDistance(home, candidate);
+      if (homeDistance < minRadius || homeDistance > maxRadius) continue;
+      if (stats) stats.pastureCandidateChecks += 1;
+      const tile = tiles.get(key(candidate));
+      if (!tile || !validAnimalTile(world, tile)) continue;
+      if (occupied.has(key(tile)) || reserved.has(key(tile))) continue;
+      if (
+        !sameKindOwned.every(
+          (other) =>
+            hexDistance(tile, other.position) >=
+            ANIMAL_BEHAVIOR[animal.kind].separationDistance,
+        )
+      ) continue;
+      candidates.push(tile);
+    }
+  }
 
+  candidates.sort(
+    (a, b) =>
+      hexDistance(animal.position, a) - hexDistance(animal.position, b) ||
+      a.q - b.q ||
+      a.r - b.r,
+  );
+  if (stats) stats.pastureTargetSearchMs += wildlifeNow() - started;
   if (!candidates.length) return undefined;
   const shortlist = candidates.slice(0, Math.min(12, candidates.length));
   return shortlist[randomInt(world, 0, shortlist.length - 1)];
@@ -360,18 +386,30 @@ const scheduleOwnedRest = (world: World, animal: Animal): void => {
   const [minTicks, maxTicks] = ownedRestRange(animal.kind as "cow" | "sheep");
   animal.nextMoveTick = world.round + randomInt(world, minTicks, maxTicks);
   animal.movement = 0;
+  animal.movementBlockedSinceTick = undefined;
 };
 
-const planOwnedGrazingMovement = (world: World, animal: Animal): void => {
+const planOwnedGrazingMovement = (
+  world: World,
+  animal: Animal,
+  stats: WildlifeStats,
+): void => {
   const group = groupList(world).find((candidate) => candidate.id === animal.groupId);
   const home = group?.home ?? animal.position;
   const [minSteps, maxSteps] = ownedStepRange(animal.kind as "cow" | "sheep");
   const steps = randomInt(world, minSteps, maxSteps);
   const target =
-    ownedPastureTarget(world, animal, home, 2, OWNED_LIVESTOCK_PASTURE_RADIUS) ??
-    home;
+    ownedPastureTarget(
+      world,
+      animal,
+      home,
+      2,
+      OWNED_LIVESTOCK_PASTURE_RADIUS,
+      stats,
+    ) ?? home;
   animal.path = zigZagPath(world, animal, target, steps);
   animal.movement = 0;
+  animal.movementBlockedSinceTick = undefined;
   if (!animal.path.length) scheduleOwnedRest(world, animal);
 };
 
@@ -398,6 +436,7 @@ export function captureNearbyLivestock(world: World): LivestockCaptureStats {
       animal.fleeingUntilTick = undefined;
       animal.fleeFrom = undefined;
       animal.movement = 0;
+      animal.movementBlockedSinceTick = undefined;
       const pastureTarget =
         ownedPastureTarget(
           world,
@@ -504,6 +543,17 @@ const reservedAnimalEndpoints = (world: World, exceptId?: string): Set<string> =
       .map((candidate) => key(candidate.path[candidate.path.length - 1]!)),
   );
 
+const reservedAnimalNearPathCells = (
+  world: World,
+  exceptId?: string,
+): Set<string> =>
+  new Set(
+    animalList(world)
+      .filter((candidate) => candidate.id !== exceptId)
+      .flatMap((candidate) => candidate.path.slice(0, RESERVED_PATH_PREFIX_STEPS))
+      .map((position) => key(position)),
+  );
+
 function zigZagPath(
   world: World,
   animal: Animal,
@@ -513,6 +563,7 @@ function zigZagPath(
   const tiles = tileIndex(world.tiles);
   const occupied = occupiedAnimalCells(world, animal.id);
   const reserved = reservedAnimalEndpoints(world, animal.id);
+  const reservedNearPath = reservedAnimalNearPathCells(world, animal.id);
   const path: Hex[] = [];
   let current = { ...animal.position };
   let previous: Hex | undefined;
@@ -543,6 +594,7 @@ function zigZagPath(
       })
       .filter((candidate) => !previous || candidate.q !== previous.q || candidate.r !== previous.r)
       .filter((candidate) => !occupied.has(key(candidate)))
+      .filter((candidate) => !reservedNearPath.has(key(candidate)))
       .map((candidate) => ({ candidate, score: candidateScore(candidate) }))
       .sort(
         (a, b) =>
@@ -581,6 +633,7 @@ function planNormalMovement(world: World, animal: Animal): void {
   const steps = randomInt(world, profile.normalPathMinSteps, profile.normalPathMaxSteps);
   animal.path = zigZagPath(world, animal, weightedTarget(world, animal, profile), steps);
   animal.movement = 0;
+  animal.movementBlockedSinceTick = undefined;
   animal.nextMoveTick =
     world.round + randomInt(world, profile.normalMoveMinTicks, profile.normalMoveMaxTicks);
 }
@@ -590,6 +643,7 @@ function planFleeMovement(world: World, animal: Animal): void {
   const steps = randomInt(world, profile.fleePathMinSteps, profile.fleePathMaxSteps);
   animal.path = zigZagPath(world, animal, fleeTarget(world, animal, steps), steps);
   animal.movement = 0;
+  animal.movementBlockedSinceTick = undefined;
 }
 
 export const GROUP_FRIGHTEN_RADIUS = 10;
@@ -614,9 +668,16 @@ export function frightenAnimalGroup(
 export const animalIsFleeing = (world: World, animal: Animal): boolean =>
   (animal.fleeingUntilTick ?? -1) > world.round;
 
-function advanceAnimalMovement(world: World, animal: Animal): void {
+type AnimalMovementResult = "idle" | "moved" | "blocked" | "replan";
+
+function advanceAnimalMovement(
+  world: World,
+  animal: Animal,
+  stats: WildlifeStats,
+): AnimalMovementResult {
   const profile = ANIMAL_BEHAVIOR[animal.kind];
-  if (!animal.path.length) return;
+  if (!animal.path.length) return "idle";
+  let moved = false;
   animal.movement +=
     ((2.5 / 3) * GRID_REFINEMENT / SIMULATION_HZ) * profile.movementMultiplier;
   let moves = 0;
@@ -629,17 +690,34 @@ function advanceAnimalMovement(world: World, animal: Animal): void {
         candidate.position.q === next.q &&
         candidate.position.r === next.r,
     );
-    if (!validFollowingTile(world, animal, next) || occupied) {
+    if (!validFollowingTile(world, animal, next)) {
       animal.path = [];
       animal.movement = 0;
+      animal.movementBlockedSinceTick = undefined;
       animal.nextMoveTick = world.round;
-      return;
+      return "replan";
     }
+    if (occupied) {
+      stats.blockedSteps += 1;
+      animal.movement = Math.min(animal.movement, 1);
+      animal.movementBlockedSinceTick ??= world.round;
+      if (world.round - animal.movementBlockedSinceTick < ANIMAL_BLOCK_REPLAN_TICKS)
+        return "blocked";
+      stats.blockageReplans += 1;
+      animal.path = [];
+      animal.movement = 0;
+      animal.movementBlockedSinceTick = undefined;
+      animal.nextMoveTick = world.round;
+      return "replan";
+    }
+    animal.movementBlockedSinceTick = undefined;
     animal.path.shift();
     animal.movement = Math.max(0, animal.movement - 1);
     animal.position = { ...next };
+    moved = true;
     moves += 1;
   }
+  return moved ? "moved" : "idle";
 }
 
 const normalizedDirection = (from: Hex, to: Hex): { q: number; r: number } => {
@@ -702,7 +780,14 @@ function advanceAnimalGroups(world: World): void {
   }
 }
 
-export function advanceWildlife(world: World): void {
+export function advanceWildlife(world: World): WildlifeStats {
+  const stats: WildlifeStats = {
+    blockedSteps: 0,
+    blockageReplans: 0,
+    pastureTargetSearches: 0,
+    pastureCandidateChecks: 0,
+    pastureTargetSearchMs: 0,
+  };
   syncOwnedLivestockHomes(world);
   advanceAnimalGroups(world);
   for (const animal of animalList(world)) {
@@ -713,17 +798,20 @@ export function advanceWildlife(world: World): void {
         animal.followingBreederId = undefined;
         animal.path = [];
         animal.movement = 0;
+        animal.movementBlockedSinceTick = undefined;
         continue;
       }
       if (breeder.hungerState || breeder.sleepState) {
         animal.path = [];
         animal.movement = 0;
+        animal.movementBlockedSinceTick = undefined;
         continue;
       }
       const entry = guidedBreederEntry(world, animal);
       if (!entry) {
         animal.path = [];
         animal.movement = 0;
+        animal.movementBlockedSinceTick = undefined;
         continue;
       }
       if (!same(animal.position, entry)) {
@@ -738,11 +826,13 @@ export function advanceWildlife(world: World): void {
               (tile) => tile.terrain !== "building",
             ) ?? [];
           animal.movement = 0;
+          animal.movementBlockedSinceTick = undefined;
         }
-        advanceAnimalMovement(world, animal);
+        advanceAnimalMovement(world, animal, stats);
       } else {
         animal.path = [];
         animal.movement = 0;
+        animal.movementBlockedSinceTick = undefined;
       }
       continue;
     }
@@ -773,9 +863,10 @@ export function advanceWildlife(world: World): void {
           ) ?? home;
         animal.path = findPath(world.tiles, animal.position, pastureTarget, 1) ?? [];
         animal.movement = 0;
+        animal.movementBlockedSinceTick = undefined;
       }
 
-      advanceAnimalMovement(world, animal);
+      advanceAnimalMovement(world, animal, stats);
       if (
         !animal.path.length &&
         hexDistance(animal.position, home) <= OWNED_LIVESTOCK_PASTURE_RADIUS
@@ -793,11 +884,12 @@ export function advanceWildlife(world: World): void {
 
     if (animal.owner === "player" && isLivestock(animal)) {
       if (!animal.path.length && world.round >= animal.nextMoveTick)
-        planOwnedGrazingMovement(world, animal);
+        planOwnedGrazingMovement(world, animal, stats);
 
       const wasMoving = animal.path.length > 0;
-      advanceAnimalMovement(world, animal);
-      if (wasMoving && !animal.path.length) scheduleOwnedRest(world, animal);
+      const movementResult = advanceAnimalMovement(world, animal, stats);
+      if (wasMoving && !animal.path.length && movementResult !== "replan")
+        scheduleOwnedRest(world, animal);
       continue;
     }
 
@@ -807,6 +899,7 @@ export function advanceWildlife(world: World): void {
       animal.fleeFrom = undefined;
       animal.path = [];
       animal.movement = 0;
+      animal.movementBlockedSinceTick = undefined;
       const profile = ANIMAL_BEHAVIOR[animal.kind];
       animal.nextMoveTick =
         world.round + randomInt(world, profile.normalMoveMinTicks, profile.normalMoveMaxTicks);
@@ -816,8 +909,9 @@ export function advanceWildlife(world: World): void {
     else if (!fleeing && !animal.path.length && world.round >= animal.nextMoveTick)
       planNormalMovement(world, animal);
 
-    advanceAnimalMovement(world, animal);
+    advanceAnimalMovement(world, animal, stats);
   }
+  return stats;
 }
 
 export function removeAnimal(world: World, animalId: string): Animal | undefined {

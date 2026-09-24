@@ -377,7 +377,27 @@ export function tick(world: World): void {
     performanceNow() - captureStarted,
     captureStats.proximityChecks,
   );
-  performanceProfiler.profileFeature("wildlife", () => advanceWildlife(world));
+  const wildlifeStarted = performanceNow();
+  const wildlifeStats = advanceWildlife(world);
+  performanceProfiler.recordFeature(
+    "wildlife",
+    performanceNow() - wildlifeStarted,
+  );
+  performanceProfiler.recordFeature(
+    "wildlifeBlockedSteps",
+    0,
+    wildlifeStats.blockedSteps,
+  );
+  performanceProfiler.recordFeature(
+    "wildlifeReplans",
+    0,
+    wildlifeStats.blockageReplans,
+  );
+  performanceProfiler.recordFeature(
+    "wildlifePastureSearch",
+    wildlifeStats.pastureTargetSearchMs,
+    wildlifeStats.pastureCandidateChecks,
+  );
   const huntingStarted = performanceNow();
   const huntingStats = advanceHunting(world);
   performanceProfiler.recordFeature(
