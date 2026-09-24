@@ -203,12 +203,13 @@ export function renderPerformanceDebug(container: HTMLElement, world: World): vo
 export function installPerformanceDebugPanel(world: World): void {
   const panel = document.querySelector<HTMLElement>("#debug-panel");
   const header = panel?.querySelector<HTMLElement>(".debug-header");
-  if (!panel || !header) return;
+  const cheatControls = panel?.querySelector<HTMLElement>(".debug-cheat-controls");
+  if (!panel || !header || !cheatControls) return;
 
   header.querySelector("strong")!.textContent = "Debug / Performance";
   const container = document.createElement("section");
   container.id = "performance-debug";
-  header.insertAdjacentElement("afterend", container);
+  cheatControls.insertAdjacentElement("afterend", container);
 
   const people = document.querySelector<HTMLElement>("#people");
   if (people) {
