@@ -85,6 +85,13 @@ export type PerformanceHistoryPoint = {
   pathMs: number;
 };
 
+export type FrameAttributionMetrics = {
+  rafCallbackDelay: MetricStats;
+  phaserStep: MetricStats;
+  phaserRender: MetricStats;
+  phaserInterFrameGap: MetricStats;
+};
+
 export type PerformanceSnapshot = {
   fps1s: number;
   fps10s: number;
@@ -104,6 +111,7 @@ export type PerformanceSnapshot = {
   pathReasons: PathReasonMetric[];
   simulationAccountedMsPerSecond: number;
   simulationOtherMsPerSecond: number;
+  frameAttribution: FrameAttributionMetrics;
   history: PerformanceHistoryPoint[];
 };
 
@@ -242,6 +250,10 @@ export class PerformanceProfiler {
   private ticks: TimedSample[] = [];
   private paths: PathSample[] = [];
   private renders: TimedSample[] = [];
+  private rafCallbackDelays: TimedSample[] = [];
+  private phaserSteps: TimedSample[] = [];
+  private phaserRenders: TimedSample[] = [];
+  private phaserInterFrameGaps: TimedSample[] = [];
   private features = new Map<PerformanceFeature, FeatureSample[]>();
   private pathReasonStack: PathReason[] = [];
   private simulationRunning = false;
@@ -258,6 +270,10 @@ export class PerformanceProfiler {
     this.ticks = this.ticks.filter((sample) => sample.at >= cutoff);
     this.paths = this.paths.filter((sample) => sample.at >= cutoff);
     this.renders = this.renders.filter((sample) => sample.at >= cutoff);
+    this.rafCallbackDelays = this.rafCallbackDelays.filter((sample) => sample.at >= cutoff);
+    this.phaserSteps = this.phaserSteps.filter((sample) => sample.at >= cutoff);
+    this.phaserRenders = this.phaserRenders.filter((sample) => sample.at >= cutoff);
+    this.phaserInterFrameGaps = this.phaserInterFrameGaps.filter((sample) => sample.at >= cutoff);
     for (const [key, samples] of this.features)
       this.features.set(key, samples.filter((sample) => sample.at >= cutoff));
   }
@@ -268,13 +284,27 @@ export class PerformanceProfiler {
     this.trim(at);
   }
 
-  recordAnimationFrame(timestamp: number): void {
-    if (!Number.isFinite(timestamp)) return;
+  recordAnimationFrame(timestamp: number, callbackAt = now()): void {
+    if (!Number.isFinite(timestamp) || !Number.isFinite(callbackAt)) return;
     if (this.lastAnimationFrameAt !== undefined) {
       const duration = timestamp - this.lastAnimationFrameAt;
       if (duration >= 0) this.record(this.frames, duration, timestamp);
     }
+    const callbackDelay = callbackAt - timestamp;
+    if (callbackDelay >= 0) this.record(this.rafCallbackDelays, callbackDelay, callbackAt);
     this.lastAnimationFrameAt = timestamp;
+  }
+
+  recordPhaserStep(duration: number, at = now()): void {
+    this.record(this.phaserSteps, duration, at);
+  }
+
+  recordPhaserRender(duration: number, at = now()): void {
+    this.record(this.phaserRenders, duration, at);
+  }
+
+  recordPhaserInterFrameGap(duration: number, at = now()): void {
+    this.record(this.phaserInterFrameGaps, duration, at);
   }
 
   recordFrame(duration: number, at = now()): void {
@@ -344,6 +374,10 @@ export class PerformanceProfiler {
     const recentTicks = recent(this.ticks, current);
     const recentPaths = recent(this.paths, current);
     const recentRenders = recent(this.renders, current);
+    const recentRafCallbackDelays = recent(this.rafCallbackDelays, current);
+    const recentPhaserSteps = recent(this.phaserSteps, current);
+    const recentPhaserRenders = recent(this.phaserRenders, current);
+    const recentPhaserInterFrameGaps = recent(this.phaserInterFrameGaps, current);
     const oneSecondFrames = recent(this.frames, current, 1000);
     const tickCount = recentTicks.length;
 
@@ -423,6 +457,12 @@ export class PerformanceProfiler {
       pathReasons,
       simulationAccountedMsPerSecond,
       simulationOtherMsPerSecond,
+      frameAttribution: {
+        rafCallbackDelay: stats(recentRafCallbackDelays),
+        phaserStep: stats(recentPhaserSteps),
+        phaserRender: stats(recentPhaserRenders),
+        phaserInterFrameGap: stats(recentPhaserInterFrameGaps),
+      },
       history,
     };
   }
