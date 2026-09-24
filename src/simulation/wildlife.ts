@@ -304,6 +304,7 @@ const syncOwnedLivestockHomes = (world: World): void => {
         animal.returningToHq = true;
         animal.path = [];
         animal.movement = 0;
+        animal.movementBlockedSinceTick = undefined;
         animal.nextMoveTick = world.round;
       }
     }
@@ -797,17 +798,20 @@ export function advanceWildlife(world: World): WildlifeStats {
         animal.followingBreederId = undefined;
         animal.path = [];
         animal.movement = 0;
+        animal.movementBlockedSinceTick = undefined;
         continue;
       }
       if (breeder.hungerState || breeder.sleepState) {
         animal.path = [];
         animal.movement = 0;
+        animal.movementBlockedSinceTick = undefined;
         continue;
       }
       const entry = guidedBreederEntry(world, animal);
       if (!entry) {
         animal.path = [];
         animal.movement = 0;
+        animal.movementBlockedSinceTick = undefined;
         continue;
       }
       if (!same(animal.position, entry)) {
@@ -828,6 +832,7 @@ export function advanceWildlife(world: World): WildlifeStats {
       } else {
         animal.path = [];
         animal.movement = 0;
+        animal.movementBlockedSinceTick = undefined;
       }
       continue;
     }
@@ -894,6 +899,7 @@ export function advanceWildlife(world: World): WildlifeStats {
       animal.fleeFrom = undefined;
       animal.path = [];
       animal.movement = 0;
+      animal.movementBlockedSinceTick = undefined;
       const profile = ANIMAL_BEHAVIOR[animal.kind];
       animal.nextMoveTick =
         world.round + randomInt(world, profile.normalMoveMinTicks, profile.normalMoveMaxTicks);
