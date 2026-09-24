@@ -9,6 +9,7 @@ import {
 } from "../src/simulation/fishSchools";
 
 test("fish schools start finite and show the last three fish exactly", () => {
+  assert.equal(FISH_REGROW_INTERVAL_TICKS, 60 * 60);
   const world = createWorld(1);
   assert.ok(world.fishSchools?.length);
   assert.ok(world.fishSchools!.every((school) => school.fish === school.capacity));
