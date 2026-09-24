@@ -24,6 +24,19 @@ export type PerformanceRecordingPathReason = {
   callsPerSecond: number;
 };
 
+export type PerformanceRecordingTiming = {
+  average: number;
+  p95: number;
+  max: number;
+};
+
+export type PerformanceRecordingFrameAttribution = {
+  rafCallbackDelay: PerformanceRecordingTiming;
+  phaserStep: PerformanceRecordingTiming;
+  phaserRender: PerformanceRecordingTiming;
+  phaserInterFrameGap: PerformanceRecordingTiming;
+};
+
 export type PerformanceRecordingWorld = {
   tiles: number;
   people: number;
@@ -58,6 +71,7 @@ export type PerformanceRecordingSample = {
   simulationSpeed: number;
   simulationBacklogMs: number;
   simulationOtherMsPerSecond: number;
+  frameAttribution: PerformanceRecordingFrameAttribution;
   features: Record<PerformanceFeature, PerformanceRecordingFeature>;
   pathReasons: Record<PathReason, PerformanceRecordingPathReason>;
   world: PerformanceRecordingWorld;
@@ -79,7 +93,7 @@ type PathSummary = {
 
 export type PerformanceRecordingExport = {
   schema: "civilizations-performance-recording";
-  version: 1;
+  version: 2;
   startedAt: string;
   endedAt: string;
   durationSeconds: number;
@@ -93,6 +107,12 @@ export type PerformanceRecordingExport = {
     fps: { average: number; minimum: number };
     frameMs: { average: number; maximum: number };
     tickMs: { average: number; maximum: number };
+    frameAttribution: {
+      rafCallbackDelayMs: { average: number; maximum: number };
+      phaserStepMs: { average: number; maximum: number };
+      phaserRenderMs: { average: number; maximum: number };
+      phaserInterFrameGapMs: { average: number; maximum: number };
+    };
     simulationSpeeds: number[];
     topFeatures: FeatureSummary[];
     topPathReasons: PathSummary[];
@@ -160,6 +180,28 @@ const sampleFromSnapshot = (
   simulationSpeed: snapshot.simulationSpeed,
   simulationBacklogMs: snapshot.simulationBacklogMs,
   simulationOtherMsPerSecond: snapshot.simulationOtherMsPerSecond,
+  frameAttribution: {
+    rafCallbackDelay: {
+      average: snapshot.frameAttribution.rafCallbackDelay.average,
+      p95: snapshot.frameAttribution.rafCallbackDelay.p95,
+      max: snapshot.frameAttribution.rafCallbackDelay.max,
+    },
+    phaserStep: {
+      average: snapshot.frameAttribution.phaserStep.average,
+      p95: snapshot.frameAttribution.phaserStep.p95,
+      max: snapshot.frameAttribution.phaserStep.max,
+    },
+    phaserRender: {
+      average: snapshot.frameAttribution.phaserRender.average,
+      p95: snapshot.frameAttribution.phaserRender.p95,
+      max: snapshot.frameAttribution.phaserRender.max,
+    },
+    phaserInterFrameGap: {
+      average: snapshot.frameAttribution.phaserInterFrameGap.average,
+      p95: snapshot.frameAttribution.phaserInterFrameGap.p95,
+      max: snapshot.frameAttribution.phaserInterFrameGap.max,
+    },
+  },
   features: Object.fromEntries(snapshot.features.map((feature) => [feature.key, {
     msPerSecond: feature.msPerSecond,
     msPerTick: feature.msPerTick,
@@ -224,6 +266,17 @@ const summarizeFeatures = (samples: PerformanceRecordingSample[]): FeatureSummar
     .sort((a, b) => b.averageMsPerSecond - a.averageMsPerSecond);
 };
 
+const summarizeTiming = (
+  samples: PerformanceRecordingSample[],
+  pick: (sample: PerformanceRecordingSample) => PerformanceRecordingTiming,
+): { average: number; maximum: number } => {
+  const values = samples.map(pick);
+  return {
+    average: average(values.map((value) => value.average)),
+    maximum: Math.max(0, ...values.map((value) => value.max)),
+  };
+};
+
 const summarizePaths = (samples: PerformanceRecordingSample[]): PathSummary[] => {
   const first = samples[0];
   if (!first) return [];
@@ -251,7 +304,7 @@ export function finishPerformanceRecording(): PerformanceRecordingExport | undef
 
   return {
     schema: "civilizations-performance-recording",
-    version: 1,
+    version: 2,
     startedAt: state.startedAtIso,
     endedAt: endedAt.toISOString(),
     durationSeconds: Math.max(0, (performance.now() - state.startedAtMs) / 1000),
@@ -277,6 +330,12 @@ export function finishPerformanceRecording(): PerformanceRecordingExport | undef
       tickMs: {
         average: average(ticks),
         maximum: ticks.length ? Math.max(...ticks) : 0,
+      },
+      frameAttribution: {
+        rafCallbackDelayMs: summarizeTiming(samples, (sample) => sample.frameAttribution.rafCallbackDelay),
+        phaserStepMs: summarizeTiming(samples, (sample) => sample.frameAttribution.phaserStep),
+        phaserRenderMs: summarizeTiming(samples, (sample) => sample.frameAttribution.phaserRender),
+        phaserInterFrameGapMs: summarizeTiming(samples, (sample) => sample.frameAttribution.phaserInterFrameGap),
       },
       simulationSpeeds: [...new Set(samples.map((sample) => sample.simulationSpeed))].sort((a, b) => a - b),
       topFeatures: summarizeFeatures(samples),
