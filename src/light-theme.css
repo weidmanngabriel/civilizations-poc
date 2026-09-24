@@ -1,0 +1,344 @@
+:root {
+  --ui-surface: rgba(248, 249, 242, 0.98);
+  --ui-surface-strong: rgba(252, 252, 247, 0.99);
+  --ui-surface-muted: #f1f4ea;
+  --ui-surface-subtle: #f7f8f2;
+  --ui-border: rgba(201, 207, 192, 0.95);
+  --ui-border-soft: #daddd0;
+  --ui-text: #243b2d;
+  --ui-text-muted: #66725f;
+  --ui-accent: #284b37;
+  --ui-accent-soft: rgba(40, 75, 55, 0.1);
+  --ui-shadow: 0 12px 32px rgba(24, 43, 31, 0.22);
+}
+
+/* The application UI is light by default. Map dimmers/backdrops stay dark only
+   to separate modal or focused interaction layers from the game world. */
+.build-menu-panel,
+.building-browser-panel,
+.person-browser-panel,
+.person-inspector,
+.person-context-picker,
+.person-command-overlay,
+.pwa-update-banner {
+  background: var(--ui-surface);
+  border-color: var(--ui-border);
+  box-shadow: var(--ui-shadow);
+  color: var(--ui-text);
+}
+
+.build-menu-header {
+  background: var(--ui-surface-strong);
+  border-bottom-color: var(--ui-border-soft);
+}
+
+.build-menu-item {
+  border-color: var(--ui-border-soft);
+  background: var(--ui-surface-subtle);
+}
+
+.build-menu-place:hover:not(:disabled),
+.person-fact-link:hover:not(:disabled) {
+  background: var(--ui-accent-soft);
+}
+
+.build-menu-item.locked .build-menu-tech-status {
+  color: #8b6c21;
+}
+
+.build-menu-tech-status {
+  color: #4f7a45;
+}
+
+.game-menu-runtime,
+.person-equipment,
+.person-details,
+.person-facts {
+  border-color: var(--ui-border-soft);
+}
+
+.building-alert-badge,
+.person-alert-badge {
+  background: var(--ui-surface-strong);
+  border-color: var(--ui-border);
+  box-shadow: 0 2px 8px rgba(24, 43, 31, 0.18);
+  color: var(--ui-text);
+}
+
+.building-list-icon,
+.person-list-avatar {
+  background: #e8ecdf;
+}
+
+.building-alert-filters button[aria-pressed="true"],
+.person-alert-filters button[aria-pressed="true"],
+.person-filter-row button[aria-pressed="true"] {
+  border-color: #b69a72;
+  background: #eee6d5;
+}
+
+.building-list-alert--critical,
+.person-list-alert--critical {
+  color: #9f3f37;
+}
+
+.building-list-alert--warning,
+.person-list-alert--warning {
+  color: #876819;
+}
+
+.building-list-alert--info,
+.person-list-alert--info {
+  color: #3e6f91;
+}
+
+.person-search-label input {
+  border-color: var(--ui-border);
+  background: #fff;
+  color: var(--ui-text);
+}
+
+.person-search-label input:focus {
+  border-color: #b69a72;
+}
+
+.person-meter {
+  background: #e1e5d8;
+}
+
+.person-facts > div {
+  border-bottom-color: #e4e7dc;
+}
+
+.person-need-row,
+.person-facts > div {
+  background: var(--ui-surface-subtle);
+}
+
+.person-picker-group {
+  color: var(--ui-text);
+}
+
+.person-staff-picker .person-list-item {
+  border-color: #ddd3bc;
+}
+
+.person-equipment-slot,
+.person-list-item,
+.building-list-item {
+  background: #f9faf4;
+  border-color: var(--ui-border-soft);
+  color: var(--ui-text);
+}
+
+.person-context-placeholder {
+  border-color: rgba(201, 207, 192, 0.72);
+  background: rgba(248, 249, 242, 0.55);
+}
+
+.person-context-action {
+  background: var(--ui-surface-strong);
+  border-color: var(--ui-border);
+  box-shadow: 0 6px 18px rgba(24, 43, 31, 0.2);
+  color: var(--ui-text);
+}
+
+.person-context-professions button[aria-pressed="true"],
+.person-context-equipment button[aria-pressed="true"] {
+  border-color: #b69a72;
+  background: #eee6d5;
+}
+
+.person-command-overlay {
+  border-color: #cdb98d;
+}
+
+.wiki-recipe-row {
+  border-color: var(--ui-border-soft);
+  background: var(--ui-surface-subtle);
+}
+
+/* Technology tree keeps category colors but uses light surfaces and dark text. */
+.technology-tree-overlay {
+  background: #f4f6ee;
+  color: var(--ui-text);
+}
+
+.technology-tree-header {
+  background: var(--ui-surface-strong);
+  border-bottom-color: var(--ui-border);
+}
+
+.technology-tree-header small {
+  color: #74643a;
+}
+
+.technology-tree-actions button {
+  border-color: var(--ui-border);
+  background: #f9faf4;
+  color: var(--ui-text);
+}
+
+.technology-tree-viewport {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(61, 82, 66, 0.12) 1px, transparent 1.2px) 0 0 / 24px 24px,
+    #eef1e8;
+}
+
+.technology-tree-viewport:focus-visible {
+  outline-color: #9c7a2d;
+}
+
+.tech-tree-edge {
+  stroke: rgba(139, 108, 33, 0.66);
+}
+
+.tech-tree-edge.dashed {
+  stroke: rgba(113, 91, 145, 0.56);
+}
+
+.technology-tree-lines marker path {
+  fill: #8b6c21;
+}
+
+.tech-tree-node {
+  border-color: #a7aea0;
+  background: #fbfcf8;
+  box-shadow: 0 5px 16px rgba(24, 43, 31, 0.14);
+  color: var(--ui-text);
+}
+
+.tech-tree-node span {
+  color: rgba(36, 59, 45, 0.72);
+}
+
+.tech-tree-node.base {
+  border-color: #92998e;
+  background: #f0f2ec;
+}
+
+.tech-tree-node.profession {
+  border-color: #b7993e;
+  background: #f7f0d9;
+}
+
+.tech-tree-node.building {
+  border-color: #5f91b5;
+  background: #e9f1f6;
+}
+
+.tech-tree-node.resource {
+  border-color: #638a59;
+  background: #eaf2e6;
+}
+
+.tech-tree-node.special {
+  border-color: #826ca1;
+  background: #f0ebf5;
+}
+
+.tech-tree-node.unlocked {
+  box-shadow: 0 5px 18px rgba(24, 43, 31, 0.15), 0 0 14px rgba(130, 191, 112, 0.14);
+}
+
+.tech-tree-node.locked {
+  opacity: 0.72;
+  filter: grayscale(0.65);
+}
+
+.tech-tree-node.planned {
+  opacity: 0.42;
+  filter: grayscale(0.8);
+}
+
+.tech-tree-node .tech-tree-status,
+.tech-tree-node.locked .tech-tree-status {
+  color: #74643a;
+}
+
+.tech-tree-node.unlocked .tech-tree-status {
+  color: #4d7a42;
+}
+
+.tech-tree-node.progress .tech-tree-status {
+  color: #8b6c21;
+}
+
+.tech-tree-node.planned .tech-tree-status {
+  color: rgba(36, 59, 45, 0.52);
+}
+
+.technology-tree-legend {
+  border-color: var(--ui-border);
+  background: rgba(252, 252, 247, 0.96);
+  box-shadow: 0 5px 18px rgba(24, 43, 31, 0.16);
+}
+
+.technology-tree-legend-items {
+  color: rgba(36, 59, 45, 0.84);
+}
+
+.technology-tree-legend-items i {
+  border-color: #a7aea0;
+  background: #fbfcf8;
+}
+
+.technology-tree-legend-items i.base {
+  border-color: #92998e;
+  background: #f0f2ec;
+}
+
+.technology-tree-legend-items i.profession {
+  border-color: #b7993e;
+  background: #f7f0d9;
+}
+
+.technology-tree-legend-items i.building {
+  border-color: #5f91b5;
+  background: #e9f1f6;
+}
+
+.technology-tree-legend-items i.resource {
+  border-color: #638a59;
+  background: #eaf2e6;
+}
+
+.technology-tree-legend-items i.special {
+  border-color: #826ca1;
+  background: #f0ebf5;
+}
+
+.technology-tree-legend-items i.state-unlocked {
+  border-color: #82bf70;
+  background: #e4f0df;
+}
+
+.technology-tree-legend-items i.state-locked {
+  border-color: #a39b87;
+  background: #efeee8;
+}
+
+.technology-tree-legend-items i.state-planned {
+  border-color: #aaa;
+  background: #f1f1ef;
+}
+
+.tech-tree-wiki-link:hover:not(:disabled) {
+  color: #365f43;
+}
+
+/* PWA update prompt follows the same light component language. */
+.pwa-update-banner {
+  border-color: var(--ui-border);
+  font-weight: 600;
+}
+
+.pwa-update-banner button {
+  border: 1px solid #b69a72;
+  background: #eee6d5;
+  color: var(--ui-text);
+}
+
+.pwa-update-banner button:hover:not(:disabled) {
+  background: #e4dcc8;
+}
