@@ -28,6 +28,24 @@ test("the first animation frame only establishes the timestamp baseline", () => 
   assert.equal(snapshot.frame.count, 0);
 });
 
+test("frame attribution separates RAF delay, Phaser work and inter-frame gaps", () => {
+  const profiler = new PerformanceProfiler();
+
+  profiler.recordAnimationFrame(1_000, 1_002);
+  profiler.recordAnimationFrame(1_016, 1_019);
+  profiler.recordPhaserStep(4, 1_019);
+  profiler.recordPhaserRender(2.5, 1_019);
+  profiler.recordPhaserInterFrameGap(12, 1_019);
+
+  const snapshot = profiler.snapshot(1_019);
+
+  assert.equal(snapshot.frameAttribution.rafCallbackDelay.count, 2);
+  assert.equal(snapshot.frameAttribution.rafCallbackDelay.average, 2.5);
+  assert.equal(snapshot.frameAttribution.phaserStep.average, 4);
+  assert.equal(snapshot.frameAttribution.phaserRender.average, 2.5);
+  assert.equal(snapshot.frameAttribution.phaserInterFrameGap.average, 12);
+});
+
 test("feature samples expose cost, object churn, per-tick cost and unaccounted simulation time", () => {
   const profiler = new PerformanceProfiler();
 
