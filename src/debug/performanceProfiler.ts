@@ -215,9 +215,6 @@ const SIMULATION_FEATURES = new Set<PerformanceFeature>([
   "technologyUnlocks",
   "workAreaSync",
   "wildlife",
-  "wildlifeBlockedSteps",
-  "wildlifeReplans",
-  "wildlifePastureSearch",
   "hunting",
   "livestockCaptureProximity",
 ]);
