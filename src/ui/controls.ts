@@ -118,7 +118,7 @@ const escapeHtml = (value: string): string =>
 
 export function mountControls(w: World, renderMap: () => void): void {
   const app = document.querySelector<HTMLDivElement>("#app")!;
-  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Farmen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span id="build-placement-copy"><b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div id="upgrade-preview-overlay" class="merchant-target-overlay" hidden><div><small>AUSBAUPRÜFUNG</small><strong>Blockaden für den Ausbau</strong><span id="upgrade-preview-summary"></span></div><button id="upgrade-preview-close">Zurück</button></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div><label class="custom-speed"><span>Frei</span><input id="custom-sim-speed" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" value="1.0" aria-label="Benutzerdefiniertes Simulationstempo"></label></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div class="debug-cheat-controls"><strong>Cheats</strong><div class="debug-cheat-buttons"><button type="button" data-debug-cheat="technologies" aria-pressed="false">Technologien: AUS</button><button type="button" data-debug-cheat="materials" aria-pressed="false">Materialien: AUS</button></div><small>Nur für die aktuelle Sitzung; bestehende Baustellen bleiben unverändert.</small></div><div id="people"></div></section></main>`;
+  app.innerHTML = `<main><div id="game" role="img" aria-label="Fullscreen-Hex-Karte mit Hauptquartier, Waldflächen, Farmen, Produktionsgebäuden und Lagern."></div><section class="overlay top-overlay"><div id="build-version" class="brand-chip">DAS ACHTE WELTWUNDER / POC 01</div><div id="metrics"></div></section><section class="overlay bottom-overlay"><aside id="selection-panel" class="selection-panel" hidden aria-live="polite"></aside><div id="merchant-target-overlay" class="merchant-target-overlay" hidden><div><small>HANDELSROUTE</small><strong>Ziellager wählen</strong><span>Helle Lager sind gültige Ziele. Verschieben und Zoomen ist weiterhin möglich.</span></div><button id="merchant-target-cancel" class="danger">Abbrechen</button></div><div id="build-placement-overlay" class="merchant-target-overlay" hidden><div><small>BAUMODUS</small><strong id="build-placement-title">Gebäude platzieren</strong><span id="build-placement-copy"><b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.</span></div><div class="stepper"><button id="build-placement-confirm">Bauen</button><button id="build-placement-cancel" class="danger">Abbrechen</button></div></div><div id="upgrade-preview-overlay" class="merchant-target-overlay" hidden><div><small>AUSBAUPRÜFUNG</small><strong>Blockaden für den Ausbau</strong><span id="upgrade-preview-summary"></span></div><button id="upgrade-preview-close">Zurück</button></div><div class="bottom-bar"><div class="round-controls"><button id="autoplay" aria-pressed="true">Pausieren</button><div class="speed-control" role="group" aria-label="Simulationsgeschwindigkeit"><span>Tempo</span><div class="speed-buttons"><button type="button" data-sim-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-sim-speed="1" aria-pressed="true">1×</button><button type="button" data-sim-speed="2" aria-pressed="false">2×</button><button type="button" data-sim-speed="3" aria-pressed="false">3×</button></div><label class="custom-speed"><span>Frei</span><input id="custom-sim-speed" type="number" min="1" max="9" step="1" inputmode="numeric" value="1" placeholder="1–9" aria-label="Benutzerdefiniertes Simulationstempo von 1 bis 9"></label></div></div><button id="debug-toggle" aria-pressed="false">Debug</button></div></section><section id="debug-panel" class="debug-panel" hidden><div class="debug-header"><strong>Personen und Transportaufträge</strong><button id="debug-close" aria-label="Debug schließen">×</button></div><div class="debug-cheat-controls"><strong>Cheats</strong><div class="debug-cheat-buttons"><button type="button" data-debug-cheat="technologies" aria-pressed="false">Technologien: AUS</button><button type="button" data-debug-cheat="materials" aria-pressed="false">Materialien: AUS</button></div><small>Nur für die aktuelle Sitzung; bestehende Baustellen bleiben unverändert.</small></div><div id="people"></div></section></main>`;
 
   let autoplayFrame: number | undefined;
   let lastAutoplayFrame = 0;
@@ -667,7 +667,10 @@ export function mountControls(w: World, renderMap: () => void): void {
   const setSimulationSpeed = (speed: SimulationSpeed) => {
     simulationSpeed = normalizeSimulationSpeed(speed);
     w.simulationSpeed = simulationSpeed;
-    customSpeedInput.value = simulationSpeed.toFixed(1);
+    customSpeedInput.value =
+      Number.isInteger(simulationSpeed) && simulationSpeed >= 1 && simulationSpeed <= 9
+        ? String(simulationSpeed)
+        : "";
     performanceProfiler.setSimulationState(isRunning(), simulationSpeed, simulationBudget);
     for (const button of speedButtons)
       button.setAttribute(
@@ -891,12 +894,23 @@ export function mountControls(w: World, renderMap: () => void): void {
       setSimulationSpeed(Number(button.dataset.simSpeed) as SimulationSpeed);
     });
   }
+  const restoreCustomSpeedInput = () => {
+    customSpeedInput.value =
+      Number.isInteger(simulationSpeed) && simulationSpeed >= 1 && simulationSpeed <= 9
+        ? String(simulationSpeed)
+        : "";
+  };
+  customSpeedInput.addEventListener("input", () => {
+    if (customSpeedInput.value === "") return;
+    if (!/^[1-9]$/.test(customSpeedInput.value)) customSpeedInput.value = "";
+  });
   customSpeedInput.addEventListener("change", () => {
     const parsed = Number(customSpeedInput.value);
-    if (Number.isFinite(parsed)) setSimulationSpeed(parsed);
-    else customSpeedInput.value = simulationSpeed.toFixed(1);
+    if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 9) setSimulationSpeed(parsed);
+    else restoreCustomSpeedInput();
   });
   customSpeedInput.addEventListener("keydown", (event) => {
+    if ([".", ",", "e", "E", "+", "-"].includes(event.key)) event.preventDefault();
     if (event.key === "Enter") customSpeedInput.blur();
   });
   debugToggle.addEventListener("click", () => setDebugOpen(debugPanel.hidden));

@@ -9,6 +9,7 @@ import {
 } from "../src/simulation/fishSchools";
 
 test("fish schools start finite and show the last three fish exactly", () => {
+  assert.equal(FISH_REGROW_INTERVAL_TICKS, 60 * 60);
   const world = createWorld(1);
   assert.ok(world.fishSchools?.length);
   assert.ok(world.fishSchools!.every((school) => school.fish === school.capacity));
@@ -46,7 +47,7 @@ test("a successful fishing cycle consumes exactly one fish", () => {
   assert.equal(fisher.outdoorCarry, "fish");
 });
 
-test("an empty fish school recovers by one fish every thirty simulated seconds", () => {
+test("an empty fish school recovers by one fish every sixty simulated seconds", () => {
   const world = createWorld(1);
   const school = world.fishSchools![0]!;
   school.fish = 0;

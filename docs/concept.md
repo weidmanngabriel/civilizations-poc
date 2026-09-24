@@ -138,9 +138,9 @@ Produktions-Träger behalten ihre bedarfsgetriebene Beschaffung. Arbeitsflaggen 
 
 Fische sind nicht mehr unerschöpflich. Jede zusammenhängende Wasserregion besitzt einen Fischschwarm mit **15 Fischen**. Ein erfolgreicher Angelversuch entnimmt genau einen Fisch aus diesem Bestand. Ist der Bestand bei 0, bleibt der Schwarm bestehen, liefert aber vorübergehend keinen Fang.
 
-Solange der Bestand unter 15 liegt, wächst er alle **30 simulierten Sekunden um genau einen Fisch**, auch von 0 aus. Die Position des sichtbaren Schwarms innerhalb seiner Wasserregion ist rein grafisch: Ein Fischer kann den Schwarm von jeder gültigen Angelstelle derselben Region befischen, unabhängig davon, in welcher Ecke der Schwarm gerade angezeigt wird.
+Solange der Bestand unter 15 liegt, wächst er alle **60 simulierten Sekunden um genau einen Fisch**, auch von 0 aus. Die Position des sichtbaren Schwarms innerhalb seiner Wasserregion ist rein grafisch: Ein Fischer kann den Schwarm von jeder gültigen Angelstelle derselben Region befischen, unabhängig davon, in welcher Ecke der Schwarm gerade angezeigt wird.
 
-Große Bestände werden als kompakter Schwarm dargestellt. Für die letzten drei Fische ist die Darstellung exakt: Bei 3, 2 beziehungsweise 1 verbleibenden Fischen sind genau 3, 2 beziehungsweise 1 Fische sichtbar; bei 0 ist kein Fisch sichtbar.
+Große Bestände werden als kompakter Schwarm dargestellt. Die sichtbaren Fische behalten beim Zoomen eine konstante Bildschirmgröße und sind gegenüber der bisherigen Darstellung etwas größer. Für die letzten drei Fische ist die Darstellung exakt: Bei 3, 2 beziehungsweise 1 verbleibenden Fischen sind genau 3, 2 beziehungsweise 1 Fische sichtbar; bei 0 ist kein Fisch sichtbar.
 
 ## Wegweiser
 
@@ -162,7 +162,7 @@ Für **Hunger und Schlaf** besitzt jeder normale Bewohner zusätzlich eine lokal
 
 Fischer sind Freiluftarbeiter ohne eigenes Gebäude. Ihre persönliche Arbeitsflagge begrenzt das Angelgebiet. Innerhalb dieses Bereichs suchen sie eine erreichbare, begehbare Zelle direkt am Wasser.
 
-Sobald ein Fischer seinen Angelplatz erreicht, beginnt ein **fünf Sekunden langer Fangzyklus**: Die Angel wird ungefähr eine halbe Sekunde ausgeworfen, liegt rund vier Sekunden im Wasser und wird ungefähr eine halbe Sekunde eingeholt. Erst beim Einholen wird der Fang ausgewertet. Danach sucht der Fischer möglichst einen anderen Angelplatz innerhalb seiner Flagge. Wasser besitzt vorerst keinen erschöpfbaren Fischbestand.
+Sobald ein Fischer seinen Angelplatz erreicht, beginnt ein **fünf Sekunden langer Fangzyklus**: Die Angel wird ungefähr eine halbe Sekunde ausgeworfen, liegt rund vier Sekunden im Wasser und wird ungefähr eine halbe Sekunde eingeholt. Erst beim Einholen wird der Fang ausgewertet. Danach sucht der Fischer möglichst einen anderen Angelplatz innerhalb seiner Flagge. Der Fang greift auf den endlichen Fischbestand der zugehörigen Wasserregion zu.
 
 Die Fangchance beträgt bei null Berufserfahrung **30 %** und steigt linear bis auf **80 %** bei voller Fischererfahrung. **Nur ein erfolgreicher Fang** zählt als abgeschlossene Berufsaktion und erhöht die Fischer-Erfahrung um einen Punkt; ein erfolgloser Fangversuch gibt keine Erfahrung.
 
@@ -231,7 +231,7 @@ Beruf und Arbeitsplatz sind getrennte Entscheidungen. Ein Bewohner kann daher ei
 
 Gebäude weisen Personal **nicht mehr über Plus/Minus-Regler automatisch zu**. Stattdessen zeigen fertige Gebäude ihre vorhandenen Personalplätze je Rolle. Besetzte Plätze zeigen Name und aktuelle Tätigkeit als anklickbaren Personeneintrag; Tippen oder Klicken wählt diese konkrete Person und zentriert die Kamera auf sie. Ein freier Platz öffnet über **Geeignete Personen** die Personenübersicht in einem Zuweisungsmodus. Solange keine zusätzlichen Eignungsregeln existieren, stehen dort alle anderen Bewohner zur Auswahl. Die Liste priorisiert zuerst Bewohner mit bereits passendem Beruf aber ohne Arbeitsplatz, danach freie Bewohner ohne Beruf und zuletzt alle übrigen geeigneten Bewohner; innerhalb jeder Gruppe wird alphabetisch nach Name sortiert. Wird eine bereits beschäftigte Person gewählt, muss der Wechsel bestätigt werden.
 
-Auswahllisten werden nach sichtbarer Bezeichnung alphabetisch sortiert. Größere Auswahloberflächen wie **Beruf**, **Ausrüstung** und **Geeignete Personen** öffnen sich als großzügige, nahezu bildschirmfüllende Dialoge unabhängig von der Größe des zuvor geöffneten Personen- oder Gebäude-Detailfensters. Auf Touch nutzen sie fast die gesamte sichere Bildschirmfläche; auf Desktop bleibt ein kleiner Rand zur Karte sichtbar. **Wegweiser** ist kein Baumenü-Eintrag mehr, sondern eine kontextsensitive Aktion des Berufs **Kundschafter**. **Pause/Fortsetzen**, Simulationsgeschwindigkeit und **Debug** liegen im Spielmenü statt dauerhaft über der Karte. Zusätzlich zu den festen Tempostufen kann ein freier Multiplikator von **0,1× bis 10,0×** mit höchstens einer Nachkommastelle eingestellt werden. Die zuletzt gewählte Simulationsgeschwindigkeit gehört zum Spielstand und wird beim Laden wiederhergestellt. Das Personen-Kontextmenü schließt sich nach einer erfolgreich gestarteten Aktion sowie immer dann, wenn ein anderes Hauptmenü geöffnet wird.
+Auswahllisten werden nach sichtbarer Bezeichnung alphabetisch sortiert. Größere Auswahloberflächen wie **Beruf**, **Ausrüstung** und **Geeignete Personen** öffnen sich als großzügige, nahezu bildschirmfüllende Dialoge unabhängig von der Größe des zuvor geöffneten Personen- oder Gebäude-Detailfensters. Auf Touch nutzen sie fast die gesamte sichere Bildschirmfläche; auf Desktop bleibt ein kleiner Rand zur Karte sichtbar. **Wegweiser** ist kein Baumenü-Eintrag mehr, sondern eine kontextsensitive Aktion des Berufs **Kundschafter**. **Pause/Fortsetzen**, Simulationsgeschwindigkeit und **Debug** liegen im Spielmenü statt dauerhaft über der Karte. Zusätzlich zu den festen Tempostufen kann im freien Eingabefeld ausschließlich eine **Ganzzahl von 1× bis 9×** eingestellt werden; die feste 0,5×-Stufe bleibt davon unabhängig verfügbar. Die zuletzt gewählte Simulationsgeschwindigkeit gehört zum Spielstand und wird beim Laden wiederhergestellt. Das Personen-Kontextmenü schließt sich nach einer erfolgreich gestarteten Aktion sowie immer dann, wenn ein anderes Hauptmenü geöffnet wird. Während eines kartenbezogenen Aktionsmodus – etwa Bewegen, Arbeitsplatz-/Wohnortwahl, Arbeitsbereich versetzen, Händlerziel, Ausbauprüfung oder Bauplatzierung – wird die übrige UI ausgeblendet. Sichtbar bleiben nur Karte und die zum aktiven Modus gehörenden Aktionsbuttons wie Abbrechen, Bauen oder Zurück.
 
 ## Jäger und Kleinwild
 
@@ -361,3 +361,8 @@ Das Handbuch pausiert die Simulation, solange es geöffnet ist, und stellt beim 
 ## Debug-Cheats
 
 Das Debug-Menü besitzt zwei voneinander unabhängige, nur für die aktuelle Sitzung geltende Cheat-Schalter. **Technologien** behandelt alle implementierten Gebäudetechnologien als freigeschaltet, ohne den dauerhaften Freischaltzustand des Spielstands zu verändern. **Materialien** sorgt dafür, dass neu platzierte Gebäude, neu gestartete Gebäudeausbauten und neu angelegte Palisaden ihre vollständigen Baustoffe sofort als angeliefert erhalten; die normale Bauzeit bleibt bestehen. Bereits bestehende Baustellen werden beim Einschalten nicht nachträglich befüllt. Die Cheat-Schalter werden nicht im Savegame gespeichert.
+
+
+### Menübedienung
+
+In scrollenden Menüs bleibt die jeweilige Kopfzeile mit dem Schließen-Button beim Scrollen sichtbar. Im Debug-Menü stehen die beiden Cheat-Schalter direkt unter der festen Kopfzeile und damit vor Performance-, Aufnahme- und Personeninformationen.

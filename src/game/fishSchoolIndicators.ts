@@ -41,6 +41,11 @@ const schoolPath = (school: FishSchool): Hex[] => {
 
 const smooth = (value: number): number => value * value * (3 - 2 * value);
 
+const FISH_BODY_WIDTH_SCREEN_PX = 6;
+const FISH_BODY_HEIGHT_SCREEN_PX = 3.2;
+const FISH_TAIL_SCREEN_PX = 2.5;
+const FISH_DRIFT_SCREEN_PX = 1.5;
+
 export const installFishSchoolIndicators = (scene: Phaser.Scene, world: World): void => {
   const sceneWithCreate = scene as Phaser.Scene & { create?: () => void };
   const originalCreate = sceneWithCreate.create?.bind(scene);
@@ -67,13 +72,13 @@ export const installFishSchoolIndicators = (scene: Phaser.Scene, world: World): 
           const progress = smooth(phase - Math.floor(phase));
           const from = pixel(path[pathIndex]!);
           const to = pixel(path[nextIndex]!);
-          const drift = Math.sin(scene.time.now / 900 + index * 1.7) * (1.2 / zoom);
+          const drift = Math.sin(scene.time.now / 900 + index * 1.7) * (FISH_DRIFT_SCREEN_PX / zoom);
           const x = from.x + (to.x - from.x) * progress;
           const y = from.y + (to.y - from.y) * progress + drift;
           const direction = to.x >= from.x ? 1 : -1;
-          const bodyWidth = 4.2 / zoom;
-          const bodyHeight = 2.2 / zoom;
-          const tail = 1.8 / zoom;
+          const bodyWidth = FISH_BODY_WIDTH_SCREEN_PX / zoom;
+          const bodyHeight = FISH_BODY_HEIGHT_SCREEN_PX / zoom;
+          const tail = FISH_TAIL_SCREEN_PX / zoom;
 
           graphics.fillStyle(0xd6edf2, 0.9);
           graphics.fillEllipse(x, y, bodyWidth, bodyHeight);

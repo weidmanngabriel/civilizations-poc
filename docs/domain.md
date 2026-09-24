@@ -52,7 +52,7 @@ This file is the primary location for verified domain terms, domain rules, invar
 - Ein Fischschwarm hat eine maximale Kapazität von 15 Fischen.
 - Ein erfolgreicher Angelversuch reduziert den Bestand des zugehörigen Schwarms um genau 1.
 - Ein Schwarm mit Bestand 0 bleibt bestehen und kann sich wieder erholen; er liefert bis dahin keinen erfolgreichen Fang.
-- Solange der Bestand unter der Kapazität liegt, wächst er alle 30 simulierten Sekunden um genau 1 Fisch.
+- Solange der Bestand unter der Kapazität liegt, wächst er alle 60 simulierten Sekunden um genau 1 Fisch.
 - Die visuelle Position eines Schwarms innerhalb seiner Region beeinflusst die Angelbarkeit nicht.
 - Bei Beständen von 3, 2 oder 1 werden exakt 3, 2 oder 1 sichtbare Fische dargestellt; bei 0 keiner.
 
