@@ -56,7 +56,7 @@ test("save format stores entities by interaction position without tile or footpr
   const serialized = JSON.parse(JSON.stringify(save)) as Record<string, any>;
 
   assert.equal(save.format, "civilizations-save");
-  assert.equal(save.version, 5);
+  assert.equal(save.version, 6);
   assert.equal(save.world.people[0]!.id, `person-${person.id}`);
   assert.equal(save.world.people[0]!.activity, "moving");
   assert.deepEqual(savedHq.position, world.buildings[0]!.position);
@@ -71,7 +71,7 @@ test("save format stores entities by interaction position without tile or footpr
 test("old save versions are rejected instead of migrated", () => {
   const oldSave = createSaveGame(createDefaultGameWorld());
   const parsed = JSON.parse(JSON.stringify(oldSave));
-  parsed.version = 4;
+  parsed.version = 5;
 
   assert.throws(
     () => deserializeSaveGame(JSON.stringify(parsed)),
