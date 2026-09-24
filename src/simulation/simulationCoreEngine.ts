@@ -79,6 +79,7 @@ import {
   releaseLooseGoodReservation,
   reserveLooseGood,
 } from "./looseGoods";
+import { markBushChanged, markTerrainChanged } from "./worldRevisions";
 
 export const building = (w: World, id: BuildingId): Building =>
   w.buildings.find((b) => b.id === id)!;
@@ -1274,6 +1275,8 @@ export function setRoad(w: World, position: Hex, enabled: boolean): boolean {
     tile.terrain = "grass";
   }
   tile.trafficTicks = undefined;
+  markTerrainChanged(w);
+  markBushChanged(w);
   return true;
 }
 
@@ -1288,6 +1291,8 @@ function recordTraffic(w: World, tile: Tile, resourceCells: Set<string>): void {
   }
   tile.terrain = "road";
   tile.trafficTicks = undefined;
+  markTerrainChanged(w);
+  markBushChanged(w);
 }
 
 function movePeople(w: World): void {

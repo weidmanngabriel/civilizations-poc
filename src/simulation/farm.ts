@@ -15,6 +15,7 @@ import {
   productionMultiplier,
 } from "./experience";
 import { equipmentWorkSpeedMultiplier, recordToolWork } from "./equipment";
+import { markBushChanged, markTerrainChanged } from "./worldRevisions";
 
 const randomIndex = (w: World, length: number): number => {
   w.rngState = (Math.imul(w.rngState, 1664525) + 1013904223) >>> 0;
@@ -279,6 +280,8 @@ const createField = (w: World, farm: Building, target: Hex): boolean => {
     tile.bushAvailable = undefined;
     tile.bushRegrowTick = undefined;
   }
+  markTerrainChanged(w);
+  markBushChanged(w);
   return true;
 };
 
@@ -293,6 +296,7 @@ const harvestField = (w: World, field: Building): void => {
       tile.trafficTicks = undefined;
     }
   }
+  markTerrainChanged(w);
 };
 
 /** Advances field growth and active farmer actions. Returns workers that should decide again immediately. */
@@ -461,6 +465,7 @@ export function removeActiveFarmFields(w: World, farmId: string): void {
   }
   if (!removedIds.size) return;
   w.buildings = w.buildings.filter((b) => !removedIds.has(b.id));
+  markTerrainChanged(w);
   for (const p of w.people) {
     if (p.farmTask?.fieldId && removedIds.has(p.farmTask.fieldId)) {
       p.farmTask = undefined;

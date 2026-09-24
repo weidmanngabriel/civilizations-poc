@@ -441,6 +441,10 @@ export interface World {
   nextProjectileId?: number;
   /** Incremented whenever the waypost network changes, invalidating failed-route caches. */
   waypostRevision?: number;
+  /** Runtime-only invalidation counter for terrain changes rendered by the map cache. */
+  terrainRevision?: number;
+  /** Runtime-only invalidation counter for bush visibility/state changes. */
+  bushRevision?: number;
   /** Loose-good ids are initialized lazily for compatibility with older fixtures. */
   nextLooseGoodId?: number;
   rngState: number;

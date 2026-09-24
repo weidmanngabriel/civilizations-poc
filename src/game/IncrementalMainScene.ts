@@ -7,6 +7,7 @@ import { personActivityLabel, personProfessionLabel } from "../personPresentatio
 import { GOOD_ICONS } from "../icons";
 import { performanceProfiler } from "../debug/performanceProfiler";
 import { HEX_X, HEX_Y, pixel } from "./mapGeometry";
+import { bushRevision, terrainRevision } from "../simulation/worldRevisions";
 import {
   PERSON_MARKER_RADIUS,
   personMarkerPositions,
@@ -17,16 +18,6 @@ const PERSON_TEXT_RESOLUTION = 4;
 const PERSON_NAME_SCALE = 0.34;
 const PERSON_DETAIL_SCALE = 0.28;
 const CARGO_SCALE = 0.28;
-
-const terrainCodes: Record<Tile["terrain"], number> = {
-  grass: 1,
-  road: 2,
-  forest: 3,
-  field: 4,
-  mountain: 5,
-  river: 6,
-  building: 7,
-};
 
 const underConstruction = (building: Building): boolean =>
   Boolean(building.construction && !building.construction.complete);
@@ -142,12 +133,6 @@ export class IncrementalMainScene extends MainScene {
   }
 
   private mapSignature(): string {
-    let terrainHash = 2166136261;
-    for (const tile of this.worldRef.tiles) {
-      terrainHash ^= terrainCodes[tile.terrain];
-      terrainHash = Math.imul(terrainHash, 16777619) >>> 0;
-    }
-
     const buildings = this.worldRef.buildings
       .map((building) => [
         building.id,
@@ -165,7 +150,7 @@ export class IncrementalMainScene extends MainScene {
     const internals = this.internals();
 
     return [
-      terrainHash,
+      terrainRevision(this.worldRef),
       buildings,
       resources,
       internals.selectedBuildingId ?? "",
@@ -176,10 +161,7 @@ export class IncrementalMainScene extends MainScene {
   }
 
   private bushSignature(): string {
-    return this.worldRef.tiles
-      .filter((tile) => tile.bush)
-      .map((tile) => `${tile.q},${tile.r}:${tile.terrain}:${tile.bushAvailable === false ? 0 : 1}`)
-      .join("|");
+    return String(bushRevision(this.worldRef));
   }
 
   private inventorySignature(): string {

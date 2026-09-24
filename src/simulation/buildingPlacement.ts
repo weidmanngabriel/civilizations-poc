@@ -25,6 +25,7 @@ import { looseGoodStacks } from "./looseGoods";
 import { BUILDING_CONSTRUCTION_REQUIREMENTS } from "./constructionRules";
 import { isWithinWaypostOrientation, WAYPOST_BUILD_CLEARANCE } from "./wayposts";
 import { buildingUpgradeRule } from "./buildingUpgradeRules";
+import { markBushChanged, markTerrainChanged } from "./worldRevisions";
 
 export type BuildingPlacementShape = {
   cells: Hex[];
@@ -417,6 +418,8 @@ export function startBuildingUpgrade(world: World, building: Building): boolean 
     progress: 0,
     complete: false,
   };
+  markTerrainChanged(world);
+  markBushChanged(world);
   notifyConstructionSiteAdded(world);
   return true;
 }
@@ -486,6 +489,8 @@ export function buildWithFootprint(
     tile.buildingBlocking = blocked.has(key(position)) || undefined;
     tile.trafficTicks = undefined;
   }
+  markTerrainChanged(world);
+  markBushChanged(world);
   notifyConstructionSiteAdded(world);
   return created;
 }
@@ -508,5 +513,6 @@ export function removeBuildingWithFootprint(world: World, id: string): boolean {
     }
     tile.buildingBlocking = undefined;
   }
+  markTerrainChanged(world);
   return true;
 }
