@@ -52,13 +52,41 @@ export const installFishSchoolIndicators = (scene: Phaser.Scene, world: World): 
 
   sceneWithCreate.create = () => {
     originalCreate?.();
-    const graphics = scene.add.graphics().setDepth(8).setScrollFactor(0);
+    const gameHost = scene.game.canvas.parentElement;
+    if (!gameHost) return;
+
+    const overlay = document.createElement("canvas");
+    overlay.className = "fish-school-overlay";
+    overlay.setAttribute("aria-hidden", "true");
+    gameHost.append(overlay);
+
+    const context = overlay.getContext("2d");
+    if (!context) {
+      overlay.remove();
+      return;
+    }
+
+    const resizeOverlay = () => {
+      const rect = scene.game.canvas.getBoundingClientRect();
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const width = Math.max(1, Math.round(rect.width * dpr));
+      const height = Math.max(1, Math.round(rect.height * dpr));
+      if (overlay.width !== width || overlay.height !== height) {
+        overlay.width = width;
+        overlay.height = height;
+      }
+      overlay.style.width = `${rect.width}px`;
+      overlay.style.height = `${rect.height}px`;
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return { width: rect.width, height: rect.height };
+    };
+
+    const screenPoint = { x: 0, y: 0 };
 
     const render = () => {
-      graphics.clear();
+      const { width, height } = resizeOverlay();
+      context.clearRect(0, 0, width, height);
       const camera = scene.cameras.main;
-      const zoom = camera.zoom || 1;
-      graphics.setScale(1 / zoom);
       const elapsed = scene.time.now / 4200;
 
       for (const school of world.fishSchools ?? []) {
@@ -76,32 +104,41 @@ export const installFishSchoolIndicators = (scene: Phaser.Scene, world: World): 
           const to = pixel(path[nextIndex]!);
           const worldX = from.x + (to.x - from.x) * progress;
           const worldY = from.y + (to.y - from.y) * progress;
-          const x = (worldX - camera.scrollX) * zoom;
-          const y = (worldY - camera.scrollY) * zoom
+          camera.matrixCombined.transformPoint(worldX, worldY, screenPoint);
+          const x = screenPoint.x;
+          const y = screenPoint.y
             + Math.sin(scene.time.now / 900 + index * 1.7) * FISH_DRIFT_SCREEN_PX;
           const direction = to.x >= from.x ? 1 : -1;
           const bodyWidth = FISH_BODY_WIDTH_SCREEN_PX;
           const bodyHeight = FISH_BODY_HEIGHT_SCREEN_PX;
           const tail = FISH_TAIL_SCREEN_PX;
 
-          graphics.fillStyle(0xd6edf2, 0.9);
-          graphics.fillEllipse(x, y, bodyWidth, bodyHeight);
-          graphics.fillTriangle(
-            x - direction * bodyWidth * 0.42,
-            y,
+          context.fillStyle = "rgba(214, 237, 242, 0.9)";
+          context.beginPath();
+          context.ellipse(x, y, bodyWidth / 2, bodyHeight / 2, 0, 0, Math.PI * 2);
+          context.fill();
+
+          context.beginPath();
+          context.moveTo(x - direction * bodyWidth * 0.42, y);
+          context.lineTo(
             x - direction * (bodyWidth * 0.42 + tail),
             y - tail * 0.7,
+          );
+          context.lineTo(
             x - direction * (bodyWidth * 0.42 + tail),
             y + tail * 0.7,
           );
+          context.closePath();
+          context.fill();
         }
       }
     };
 
-    scene.events.on(Phaser.Scenes.Events.POST_UPDATE, render);
+    const camera = scene.cameras.main;
+    camera.on(Phaser.Cameras.Scene2D.Events.POST_RENDER, render);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      scene.events.off(Phaser.Scenes.Events.POST_UPDATE, render);
-      graphics.destroy();
+      camera.off(Phaser.Cameras.Scene2D.Events.POST_RENDER, render);
+      overlay.remove();
     });
   };
 };
