@@ -133,6 +133,15 @@ Abbauer wählen nur passende freie Rohstoffquellen innerhalb ihrer Flagge. Die F
 
 Produktions-Träger behalten ihre bedarfsgetriebene Beschaffung. Arbeitsflaggen und Wegweiser bleiben getrennte Systeme.
 
+
+### Fischschwärme
+
+Fische sind nicht mehr unerschöpflich. Jede zusammenhängende Wasserregion besitzt einen Fischschwarm mit **15 Fischen**. Ein erfolgreicher Angelversuch entnimmt genau einen Fisch aus diesem Bestand. Ist der Bestand bei 0, bleibt der Schwarm bestehen, liefert aber vorübergehend keinen Fang.
+
+Solange der Bestand unter 15 liegt, wächst er alle **30 simulierten Sekunden um genau einen Fisch**, auch von 0 aus. Die Position des sichtbaren Schwarms innerhalb seiner Wasserregion ist rein grafisch: Ein Fischer kann den Schwarm von jeder gültigen Angelstelle derselben Region befischen, unabhängig davon, in welcher Ecke der Schwarm gerade angezeigt wird.
+
+Große Bestände werden als kompakter Schwarm dargestellt. Für die letzten drei Fische ist die Darstellung exakt: Bei 3, 2 beziehungsweise 1 verbleibenden Fischen sind genau 3, 2 beziehungsweise 1 Fische sichtbar; bei 0 ist kein Fisch sichtbar.
+
 ## Wegweiser
 
 Beim Spielstart steht ungefähr eine Weltkachel vor dem Hauptquartier ein erster Wegweiser. Weitere Wegweiser werden nicht über das Baumenü, sondern durch einen **Kundschafter** errichtet. Der Kundschafter ist ein frei wählbarer Beruf und kann beliebig viele Wegweiser nacheinander bauen. In seinem Personen-Kontextmenü startet **Wegweiser** den bekannten Platzierungsmodus. Bereits beim Öffnen werden alle aktuell gültigen Positionen hervorgehoben. Wird während einer noch offenen Platzierungsansicht ein zuvor beauftragter Wegweiser fertiggestellt, werden die gültigen Flächen sofort neu berechnet. Das gilt sowohl für die Wegweiser-Platzierung als auch für den normalen Gebäudebaumodus, weil sich durch den neuen Orientierungsradius und Mindestabstand die gültigen Flächen ändern können. Ein bereits gewählter Ghost wird dabei neu validiert. Auf dem Desktop folgt der Ghost der Maus und Linksklick wählt die Zielstelle; Rechtsklick, Escape oder „Abbrechen“ beendet den Modus. Auf Touch wählt ein Tap die Position, Ziehen verschiebt weiter die Karte und der Bestätigungsbutton erteilt den Auftrag.
@@ -264,7 +273,7 @@ Der vollständige autoritative Simulationszustand bleibt menschenlesbares JSON. 
 
 Räumliche Objekte werden weiterhin kompakt über ihre logische Position gespeichert; abgeleitete Tile- und Footprint-Snapshots sowie das Vorschaubild sind nicht Teil des autoritativen World-State-JSON. Für registrierte Gebäudetypen werden Grundriss, visueller Anker und blockierte Zellen beim Laden aus der **aktuellen** Registry-Definition rekonstruiert.
 
-Die aktuelle Save-Version ist **5**. Die Version des visuellen Building-Schemas ist davon unabhängig. Frühere Save-Versionen oder ältere Datenformen werden bis v1 nicht migriert oder durch besondere Kompatibilitätslogik unterstützt.
+Die aktuelle Save-Version ist **6**. Die Version des visuellen Building-Schemas ist davon unabhängig. Frühere Save-Versionen oder ältere Datenformen werden bis v1 nicht migriert oder durch besondere Kompatibilitätslogik unterstützt.
 
 ## Noch offene spätere Produktentscheidungen
 
@@ -276,7 +285,7 @@ Nicht Teil dieses Schritts sind unter anderem:
 - unterschiedliche Arbeitsradien nach Beruf oder Upgrade,
 - Arbeitsflaggen für Produktions-Träger,
 - gemeinsam genutzte Flaggen,
-- Ressourcen-Regeneration und neue prozedurale Clusterregeln.
+- Regeneration weiterer natürlicher Ressourcen und neue prozedurale Clusterregeln.
 
 ## Unveränderte Produktbereiche
 
