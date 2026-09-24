@@ -28,6 +28,12 @@ main {
   width: 100% !important;
   height: 100% !important;
 }
+#game .fish-school-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
 .overlay {
   position: absolute;
   z-index: 10;

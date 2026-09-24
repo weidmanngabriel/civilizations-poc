@@ -144,7 +144,7 @@ The simulation stores the current fishing spot, adjacent water target, cycle sta
 
 A successful cast sets exactly one `fish` unit as outdoor cargo on the fisherman. The fisherman carries that unit back to the personal work flag, where it becomes a normal loose-good stack. Completing a fishing cycle is an explicit need boundary: at or below the normal hunger or sleep threshold, the fisher handles that need before another cast starts, whether the cast succeeded or failed. A caught fish remains in `outdoorCarry` during the interruption and is routed to the work flag afterwards.
 
-Fish-school presentation is deliberately non-authoritative. The renderer moves a compact group of fish slowly along a deterministic walk through the school's water region; the displayed position does not affect fishing eligibility. Display density represents larger stocks compactly, but the final three fish are exact: stock 3/2/1 renders exactly 3/2/1 visible fish, and stock 0 renders none.
+Fish-school presentation is deliberately non-authoritative. The renderer moves a compact group of fish slowly along a deterministic walk through the school's water region; the displayed position does not affect fishing eligibility. Fish positions are projected through the current Phaser world camera into a separate DOM canvas overlay, while fish body geometry remains in fixed CSS-pixel screen space. This prevents camera zoom from scaling the fish a second time. Display density represents larger stocks compactly, but the final three fish are exact: stock 3/2/1 renders exactly 3/2/1 visible fish, and stock 0 renders none.
 
 ## Wildlife, hunting and ranged attacks
 
