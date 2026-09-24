@@ -7,6 +7,7 @@ import { placeLooseGood } from "../src/simulation/looseGoods";
 import { assigned, buildAt, changeAssignment, tick, warehouseStock } from "../src/simulation/simulation";
 import { activeFarmFieldCount, planFarmWorker } from "../src/simulation/farm";
 import type { Building, BuildableBuildingKind, Hex, World } from "../src/simulation/model";
+import { performanceProfiler } from "../src/debug/performanceProfiler";
 
 const rounds = (w: World, count: number) => {
   for (let i = 0; i < count; i++) tick(w);
@@ -101,6 +102,24 @@ test("farmer sows up to four random fields around the farm", () => {
       "field",
     );
   }
+});
+
+test("sow planning stops pathfinding after finding a reachable random field", () => {
+  const w = createWorld();
+  const { farm, farmer } = finishedFarm(w);
+  const before = performanceProfiler.snapshot().path.count;
+
+  const planned = performanceProfiler.withPathReason("farm", () =>
+    planFarmWorker(w, farmer, farm),
+  );
+
+  const pathCalls = performanceProfiler.snapshot().path.count - before;
+  assert.equal(planned, true);
+  assert.equal(farmer.farmTask?.kind, "sow");
+  assert.ok(
+    pathCalls <= 20,
+    `expected lazy farm candidate pathfinding, got ${pathCalls} path searches`,
+  );
 });
 
 test("a pending sow task is cancelled instead of overwriting a loose good", () => {
