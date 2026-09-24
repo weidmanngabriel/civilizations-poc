@@ -12,6 +12,7 @@ import { CONFIG } from "./scenario";
 import { clearNavigationBlocked, findRequiredNavigationPath } from "./wayposts";
 import { hexDistance } from "./spatial";
 import {
+  findLocalNeedAnchorReturn,
   findLocalNeedPath,
   findNeedReturnPath,
   localNeedPathLeavesWaypostCoverage,
@@ -392,6 +393,68 @@ const assignFoodCandidate = (
   return true;
 };
 
+const startLocalNeedAnchorReturn = (world: World, person: Person): boolean => {
+  const state = person.hungerState;
+  if (!state) return false;
+  const result = findLocalNeedAnchorReturn(
+    world,
+    person,
+    ROAD_SPEED_MULTIPLIER,
+  );
+  if (!result) return false;
+  clearNavigationBlocked(person);
+  state.returningToNeedAnchor = true;
+  state.needAnchor = result.anchor;
+  state.retryAfterTick = undefined;
+  person.path = result.path;
+  person.movement = 0;
+  person.active = false;
+  return true;
+};
+
+const continueLocalNeedAnchorReturn = (world: World, person: Person): void => {
+  const state = person.hungerState;
+  const anchor = state?.needAnchor;
+  if (!state || !state.returningToNeedAnchor || !anchor) return;
+
+  if (same(person.position, anchor)) {
+    state.returningToNeedAnchor = undefined;
+    state.needAnchor = undefined;
+    state.needOrigin = { ...person.position };
+    const localCandidate = foodCandidate(world, person, state.needOrigin, true);
+    assignFoodCandidate(
+      world,
+      person,
+      state,
+      localCandidate ?? foodCandidate(world, person, state.needOrigin, false),
+      Boolean(localCandidate),
+    );
+    return;
+  }
+  if (person.path.length > 0) {
+    person.active = false;
+    return;
+  }
+
+  const path = localRouteTo(world, person, { ...person.position }, anchor);
+  if (path) {
+    person.path = path;
+    person.movement = 0;
+    person.active = false;
+    return;
+  }
+
+  state.returningToNeedAnchor = undefined;
+  state.needAnchor = undefined;
+  assignFoodCandidate(
+    world,
+    person,
+    state,
+    foodCandidate(world, person, person.position, false),
+    false,
+  );
+};
+
 const routeHunterToFoodAnchor = (world: World, person: Person): boolean => {
   const state = person.hungerState;
   const target = person.workArea?.center;
@@ -446,6 +509,8 @@ const startEating = (world: World, person: Person): boolean => {
 
   if (localCandidate)
     return assignFoodCandidate(world, person, person.hungerState, localCandidate, true);
+
+  if (startLocalNeedAnchorReturn(world, person)) return true;
 
   if (person.hunter && person.workArea && !same(person.position, person.workArea.center)) {
     person.hungerState.returningToWorkAreaForFood = true;
@@ -565,12 +630,17 @@ const ensureFoodRoute = (world: World, person: Person): void => {
   if (state.retryAfterTick !== undefined && world.round < state.retryAfterTick) { person.active = false; return; }
   const origin = state.needOrigin ?? { ...person.position };
   const localCandidate = foodCandidate(world, person, origin, true);
+  if (localCandidate) {
+    assignFoodCandidate(world, person, state, localCandidate, true);
+    return;
+  }
+  if (startLocalNeedAnchorReturn(world, person)) return;
   assignFoodCandidate(
     world,
     person,
     state,
-    localCandidate ?? foodCandidate(world, person, origin, false),
-    Boolean(localCandidate),
+    foodCandidate(world, person, origin, false),
+    false,
   );
 };
 
@@ -578,7 +648,11 @@ const ensureFoodRoute = (world: World, person: Person): void => {
 export function resolveFoodArrivals(world: World): void {
   for (const person of world.people) {
     if (!person.hungerState) continue;
-    if (person.hungerState.returningToNeedOrigin || person.hungerState.returningToWorkAreaForFood) continue;
+    if (
+      person.hungerState.returningToNeedOrigin ||
+      person.hungerState.returningToNeedAnchor ||
+      person.hungerState.returningToWorkAreaForFood
+    ) continue;
     restoreFoodRouteIfHijacked(world, person);
     const state = person.hungerState;
     const target = performanceProfiler.profileFeature(
@@ -627,6 +701,7 @@ export function advanceHungerTick(world: World): void {
     if (person.manualMoveTarget) continue;
     if (person.hungerState) {
       if (person.hungerState.returningToNeedOrigin) ensureEatingReturn(world, person);
+      else if (person.hungerState.returningToNeedAnchor) continueLocalNeedAnchorReturn(world, person);
       else if (person.hungerState.returningToWorkAreaForFood) routeHunterToFoodAnchor(world, person);
       else ensureFoodRoute(world, person);
       continue;
