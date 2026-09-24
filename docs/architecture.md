@@ -284,7 +284,9 @@ Loading and starting a new game still replace the contents of the existing share
 
 ## Performance diagnostics
 
-The debug profiler keeps short rolling in-memory timing windows for live inspection. `src/debug/performanceRecording.ts` adds an explicit user-started recording layer without changing simulation behavior: while active, it samples the existing profiler once per real second, adds compact world-size counters, and stores the samples only in browser memory. Stopping the recording produces a versioned `civilizations-performance-recording` JSON export with metadata, a per-second time series, and an automatically calculated summary of FPS, frame/tick costs, feature costs and pathfinding causes. The recorder deliberately does not emit per-tick logs or add new simulation scans.
+The debug profiler keeps short rolling in-memory timing windows for live inspection. In addition to simulation, feature and pathfinding timings, it attributes browser-frame time across the requestAnimationFrame callback delay, the complete Phaser game step, Phasers render phase and the gap from the previous Phaser post-render to the next pre-step. The inter-frame gap intentionally represents browser/VSync/compositor/idle time as one combined bucket; JavaScript cannot reliably split those browser-internal phases on every supported browser.
+
+`src/debug/performanceRecording.ts` adds an explicit user-started recording layer without changing simulation behavior: while active, it samples the existing profiler once per real second, adds compact world-size counters, and stores the samples only in browser memory. Stopping the recording produces a versioned `civilizations-performance-recording` JSON export with metadata, a per-second time series, and an automatically calculated summary of FPS, frame/tick costs, frame attribution, feature costs and pathfinding causes. The recorder deliberately does not emit per-tick logs or add new simulation scans.
 
 ## Existing architecture
 

@@ -159,6 +159,10 @@ export function renderPerformanceDebug(container: HTMLElement, world: World): vo
       ${metric("Sim-Tick", `${format(snapshot.tick.average, 3)} ms`, `p95 ${format(snapshot.tick.p95, 3)} · max ${format(snapshot.tick.max, 3)}`)}
       ${metric("Pathfinding", `${format(snapshot.path.total / 10, 2)} ms/s`, `${format(snapshot.pathCallsPerSecond, 1)} Suchen/s · p95 ${format(snapshot.path.p95, 3)} ms`)}
       ${metric("renderWorld", `${format(snapshot.render.average, 2)} ms`, `${format(snapshot.renderCallsPerSecond, 1)} Aufrufe/s · p95 ${format(snapshot.render.p95, 2)}`)}
+      ${metric("Phaser-Step", `${format(snapshot.frameAttribution.phaserStep.average, 2)} ms`, `p95 ${format(snapshot.frameAttribution.phaserStep.p95, 2)} · max ${format(snapshot.frameAttribution.phaserStep.max, 2)}`)}
+      ${metric("Phaser-Render", `${format(snapshot.frameAttribution.phaserRender.average, 2)} ms`, `p95 ${format(snapshot.frameAttribution.phaserRender.p95, 2)} · max ${format(snapshot.frameAttribution.phaserRender.max, 2)}`)}
+      ${metric("Zwischen Frames", `${format(snapshot.frameAttribution.phaserInterFrameGap.average, 2)} ms`, `Browser/VSync · p95 ${format(snapshot.frameAttribution.phaserInterFrameGap.p95, 2)}`)}
+      ${metric("RAF-Verzögerung", `${format(snapshot.frameAttribution.rafCallbackDelay.average, 2)} ms`, `p95 ${format(snapshot.frameAttribution.rafCallbackDelay.p95, 2)} · max ${format(snapshot.frameAttribution.rafCallbackDelay.max, 2)}`)}
     </div>
     <div class="perf-warning-row">
       <span>Frames &gt; 16,7 ms: <strong>${snapshot.slowFrames16}</strong> / 10 s</span>

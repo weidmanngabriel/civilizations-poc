@@ -91,7 +91,7 @@ const showBuildVersion = (): void => {
 };
 
 const sampleAnimationFrames = (timestamp: number): void => {
-  performanceProfiler.recordAnimationFrame(timestamp);
+  performanceProfiler.recordAnimationFrame(timestamp, performanceNow());
   window.requestAnimationFrame(sampleAnimationFrames);
 };
 
@@ -161,6 +161,41 @@ const game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   render: { antialias: true },
+});
+
+let phaserStepStartedAt: number | undefined;
+let phaserRenderStartedAt: number | undefined;
+let previousPhaserPostRenderAt: number | undefined;
+
+game.events.on(Phaser.Core.Events.PRE_STEP, () => {
+  const current = performanceNow();
+  if (previousPhaserPostRenderAt !== undefined)
+    performanceProfiler.recordPhaserInterFrameGap(
+      Math.max(0, current - previousPhaserPostRenderAt),
+      current,
+    );
+  phaserStepStartedAt = current;
+});
+
+game.events.on(Phaser.Core.Events.PRE_RENDER, () => {
+  phaserRenderStartedAt = performanceNow();
+});
+
+game.events.on(Phaser.Core.Events.POST_RENDER, () => {
+  const current = performanceNow();
+  if (phaserRenderStartedAt !== undefined)
+    performanceProfiler.recordPhaserRender(
+      Math.max(0, current - phaserRenderStartedAt),
+      current,
+    );
+  if (phaserStepStartedAt !== undefined)
+    performanceProfiler.recordPhaserStep(
+      Math.max(0, current - phaserStepStartedAt),
+      current,
+    );
+  previousPhaserPostRenderAt = current;
+  phaserStepStartedAt = undefined;
+  phaserRenderStartedAt = undefined;
 });
 
 // Keep touch and desktop input adapters separate so neither interaction model regresses the other.
