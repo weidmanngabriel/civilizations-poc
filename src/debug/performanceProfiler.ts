@@ -31,6 +31,7 @@ export type PerformanceFeature =
   | "renderWorld"
   | "renderMapSignature"
   | "renderMapDraw"
+  | "renderMapCache"
   | "renderBushSignature"
   | "renderBushDraw"
   | "renderInventorySignature"
@@ -143,6 +144,7 @@ export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
   "renderWorld",
   "renderMapSignature",
   "renderMapDraw",
+  "renderMapCache",
   "renderBushSignature",
   "renderBushDraw",
   "renderInventorySignature",
@@ -162,6 +164,7 @@ export const PERFORMANCE_DETAIL_FEATURES = new Set<PerformanceFeature>([
   "foodArrivalConsumption",
   "renderMapSignature",
   "renderMapDraw",
+  "renderMapCache",
   "renderBushSignature",
   "renderBushDraw",
   "renderInventorySignature",

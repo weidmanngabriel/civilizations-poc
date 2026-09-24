@@ -43,6 +43,7 @@ const FEATURE_LABELS: Record<PerformanceFeature, string> = {
   renderWorld: "renderWorld",
   renderMapSignature: "↳ Render · Map-Signatur",
   renderMapDraw: "↳ Render · Map zeichnen",
+  renderMapCache: "↳ Render · Map-Cache aktualisieren",
   renderBushSignature: "↳ Render · Busch-Signatur",
   renderBushDraw: "↳ Render · Büsche zeichnen",
   renderInventorySignature: "↳ Render · Inventar-Signatur",
