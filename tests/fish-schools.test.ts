@@ -46,7 +46,7 @@ test("a successful fishing cycle consumes exactly one fish", () => {
   assert.equal(fisher.outdoorCarry, "fish");
 });
 
-test("an empty fish school recovers by one fish every thirty simulated seconds", () => {
+test("an empty fish school recovers by one fish every sixty simulated seconds", () => {
   const world = createWorld(1);
   const school = world.fishSchools![0]!;
   school.fish = 0;
