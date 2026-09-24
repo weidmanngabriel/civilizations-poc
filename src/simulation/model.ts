@@ -209,6 +209,9 @@ export interface HungerState {
   returnToNeedOrigin?: boolean;
   /** Eating is complete and the person is walking back to needOrigin. */
   returningToNeedOrigin?: boolean;
+  /** Person is locally returning to a covered work anchor before global food search. */
+  returningToNeedAnchor?: boolean;
+  needAnchor?: Hex;
   /** Hunter is returning from unrestricted pursuit to the personal flag before global food search. */
   returningToWorkAreaForFood?: boolean;
   foodSource?: BuildingId;
@@ -232,6 +235,9 @@ export interface SleepState {
   returnToNeedOrigin?: boolean;
   /** Sleeping is complete and the person is walking back to needOrigin. */
   returningToNeedOrigin?: boolean;
+  /** Person is locally returning to a covered work anchor before global sleep search. */
+  returningToNeedAnchor?: boolean;
+  needAnchor?: Hex;
   kind: SleepLocationKind;
   target: Hex;
   progress: number;
