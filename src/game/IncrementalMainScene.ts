@@ -33,6 +33,7 @@ const underConstruction = (building: Building): boolean =>
 
 type MainSceneInternals = {
   markers?: Phaser.GameObjects.Container;
+  mapGraphics?: Phaser.GameObjects.Graphics;
   mapLabels?: Phaser.GameObjects.Container;
   selectedBuildingId?: string;
   selectedTile?: { q: number; r: number };
@@ -68,6 +69,8 @@ type PersonMarkerObjects = {
  * Phaser display tree on every presentation frame.
  */
 export class IncrementalMainScene extends MainScene {
+  private mapCache?: Phaser.GameObjects.RenderTexture;
+  private mapCacheOffset = { x: 0, y: 0 };
   private bushGraphics?: Phaser.GameObjects.Graphics;
   private inventoryGraphics?: Phaser.GameObjects.Graphics;
   private staffGraphics?: Phaser.GameObjects.Graphics;
@@ -91,9 +94,23 @@ export class IncrementalMainScene extends MainScene {
   private ensureLayers(): boolean {
     const internals = this.internals();
     const markers = internals.markers;
-    if (!markers) return false;
+    const mapGraphics = internals.mapGraphics;
+    if (!markers || !mapGraphics) return false;
     internals.mapLabels?.setVisible(false);
     if (this.inventoryGraphics) return true;
+
+    const points = this.worldRef.tiles.map((tile) => pixel(tile));
+    const padding = Math.max(HEX_X, HEX_Y) * 2;
+    const minX = Math.floor(Math.min(...points.map((point) => point.x)) - padding);
+    const minY = Math.floor(Math.min(...points.map((point) => point.y)) - padding);
+    const maxX = Math.ceil(Math.max(...points.map((point) => point.x)) + padding);
+    const maxY = Math.ceil(Math.max(...points.map((point) => point.y)) + padding);
+    this.mapCacheOffset = { x: minX, y: minY };
+    this.mapCache = this.add
+      .renderTexture(minX, minY, Math.max(1, maxX - minX), Math.max(1, maxY - minY))
+      .setOrigin(0, 0)
+      .setDepth(-100);
+    mapGraphics.setVisible(false);
 
     this.bushGraphics = this.add.graphics();
     this.inventoryGraphics = this.add.graphics();
@@ -102,6 +119,26 @@ export class IncrementalMainScene extends MainScene {
     this.personLayer = this.add.container(0, 0).setDepth(30);
     markers.add([this.bushGraphics, this.inventoryGraphics, this.staffGraphics, this.inventoryLabels]);
     return true;
+  }
+
+  private refreshMapCache(): void {
+    const internals = this.internals();
+    const mapGraphics = internals.mapGraphics;
+    const mapCache = this.mapCache;
+    if (!mapGraphics || !mapCache) return;
+
+    mapGraphics.setVisible(true);
+    try {
+      mapCache.clear();
+      mapCache.draw(
+        mapGraphics,
+        -this.mapCacheOffset.x,
+        -this.mapCacheOffset.y,
+      );
+      mapCache.render();
+    } finally {
+      mapGraphics.setVisible(false);
+    }
   }
 
   private mapSignature(): string {
@@ -363,6 +400,7 @@ export class IncrementalMainScene extends MainScene {
     );
     if (mapSignature !== this.lastMapSignature) {
       performanceProfiler.profileFeature("renderMapDraw", () => internals.drawMap());
+      performanceProfiler.profileFeature("renderMapCache", () => this.refreshMapCache());
       this.lastMapSignature = mapSignature;
       this.lastModalSignature = "";
     }
