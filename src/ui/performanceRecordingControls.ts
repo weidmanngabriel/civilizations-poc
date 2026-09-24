@@ -19,7 +19,8 @@ const formatDuration = (milliseconds: number): string => {
 export function installPerformanceRecordingControls(world: World): void {
   const panel = document.querySelector<HTMLElement>("#debug-panel");
   const header = panel?.querySelector<HTMLElement>(".debug-header");
-  if (!panel || !header || document.querySelector("#performance-recording")) return;
+  const cheatControls = panel?.querySelector<HTMLElement>(".debug-cheat-controls");
+  if (!panel || !header || !cheatControls || document.querySelector("#performance-recording")) return;
 
   const recorder = document.createElement("section");
   recorder.id = "performance-recording";
@@ -30,7 +31,7 @@ export function installPerformanceRecordingControls(world: World): void {
       <span data-perf-recording-status>Bereit · 1 Snapshot/s</span>
     </div>
     <button type="button" data-perf-recording-toggle>Tracking starten</button>`;
-  header.insertAdjacentElement("afterend", recorder);
+  cheatControls.insertAdjacentElement("afterend", recorder);
 
   const button = recorder.querySelector<HTMLButtonElement>("[data-perf-recording-toggle]")!;
   const status = recorder.querySelector<HTMLElement>("[data-perf-recording-status]")!;
