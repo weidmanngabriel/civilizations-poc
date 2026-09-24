@@ -25,6 +25,8 @@ building-editor/   desktop-first building authoring subpage
 
 The deterministic simulation stays independent from Phaser. Presentation reads simulation state and never owns authoritative game state. The simulation runs at 60 ticks/s at displayed 1×; rendering is decoupled and driven by `requestAnimationFrame`.
 
+The DOM UI uses a single light visual theme. Component styles keep layout and feature-specific structure in their existing CSS files; `src/light-theme.css` is imported last from `src/main.ts` and owns the shared light palette plus deliberate overrides for components that previously carried dark palettes. Dark translucent colors remain appropriate for modal backdrops and map-dimming layers, but interactive panels themselves use the light component language.
+
 ### Focused map actions
 
 `src/ui/actionMode.ts` aggregates the existing build, merchant-target, upgrade-preview, person-command and work-area mode events into one presentation-only `ui-action-mode` state. CSS hides the normal top-level UI while that state is active and leaves only the map plus the active mode's own action overlay visible. Mode ownership remains in the existing feature modules; the aggregator does not mutate simulation state or replace their completion/cancellation events.
