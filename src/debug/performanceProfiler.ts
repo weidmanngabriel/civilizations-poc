@@ -142,9 +142,6 @@ export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
   "technologyUnlocks",
   "workAreaSync",
   "wildlife",
-  "wildlifeBlockedSteps",
-  "wildlifeReplans",
-  "wildlifePastureSearch",
   "hunting",
   "livestockCaptureProximity",
   "renderWorld",
@@ -167,6 +164,9 @@ export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
 
 export const PERFORMANCE_DETAIL_FEATURES = new Set<PerformanceFeature>([
   "foodArrivalTargetLookup",
+  "wildlifeBlockedSteps",
+  "wildlifeReplans",
+  "wildlifePastureSearch",
   "foodArrivalConsumption",
   "renderMapSignature",
   "renderMapDraw",
