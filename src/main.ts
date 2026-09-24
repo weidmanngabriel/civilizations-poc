@@ -5,6 +5,7 @@ import { installBuildPlacementHighlights } from "./game/buildPlacementHighlights
 import { installBuildingAttentionIndicators } from "./game/buildingAttentionIndicators";
 import { installBuildingSprites } from "./game/buildingSprites";
 import { installFishingIndicators } from "./game/fishingIndicators";
+import { installFishSchoolIndicators } from "./game/fishSchoolIndicators";
 import { installWildlifeIndicators } from "./game/wildlifeIndicators";
 import { installBushIndicators } from "./game/bushIndicators";
 import { installDesktopBuildPlacement } from "./game/desktopBuildPlacement";
@@ -120,6 +121,7 @@ installBuildPlacementHighlights(scene, world);
 installBuildingSprites(scene, world);
 installBuildingAttentionIndicators(scene, world);
 installFishingIndicators(scene, world);
+installFishSchoolIndicators(scene, world);
 installWildlifeIndicators(scene, world);
 installHungerIndicators(scene, world);
 installSleepIndicators(scene, world);
