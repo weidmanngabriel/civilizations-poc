@@ -75,7 +75,7 @@ test("old save versions are rejected instead of migrated", () => {
 
   assert.throws(
     () => deserializeSaveGame(JSON.stringify(parsed)),
-    /Spielstand-Version 4 wird nicht unterstützt/,
+    /Spielstand-Version 5 wird nicht unterstützt/,
   );
 });
 
