@@ -412,6 +412,16 @@ export interface Projectile {
   rewardProfession?: Profession;
 }
 
+export interface FishSchool {
+  id: string;
+  /** Connected water cells that define where this school can be fished and rendered. */
+  region: Hex[];
+  fish: number;
+  capacity: number;
+  /** Next simulated tick that adds one fish while below capacity. */
+  nextRegrowTick?: number;
+}
+
 export interface World {
   round: number;
   nextId: number;
@@ -437,6 +447,8 @@ export interface World {
   /** Extensible wildlife entities and their social groups. */
   animals?: Animal[];
   animalGroups?: AnimalGroup[];
+  /** Finite fish populations attached to connected water regions. */
+  fishSchools?: FishSchool[];
   /** In-flight ranged attacks; presentation interpolates these without owning combat state. */
   projectiles?: Projectile[];
   wayposts?: Waypost[];

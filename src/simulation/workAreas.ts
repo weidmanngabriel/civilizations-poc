@@ -1,6 +1,7 @@
 import type { Building, Good, Hex, NaturalResource, NaturalResourceKind, Person, World } from "./model";
 import { findPath, key, neighbors, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
+import { consumeFish, fishSchoolForWater } from "./fishSchools";
 import { clearNavigationBlocked, findRequiredNavigationPath } from "./wayposts";
 import {
   findLocalNavigationPath,
@@ -287,7 +288,11 @@ export function routeOutdoorCarryToFlag(
 
 function finishFishingCycle(world: World, person: Person): void {
   recordToolWork(world, person, CONFIG.duration);
-  const caught = nextRandomFraction(world) < fishingCatchChance(person);
+  const school = person.fishingWaterTarget
+    ? fishSchoolForWater(world, person.fishingWaterTarget)
+    : undefined;
+  const rolledCatch = nextRandomFraction(world) < fishingCatchChance(person);
+  const caught = Boolean(rolledCatch && school && consumeFish(world, school));
   if (caught) awardProfessionExperience(person, "fisher");
   person.fishingWaterTarget = undefined;
   person.fishingStartedAtTick = undefined;

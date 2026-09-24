@@ -23,7 +23,7 @@ import { refinedCellCluster } from "./spatial";
 import { isValidSimulationSpeed } from "./timing";
 
 export const SAVE_FORMAT = "civilizations-save";
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 export type SavedActivity =
   | "idle"
