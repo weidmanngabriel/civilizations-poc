@@ -147,6 +147,70 @@ test("captured livestock rests after reaching the HQ pasture and only takes shor
   );
 });
 
+
+test("owned sheep wait on a temporary animal blockage before replanning", () => {
+  const world = createWorld(0);
+  world.animals = [];
+  world.animalGroups = [];
+  const hq = world.buildings.find((building) => building.kind === "hq")!;
+  const group = spawnAnimalGroup(world, "sheep", grassNear(world, hq.position, 6), 2)!;
+  const sheep = world.animals!.filter((animal) => animal.groupId === group.id);
+  const moving = sheep[0]!;
+  const blocker = sheep[1]!;
+  moving.owner = "player";
+  blocker.owner = "player";
+  moving.path = [{ ...blocker.position }];
+  moving.movement = 1;
+  moving.nextMoveTick = Number.MAX_SAFE_INTEGER;
+  blocker.path = [];
+  blocker.nextMoveTick = Number.MAX_SAFE_INTEGER;
+
+  let stats = advanceWildlife(world);
+  assert.equal(stats.blockedSteps, 1);
+  assert.equal(stats.blockageReplans, 0);
+  assert.equal(moving.path.length, 1);
+  assert.equal(moving.movementBlockedSinceTick, world.round);
+
+  world.round += 29;
+  moving.movement = 1;
+  stats = advanceWildlife(world);
+  assert.equal(stats.blockedSteps, 1);
+  assert.equal(stats.blockageReplans, 0);
+  assert.equal(moving.path.length, 1);
+
+  world.round += 1;
+  moving.movement = 1;
+  stats = advanceWildlife(world);
+  assert.equal(stats.blockedSteps, 1);
+  assert.equal(stats.blockageReplans, 1);
+  assert.equal(moving.path.length, 0);
+  assert.equal(moving.nextMoveTick, world.round);
+  assert.equal(moving.movementBlockedSinceTick, undefined);
+});
+
+test("owned livestock pasture search stays inside the local pasture radius", () => {
+  const world = createWorld(0);
+  world.animals = [];
+  world.animalGroups = [];
+  const hq = world.buildings.find((building) => building.kind === "hq")!;
+  const group = spawnAnimalGroup(world, "sheep", grassNear(world, hq.position, 6), 1)!;
+  const sheep = world.animals!.find((animal) => animal.groupId === group.id)!;
+  sheep.owner = "player";
+  sheep.path = [];
+  sheep.nextMoveTick = world.round;
+
+  const stats = advanceWildlife(world);
+
+  assert.equal(stats.pastureTargetSearches, 1);
+  assert.ok(stats.pastureCandidateChecks > 0);
+  assert.ok(
+    stats.pastureCandidateChecks < world.tiles.length / 10,
+    `expected local pasture search, checked ${stats.pastureCandidateChecks} of ${world.tiles.length} tiles`,
+  );
+  assert.ok(stats.pastureTargetSearchMs >= 0);
+});
+
+
 test("captured herd members reserve different pasture arrival endpoints", () => {
   const world = createWorld(1);
   const scout = world.people[0]!;
