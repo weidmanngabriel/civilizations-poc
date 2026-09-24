@@ -25,6 +25,12 @@ building-editor/   desktop-first building authoring subpage
 
 The deterministic simulation stays independent from Phaser. Presentation reads simulation state and never owns authoritative game state. The simulation runs at 60 ticks/s at displayed 1×; rendering is decoupled and driven by `requestAnimationFrame`.
 
+### Focused map actions
+
+`src/ui/actionMode.ts` aggregates the existing build, merchant-target, upgrade-preview, person-command and work-area mode events into one presentation-only `ui-action-mode` state. CSS hides the normal top-level UI while that state is active and leaves only the map plus the active mode's own action overlay visible. Mode ownership remains in the existing feature modules; the aggregator does not mutate simulation state or replace their completion/cancellation events.
+
+Scrollable menu shells keep their close-bearing header outside the scrolled-away content through sticky headers. Debug extensions insert below the cheat controls so dynamically mounted profiler sections cannot reorder the cheats.
+
 ### User dialogs
 
 User-facing confirmations and blocking information messages use the reusable DOM modal in `src/ui/modalDialog.ts` instead of browser-native `alert()` or `confirm()`. The modal owns only presentation and the asynchronous user decision; callers remain responsible for simulation mutations. Its fixed backdrop blocks pointer interaction with the map while open, `Escape` cancels/closes it, focus is restored afterwards, and destructive confirmations focus the safe cancel action by default. The same interaction is used on desktop and touch.
@@ -132,7 +138,7 @@ Construction requirements are centralized in `src/simulation/constructionRules.t
 
 Fishing reuses the personal work-area system rather than introducing a building. A fisher owns the same **2.5-world-tile work flag** used by outdoor resource workers. Valid fishing spots are walkable land cells adjacent to river/water terrain and inside that work area.
 
-Fish availability is authoritative world state in `World.fishSchools`. `src/simulation/fishSchools.ts` groups connected water cells into deterministic fishing regions. Each region owns one school with a finite stock of **15 fish**. A successful catch consumes exactly one fish from the school attached to the adjacent water target. At zero stock the school remains present but cannot yield a catch. While below capacity, it regenerates exactly **one fish every 30 simulated seconds**, including recovery from zero.
+Fish availability is authoritative world state in `World.fishSchools`. `src/simulation/fishSchools.ts` groups connected water cells into deterministic fishing regions. Each region owns one school with a finite stock of **15 fish**. A successful catch consumes exactly one fish from the school attached to the adjacent water target. At zero stock the school remains present but cannot yield a catch. While below capacity, it regenerates exactly **one fish every 60 simulated seconds**, including recovery from zero.
 
 The simulation stores the current fishing spot, adjacent water target, cycle start tick and absolute end tick on the person. One fishing cycle lasts exactly five simulated seconds. Presentation derives a roughly 0.5-second cast, four-second hold and 0.5-second reel animation from those authoritative ticks. The deterministic catch roll is resolved only when the line is reeled in. Catch probability is derived from fisherman profession XP, from 0.30 at zero XP to 0.80 at 100 XP. Fisher profession XP is awarded only for a successful catch; failed cycles and attempts against an empty school do not advance experience.
 
