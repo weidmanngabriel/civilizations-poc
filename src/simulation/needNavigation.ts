@@ -59,3 +59,53 @@ export function findNeedReturnPath(
     (tile) => hexDistance(origin, tile) <= NEED_LOCAL_NAVIGATION_RADIUS,
   );
 }
+
+const localNeedAnchors = (world: World, person: Person): Hex[] => {
+  const anchors: Hex[] = [];
+  if (person.workArea?.center) anchors.push(person.workArea.center);
+  if (person.assignment) {
+    const workplace = world.buildings.find(
+      (building) => building.id === person.assignment!.building && !building.retired,
+    );
+    if (workplace) anchors.push(workplace.position);
+  }
+  return anchors.filter(
+    (anchor, index) =>
+      anchors.findIndex((candidate) =>
+        candidate.q === anchor.q && candidate.r === anchor.r,
+      ) === index,
+  );
+};
+
+export function findLocalNeedAnchorReturn(
+  world: World,
+  person: Person,
+  roadSpeedMultiplier = 1.3,
+): { anchor: Hex; path: Hex[] } | undefined {
+  if (
+    usesUnrestrictedGlobalPathfinding(person) ||
+    isInsideWaypostCoverage(world, person.position)
+  )
+    return undefined;
+
+  const origin = { ...person.position };
+  const candidates = localNeedAnchors(world, person)
+    .filter(
+      (anchor) =>
+        isInsideWaypostCoverage(world, anchor) &&
+        hexDistance(origin, anchor) <= NEED_LOCAL_NAVIGATION_RADIUS,
+    )
+    .sort((a, b) => hexDistance(origin, a) - hexDistance(origin, b));
+
+  for (const anchor of candidates) {
+    const path = findLocalNeedPath(
+      world,
+      person,
+      origin,
+      anchor,
+      roadSpeedMultiplier,
+    );
+    if (path) return { anchor: { ...anchor }, path };
+  }
+  return undefined;
+}
