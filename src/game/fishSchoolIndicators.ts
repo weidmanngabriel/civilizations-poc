@@ -42,7 +42,11 @@ const schoolPath = (school: FishSchool): Hex[] => {
 const smooth = (value: number): number => value * value * (3 - 2 * value);
 
 export const installFishSchoolIndicators = (scene: Phaser.Scene, world: World): void => {
-  scene.events.once(Phaser.Scenes.Events.CREATE, () => {
+  const sceneWithCreate = scene as Phaser.Scene & { create?: () => void };
+  const originalCreate = sceneWithCreate.create?.bind(scene);
+
+  sceneWithCreate.create = () => {
+    originalCreate?.();
     const graphics = scene.add.graphics().setDepth(8);
 
     const render = () => {
@@ -90,5 +94,5 @@ export const installFishSchoolIndicators = (scene: Phaser.Scene, world: World): 
       scene.events.off(Phaser.Scenes.Events.POST_UPDATE, render);
       graphics.destroy();
     });
-  });
+  };
 };
