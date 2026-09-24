@@ -52,11 +52,13 @@ export const installFishSchoolIndicators = (scene: Phaser.Scene, world: World): 
 
   sceneWithCreate.create = () => {
     originalCreate?.();
-    const graphics = scene.add.graphics().setDepth(8);
+    const graphics = scene.add.graphics().setDepth(8).setScrollFactor(0);
 
     const render = () => {
       graphics.clear();
-      const zoom = scene.cameras.main.zoom || 1;
+      const camera = scene.cameras.main;
+      const zoom = camera.zoom || 1;
+      graphics.setScale(1 / zoom);
       const elapsed = scene.time.now / 4200;
 
       for (const school of world.fishSchools ?? []) {
@@ -72,13 +74,15 @@ export const installFishSchoolIndicators = (scene: Phaser.Scene, world: World): 
           const progress = smooth(phase - Math.floor(phase));
           const from = pixel(path[pathIndex]!);
           const to = pixel(path[nextIndex]!);
-          const drift = Math.sin(scene.time.now / 900 + index * 1.7) * (FISH_DRIFT_SCREEN_PX / zoom);
-          const x = from.x + (to.x - from.x) * progress;
-          const y = from.y + (to.y - from.y) * progress + drift;
+          const worldX = from.x + (to.x - from.x) * progress;
+          const worldY = from.y + (to.y - from.y) * progress;
+          const x = (worldX - camera.scrollX) * zoom;
+          const y = (worldY - camera.scrollY) * zoom
+            + Math.sin(scene.time.now / 900 + index * 1.7) * FISH_DRIFT_SCREEN_PX;
           const direction = to.x >= from.x ? 1 : -1;
-          const bodyWidth = FISH_BODY_WIDTH_SCREEN_PX / zoom;
-          const bodyHeight = FISH_BODY_HEIGHT_SCREEN_PX / zoom;
-          const tail = FISH_TAIL_SCREEN_PX / zoom;
+          const bodyWidth = FISH_BODY_WIDTH_SCREEN_PX;
+          const bodyHeight = FISH_BODY_HEIGHT_SCREEN_PX;
+          const tail = FISH_TAIL_SCREEN_PX;
 
           graphics.fillStyle(0xd6edf2, 0.9);
           graphics.fillEllipse(x, y, bodyWidth, bodyHeight);
