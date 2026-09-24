@@ -31,6 +31,7 @@ import {
   performanceProfiler,
   type PathReason,
 } from "../debug/performanceProfiler";
+import { markBushChanged } from "./worldRevisions";
 
 const SIMULATION_HZ = 60;
 const EATING_DURATION_TICKS = 5 * SIMULATION_HZ;
@@ -329,6 +330,7 @@ const consumeBush = (world: World, person: Person, tile: Tile): void => {
   const span = CONFIG.bushRegrowMaxTicks - CONFIG.bushRegrowMinTicks;
   const regrowTick = world.round + CONFIG.bushRegrowMinTicks + (nextRandom(world) % (span + 1));
   tile.bushRegrowTick = regrowTick;
+  markBushChanged(world);
   world.nextBushRegrowTick = Math.min(world.nextBushRegrowTick ?? regrowTick, regrowTick);
   person.hunger = Math.min(HUNGER_MAX, (person.hunger ?? HUNGER_MAX) + CONFIG.bushFoodValue);
   finishEating(world, person);
@@ -680,16 +682,27 @@ const cleanupAndRegrowBushes = (world: World): void => {
   const cleanupDue = world.round % CONFIG.decisionIntervalTicks === 0;
   const regrowDue = world.nextBushRegrowTick !== undefined && world.round >= world.nextBushRegrowTick;
   if (!cleanupDue && !regrowDue) return;
+  let changed = false;
   let nextRegrowTick: number | undefined;
   for (const tile of world.tiles) {
     if (!tile.bush) continue;
     if (cleanupDue && tile.terrain !== "grass") {
-      tile.bush = undefined; tile.bushAvailable = undefined; tile.bushRegrowTick = undefined; continue;
+      tile.bush = undefined;
+      tile.bushAvailable = undefined;
+      tile.bushRegrowTick = undefined;
+      changed = true;
+      continue;
     }
     if (tile.bushRegrowTick === undefined) continue;
-    if (world.round >= tile.bushRegrowTick) { tile.bushAvailable = true; tile.bushRegrowTick = undefined; continue; }
+    if (world.round >= tile.bushRegrowTick) {
+      tile.bushAvailable = true;
+      tile.bushRegrowTick = undefined;
+      changed = true;
+      continue;
+    }
     nextRegrowTick = Math.min(nextRegrowTick ?? tile.bushRegrowTick, tile.bushRegrowTick);
   }
+  if (changed) markBushChanged(world);
   world.nextBushRegrowTick = nextRegrowTick;
 };
 
