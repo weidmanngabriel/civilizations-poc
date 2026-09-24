@@ -11,13 +11,27 @@ const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
 
 export function installWorkAreaControls(world: World): void {
   const inspector = document.querySelector<HTMLElement>("#person-inspector");
-  if (!inspector) return;
+  const main = document.querySelector<HTMLElement>("main");
+  if (!inspector || !main) return;
+
+  const modeOverlay = document.createElement("div");
+  modeOverlay.className = "person-command-overlay work-area-command-overlay";
+  modeOverlay.hidden = true;
+  modeOverlay.innerHTML = `
+    <div>
+      <small>ARBEITSBEREICH</small>
+      <strong>Arbeitsflagge versetzen</strong>
+      <span>Karte antippen, um die neue Position festzulegen.</span>
+    </div>
+    <button type="button" class="danger" data-work-area-cancel>Abbrechen</button>`;
+  main.append(modeOverlay);
 
   let selectedPersonId: number | undefined;
   let modePersonId: number | undefined;
 
   const dispatchMode = (active: boolean): void => {
     modePersonId = active ? selectedPersonId : undefined;
+    modeOverlay.hidden = !active;
     window.dispatchEvent(new CustomEvent(WORK_AREA_MODE_EVENT, {
       detail: { active, personId: active ? selectedPersonId : undefined },
     }));
@@ -55,6 +69,9 @@ export function installWorkAreaControls(world: World): void {
     }
   };
 
+  modeOverlay.querySelector<HTMLButtonElement>("[data-work-area-cancel]")!
+    .addEventListener("click", () => dispatchMode(false));
+
   window.addEventListener(PERSON_SELECTED_EVENT, (event) => {
     const next = (event as CustomEvent<{ id: number }>).detail.id;
     if (modePersonId !== undefined && modePersonId !== next) dispatchMode(false);
@@ -69,10 +86,12 @@ export function installWorkAreaControls(world: World): void {
   window.addEventListener(WORK_AREA_MODE_EVENT, (event) => {
     const detail = (event as CustomEvent<{ active: boolean; personId?: number }>).detail;
     modePersonId = detail.active ? detail.personId : undefined;
+    modeOverlay.hidden = !detail.active;
     queueMicrotask(syncControl);
   });
   window.addEventListener(WORK_AREA_CHANGED_EVENT, () => {
     modePersonId = undefined;
+    modeOverlay.hidden = true;
     queueMicrotask(syncControl);
   });
 
