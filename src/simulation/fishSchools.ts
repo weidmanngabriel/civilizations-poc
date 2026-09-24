@@ -3,7 +3,7 @@ import { key, neighbors } from "./hex";
 import { SIMULATION_HZ } from "./timing";
 
 export const FISH_SCHOOL_CAPACITY = 15;
-export const FISH_REGROW_INTERVAL_TICKS = 30 * SIMULATION_HZ;
+export const FISH_REGROW_INTERVAL_TICKS = 60 * SIMULATION_HZ;
 
 const riverRegions = (world: World): Hex[][] => {
   const river = new Map(
