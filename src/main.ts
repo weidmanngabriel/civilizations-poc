@@ -51,6 +51,7 @@ import "./performance-recording.css";
 import "./technology-tree.css";
 import "./modal-dialog.css";
 import "./game-menu.css";
+import "./light-theme.css";
 
 const preventPageZoom = (): void => {
   document.addEventListener(
