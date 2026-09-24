@@ -10,6 +10,7 @@ import type {
   World,
 } from "./model";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
+import { advanceFishSchools } from "./fishSchools";
 import { findLooseGoodDropPosition, placeLooseGood } from "./looseGoods";
 import { syncIdleBehavior, wakeIdlePeople } from "./idleBehavior";
 import {
@@ -338,6 +339,7 @@ export function tick(world: World): void {
   wakeIdlePeople(world);
   syncWorkAreas(world);
   tickNow(world);
+  advanceFishSchools(world);
   syncWorkAreas(world);
   syncIdleBehavior(world);
 }
