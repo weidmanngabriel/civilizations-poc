@@ -26,6 +26,9 @@ export type PerformanceFeature =
   | "technologyUnlocks"
   | "workAreaSync"
   | "wildlife"
+  | "wildlifeBlockedSteps"
+  | "wildlifeReplans"
+  | "wildlifePastureSearch"
   | "hunting"
   | "livestockCaptureProximity"
   | "renderWorld"
@@ -139,6 +142,9 @@ export const PERFORMANCE_FEATURES: PerformanceFeature[] = [
   "technologyUnlocks",
   "workAreaSync",
   "wildlife",
+  "wildlifeBlockedSteps",
+  "wildlifeReplans",
+  "wildlifePastureSearch",
   "hunting",
   "livestockCaptureProximity",
   "renderWorld",
@@ -209,6 +215,9 @@ const SIMULATION_FEATURES = new Set<PerformanceFeature>([
   "technologyUnlocks",
   "workAreaSync",
   "wildlife",
+  "wildlifeBlockedSteps",
+  "wildlifeReplans",
+  "wildlifePastureSearch",
   "hunting",
   "livestockCaptureProximity",
 ]);
