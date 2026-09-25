@@ -367,6 +367,7 @@ export const startSleepingAfterCompletedAction = (world: World, person: Person):
 
 export const commandSleep = (world: World, personId: number): boolean => {
   const person = world.people.find((candidate) => candidate.id === personId);
+  if (person?.ageStage === "child") return false;
   if (!person || (person.sleep ?? SLEEP_MAX) >= SLEEP_MAX) return false;
   if (person.sleepState) interruptSleep(world, person);
   person.manualMoveTarget = undefined;
@@ -483,8 +484,13 @@ export function advanceSleepTick(world: World): void {
   const searchContext: SleepSearchContext = {};
   try {
     for (const person of world.people) {
+      if (person.ageStage === "child") continue;
       sleepValue(person);
       if (person.sleepGraceTicks! > 0) person.sleepGraceTicks!--;
+      if (person.familyTask) {
+        decaySleep(person);
+        continue;
+      }
       if (person.manualMoveTarget) continue;
       if (person.sleepState) { ensureSleepRouteOrProgress(world, person, searchContext); continue; }
       decaySleep(person);
