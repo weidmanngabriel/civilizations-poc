@@ -31,6 +31,7 @@ import {
   HOUSE_LEVEL_DEFINITIONS,
   houseDirectCost,
   nextHouseLevel,
+  releaseHouseholdsForHouse,
 } from "./housing";
 
 export type BuildingPlacementShape = {
@@ -531,6 +532,7 @@ export function removeBuildingWithFootprint(world: World, id: string): boolean {
   const footprint = buildingFootprint(existing);
   const baseTerrains = existing.baseTerrains;
   const palisade = existing.kind === "palisade";
+  if (existing.kind === "house") releaseHouseholdsForHouse(world, existing.id);
   if (!removeBuilding(world, id)) return false;
 
   const tiles = tileIndex(world.tiles);
