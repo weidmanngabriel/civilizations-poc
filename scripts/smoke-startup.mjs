@@ -71,7 +71,7 @@ try {
       "--headless=new",
       "--no-sandbox",
       "--disable-dev-shm-usage",
-      "--disable-gpu",
+      "--enable-unsafe-swiftshader",
       "--virtual-time-budget=8000",
       "--dump-dom",
       URL,
