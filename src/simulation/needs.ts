@@ -536,6 +536,7 @@ export const interruptEating = (world: World, person: Person): void => {
 
 export const commandEat = (world: World, personId: number): boolean => {
   const person = world.people.find((candidate) => candidate.id === personId);
+  if (person?.ageStage === "child") return false;
   if (!person || (person.hunger ?? HUNGER_MAX) >= HUNGER_MAX) return false;
   interruptEating(world, person);
   person.manualMoveTarget = undefined;
@@ -710,8 +711,9 @@ export function advanceHungerTick(world: World): void {
   const hungerStarted = performanceNow();
   cleanupAndRegrowBushes(world);
   for (const person of world.people) {
+    if (person.ageStage === "child") continue;
     decayHunger(person);
-    if (person.manualMoveTarget) continue;
+    if (person.familyTask || person.manualMoveTarget) continue;
     if (person.hungerState) {
       if (person.hungerState.returningToNeedOrigin) ensureEatingReturn(world, person);
       else if (person.hungerState.returningToNeedAnchor) continueLocalNeedAnchorReturn(world, person);
