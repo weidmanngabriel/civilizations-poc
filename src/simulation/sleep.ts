@@ -1,6 +1,7 @@
 import type { Building, Hex, Person, SleepLocationKind, SleepState, World } from "./model";
 import { findPathBySteps, key, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
+import { homeForPerson } from "./housing";
 import { clearNavigationBlocked, findRequiredNavigationPath } from "./wayposts";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
 import {
@@ -93,12 +94,8 @@ const natureTargets = (world: World): Hex[] => {
 
 const searchTargets = (world: World, person: Person, context: SleepSearchContext, kind: "house" | "nature"): Hex[] => {
   if (kind === "house") {
-    if (person.home) {
-      const home = world.buildings.find((building) => building.id === person.home && isCompletedHouse(building));
-      if (home) return [home.position];
-    }
-    context.houses ??= world.buildings.filter(isCompletedHouse).map((building) => building.position);
-    return context.houses;
+    const home = homeForPerson(world, person);
+    return home ? [home.position] : [];
   }
   context.nature ??= natureTargets(world);
   return context.nature;
