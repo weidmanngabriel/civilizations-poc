@@ -23,6 +23,7 @@ export const RAW_CONSTRUCTION_GOODS = new Set<Good>(["wood", "clay", "rubble"]);
 
 /** Processing building that makes each processed construction good. */
 export const CONSTRUCTION_GOOD_PRODUCERS: Partial<Record<Good, PlaceableBuildingKind>> = {
+  wheat: "farm",
   plank: "sawmill",
   brick: "pottery",
   stoneBlock: "stonemason",
