@@ -156,7 +156,7 @@ export async function bootstrapGame(): Promise<void> {
       const started = performanceNow();
       try {
         rawRenderWorld();
-        if (!firstRenderSettled && scene.scene.isActive()) {
+        if (!firstRenderSettled && scene.sys.isActive()) {
           firstRenderSettled = true;
           resolveFirstRender();
         }
