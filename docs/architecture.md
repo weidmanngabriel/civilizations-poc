@@ -395,3 +395,16 @@ Startup configuration is preflighted through `src/runtime/startupValidation.ts` 
 The game is considered ready only after Phaser has been created, the active scene has completed its first successful `renderWorld()`, and the remaining UI modules have mounted. Only then is `data-game-ready="true"` written to the document root. A runtime crash removes the ready marker, sets `data-game-crashed="true"`, stops the simulation loop via the shared crash event, destroys Phaser when available, and presents a blocking diagnostic screen.
 
 Crash reports are local JSON downloads; they are never uploaded automatically. The report contains build time, failure source and startup phase, error name/message/stack, browser/viewport metadata and, when a world already exists, a world summary plus a serialized save snapshot. This makes user-reported failures reproducible without silently transmitting gameplay state.
+
+## Family simulation
+
+Family behavior is owned by `src/simulation/family.ts`. The module uses the existing deterministic world RNG and authoritative `Person`/`Household` state; UI code only issues partner-search commands and changes the global birth policy.
+
+Adults carry sex, spouse, parent and child relationships. Sex does not alter work, professions, needs or movement; it is only used for the current biological-child compatibility rule. Partner search is a family task that waits for a safe work boundary, reserves one reachable unmarried opposite-sex adult, routes to that person, and creates a symmetric marriage when they meet. Parent/child pairs and siblings are rejected. Marriage delegates cohabitation to the housing module, which merges apartments without creating housing when none exists.
+
+Autonomous births are household-level checks controlled by `low | medium | high` settlement policy. The checks are deterministic, use a five-minute post-birth cooldown, and create one/two/three children using the 90/9/1 distribution. Both parents route to the shared home and pause ordinary work while the short birth celebration runs. Presentation reads short-lived `familyEffects` from world state for hearts/bird cues.
+
+Children are real `Person` entities but are outside adult control systems. They have no needs, profession, work or manual commands. `family.ts` owns their nearby wandering and five-minute age progression. The first half is the baby visual stage, the second half the walking-child stage. On adulthood the person leaves the parental household, receives normal hunger/sleep values and remains unhoused until explicitly assigned an apartment.
+
+Save format version 8 persists family relations, child state, birth policy, family effects and household birth scheduling.
+
