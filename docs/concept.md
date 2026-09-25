@@ -397,3 +397,20 @@ Für das spätere Familiensystem gilt bereits als Modellregel: Ein Kind bleibt T
 Ein fataler Laufzeit- oder Startfehler darf das Spiel nicht in einem teilweise funktionsfähigen Zustand weiterlaufen lassen. In diesem Fall wird die Simulation angehalten und eine eindeutige Fehleransicht über das Spiel gelegt. Von dort kann der Spieler einen Crash-Report als JSON herunterladen und die Seite neu laden.
 
 Der Crash-Report wird ausschließlich lokal erzeugt und nicht automatisch übertragen. Er enthält technische Diagnoseinformationen und, falls die Welt bereits angelegt war, einen Snapshot des aktuellen Spielzustands, damit ein gemeldeter Fehler reproduziert werden kann.
+
+## Familie, Heirat und Kinder
+
+Männer und Frauen funktionieren in der Simulation vollständig gleich: Beide können dieselben Berufe lernen, arbeiten, Bedürfnisse erfüllen und Wohnungen beziehen. Das Geschlecht ist nur für die derzeitige biologische Nachwuchsregel relevant, für die ein verheiratetes Paar aus Mann und Frau benötigt wird.
+
+Der Spieler ordnet keine konkrete Ehe an. Ein unverheirateter Erwachsener erhält den Befehl „Partner suchen“. Sobald die aktuelle Arbeit sauber beendet werden kann, sucht die Person einen erreichbaren, unverheirateten Erwachsenen des anderen Geschlechts, reserviert diesen Kandidaten und läuft zu ihm. Beim Treffen wird sofort und dauerhaft geheiratet. Eltern und Kinder sowie Geschwister sind als Partner ausgeschlossen. Die Simulationsschnittstelle unterstützt denselben Auftrag für mehrere Personen, auch wenn die aktuelle Kartenauswahl weiterhin einzelne Personen fokussiert.
+
+Nach der Heirat wohnen beide nach Möglichkeit zusammen: Hat nur einer eine Wohnung, zieht der andere dort ein. Haben beide verschiedene Wohnungen, wird zufällig eine der beiden Wohnungen als gemeinsamer Haushalt behalten und die andere frei. Haben beide keine Wohnung, bleiben beide wohnungslos. Eine Ehe bleibt unabhängig vom späteren Verlust einer Wohnung bestehen.
+
+Die globale Nachwuchsstrategie wird im Hauptquartier als „Wenig“, „Mittel“ oder „Viele“ gesetzt. Wenig prüft geeignete Paare alle 3 Minuten mit 15 Prozent Chance, Mittel alle 2 Minuten mit 30 Prozent, Viele jede Minute mit 50 Prozent. Nach einer erfolgreichen Geburt gilt pro Haushalt ein fester Cooldown von 5 Minuten. Die Einstellung bestimmt nicht die Kinderzahl einer einzelnen Geburt.
+
+Bei einer Geburt entstehen zu 90 Prozent ein Kind, zu 9 Prozent zwei Kinder und zu 1 Prozent drei Kinder. Ein geeignetes Paar muss verheiratet sein, einen gemeinsamen Haushalt und damit eine gemeinsame Wohnung besitzen. Wenn die automatische Geburtsentscheidung fällt, warten beide Eltern auf einen sauberen Aufgabenübergang, gehen gemeinsam nach Hause und pausieren kurz. Über dem Haus erscheinen Herzen und ein fliegender Vogel; danach entstehen die Kinder. Schwangerschaft, Elternzeit und geschlechtsspezifische Arbeitsausfälle werden bewusst nicht simuliert.
+
+Kinder sind eigene Figuren, aber nicht steuerbar. Sie haben keine Bedürfnisse, keinen Beruf und keine Arbeit. Die Kindheit dauert exakt 5 simulierte Minuten. In den ersten 2,5 Minuten wird das Kind als Krabbelbaby dargestellt, in den zweiten 2,5 Minuten als laufendes Kind. Kinder wandern nur in der näheren Umgebung ihres Elternhauses (Radius 4 Weltkacheln). Sie benötigen keine zusätzliche Wohnung und bleiben Mitglied des Haushalts ihrer Eltern.
+
+Mit Erreichen der Volljährigkeit verlässt die Person den Elternhaushalt automatisch. Sie wird zu einem normalen steuerbaren Erwachsenen mit normalen Hunger- und Schlafwerten, erhält aber ausdrücklich keine Wohnung automatisch. Eine Wohnung muss später durch den Spieler oder eine zukünftige Familienregel zugewiesen werden.
+
