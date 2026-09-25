@@ -13,6 +13,7 @@ import {
 import { createWorld } from "../src/simulation/scenario";
 import { tick } from "../src/simulation/simulation";
 import { hexDistance } from "../src/simulation/spatial";
+import { householdForPerson } from "../src/simulation/housing";
 
 test("a person can receive profession, workplace and home independently", () => {
   const world = createWorld(1);
@@ -49,9 +50,9 @@ test("a person can receive profession, workplace and home independently", () => 
   assert.deepEqual(person.assignment, { building: sawmill.id, role: "worker" });
   assert.equal(person.profession, "sawmillWorker");
 
-  assert.deepEqual(validHomes(world).map((building) => building.id), [house.id]);
+  assert.deepEqual(validHomes(world, person.id).map((building) => building.id), [house.id]);
   assert.equal(setPersonHome(world, person.id, house.id), true);
-  assert.equal(person.home, house.id);
+  assert.equal(householdForPerson(world, person)?.homeId, house.id);
   assert.equal(world.people[0]!.assignment?.building, sawmill.id);
 });
 
