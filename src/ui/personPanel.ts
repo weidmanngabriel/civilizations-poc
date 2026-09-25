@@ -16,6 +16,7 @@ import { EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentPendingForSlot, equip
 import { PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT } from "./personContextMenu";
 import { confirmDialog, showDialog } from "./modalDialog";
 import { homeForPerson } from "../simulation/housing";
+import { canSearchForPartner, startPartnerSearchMany } from "../simulation/family";
 
 const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
@@ -173,6 +174,11 @@ export function mountPersonPanel(world: World): void {
         .map(([profession, label]) => `<button type="button" data-person-filter="${profession}" aria-pressed="false">${label}</button>`)
         .join("")}
     </div>
+    <div class="person-family-bulk" hidden>
+      <span data-family-selection-count></span>
+      <button type="button" data-family-bulk-search>💍 Partner suchen</button>
+      <button type="button" data-family-bulk-clear>Auswahl aufheben</button>
+    </div>
     <div class="person-browser-summary"></div>
     <div class="person-browser-list"></div>`;
   main.append(browser);
@@ -194,6 +200,9 @@ export function mountPersonPanel(world: World): void {
     browser.querySelectorAll<HTMLButtonElement>("[data-person-alert-filter]"),
   );
   const alertBadge = toggle.querySelector<HTMLElement>(".person-alert-badge")!;
+  const familyBulk = browser.querySelector<HTMLElement>(".person-family-bulk")!;
+  const familySelectionCount = familyBulk.querySelector<HTMLElement>("[data-family-selection-count]")!;
+  const familyBulkSearch = familyBulk.querySelector<HTMLButtonElement>("[data-family-bulk-search]")!;
   const browserKicker = browser.querySelector<HTMLElement>("[data-person-browser-kicker]")!;
   const browserTitle = browser.querySelector<HTMLElement>("[data-person-browser-title]")!;
   const alertFilters = browser.querySelector<HTMLElement>(".person-alert-filters")!;
@@ -207,6 +216,7 @@ export function mountPersonPanel(world: World): void {
   let inspectorSignature = "";
   let browserProfessionSignature = "";
   let staffPicker: StaffPickerDetail | undefined;
+  const familySelection = new Set<number>();
 
   const staffPickerProfession = (): Profession | undefined => {
     if (!staffPicker) return undefined;
@@ -262,6 +272,7 @@ export function mountPersonPanel(world: World): void {
   };
 
   const personListButton = (person: Person): string => `
+    <div class="person-list-row">
     <button class="person-list-item" type="button" data-person-id="${person.id}">
       <span class="person-list-avatar" aria-hidden="true">${professionIcon(world, person)}</span>
       <span class="person-list-copy">
@@ -270,10 +281,14 @@ export function mountPersonPanel(world: World): void {
         ${!staffPicker && alerts.has(person.id) ? `<em class="person-list-alert person-list-alert--${alerts.get(person.id)!.severity}">${escapeHtml(alerts.get(person.id)!.label)}</em>` : ""}
       </span>
       <span class="person-list-needs">
-        <span title="Hunger">🍴 <b data-person-hunger="${person.id}">${displayNeed(person.hunger)}</b></span>
-        <span title="Schlaf">💤 <b data-person-sleep="${person.id}">${displayNeed(person.sleep)}</b></span>
+        ${person.ageStage === "child"
+          ? `<span>🧒 Kind</span>`
+          : `<span title="Hunger">🍴 <b data-person-hunger="${person.id}">${displayNeed(person.hunger)}</b></span>
+             <span title="Schlaf">💤 <b data-person-sleep="${person.id}">${displayNeed(person.sleep)}</b></span>`}
       </span>
-    </button>`;
+    </button>
+    ${staffPicker ? "" : `<label class="person-family-select" title="Für gemeinsamen Partner-suchen-Befehl auswählen"><input type="checkbox" data-family-select-person="${person.id}" ${familySelection.has(person.id) ? "checked" : ""} ${person.ageStage === "child" ? "disabled" : ""}><span>Mehrfach</span></label>`}
+    </div>`;
 
   const renderBrowserList = (): void => {
     const people = matchingPeople();
@@ -295,6 +310,13 @@ export function mountPersonPanel(world: World): void {
         ? people.map(personListButton).join("")
         : `<div class="person-empty-state">Keine passende Person gefunden.</div>`;
     }
+
+    familyBulk.hidden = Boolean(staffPicker) || familySelection.size === 0;
+    familySelectionCount.textContent = `${familySelection.size} ausgewählt`;
+    familyBulkSearch.disabled = ![...familySelection].some((id) => {
+      const person = world.people.find((candidate) => candidate.id === id);
+      return Boolean(person && canSearchForPartner(world, person));
+    });
 
     for (const button of filterButtons)
       button.setAttribute("aria-pressed", String(button.dataset.personFilter === activeFilter));
@@ -579,6 +601,28 @@ export function mountPersonPanel(world: World): void {
       renderBrowserList();
       return;
     }
+    const familySelect = target.closest<HTMLInputElement>("[data-family-select-person]");
+    if (familySelect?.dataset.familySelectPerson) {
+      const personId = Number(familySelect.dataset.familySelectPerson);
+      if (familySelect.checked) familySelection.add(personId);
+      else familySelection.delete(personId);
+      renderBrowserList();
+      return;
+    }
+    const bulkSearch = target.closest<HTMLButtonElement>("[data-family-bulk-search]");
+    if (bulkSearch) {
+      startPartnerSearchMany(world, [...familySelection]);
+      familySelection.clear();
+      renderBrowserList();
+      return;
+    }
+    const bulkClear = target.closest<HTMLButtonElement>("[data-family-bulk-clear]");
+    if (bulkClear) {
+      familySelection.clear();
+      renderBrowserList();
+      return;
+    }
+
     const personButton = target.closest<HTMLButtonElement>("[data-person-id]");
     if (!personButton?.dataset.personId) return;
     const personId = Number(personButton.dataset.personId);
@@ -613,6 +657,12 @@ export function mountPersonPanel(world: World): void {
       window.dispatchEvent(new CustomEvent(PERSON_CONTEXT_TOGGLE_REQUESTED_EVENT));
       return;
     }
+    const relatedPersonLink = target.closest<HTMLButtonElement>("[data-person-related-id]");
+    if (relatedPersonLink?.dataset.personRelatedId) {
+      requestPerson(Number(relatedPersonLink.dataset.personRelatedId));
+      return;
+    }
+
     const buildingLink = target.closest<HTMLButtonElement>("[data-person-building-id]");
     if (buildingLink?.dataset.personBuildingId) {
       const buildingId = buildingLink.dataset.personBuildingId;
