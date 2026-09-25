@@ -72,6 +72,7 @@ import {
   householdsForHouse,
   nextHouseLevel,
 } from "../simulation/housing";
+import { BIRTH_POLICY_RULES, setBirthPolicy } from "../simulation/family";
 
 const SIMULATION_STEP_MS = 1000 / CONFIG.simulationHz;
 const MAX_FRAME_DELTA_MS = 100;
@@ -543,7 +544,11 @@ export function mountControls(w: World, renderMap: () => void): void {
 
     selectionPanel.hidden = false;
     if (b.kind === "hq") {
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><div class="selection-title-actions">${buildingWikiButton(b)}<button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div></div><p class="recipe">Sammelpunkt. Berufe und Arbeitsplätze werden direkt an einzelnen Bewohnern zugewiesen.</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> ohne Beruf</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><div class="building-staff">${staffSection(b, "carrier", b.carriers)}</div><p class="status" data-field="status"></p>`;
+      const birthPolicy = w.birthPolicy ?? "medium";
+      const birthPolicyButtons = (["low", "medium", "high"] as const)
+        .map((policy) => `<button data-action="birth-policy" data-policy="${policy}" ${birthPolicy === policy ? "disabled" : ""}>${BIRTH_POLICY_RULES[policy].label}</button>`)
+        .join("");
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>GLOBAL</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><div class="selection-title-actions">${buildingWikiButton(b)}<button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div></div><p class="recipe">Sammelpunkt. Berufe und Arbeitsplätze werden direkt an einzelnen Bewohnern zugewiesen.</p><div class="assignment"><div>Bevölkerung<small><span data-field="free-count"></span> ohne Beruf</small></div><div class="stepper"><button data-action="population" data-delta="-1">−</button><output data-field="population-count"></output><button data-action="population" data-delta="1">+</button></div></div><section class="upgrade-card"><strong>Nachwuchs</strong><p class="recipe">Steuert, wie häufig verheiratete Paare mit gemeinsamer Wohnung selbständig Nachwuchs bekommen.</p><div class="stepper">${birthPolicyButtons}</div></section><div class="building-staff">${staffSection(b, "carrier", b.carriers)}</div><p class="status" data-field="status"></p>`;
       updateSelectionLiveState();
       return;
     }
@@ -1038,6 +1043,14 @@ export function mountControls(w: World, renderMap: () => void): void {
         removeWaypost(w, selectedWaypostId);
         selectedWaypostId = undefined;
         window.dispatchEvent(new CustomEvent(SELECTION_CLEARED_EVENT));
+        refresh();
+      }
+      return;
+    }
+    if (action === "birth-policy") {
+      const policy = button.dataset.policy;
+      if (policy === "low" || policy === "medium" || policy === "high") {
+        setBirthPolicy(w, policy);
         refresh();
       }
       return;
