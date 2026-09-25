@@ -48,10 +48,12 @@ export const HOUSE_LEVEL_DEFINITIONS: Record<HouseLevel, HouseLevelDefinition> =
 
 export const HOUSE_LEVELS: readonly HouseLevel[] = [1, 2, 3, 4, 5];
 
-const completedHouse = (building: Building): boolean =>
+const usableHouse = (building: Building): boolean =>
   building.kind === "house" &&
   !building.retired &&
-  (!building.construction || building.construction.complete);
+  (!building.construction ||
+    building.construction.complete ||
+    building.houseUpgradeTarget !== undefined);
 
 export const houseLevel = (building: Building): HouseLevel =>
   building.kind === "house" ? (building.houseLevel ?? 1) : 1;
@@ -103,7 +105,7 @@ export const homeForPerson = (world: World, person: Person): Building | undefine
   const household = householdForPerson(world, person);
   if (!household) return;
   return world.buildings.find(
-    (building) => building.id === household.homeId && completedHouse(building),
+    (building) => building.id === household.homeId && usableHouse(building),
   );
 };
 
@@ -112,7 +114,7 @@ export const freeApartmentIndex = (
   house: Building,
   ignoredHouseholdId?: HouseholdId,
 ): number | undefined => {
-  if (!completedHouse(house)) return;
+  if (!usableHouse(house)) return;
   const occupied = new Set(
     householdsForHouse(world, house.id)
       .filter((household) => household.id !== ignoredHouseholdId)
@@ -133,7 +135,7 @@ export const validHomes = (world: World, personId?: number): Building[] => {
   const household = person ? householdForPerson(world, person) : undefined;
 
   return world.buildings.filter((building) => {
-    if (!completedHouse(building)) return false;
+    if (!usableHouse(building)) return false;
     if (household?.homeId === building.id) return true;
     return freeApartmentIndex(world, building) !== undefined;
   });
@@ -155,7 +157,7 @@ export function assignPersonHome(
 ): boolean {
   const person = world.people.find((candidate) => candidate.id === personId);
   const house = world.buildings.find((building) => building.id === buildingId);
-  if (!person || !house || !completedHouse(house)) return false;
+  if (!person || !house || !usableHouse(house)) return false;
 
   const existing = householdForPerson(world, person);
   if (existing?.homeId === house.id) return true;
