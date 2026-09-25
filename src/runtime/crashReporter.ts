@@ -7,6 +7,7 @@ type CrashReport = {
   version: 1;
   crashedAt: string;
   buildTime: string;
+  buildSha: string;
   source: string;
   phase: string;
   error: {
@@ -62,6 +63,7 @@ const createReport = (error: unknown, source: string): CrashReport => {
     version: 1,
     crashedAt: new Date().toISOString(),
     buildTime: process.env.BUILD_TIME ?? "",
+    buildSha: process.env.BUILD_SHA ?? "local",
     source,
     phase,
     error: {
