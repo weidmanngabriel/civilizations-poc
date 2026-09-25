@@ -8,7 +8,6 @@ import { GOOD_ICONS } from "../icons";
 import { performanceProfiler } from "../debug/performanceProfiler";
 import { HEX_X, HEX_Y, pixel } from "./mapGeometry";
 import { bushRevision, terrainRevision } from "../simulation/worldRevisions";
-import { runMapCacheOperation } from "./mapRenderCache";
 import {
   PERSON_MARKER_RADIUS,
   personMarkerPositions,
@@ -62,7 +61,6 @@ type PersonMarkerObjects = {
  */
 export class IncrementalMainScene extends MainScene {
   private mapCache?: Phaser.GameObjects.RenderTexture;
-  private mapCacheDisabled = false;
   private mapCacheOffset = { x: 0, y: 0 };
   private bushGraphics?: Phaser.GameObjects.Graphics;
   private inventoryGraphics?: Phaser.GameObjects.Graphics;
@@ -89,6 +87,7 @@ export class IncrementalMainScene extends MainScene {
     const markers = internals.markers;
     const mapGraphics = internals.mapGraphics;
     if (!markers || !mapGraphics) return false;
+    internals.mapLabels?.setVisible(false);
     if (this.inventoryGraphics) return true;
 
     const points = this.worldRef.tiles.map((tile) => pixel(tile));
@@ -98,32 +97,11 @@ export class IncrementalMainScene extends MainScene {
     const maxX = Math.ceil(Math.max(...points.map((point) => point.x)) + padding);
     const maxY = Math.ceil(Math.max(...points.map((point) => point.y)) + padding);
     this.mapCacheOffset = { x: minX, y: minY };
-
-    if (!this.mapCacheDisabled) {
-      let cache: Phaser.GameObjects.RenderTexture | undefined;
-      const created = runMapCacheOperation(
-        () => {
-          cache = this.add
-            .renderTexture(minX, minY, Math.max(1, maxX - minX), Math.max(1, maxY - minY))
-            .setOrigin(0, 0)
-            .setDepth(-100);
-          this.mapCache = cache;
-          mapGraphics.setVisible(false);
-          internals.mapLabels?.setVisible(false);
-        },
-        () => {
-          cache?.destroy();
-          this.mapCache = undefined;
-          this.mapCacheDisabled = true;
-          mapGraphics.setVisible(true);
-          internals.mapLabels?.setVisible(true);
-        },
-      );
-      if (!created) this.mapCacheDisabled = true;
-    } else {
-      mapGraphics.setVisible(true);
-      internals.mapLabels?.setVisible(true);
-    }
+    this.mapCache = this.add
+      .renderTexture(minX, minY, Math.max(1, maxX - minX), Math.max(1, maxY - minY))
+      .setOrigin(0, 0)
+      .setDepth(-100);
+    mapGraphics.setVisible(false);
 
     this.bushGraphics = this.add.graphics();
     this.inventoryGraphics = this.add.graphics();
@@ -138,33 +116,20 @@ export class IncrementalMainScene extends MainScene {
     const internals = this.internals();
     const mapGraphics = internals.mapGraphics;
     const mapCache = this.mapCache;
-    if (!mapGraphics) return;
-    if (!mapCache || this.mapCacheDisabled) {
-      mapGraphics.setVisible(true);
-      internals.mapLabels?.setVisible(true);
-      return;
-    }
+    if (!mapGraphics || !mapCache) return;
 
     mapGraphics.setVisible(true);
-    const rendered = runMapCacheOperation(
-      () => {
-        mapCache.clear();
-        mapCache.draw(
-          mapGraphics,
-          -this.mapCacheOffset.x,
-          -this.mapCacheOffset.y,
-        );
-        mapCache.render();
-      },
-      () => {
-        mapCache.destroy();
-        this.mapCache = undefined;
-        this.mapCacheDisabled = true;
-      },
-    );
-
-    mapGraphics.setVisible(!rendered);
-    internals.mapLabels?.setVisible(!rendered);
+    try {
+      mapCache.clear();
+      mapCache.draw(
+        mapGraphics,
+        -this.mapCacheOffset.x,
+        -this.mapCacheOffset.y,
+      );
+      mapCache.render();
+    } finally {
+      mapGraphics.setVisible(false);
+    }
   }
 
   private mapSignature(): string {

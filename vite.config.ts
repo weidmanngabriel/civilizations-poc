@@ -4,6 +4,7 @@ import { defineConfig, type Plugin } from "vite";
 
 const APP_BASE = "/civilizations-poc/";
 const buildTime = new Date().toISOString();
+const buildSha = process.env.GITHUB_SHA ?? "local";
 
 function createServiceWorker(precacheUrls: string[]): string {
   return `const APP_BASE = ${JSON.stringify(APP_BASE)};
@@ -184,5 +185,6 @@ export default defineConfig({
   },
   define: {
     "process.env.BUILD_TIME": JSON.stringify(buildTime),
+    "process.env.BUILD_SHA": JSON.stringify(buildSha),
   },
 });

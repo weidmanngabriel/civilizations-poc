@@ -6,11 +6,13 @@ import { createDefaultGameWorld } from "../src/simulation/scenario";
 import { createTestWorld } from "./testWorld";
 import { tick } from "../src/simulation/simulation";
 import { BUILDING_CONSTRUCTION_REQUIREMENTS, requiredProductionBuildings } from "../src/simulation/constructionRules";
+import { validateStartupConfiguration } from "../src/runtime/startupValidation";
 import {
   IMPLEMENTED_TECHNOLOGIES,
   STARTING_TECHNOLOGIES,
   TECHNOLOGY_UNLOCK_RULES,
   isBuildingUnlocked,
+  technologyProgress,
   updateTechnologyUnlocks,
 } from "../src/simulation/technology";
 
@@ -55,6 +57,20 @@ test("player-facing world starts with only the intended building technologies", 
       STARTING_TECHNOLOGIES.includes(technology),
       `${technology} has the wrong initial unlock state`,
     );
+});
+
+test("all implemented technologies resolve their construction prerequisites without throwing", () => {
+  const world = createDefaultGameWorld();
+
+  assert.doesNotThrow(() => validateStartupConfiguration(world));
+
+  for (const technology of IMPLEMENTED_TECHNOLOGIES) {
+    assert.doesNotThrow(() => requiredProductionBuildings(technology), technology);
+    assert.doesNotThrow(() => technologyProgress(world, technology), technology);
+  }
+
+  assert.deepEqual(requiredProductionBuildings("house"), ["farm"]);
+  assert.equal(technologyProgress(world, "house").unlocked, true);
 });
 
 test("profession rules unlock at exactly ten XP once construction-chain prerequisites exist", () => {
