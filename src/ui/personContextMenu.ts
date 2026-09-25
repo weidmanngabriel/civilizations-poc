@@ -23,6 +23,7 @@ import { WORK_AREA_MODE_EVENT } from "../game/workAreaInteraction";
 import { personName } from "../simulation/personIdentity";
 import { assignEquipment, EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentPendingForSlot, equipmentStock } from "../simulation/equipment";
 import { completedSchools, educationTeacherCandidates, startEducation } from "../simulation/education";
+import { canSearchForPartner, startPartnerSearch } from "../simulation/family";
 
 const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
@@ -44,7 +45,8 @@ type ActionId =
   | "eat"
   | "sleep"
   | "waypost"
-  | "equipment";
+  | "equipment"
+  | "partner";
 
 type Action = {
   id: ActionId;
@@ -63,6 +65,7 @@ const ACTIONS: Action[] = [
   { id: "sleep", slot: 7, icon: "💤", label: "Schlafen" },
   { id: "waypost", slot: 8, icon: "🪧", label: "Wegweiser" },
   { id: "equipment", slot: 9, icon: "🎒", label: "Ausrüstung" },
+  { id: "partner", slot: 10, icon: "💍", label: "Partner suchen" },
 ];
 
 const isEditableTarget = (target: EventTarget | null): boolean => {
@@ -121,6 +124,9 @@ export function mountPersonContextMenu(world: World): void {
       : world.people.find((person) => person.id === selectedPersonId);
 
   const actionVisible = (action: Action, person: Person): boolean => {
+    if (person.ageStage === "child") return false;
+    if (action.id === "partner") return canSearchForPartner(world, person);
+    if (person.familyTask) return false;
     if (person.educationTask && action.id !== "eat" && action.id !== "sleep") return false;
     if (action.id === "profession") return canChangePersonProfession(person) && !person.educationTask;
     if (action.id === "workplace") return validWorkplaces(world, person.id).length > 0;
@@ -306,6 +312,14 @@ export function mountPersonContextMenu(world: World): void {
     if (action === "equipment") {
       renderEquipmentPicker();
       pickerBackdrop.hidden = false;
+      return;
+    }
+    if (action === "partner") {
+      if (!startPartnerSearch(world, person.id)) return;
+      setMenuOpen(false);
+      window.dispatchEvent(new CustomEvent(PERSON_SELECTION_REQUESTED_EVENT, {
+        detail: { id: person.id, focus: false },
+      }));
       return;
     }
     if (action === "workplace") return beginMode("workplace");
