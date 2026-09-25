@@ -56,3 +56,17 @@ This file is the primary location for verified domain terms, domain rules, invar
 - Die visuelle Position eines Schwarms innerhalb seiner Region beeinflusst die Angelbarkeit nicht.
 - Bei Beständen von 3, 2 oder 1 werden exakt 3, 2 oder 1 sichtbare Fische dargestellt; bei 0 keiner.
 
+## Housing invariants
+
+- A completed residential building has a level from 1 through 5 and therefore 2 through 6 apartments.
+- One apartment can be occupied by at most one household.
+- One household occupies exactly one apartment in exactly one residential building.
+- One person belongs to at most one household.
+- Household membership, not a direct building reference on the person, is the authoritative source for a person's home.
+- Household size does not consume additional apartments. Children remain members of their parents' household without extra housing capacity.
+- Assigning a home to an already housed person moves the existing household as a unit.
+- A residential upgrade does not grant its additional apartment until the upgrade construction is complete.
+- Direct construction of residential level N costs the sum of level costs 1 through N; an upgrade costs only the target level's increment.
+- An unhoused person is a valid simulation state.
+- When the later age system makes a child an adult, that person leaves the parental household and is not assigned a new apartment automatically.
+
