@@ -35,6 +35,8 @@ jobs:
       - run: npm test
       - run: npm run build
         if: github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.validation == 'full')
+      - run: npm run smoke:startup
+        if: github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.validation == 'full')
       - uses: actions/configure-pages@v5
         if: github.event_name == 'push'
       - uses: actions/upload-pages-artifact@v3
