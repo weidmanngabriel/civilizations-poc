@@ -310,6 +310,8 @@ export interface Person {
   ageStage?: AgeStage;
   /** Simulation tick of birth for children. */
   bornAtTick?: number;
+  /** Children pick another nearby wander step no earlier than this tick. */
+  nextChildWanderTick?: number;
   spouseId?: number;
   parentIds?: number[];
   childIds?: number[];
