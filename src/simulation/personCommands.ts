@@ -98,7 +98,10 @@ const stopCurrentWork = (world: World, person: Person): boolean => {
 };
 
 export const canChangePersonProfession = (person: Person): boolean =>
-  !person.trip?.picked && !person.outdoorCarry;
+  person.ageStage !== "child" &&
+  !person.familyTask &&
+  !person.trip?.picked &&
+  !person.outdoorCarry;
 
 const applyProfessionFlags = (person: Person, profession: Profession | undefined): void => {
   person.profession = profession;
@@ -152,7 +155,7 @@ export function setPersonProfession(
 export function validWorkplaces(world: World, personId: number): Building[] {
   const person = world.people.find((candidate) => candidate.id === personId);
   const profession = person ? currentProfession(world, person) : undefined;
-  if (!person || !profession || !roleForProfession(profession)) return [];
+  if (!person || person.ageStage === "child" || person.familyTask || !profession || !roleForProfession(profession)) return [];
   const role = roleForProfession(profession)!;
   return world.buildings.filter((building) =>
     compatibleWorkplace(profession, building) &&
@@ -192,16 +195,28 @@ export function setPersonWorkplace(world: World, personId: number, buildingId: B
   return true;
 }
 
-export const validHomes = (world: World, personId?: number): Building[] =>
-  validHousingHomes(world, personId);
+export const validHomes = (world: World, personId?: number): Building[] => {
+  const person = personId === undefined
+    ? undefined
+    : world.people.find((candidate) => candidate.id === personId);
+  if (person?.ageStage === "child" || person?.familyTask) return [];
+  return validHousingHomes(world, personId);
+};
 
 export function setPersonHome(world: World, personId: number, buildingId: BuildingId): boolean {
+  const person = world.people.find((candidate) => candidate.id === personId);
+  if (!person || person.ageStage === "child" || person.familyTask) return false;
   return assignPersonHome(world, personId, buildingId);
 }
 
 export function orderPersonMove(world: World, personId: number, target: Hex): boolean {
   const person = world.people.find((candidate) => candidate.id === personId);
-  if (!person || !world.tiles.some((tile) => same(tile, target))) return false;
+  if (
+    !person ||
+    person.ageStage === "child" ||
+    person.familyTask ||
+    !world.tiles.some((tile) => same(tile, target))
+  ) return false;
   const path = findRequiredNavigationPath(world, person, target, CONFIG.roadSpeedMultiplier, "manual");
   if (!path) return false;
   cancelEquipmentPickup(world, person);
