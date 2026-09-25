@@ -124,7 +124,7 @@ export function mountPersonContextMenu(world: World): void {
     if (person.educationTask && action.id !== "eat" && action.id !== "sleep") return false;
     if (action.id === "profession") return canChangePersonProfession(person) && !person.educationTask;
     if (action.id === "workplace") return validWorkplaces(world, person.id).length > 0;
-    if (action.id === "home") return validHomes(world).length > 0;
+    if (action.id === "home") return validHomes(world, person.id).length > 0;
     if (action.id === "workarea") return supportsWorkArea(person);
     if (action.id === "eat") return (person.hunger ?? 100) < 100;
     if (action.id === "sleep") return (person.sleep ?? 100) < 100;
