@@ -382,7 +382,7 @@ Die Bau- und Ausbaukosten sind:
 - Stufe 4: zusätzlich 2 Holz, 1 Backstein, 1 Steinblock und 4 Dachziegel.
 - Stufe 5: zusätzlich 2 Holz, 1 Backstein, 1 Steinblock, 1 Dachziegel und 5 Marmor.
 
-Eine höhere Stufe kann direkt gebaut werden. In diesem Fall werden die Kosten aller Stufen bis zum gewählten Ziel aufsummiert. Beim Ausbau eines bestehenden Wohnhauses werden nur die Kosten der nächsten Stufe verlangt. Die zusätzliche Wohnung wird erst nach Abschluss des Ausbaus verfügbar.
+Eine höhere Stufe kann direkt gebaut werden. In diesem Fall werden die Kosten aller Stufen bis zum gewählten Ziel aufsummiert. Beim Ausbau eines bestehenden Wohnhauses werden nur die Kosten der nächsten Stufe verlangt. Die bereits vorhandenen Wohnungen bleiben während eines Ausbaus bewohnbar. Die zusätzliche Wohnung wird erst nach Abschluss des Ausbaus verfügbar.
 
 Die Wohnungszuweisung erfolgt bewusst durch den Spieler über den Personenbefehl „Wohnung“. Im Kartenmodus werden nur fertige Wohnhäuser mit einer freien Wohnung sowie das bereits bewohnte Haus hervorgehoben. Die konkrete freie Wohnung innerhalb des Hauses wird automatisch gewählt. Der Wohnhausdialog zeigt jede Wohnung und ihren Haushalt; die dort aufgeführten Bewohner sind direkt anklickbar.
 
