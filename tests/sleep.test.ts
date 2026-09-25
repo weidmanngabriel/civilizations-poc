@@ -4,6 +4,7 @@ import { CONFIG, createWorld } from "../src/simulation/scenario";
 import { advanceSleepTick, SLEEP_RULES } from "../src/simulation/sleep";
 import { tick } from "../src/simulation/simulation";
 import type { Building, World } from "../src/simulation/model";
+import { assignPersonHome } from "../src/simulation/housing";
 
 const addHouse = (world: World, qOffset = 2): Building => {
   const person = world.people[0]!;
