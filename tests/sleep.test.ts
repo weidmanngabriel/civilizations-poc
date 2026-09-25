@@ -187,6 +187,7 @@ test("house sleep restores 50 sleep points per five-second phase up to 100", () 
   const world = createWorld(1);
   const person = world.people[0]!;
   const house = addHouse(world);
+  assert.equal(assignPersonHome(world, person.id, house.id), true);
   person.sleep = 20;
 
   advanceSleepTick(world);
