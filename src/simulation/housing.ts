@@ -175,7 +175,7 @@ export function assignPersonHome(
 ): boolean {
   const person = world.people.find((candidate) => candidate.id === personId);
   const house = world.buildings.find((building) => building.id === buildingId);
-  if (!person || !house || !usableHouse(house)) return false;
+  if (!person || person.ageStage === "child" || !house || !usableHouse(house)) return false;
 
   const existing = householdForPerson(world, person);
   if (existing?.homeId === house.id) return true;
