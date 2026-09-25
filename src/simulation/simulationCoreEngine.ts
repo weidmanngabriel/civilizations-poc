@@ -1391,6 +1391,10 @@ function advanceConstruction(w: World): void {
 
     construction.progress = construction.duration;
     construction.complete = true;
+    if (site.kind === "house" && site.houseUpgradeTarget) {
+      site.houseLevel = site.houseUpgradeTarget;
+      site.houseUpgradeTarget = undefined;
+    }
     if (site.kind === "palisade") {
       const tile = tileAt(w, site.position);
       tile.buildingBlocking = true;

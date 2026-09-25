@@ -4,6 +4,7 @@ import { CONFIG, createWorld } from "../src/simulation/scenario";
 import { advanceSleepTick, SLEEP_RULES } from "../src/simulation/sleep";
 import { tick } from "../src/simulation/simulation";
 import type { Building, World } from "../src/simulation/model";
+import { assignPersonHome } from "../src/simulation/housing";
 
 const addHouse = (world: World, qOffset = 2): Building => {
   const person = world.people[0]!;
@@ -187,6 +188,7 @@ test("house sleep restores 50 sleep points per five-second phase up to 100", () 
   const world = createWorld(1);
   const person = world.people[0]!;
   const house = addHouse(world);
+  assert.equal(assignPersonHome(world, person.id, house.id), true);
   person.sleep = 20;
 
   advanceSleepTick(world);

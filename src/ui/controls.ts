@@ -4,6 +4,8 @@ import type {
   BuildingId,
   Good,
   Hex,
+  HouseLevel,
+  PlaceableBuildingKind,
   Role,
   WaypostId,
   World,
@@ -62,6 +64,13 @@ import {
   palisadePlanningTileAvailable,
   planPalisadePath,
 } from "../simulation/palisades";
+import {
+  houseApartmentCount,
+  houseLevel,
+  houseUpgradeCost,
+  householdsForHouse,
+  nextHouseLevel,
+} from "../simulation/housing";
 
 const SIMULATION_STEP_MS = 1000 / CONFIG.simulationHz;
 const MAX_FRAME_DELTA_MS = 100;
@@ -131,7 +140,8 @@ export function mountControls(w: World, renderMap: () => void): void {
   let merchantTargetSelection: number | undefined;
   let merchantSelectionWasRunning = false;
   let handbookWasRunning = false;
-  let buildPlacementKind: BuildableBuildingKind | "waypost" | "palisade" | undefined;
+  let buildPlacementKind: PlaceableBuildingKind | "waypost" | "palisade" | undefined;
+  let buildPlacementHouseLevel: HouseLevel | undefined;
   let buildPlacementPosition: Hex | undefined;
   let palisadeStart: Hex | undefined;
   let palisadePreview: Hex[] = [];
@@ -310,8 +320,19 @@ export function mountControls(w: World, renderMap: () => void): void {
   };
 
   const upgradeControls = (b: Building): string => {
+    if (isUnderConstruction(b)) return "";
+    if (b.kind === "house") {
+      const target = nextHouseLevel(b);
+      const required = houseUpgradeCost(b);
+      if (!target || !required) return "";
+      const costs = (Object.entries(required) as [Good, number][])
+        .map(([good, amount]) => `${GOOD_ICONS[good]} ${amount} ${GOODS[good]}`)
+        .join(" + ");
+      return `<section class="upgrade-card"><strong>Ausbau zu Wohnhaus ${target}</strong><p class="recipe">${costs}</p><button data-action="upgrade" ${canUpgradeBuilding(w, b) ? "" : "disabled"}>Ausbauen</button></section>`;
+    }
+
     const rule = buildingUpgradeRule(b.kind);
-    if (!rule || isUnderConstruction(b)) return "";
+    if (!rule) return "";
     const unlocked = isBuildingUnlocked(w, rule.to);
     const xp = maxProfessionExperience(w, rule.profession);
     const costs = (Object.entries(rule.required) as [Good, number][])
@@ -426,7 +447,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       for (const good of Object.keys(GOODS) as Good[])
         setField(`warehouse-${good}`, `${formatWholeAmount(warehouseStock(b, good))}/${CONFIG.warehouseCapacityPerGood}`);
     } else {
-      const recipeInputs = b.recipe?.inputs
+    const recipeInputs = b.recipe?.inputs
         ? (Object.keys(b.recipe.inputs) as Good[])
         : b.recipe?.input
           ? [b.recipe.input]
@@ -535,6 +556,30 @@ export function mountControls(w: World, renderMap: () => void): void {
         .map((good) => `<div><span>${goodLabel(good)}</span><strong data-field="construction-${good}"></strong></div>`)
         .join("");
       selectionPanel.innerHTML = `<div class="selection-title"><div><small>BAUSTELLE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><div class="selection-title-actions">${buildingWikiButton(b)}<button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div></div><p class="recipe">Bauarbeiter werden automatisch aus dem globalen Pool zugewiesen. Erfahrung erhöht den persönlichen Baufortschritt bis auf das Doppelte.</p><div class="inventory"><div><span>Bauarbeiter</span><strong data-field="builder-count"></strong></div>${materials}<div><span>Baufortschritt</span><strong data-field="construction-progress"></strong></div></div><p class="status" data-field="status"></p>${demolish}`;
+      updateSelectionLiveState();
+      return;
+    }
+
+    if (b.kind === "house") {
+      const level = houseLevel(b);
+      const capacity = houseApartmentCount(b);
+      const householdByApartment = new Map(
+        householdsForHouse(w, b.id).map((household) => [household.apartmentIndex, household]),
+      );
+      const apartments = Array.from({ length: capacity }, (_, apartmentIndex) => {
+        const household = householdByApartment.get(apartmentIndex);
+        if (!household)
+          return `<div class="staff-person staff-person--empty"><span class="staff-person-icon staff-person-icon--empty" aria-hidden="true">🏠</span><span class="staff-person-copy"><strong>Wohnung ${apartmentIndex + 1}</strong><small>Frei</small></span></div>`;
+        const members = household.memberIds
+          .map((personId) => w.people.find((person) => person.id === personId))
+          .filter((person): person is NonNullable<typeof person> => Boolean(person));
+        const memberButtons = members.length
+          ? members.map((person) => `<button type="button" class="staff-person" data-action="household-person" data-person="${person.id}"><span class="staff-person-icon" aria-hidden="true">👤</span><span class="staff-person-copy"><strong>${escapeHtml(personName(person.id))}</strong><small>Bewohner · anklicken</small></span><span class="staff-person-open" aria-hidden="true">›</span></button>`).join("")
+          : `<div class="staff-person"><span class="staff-person-copy"><strong>Haushalt</strong><small>Keine Bewohner</small></span></div>`;
+        return `<section class="staff-group"><div class="staff-group-title"><strong>Wohnung ${apartmentIndex + 1}</strong><span>${members.length} Bewohner</span></div><div class="staff-list">${memberButtons}</div></section>`;
+      }).join("");
+      const occupied = householdByApartment.size;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>WOHNHAUS · STUFE ${level}</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><div class="selection-title-actions">${buildingWikiButton(b)}<button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div></div><p class="recipe">${occupied} von ${capacity} Wohnungen belegt. Eine Wohnung gehört genau einem Haushalt; Kinder benötigen keine zusätzliche Wohnung.</p><div class="building-staff">${apartments}</div>${upgradeControls(b)}<p class="status" data-field="status"></p>${demolish}`;
       updateSelectionLiveState();
       return;
     }
@@ -743,6 +788,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   const leaveBuildPlacementMode = () => {
     if (!buildPlacementKind) return;
     buildPlacementKind = undefined;
+    buildPlacementHouseLevel = undefined;
     buildPlacementPosition = undefined;
     palisadeStart = undefined;
     palisadePreview = [];
@@ -755,14 +801,16 @@ export function mountControls(w: World, renderMap: () => void): void {
   };
 
   const enterBuildPlacementMode = (
-    kind: BuildableBuildingKind | "waypost" | "palisade",
+    kind: PlaceableBuildingKind | "waypost" | "palisade",
     scoutId?: number,
+    houseLevel?: HouseLevel,
   ) => {
     if (kind === "waypost") {
       const scout = w.people.find((person) => person.id === scoutId);
       if (!scout || currentProfession(w, scout) !== "scout") return;
     }
     buildPlacementKind = kind;
+    buildPlacementHouseLevel = kind === "house" ? (houseLevel ?? 1) : undefined;
     waypostScoutId = kind === "waypost" ? scoutId : undefined;
     buildPlacementPosition = undefined;
     selectedTile = undefined;
@@ -773,7 +821,9 @@ export function mountControls(w: World, renderMap: () => void): void {
     buildPlacementTitle.textContent =
       kind === "waypost" ? "Wegweiser platzieren"
         : kind === "palisade" ? "Palisade errichten"
-          : `${BUILDING_NAMES[kind]} platzieren`;
+          : kind === "house"
+            ? `Wohnhaus ${buildPlacementHouseLevel ?? 1} platzieren`
+            : `${BUILDING_NAMES[kind as BuildableBuildingKind]} platzieren`;
     buildPlacementConfirm.textContent = kind === "waypost" ? "Auftrag erteilen" : "Bauen";
     buildPlacementOverlay.hidden = false;
     updateBuildPlacementConfirm();
@@ -820,7 +870,14 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
 
-    const created = buildWithFootprint(w, buildPlacementPosition, buildPlacementKind);
+    const created = buildWithFootprint(
+      w,
+      buildPlacementPosition,
+      buildPlacementKind,
+      buildPlacementKind === "house"
+        ? { houseLevel: buildPlacementHouseLevel ?? 1 }
+        : undefined,
+    );
     if (!created) {
       updateBuildPlacementConfirm();
       renderMap();
@@ -986,7 +1043,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       enterMerchantTargetMode(Number(button.dataset.person));
       return;
     }
-    if (action === "staff-person") {
+    if (action === "staff-person" || action === "household-person") {
       const personId = Number(button.dataset.person);
       selectedBuildingId = undefined;
       selectedTile = undefined;
@@ -1006,7 +1063,11 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
     if (action === "build") {
-      enterBuildPlacementMode(button.dataset.kind as BuildableBuildingKind | "palisade");
+      const kind = button.dataset.kind as PlaceableBuildingKind | "palisade";
+      const level = kind === "house" && button.dataset.houseLevel
+        ? Number(button.dataset.houseLevel) as HouseLevel
+        : undefined;
+      enterBuildPlacementMode(kind, undefined, level);
       return;
     }
     if (action === "upgrade-blockers" && selectedBuildingId) {

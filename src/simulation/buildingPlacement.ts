@@ -3,6 +3,7 @@ import type {
   Building,
   GoodAmounts,
   Hex,
+  HouseLevel,
   PlaceableBuildingKind,
   World,
 } from "./model";
@@ -26,6 +27,12 @@ import { BUILDING_CONSTRUCTION_REQUIREMENTS } from "./constructionRules";
 import { isWithinWaypostOrientation, WAYPOST_BUILD_CLEARANCE } from "./wayposts";
 import { buildingUpgradeRule } from "./buildingUpgradeRules";
 import { markBushChanged, markTerrainChanged } from "./worldRevisions";
+import {
+  HOUSE_LEVEL_DEFINITIONS,
+  houseDirectCost,
+  nextHouseLevel,
+  releaseHouseholdsForHouse,
+} from "./housing";
 
 export type BuildingPlacementShape = {
   cells: Hex[];
@@ -349,14 +356,33 @@ export function upgradePlacementBlockers(
 }
 
 export function canUpgradeBuilding(world: World, building: Building): boolean {
-  const rule = buildingUpgradeRule(building.kind);
-  if (!rule || building.retired || (building.construction && !building.construction.complete))
+  if (building.retired || (building.construction && !building.construction.complete))
     return false;
+  if (building.kind === "house") return nextHouseLevel(building) !== undefined;
+
+  const rule = buildingUpgradeRule(building.kind);
+  if (!rule) return false;
   if (!isBuildingUnlocked(world, rule.to)) return false;
   return upgradePlacementBlockers(world, building).length === 0;
 }
 
 export function startBuildingUpgrade(world: World, building: Building): boolean {
+  if (building.kind === "house") {
+    const target = nextHouseLevel(building);
+    if (!target || !canUpgradeBuilding(world, building)) return false;
+    const plan = constructionPlan(HOUSE_LEVEL_DEFINITIONS[target].upgradeCost);
+    building.houseUpgradeTarget = target;
+    building.construction = {
+      required: { ...plan.required },
+      delivered: isMaterialCheatEnabled(world) ? { ...plan.required } : {},
+      duration: plan.duration,
+      progress: 0,
+      complete: false,
+    };
+    notifyConstructionSiteAdded(world);
+    return true;
+  }
+
   const rule = buildingUpgradeRule(building.kind);
   if (!rule || !canUpgradeBuilding(world, building)) return false;
 
@@ -440,6 +466,7 @@ export function buildWithFootprint(
   world: World,
   anchorPosition: Hex,
   kind: PlaceableBuildingKind,
+  options?: { houseLevel?: HouseLevel },
 ): Building | undefined {
   if (!canPlaceBuilding(world, anchorPosition, kind)) return;
   const footprint = footprintAt(kind, anchorPosition);
@@ -460,6 +487,7 @@ export function buildWithFootprint(
   if (kind === "house") {
     created.kind = "house";
     created.name = "Wohnhaus";
+    created.houseLevel = options?.houseLevel ?? 1;
     created.workers = 0;
     created.carriers = 0;
     created.merchants = 0;
@@ -469,7 +497,10 @@ export function buildWithFootprint(
     created.inputInventory = undefined;
     created.inventory = undefined;
   }
-  const plan = CONSTRUCTION_PLANS[kind];
+  const plan =
+    kind === "house"
+      ? constructionPlan(houseDirectCost(created.houseLevel ?? 1))
+      : CONSTRUCTION_PLANS[kind];
   created.construction = {
     required: { ...plan.required },
     delivered: isMaterialCheatEnabled(world) ? { ...plan.required } : {},
@@ -501,6 +532,7 @@ export function removeBuildingWithFootprint(world: World, id: string): boolean {
   const footprint = buildingFootprint(existing);
   const baseTerrains = existing.baseTerrains;
   const palisade = existing.kind === "palisade";
+  if (existing.kind === "house") releaseHouseholdsForHouse(world, existing.id);
   if (!removeBuilding(world, id)) return false;
 
   const tiles = tileIndex(world.tiles);

@@ -15,6 +15,7 @@ import { setPersonProfession, setPersonWorkplace } from "../simulation/personCom
 import { EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentPendingForSlot, equipmentWearPercent, unequipSlot } from "../simulation/equipment";
 import { PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT } from "./personContextMenu";
 import { confirmDialog, showDialog } from "./modalDialog";
+import { homeForPerson } from "../simulation/housing";
 
 const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
@@ -100,10 +101,10 @@ const workplaceLabel = (world: World, person: Person): string => {
   return "—";
 };
 
+const homeBuilding = (world: World, person: Person) => homeForPerson(world, person);
+
 const homeLabel = (world: World, person: Person): string =>
-  person.home
-    ? world.buildings.find((building) => building.id === person.home && !building.retired)?.name ?? "Unbekannte Wohnung"
-    : "—";
+  homeBuilding(world, person)?.name ?? "—";
 
 const cargoLabel = (person: Person): string =>
   person.trip?.picked
@@ -420,7 +421,7 @@ export function mountPersonPanel(world: World): void {
         <summary>Details</summary>
         <dl class="person-facts">
           <div><dt>Arbeitsplatz</dt><dd>${buildingFactMarkup(world, person.assignment?.building, workplace)}</dd></div>
-          <div><dt>Wohnung</dt><dd>${buildingFactMarkup(world, person.home, home)}</dd></div>
+          <div><dt>Wohnung</dt><dd>${buildingFactMarkup(world, homeBuilding(world, person)?.id, home)}</dd></div>
           <div><dt>Erfahrung</dt><dd>${experience === undefined ? "—" : `${experience} %`}</dd></div>
           <div><dt>Getragen</dt><dd>${cargoMarkup(person)}</dd></div>
         </dl>

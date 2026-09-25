@@ -6,6 +6,7 @@ import type {
   Good,
   Hex,
   Person,
+  PlaceableBuildingKind,
   Tile,
   World,
 } from "../simulation/model";
@@ -84,7 +85,7 @@ const goodColors: Record<Good, number> = {
 type PointerPosition = { x: number; y: number };
 type CameraSnapshot = { scrollX: number; scrollY: number; zoom: number };
 type MerchantTargetModeDetail = { active: boolean; sourceId?: BuildingId };
-type BuildPlacementKind = BuildableBuildingKind | "waypost" | "palisade";
+type BuildPlacementKind = PlaceableBuildingKind | "waypost" | "palisade";
 type BuildModeDetail = { active: boolean; kind?: BuildPlacementKind };
 type UpgradePreviewDetail = { active: boolean; buildingId?: BuildingId; targetKind?: BuildableBuildingKind };
 type WorldBounds = { minX: number; maxX: number; minY: number; maxY: number };

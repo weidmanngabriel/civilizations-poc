@@ -1,8 +1,9 @@
-import type { Good, PlaceableBuildingKind, World } from "../simulation/model";
+import type { Good, HouseLevel, PlaceableBuildingKind, World } from "../simulation/model";
 import { CONSTRUCTION_PLANS } from "../simulation/buildingPlacement";
 import { GOODS } from "../simulation/simulation";
 import { isBuildingUnlocked } from "../simulation/technology";
 import { GOOD_ICONS, buildingIcon } from "../icons";
+import { HOUSE_LEVELS, houseDirectCost } from "../simulation/housing";
 
 const TILE_SELECTED_EVENT = "poc-tile-selected";
 const BUILD_MODE_EVENT = "poc-build-mode";
@@ -46,11 +47,35 @@ export function installTileSelectionGuard(): void {
   });
 }
 
-const constructionCost = (kind: BuildMenuKind): string =>
-  (Object.entries(kind === "palisade" ? { wood: 1 } : CONSTRUCTION_PLANS[kind].required) as [Good, number | undefined][])
+const constructionCost = (kind: BuildMenuKind, houseLevel?: HouseLevel): string =>
+  (Object.entries(
+    kind === "palisade"
+      ? { wood: 1 }
+      : kind === "house"
+        ? houseDirectCost(houseLevel ?? 1)
+        : CONSTRUCTION_PLANS[kind].required,
+  ) as [Good, number | undefined][])
     .filter((entry): entry is [Good, number] => entry[1] !== undefined)
     .map(([good, amount]) => `<button type="button" class="build-menu-cost-item wiki-link" data-wiki-good="${good}"><span aria-hidden="true">${GOOD_ICONS[good]}</span>${amount} ${GOODS[good]}</button>`)
     .join("");
+
+const buildMenuEntry = (kind: BuildMenuKind, houseLevel?: HouseLevel): string => {
+  const level = kind === "house" ? houseLevel ?? 1 : undefined;
+  const label = level ? `Wohnhaus ${level}` : BUILDING_NAMES[kind];
+  const levelData = level ? ` data-house-level="${level}"` : "";
+  return `
+    <div class="build-menu-item" data-build-entry="${kind}"${levelData}>
+      <button class="build-menu-place" type="button" data-build-kind="${kind}"${levelData} aria-label="${label} bauen">
+        <span class="build-menu-building-icon" aria-hidden="true">${buildingIcon(kind)}</span>
+        <span class="build-menu-building-copy">
+          <strong>${label}</strong>
+          <span class="build-menu-place-hint">Platzieren</span>
+        </span>
+      </button>
+      <button class="build-menu-info wiki-link" type="button" data-wiki-building="${kind}" aria-label="Wiki: ${BUILDING_NAMES[kind]}">?</button>
+      <span class="build-menu-cost">${constructionCost(kind, level)}</span>
+    </div>`;
+};
 
 export function mountBuildMenu(world: World): void {
   const main = document.querySelector<HTMLElement>("main");
@@ -72,19 +97,10 @@ export function mountBuildMenu(world: World): void {
       </div>
       <div class="build-menu-list">
         ${SORTED_BUILDING_KINDS
-          .map(
-            (kind) => `
-              <div class="build-menu-item" data-build-entry="${kind}">
-                <button class="build-menu-place" type="button" data-build-kind="${kind}" aria-label="${BUILDING_NAMES[kind]} bauen">
-                  <span class="build-menu-building-icon" aria-hidden="true">${buildingIcon(kind)}</span>
-                  <span class="build-menu-building-copy">
-                    <strong>${BUILDING_NAMES[kind]}</strong>
-                    <span class="build-menu-place-hint">Platzieren</span>
-                  </span>
-                </button>
-                <button class="build-menu-info wiki-link" type="button" data-wiki-building="${kind}" aria-label="Wiki: ${BUILDING_NAMES[kind]}">?</button>
-                <span class="build-menu-cost">${constructionCost(kind)}</span>
-              </div>`,
+          .flatMap((kind) =>
+            kind === "house"
+              ? HOUSE_LEVELS.map((level) => buildMenuEntry(kind, level))
+              : [buildMenuEntry(kind)],
           )
           .join("")}
       </div>
@@ -121,6 +137,9 @@ export function mountBuildMenu(world: World): void {
     const button = target.closest<HTMLButtonElement>("button[data-build-kind]");
     if (!button || button.hidden) return;
     const kind = button.dataset.buildKind as BuildMenuKind;
+    const houseLevel = kind === "house" && button.dataset.houseLevel
+      ? Number(button.dataset.houseLevel) as HouseLevel
+      : undefined;
     if (kind !== "palisade" && !isBuildingUnlocked(world, kind)) return;
     const launcherTile = world.tiles.find((tile) => tile.terrain === "grass" || tile.terrain === "road");
     if (!launcherTile) return;
@@ -142,6 +161,7 @@ export function mountBuildMenu(world: World): void {
         temporaryButton.hidden = true;
         temporaryButton.dataset.action = "build";
         temporaryButton.dataset.kind = kind;
+        if (houseLevel) temporaryButton.dataset.houseLevel = String(houseLevel);
         selectionPanel.append(temporaryButton);
         legacyBuildButton = temporaryButton;
       }
@@ -149,7 +169,10 @@ export function mountBuildMenu(world: World): void {
     legacyBuildButton?.click();
     temporaryButton?.remove();
     const placementTitle = document.querySelector<HTMLElement>("#build-placement-title");
-    if (placementTitle) placementTitle.textContent = `${BUILDING_NAMES[kind]} platzieren`;
+    if (placementTitle)
+      placementTitle.textContent = kind === "house" && houseLevel
+        ? `Wohnhaus ${houseLevel} platzieren`
+        : `${BUILDING_NAMES[kind]} platzieren`;
     setOpen(false);
   });
 

@@ -368,3 +368,25 @@ Das Debug-Menü besitzt zwei voneinander unabhängige, nur für die aktuelle Sit
 ### Menübedienung
 
 In scrollenden Menüs bleibt die jeweilige Kopfzeile mit dem Schließen-Button beim Scrollen sichtbar. Im Debug-Menü stehen die beiden Cheat-Schalter direkt unter der festen Kopfzeile und damit vor Performance-, Aufnahme- und Personeninformationen.
+
+## Wohnhäuser, Wohnungen und Haushalte
+
+Wohnhäuser stellen Wohnungen statt einzelner Bewohnerplätze bereit. Eine Wohnung wird genau von einem Haushalt belegt. Ein Single, ein Ehepaar oder später ein Ehepaar mit beliebig vielen Kindern verbraucht jeweils genau eine Wohnung. Kinder erhöhen den Wohnungsverbrauch ihres Haushalts nicht.
+
+Es gibt fünf Wohnhaus-Stufen: Stufe 1 hat 2 Wohnungen, Stufe 2 hat 3, Stufe 3 hat 4, Stufe 4 hat 5 und Stufe 5 hat 6 Wohnungen. Die Stufen sind bewusst als erweiterbare Hausstufen modelliert, damit spätere zusätzliche Vorteile wie Komfort oder andere Familienboni ergänzt werden können; aktuell erhöht eine Stufe nur die Wohnungszahl.
+
+Die Bau- und Ausbaukosten sind:
+- Stufe 1: 2 Bruchstein, 2 Holz, 1 Weizen und 2 Lehm.
+- Stufe 2: zusätzlich 2 Holz und 2 Backsteine.
+- Stufe 3: zusätzlich 2 Holz, 1 Backstein und 3 Steinblöcke.
+- Stufe 4: zusätzlich 2 Holz, 1 Backstein, 1 Steinblock und 4 Dachziegel.
+- Stufe 5: zusätzlich 2 Holz, 1 Backstein, 1 Steinblock, 1 Dachziegel und 5 Marmor.
+
+Eine höhere Stufe kann direkt gebaut werden. In diesem Fall werden die Kosten aller Stufen bis zum gewählten Ziel aufsummiert. Beim Ausbau eines bestehenden Wohnhauses werden nur die Kosten der nächsten Stufe verlangt. Die bereits vorhandenen Wohnungen bleiben während eines Ausbaus bewohnbar. Die zusätzliche Wohnung wird erst nach Abschluss des Ausbaus verfügbar.
+
+Die Wohnungszuweisung erfolgt bewusst durch den Spieler über den Personenbefehl „Wohnung“. Im Kartenmodus werden nur fertige Wohnhäuser mit einer freien Wohnung sowie das bereits bewohnte Haus hervorgehoben. Die konkrete freie Wohnung innerhalb des Hauses wird automatisch gewählt. Der Wohnhausdialog zeigt jede Wohnung und ihren Haushalt; die dort aufgeführten Bewohner sind direkt anklickbar.
+
+Bewohner mit zugewiesener Wohnung verwenden ihr eigenes Wohnhaus als bevorzugten Schlafplatz. Wohnungslose Erwachsene bleiben vollständig handlungsfähig, belegen aber kein Wohnhaus automatisch und schlafen bei Bedarf nach den bestehenden Regeln in der Natur oder auf dem Boden.
+
+Für das spätere Familiensystem gilt bereits als Modellregel: Ein Kind bleibt Teil des Haushalts seiner Eltern und benötigt keine zusätzliche Wohnung. Mit der Volljährigkeit verlässt es den Elternhaushalt automatisch und erhält ausdrücklich keine automatische neue Wohnung.
+

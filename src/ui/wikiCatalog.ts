@@ -12,6 +12,7 @@ import { PROFESSION_LABELS, PROFESSION_XP_REQUIREMENTS } from "../simulation/exp
 import { TECHNOLOGY_UNLOCK_RULES } from "../simulation/technology";
 import { GOOD_ICONS, buildingIcon } from "../icons";
 import { BUILDING_WIKI_LABELS, type WikiBuildingKind } from "./wikiLinks";
+import { HOUSE_LEVELS, HOUSE_LEVEL_DEFINITIONS, houseDirectCost } from "../simulation/housing";
 
 export const WIKI_GOODS = (Object.keys(GOODS) as Good[])
   .sort((a, b) => GOODS[a].localeCompare(GOODS[b], "de"));
@@ -105,6 +106,10 @@ const recipeOutputs = (kind: BuildableBuildingKind): Good[] => {
 
 export const buildingConsumersForGood = (good: Good): WikiBuildingKind[] =>
   sortedBuildings(WIKI_BUILDINGS.filter((kind) => {
+    if (kind === "house")
+      return HOUSE_LEVELS.some(
+        (level) => (HOUSE_LEVEL_DEFINITIONS[level].upgradeCost[good] ?? 0) > 0,
+      );
     if (!isBuildable(kind)) return false;
     return (recipeInputs(kind)[good] ?? 0) > 0 ||
       (BUILDING_CONSTRUCTION_REQUIREMENTS[kind]?.[good] ?? 0) > 0;
@@ -115,7 +120,7 @@ export const buildingProducersForGood = (good: Good): WikiBuildingKind[] =>
 
 const BUILDING_INTRO: Record<WikiBuildingKind, string> = {
   hq: "Zentraler Sammelpunkt und erstes Lager der Siedlung.",
-  house: "Bietet Bewohnern einen festen Schlafplatz.",
+  house: "Bietet Haushalten Wohnungen und Bewohnern einen festen Schlafplatz.",
   farm: "Bewirtschaftet Felder und erzeugt Weizen.",
   sawmill: "Verarbeitet Holz zu Brettern.",
   carpenter: "Verarbeitet Bretter zu Holzwerkzeugen.",
@@ -334,9 +339,31 @@ const renderRecipes = (kind: BuildableBuildingKind): string => {
   }).join("")}</div>`;
 };
 
+const renderHouseArticle = (): string => {
+  const rows = HOUSE_LEVELS.map((level) => {
+    const definition = HOUSE_LEVEL_DEFINITIONS[level];
+    return `<div class="wiki-recipe-row"><strong>Stufe ${level} · ${definition.apartments} Wohnungen</strong><span>Upgrade: ${amountLinks(definition.upgradeCost)}</span><span>Direktbau: ${amountLinks(houseDirectCost(level))}</span></div>`;
+  }).join("");
+
+  return `
+    <div class="wiki-article-kicker">GEBÄUDE</div>
+    <h1 class="building-heading">${buildingIcon("house")}<span>Wohnhaus</span></h1>
+    <p class="wiki-intro">Wohnhäuser bestehen aus einzelnen Wohnungen. Jede Wohnung wird genau von einem Haushalt belegt.</p>
+    <h2 id="handbook-section-1">Wohnungen und Haushalte</h2>
+    <p>Ein Single, ein Ehepaar oder eine Familie mit beliebig vielen Kindern belegt genau eine Wohnung. Erwachsene Bewohner bekommen Wohnungen über den Personenbefehl „Wohnung“. Volle Wohnhäuser sind dabei keine gültigen Ziele.</p>
+    <p>Wird ein Kind später volljährig, verlässt es automatisch den Elternhaushalt. Es erhält dabei keine neue Wohnung automatisch.</p>
+    <h2 id="handbook-section-2">Stufen und Baukosten</h2>
+    <p>Eine höhere Stufe kann direkt gebaut werden; dann werden die Kosten aller Stufen bis zum Ziel addiert. Beim Ausbau eines bestehenden Hauses werden nur die Materialien der nächsten Stufe benötigt.</p>
+    <div class="wiki-recipe-list">${rows}</div>
+    <h2 id="handbook-section-3">Schlafen</h2>
+    <p>Bewohner mit Wohnung bevorzugen ihr eigenes Wohnhaus als Schlafplatz. Wohnungslose Bewohner nutzen kein fremdes Wohnhaus automatisch und weichen auf Natur oder Boden aus.</p>
+    <p class="wiki-overview-return"><button type="button" class="wiki-link" data-handbook-page="buildings">← Alle Gebäude</button></p>
+  `;
+};
+
 export const renderBuildingArticle = (kind: WikiBuildingKind): string => {
+  if (kind === "house") return renderHouseArticle();
   const construction = kind === "palisade" ? ({ wood: 1 } satisfies GoodAmounts) :
-    kind === "house" ? BUILDING_CONSTRUCTION_REQUIREMENTS.house :
     isBuildable(kind) ? BUILDING_CONSTRUCTION_REQUIREMENTS[kind] : undefined;
 
   let staffing = "Keine reguläre Produktionsbesetzung.";
@@ -344,7 +371,6 @@ export const renderBuildingArticle = (kind: WikiBuildingKind): string => {
     const definition = buildingKindDefinition(kind);
     staffing = `${definition.workers} Arbeiter · ${definition.carriers} Träger${definition.merchants ? ` · ${definition.merchants} Händler` : ""}`;
   } else if (kind === "hq") staffing = "Zuweisbare Träger.";
-  else if (kind === "house") staffing = "Kein Produktionspersonal.";
   else if (kind === "palisade") staffing = "Kein Personal.";
 
   const professions = buildingProfessions(kind);
