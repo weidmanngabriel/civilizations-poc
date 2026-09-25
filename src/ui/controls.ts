@@ -447,30 +447,6 @@ export function mountControls(w: World, renderMap: () => void): void {
       for (const good of Object.keys(GOODS) as Good[])
         setField(`warehouse-${good}`, `${formatWholeAmount(warehouseStock(b, good))}/${CONFIG.warehouseCapacityPerGood}`);
     } else {
-      if (b.kind === "house") {
-      const level = houseLevel(b);
-      const capacity = houseApartmentCount(b);
-      const householdByApartment = new Map(
-        householdsForHouse(w, b.id).map((household) => [household.apartmentIndex, household]),
-      );
-      const apartments = Array.from({ length: capacity }, (_, apartmentIndex) => {
-        const household = householdByApartment.get(apartmentIndex);
-        if (!household)
-          return `<div class="staff-person staff-person--empty"><span class="staff-person-icon staff-person-icon--empty" aria-hidden="true">🏠</span><span class="staff-person-copy"><strong>Wohnung ${apartmentIndex + 1}</strong><small>Frei</small></span></div>`;
-        const members = household.memberIds
-          .map((personId) => w.people.find((person) => person.id === personId))
-          .filter((person): person is NonNullable<typeof person> => Boolean(person));
-        const memberButtons = members.length
-          ? members.map((person) => `<button type="button" class="staff-person" data-action="household-person" data-person="${person.id}"><span class="staff-person-icon" aria-hidden="true">👤</span><span class="staff-person-copy"><strong>${escapeHtml(personName(person.id))}</strong><small>Bewohner · anklicken</small></span><span class="staff-person-open" aria-hidden="true">›</span></button>`).join("")
-          : `<div class="staff-person"><span class="staff-person-copy"><strong>Haushalt</strong><small>Keine Bewohner</small></span></div>`;
-        return `<section class="staff-group"><div class="staff-group-title"><strong>Wohnung ${apartmentIndex + 1}</strong><span>${members.length} Bewohner</span></div><div class="staff-list">${memberButtons}</div></section>`;
-      }).join("");
-      const occupied = householdByApartment.size;
-      selectionPanel.innerHTML = `<div class="selection-title"><div><small>WOHNHAUS · STUFE ${level}</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><div class="selection-title-actions">${buildingWikiButton(b)}<button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div></div><p class="recipe">${occupied} von ${capacity} Wohnungen belegt. Eine Wohnung gehört genau einem Haushalt; Kinder benötigen keine zusätzliche Wohnung.</p><div class="building-staff">${apartments}</div>${upgradeControls(b)}<p class="status" data-field="status"></p>${demolish}`;
-      updateSelectionLiveState();
-      return;
-    }
-
     const recipeInputs = b.recipe?.inputs
         ? (Object.keys(b.recipe.inputs) as Good[])
         : b.recipe?.input
@@ -580,6 +556,30 @@ export function mountControls(w: World, renderMap: () => void): void {
         .map((good) => `<div><span>${goodLabel(good)}</span><strong data-field="construction-${good}"></strong></div>`)
         .join("");
       selectionPanel.innerHTML = `<div class="selection-title"><div><small>BAUSTELLE</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><div class="selection-title-actions">${buildingWikiButton(b)}<button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div></div><p class="recipe">Bauarbeiter werden automatisch aus dem globalen Pool zugewiesen. Erfahrung erhöht den persönlichen Baufortschritt bis auf das Doppelte.</p><div class="inventory"><div><span>Bauarbeiter</span><strong data-field="builder-count"></strong></div>${materials}<div><span>Baufortschritt</span><strong data-field="construction-progress"></strong></div></div><p class="status" data-field="status"></p>${demolish}`;
+      updateSelectionLiveState();
+      return;
+    }
+
+    if (b.kind === "house") {
+      const level = houseLevel(b);
+      const capacity = houseApartmentCount(b);
+      const householdByApartment = new Map(
+        householdsForHouse(w, b.id).map((household) => [household.apartmentIndex, household]),
+      );
+      const apartments = Array.from({ length: capacity }, (_, apartmentIndex) => {
+        const household = householdByApartment.get(apartmentIndex);
+        if (!household)
+          return `<div class="staff-person staff-person--empty"><span class="staff-person-icon staff-person-icon--empty" aria-hidden="true">🏠</span><span class="staff-person-copy"><strong>Wohnung ${apartmentIndex + 1}</strong><small>Frei</small></span></div>`;
+        const members = household.memberIds
+          .map((personId) => w.people.find((person) => person.id === personId))
+          .filter((person): person is NonNullable<typeof person> => Boolean(person));
+        const memberButtons = members.length
+          ? members.map((person) => `<button type="button" class="staff-person" data-action="household-person" data-person="${person.id}"><span class="staff-person-icon" aria-hidden="true">👤</span><span class="staff-person-copy"><strong>${escapeHtml(personName(person.id))}</strong><small>Bewohner · anklicken</small></span><span class="staff-person-open" aria-hidden="true">›</span></button>`).join("")
+          : `<div class="staff-person"><span class="staff-person-copy"><strong>Haushalt</strong><small>Keine Bewohner</small></span></div>`;
+        return `<section class="staff-group"><div class="staff-group-title"><strong>Wohnung ${apartmentIndex + 1}</strong><span>${members.length} Bewohner</span></div><div class="staff-list">${memberButtons}</div></section>`;
+      }).join("");
+      const occupied = householdByApartment.size;
+      selectionPanel.innerHTML = `<div class="selection-title"><div><small>WOHNHAUS · STUFE ${level}</small><h3 class="building-heading">${buildingHeading(b)}</h3></div><div class="selection-title-actions">${buildingWikiButton(b)}<button data-action="close" class="selection-close" aria-label="Auswahl schließen">×</button></div></div><p class="recipe">${occupied} von ${capacity} Wohnungen belegt. Eine Wohnung gehört genau einem Haushalt; Kinder benötigen keine zusätzliche Wohnung.</p><div class="building-staff">${apartments}</div>${upgradeControls(b)}<p class="status" data-field="status"></p>${demolish}`;
       updateSelectionLiveState();
       return;
     }
