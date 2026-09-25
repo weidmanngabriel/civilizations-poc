@@ -385,7 +385,13 @@ The person command for choosing a home uses the same household model. Only compl
 
 Save format version 7 persists household records, person household references, and residential level state as part of the authoritative world snapshot.
 
-### Map render-cache fallback
 
-The incremental Phaser renderer may cache the static terrain map in a RenderTexture for performance. That cache is an optimization only: `MainScene.drawMap()` remains the authoritative presentation path. RenderTexture creation or refresh can fail on renderer/browser combinations even when the rest of Phaser remains operational. `IncrementalMainScene` therefore guards both cache creation and cache refresh. On the first cache failure it destroys/disables the cache for the remainder of the scene and keeps the direct `mapGraphics` (and its map-label container) visible. A cache failure must never abort `renderWorld()` or leave the canvas showing only the Phaser background.
+## Startup integrity and crash reporting
 
+The browser entry point is deliberately split into a minimal `src/main.ts` crash boundary and the dynamically imported `src/bootstrap.ts` game startup. The global crash reporter is installed before the game module is imported, so module-loading failures, synchronous startup failures, uncaught browser errors and unhandled promise rejections all converge on the same fatal state.
+
+Startup configuration is preflighted through `src/runtime/startupValidation.ts` before the normal UI is mounted. This preflight executes domain configuration paths that player-facing startup UI depends on, especially technology/construction dependency resolution. Configuration errors therefore fail deterministically in tests and at startup rather than leaving a partially initialized application.
+
+The game is considered ready only after Phaser has been created, the active scene has completed its first successful `renderWorld()`, and the remaining UI modules have mounted. Only then is `data-game-ready="true"` written to the document root. A runtime crash removes the ready marker, sets `data-game-crashed="true"`, stops the simulation loop via the shared crash event, destroys Phaser when available, and presents a blocking diagnostic screen.
+
+Crash reports are local JSON downloads; they are never uploaded automatically. The report contains build time, failure source and startup phase, error name/message/stack, browser/viewport metadata and, when a world already exists, a world summary plus a serialized save snapshot. This makes user-reported failures reproducible without silently transmitting gameplay state.
