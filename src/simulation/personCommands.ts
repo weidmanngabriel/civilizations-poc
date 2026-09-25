@@ -8,6 +8,7 @@ import { clearWorkArea, ensureWorkArea, syncWorkAreas } from "./workAreas";
 import { findRequiredNavigationPath } from "./wayposts";
 import { CONFIG } from "./scenario";
 import { cancelEquipmentPickup } from "./equipment";
+import { assignPersonHome, validHomes as validHousingHomes } from "./housing";
 
 const BUILDING_PROFESSIONS = new Set<Profession>([
   "carrier",
@@ -191,15 +192,11 @@ export function setPersonWorkplace(world: World, personId: number, buildingId: B
   return true;
 }
 
-export const validHomes = (world: World): Building[] =>
-  world.buildings.filter((building) => building.kind === "house" && completed(building));
+export const validHomes = (world: World, personId?: number): Building[] =>
+  validHousingHomes(world, personId);
 
 export function setPersonHome(world: World, personId: number, buildingId: BuildingId): boolean {
-  const person = world.people.find((candidate) => candidate.id === personId);
-  const home = world.buildings.find((building) => building.id === buildingId);
-  if (!person || !home || home.kind !== "house" || !completed(home)) return false;
-  person.home = home.id;
-  return true;
+  return assignPersonHome(world, personId, buildingId);
 }
 
 export function orderPersonMove(world: World, personId: number, target: Hex): boolean {
