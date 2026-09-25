@@ -4,6 +4,8 @@ import type {
   BuildingId,
   Good,
   Hex,
+  HouseLevel,
+  PlaceableBuildingKind,
   Role,
   WaypostId,
   World,
@@ -62,6 +64,14 @@ import {
   palisadePlanningTileAvailable,
   planPalisadePath,
 } from "../simulation/palisades";
+import {
+  HOUSE_LEVEL_DEFINITIONS,
+  houseApartmentCount,
+  houseLevel,
+  houseUpgradeCost,
+  householdsForHouse,
+  nextHouseLevel,
+} from "../simulation/housing";
 
 const SIMULATION_STEP_MS = 1000 / CONFIG.simulationHz;
 const MAX_FRAME_DELTA_MS = 100;
@@ -131,7 +141,8 @@ export function mountControls(w: World, renderMap: () => void): void {
   let merchantTargetSelection: number | undefined;
   let merchantSelectionWasRunning = false;
   let handbookWasRunning = false;
-  let buildPlacementKind: BuildableBuildingKind | "waypost" | "palisade" | undefined;
+  let buildPlacementKind: PlaceableBuildingKind | "waypost" | "palisade" | undefined;
+  let buildPlacementHouseLevel: HouseLevel | undefined;
   let buildPlacementPosition: Hex | undefined;
   let palisadeStart: Hex | undefined;
   let palisadePreview: Hex[] = [];
@@ -743,6 +754,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   const leaveBuildPlacementMode = () => {
     if (!buildPlacementKind) return;
     buildPlacementKind = undefined;
+    buildPlacementHouseLevel = undefined;
     buildPlacementPosition = undefined;
     palisadeStart = undefined;
     palisadePreview = [];
@@ -755,14 +767,16 @@ export function mountControls(w: World, renderMap: () => void): void {
   };
 
   const enterBuildPlacementMode = (
-    kind: BuildableBuildingKind | "waypost" | "palisade",
+    kind: PlaceableBuildingKind | "waypost" | "palisade",
     scoutId?: number,
+    houseLevel?: HouseLevel,
   ) => {
     if (kind === "waypost") {
       const scout = w.people.find((person) => person.id === scoutId);
       if (!scout || currentProfession(w, scout) !== "scout") return;
     }
     buildPlacementKind = kind;
+    buildPlacementHouseLevel = kind === "house" ? (houseLevel ?? 1) : undefined;
     waypostScoutId = kind === "waypost" ? scoutId : undefined;
     buildPlacementPosition = undefined;
     selectedTile = undefined;
@@ -773,7 +787,9 @@ export function mountControls(w: World, renderMap: () => void): void {
     buildPlacementTitle.textContent =
       kind === "waypost" ? "Wegweiser platzieren"
         : kind === "palisade" ? "Palisade errichten"
-          : `${BUILDING_NAMES[kind]} platzieren`;
+          : kind === "house"
+            ? `Wohnhaus ${buildPlacementHouseLevel ?? 1} platzieren`
+            : `${BUILDING_NAMES[kind as BuildableBuildingKind]} platzieren`;
     buildPlacementConfirm.textContent = kind === "waypost" ? "Auftrag erteilen" : "Bauen";
     buildPlacementOverlay.hidden = false;
     updateBuildPlacementConfirm();
@@ -820,7 +836,14 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
 
-    const created = buildWithFootprint(w, buildPlacementPosition, buildPlacementKind);
+    const created = buildWithFootprint(
+      w,
+      buildPlacementPosition,
+      buildPlacementKind,
+      buildPlacementKind === "house"
+        ? { houseLevel: buildPlacementHouseLevel ?? 1 }
+        : undefined,
+    );
     if (!created) {
       updateBuildPlacementConfirm();
       renderMap();
@@ -1006,7 +1029,11 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
     if (action === "build") {
-      enterBuildPlacementMode(button.dataset.kind as BuildableBuildingKind | "palisade");
+      const kind = button.dataset.kind as PlaceableBuildingKind | "palisade";
+      const level = kind === "house" && button.dataset.houseLevel
+        ? Number(button.dataset.houseLevel) as HouseLevel
+        : undefined;
+      enterBuildPlacementMode(kind, undefined, level);
       return;
     }
     if (action === "upgrade-blockers" && selectedBuildingId) {
