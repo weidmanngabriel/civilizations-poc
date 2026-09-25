@@ -88,7 +88,7 @@ export function installPersonCommandInteraction(scene: Phaser.Scene, world: Worl
         finish(setPersonWorkplace(world, active.personId, building.id));
         return;
       }
-      if (!validHomes(world).some((candidate) => candidate.id === building.id)) return;
+      if (!validHomes(world, active.personId).some((candidate) => candidate.id === building.id)) return;
       finish(setPersonHome(world, active.personId, building.id));
     };
   }
@@ -102,7 +102,7 @@ export function installPersonCommandInteraction(scene: Phaser.Scene, world: Worl
       if (!active || active.mode === "move") return;
       const targets = active.mode === "workplace"
         ? validWorkplaces(world, active.personId)
-        : validHomes(world);
+        : validHomes(world, active.personId);
       const zoom = scene.cameras.main.zoom;
       for (const building of targets) {
         for (const cell of buildingFootprint(building)) {
