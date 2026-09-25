@@ -65,7 +65,6 @@ import {
   planPalisadePath,
 } from "../simulation/palisades";
 import {
-  HOUSE_LEVEL_DEFINITIONS,
   houseApartmentCount,
   houseLevel,
   houseUpgradeCost,
