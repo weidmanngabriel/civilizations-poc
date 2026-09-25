@@ -390,3 +390,10 @@ Bewohner mit zugewiesener Wohnung verwenden ihr eigenes Wohnhaus als bevorzugten
 
 Für das spätere Familiensystem gilt bereits als Modellregel: Ein Kind bleibt Teil des Haushalts seiner Eltern und benötigt keine zusätzliche Wohnung. Mit der Volljährigkeit verlässt es den Elternhaushalt automatisch und erhält ausdrücklich keine automatische neue Wohnung.
 
+
+
+## Fehlerzustand und Diagnose
+
+Ein fataler Laufzeit- oder Startfehler darf das Spiel nicht in einem teilweise funktionsfähigen Zustand weiterlaufen lassen. In diesem Fall wird die Simulation angehalten und eine eindeutige Fehleransicht über das Spiel gelegt. Von dort kann der Spieler einen Crash-Report als JSON herunterladen und die Seite neu laden.
+
+Der Crash-Report wird ausschließlich lokal erzeugt und nicht automatisch übertragen. Er enthält technische Diagnoseinformationen und, falls die Welt bereits angelegt war, einen Snapshot des aktuellen Spielzustands, damit ein gemeldeter Fehler reproduziert werden kann.
