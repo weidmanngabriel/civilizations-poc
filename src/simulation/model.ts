@@ -8,6 +8,8 @@ export interface EquippedItem {
   workProgress?: number;
 }
 export type BuildingId = string;
+export type HouseholdId = string;
+export type HouseLevel = 1 | 2 | 3 | 4 | 5;
 export type WaypostId = string;
 export type ManagedBuildingKind =
   | "hq"
@@ -148,7 +150,17 @@ export interface Building {
     parentIds: AnimalId[];
     untilTick: number;
   };
+  /** Housing level for residential buildings. Missing means level 1 for compatibility with fixtures. */
+  houseLevel?: HouseLevel;
+  /** Target level while an in-place residential upgrade is under construction. */
+  houseUpgradeTarget?: HouseLevel;
   retired?: boolean;
+}
+export interface Household {
+  id: HouseholdId;
+  homeId: BuildingId;
+  apartmentIndex: number;
+  memberIds: number[];
 }
 export interface Waypost {
   id: WaypostId;
@@ -268,8 +280,8 @@ export interface Person {
   /** Explicit profession chosen by the player. Legacy worlds may still derive it from assignment flags. */
   profession?: Profession;
   assignment?: { building: BuildingId; role: Role };
-  /** Personally assigned home. */
-  home?: BuildingId;
+  /** Household owning this person's apartment. Missing means currently unhoused. */
+  householdId?: HouseholdId;
   /** Temporary direct movement order; normal autonomous work resumes after arrival. */
   manualMoveTarget?: Hex;
   /** Explicit scout order to walk to a target and erect a waypost there. */
@@ -454,6 +466,9 @@ export interface World {
   /** Missing in neutral/sandbox worlds; explicit in the player-facing progression world. */
   unlockedTechnologies?: string[];
   people: Person[];
+  /** Residential households. One household occupies exactly one apartment. */
+  households?: Household[];
+  nextHouseholdId?: number;
   buildings: Building[];
   naturalResources: NaturalResource[];
   /** Extensible wildlife entities and their social groups. */
