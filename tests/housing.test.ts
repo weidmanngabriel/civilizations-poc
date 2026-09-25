@@ -96,9 +96,10 @@ test("moving a resident moves the existing household and frees the previous apar
   assert.equal(assignPersonHome(world, 2, first.id), true);
 });
 
-test("house upgrades request only the next level materials", () => {
+test("house upgrades request only the next level materials and keep current apartments usable", () => {
   const world = createTestWorld();
   const target = addHouse(world, "house-a", 3);
+  assert.equal(assignPersonHome(world, world.people[0]!.id, target.id), true);
 
   assert.equal(startBuildingUpgrade(world, target), true);
   assert.equal(target.houseLevel, 3);
@@ -110,4 +111,6 @@ test("house upgrades request only the next level materials", () => {
     roofTile: 4,
   });
   assert.equal(target.construction?.complete, false);
+  assert.equal(homeForPerson(world, world.people[0]!)?.id, target.id);
+  assert.equal(HOUSE_LEVEL_DEFINITIONS[target.houseLevel!].apartments, 4);
 });
