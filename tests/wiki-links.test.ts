@@ -114,6 +114,16 @@ test("building articles expose linked construction, recipes and concise help", (
   assert.doesNotMatch(school, /Essen|Schlafen|Pause/);
 });
 
+test("house wiki documents apartments and all residential levels", () => {
+  const house = renderBuildingArticle("house");
+  assert.match(house, /Wohnungen und Haushalte/);
+  assert.match(house, /Stufe 1 · 2 Wohnungen/);
+  assert.match(house, /Stufe 5 · 6 Wohnungen/);
+  assert.match(house, /keine neue Wohnung automatisch/);
+  assert.match(house, /data-wiki-good="marble"/);
+  assert.ok(buildingConsumersForGood("marble").includes("house"));
+});
+
 test("animal and profession articles cross-link related game knowledge", () => {
   const sheep = renderAnimalArticle("sheep");
   assert.match(sheep, /data-wiki-good="wool"/);
