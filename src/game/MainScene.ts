@@ -486,6 +486,10 @@ export class MainScene extends Phaser.Scene {
   }
 
   private personMarker(p: Person): string {
+    if (p.ageStage === "child")
+      return p.bornAtTick !== undefined && this.world.round - p.bornAtTick < 150 * CONFIG.simulationHz
+        ? "👶"
+        : "🧒";
     if (p.woodcutter) return "🪓";
     if (p.fisher) return "🎣";
     if (p.hunter) return "🏹";
@@ -941,7 +945,10 @@ export class MainScene extends Phaser.Scene {
         : p.assignment?.role === "worker" || p.woodcutter
           ? 0x234636
           : 0x8b512e;
-      const dot = this.add.circle(x, y, 3, color).setStrokeStyle(0.75, 0xffffff);
+      const personRadius = p.ageStage === "child"
+        ? (p.bornAtTick !== undefined && this.world.round - p.bornAtTick < 150 * CONFIG.simulationHz ? 1.8 : 2.4)
+        : 3;
+      const dot = this.add.circle(x, y, personRadius, color).setStrokeStyle(0.75, 0xffffff);
       const label = this.add.text(x, y - 0.5, this.personMarker(p), {
         fontFamily: "system-ui",
         fontSize: "6px",
