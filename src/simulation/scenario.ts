@@ -479,6 +479,8 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     rngState: 0x1a2b3c4d,
     ...(suppliedStart ? { unlockedTechnologies: [...STARTING_TECHNOLOGIES] } : {}),
     buildings,
+    households: [],
+    nextHouseholdId: 1,
     naturalResources,
     ...(suppliedStart ? { animals: [], animalGroups: [], projectiles: [] } : {}),
     ...(suppliedStart ? { wayposts: [] } : {}),
