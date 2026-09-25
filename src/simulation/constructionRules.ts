@@ -2,7 +2,7 @@ import type { Good, GoodAmounts, PlaceableBuildingKind } from "./model";
 
 export const BUILDING_CONSTRUCTION_REQUIREMENTS: Record<PlaceableBuildingKind, GoodAmounts> = {
   warehouse: { wood: 4 },
-  house: { wood: 4 },
+  house: { rubble: 2, wood: 2, wheat: 1, clay: 2 },
   farm: { wood: 4 },
   sawmill: { wood: 6 },
   carpenter: { plank: 4 },
