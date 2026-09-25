@@ -4,6 +4,7 @@ import type { Building, Person, Tile, World } from "../src/simulation/model";
 import { advanceHungerTick, resolveFoodArrivals } from "../src/simulation/needs";
 import { advanceSleepTick, SLEEP_RULES } from "../src/simulation/sleep";
 import { findRequiredNavigationPath } from "../src/simulation/wayposts";
+import { assignPersonHome } from "../src/simulation/housing";
 
 const lineWorld = (): World => {
   const tiles: Tile[] = Array.from({ length: 26 }, (_, q) => ({
@@ -155,6 +156,7 @@ test("tired farm worker outside waypost coverage returns to the covered farm bef
     output: 0,
   };
   world.buildings.push(farm, house);
+  assert.equal(assignPersonHome(world, person.id, house.id), true);
   person.assignment = { building: farm.id, role: "worker" };
 
   advanceSleepTick(world);
