@@ -13,6 +13,8 @@ const needDue = (person: Person): boolean =>
 
 const isBusy = (person: Person): boolean =>
   Boolean(
+    person.ageStage === "child" ||
+    person.familyTask ||
     needDue(person) ||
     person.educationTask ||
     person.manualMoveTarget ||
