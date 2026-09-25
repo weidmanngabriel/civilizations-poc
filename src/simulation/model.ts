@@ -10,6 +10,10 @@ export interface EquippedItem {
 export type BuildingId = string;
 export type HouseholdId = string;
 export type HouseLevel = 1 | 2 | 3 | 4 | 5;
+export type Sex = "male" | "female";
+export type AgeStage = "child" | "adult";
+export type BirthPolicy = "low" | "medium" | "high";
+export type ChildVisualStage = "baby" | "child";
 export type WaypostId = string;
 export type ManagedBuildingKind =
   | "hq"
@@ -161,6 +165,29 @@ export interface Household {
   homeId: BuildingId;
   apartmentIndex: number;
   memberIds: number[];
+  /** Last successful birth in this household, used for the family cooldown. */
+  lastBirthTick?: number;
+  /** Next tick on which this household may run a birth-policy check. */
+  nextBirthCheckTick?: number;
+}
+
+export interface FamilyTask {
+  kind: "partner-search" | "birth";
+  partnerId: number;
+  /** Birth journeys require both parents to reach their shared home. */
+  homeId?: BuildingId;
+  /** Short celebration phase after both parents reached home. */
+  completeAtTick?: number;
+}
+
+export interface FamilyEffect {
+  id: string;
+  kind: "birth";
+  homeId: BuildingId;
+  startedAtTick: number;
+  /** Children appear at this tick; presentation shows hearts/stork before it. */
+  birthAtTick: number;
+  expiresAtTick: number;
 }
 export interface Waypost {
   id: WaypostId;
@@ -277,6 +304,19 @@ export interface EducationTask {
 export interface Person {
   id: number;
   position: Hex;
+  /** Sex has no gameplay effect except biological partner compatibility for children. */
+  sex?: Sex;
+  /** Missing is treated as adult for neutral legacy fixtures. */
+  ageStage?: AgeStage;
+  /** Simulation tick of birth for children. */
+  bornAtTick?: number;
+  spouseId?: number;
+  parentIds?: number[];
+  childIds?: number[];
+  /** Another resident temporarily reserves this unmarried resident as a partner candidate. */
+  partnerReservedBy?: number;
+  /** Family-owned movement suspends normal work/need decisions without changing profession. */
+  familyTask?: FamilyTask;
   /** Explicit profession chosen by the player. Legacy worlds may still derive it from assignment flags. */
   profession?: Profession;
   assignment?: { building: BuildingId; role: Role };
@@ -469,6 +509,11 @@ export interface World {
   /** Residential households. One household occupies exactly one apartment. */
   households?: Household[];
   nextHouseholdId?: number;
+  /** Settlement-wide preference controlling autonomous birth checks. */
+  birthPolicy?: BirthPolicy;
+  /** Short-lived deterministic presentation cues for home birth celebrations. */
+  familyEffects?: FamilyEffect[];
+  nextFamilyEffectId?: number;
   buildings: Building[];
   naturalResources: NaturalResource[];
   /** Extensible wildlife entities and their social groups. */
