@@ -364,7 +364,6 @@ const renderHouseArticle = (): string => {
 export const renderBuildingArticle = (kind: WikiBuildingKind): string => {
   if (kind === "house") return renderHouseArticle();
   const construction = kind === "palisade" ? ({ wood: 1 } satisfies GoodAmounts) :
-    kind === "house" ? BUILDING_CONSTRUCTION_REQUIREMENTS.house :
     isBuildable(kind) ? BUILDING_CONSTRUCTION_REQUIREMENTS[kind] : undefined;
 
   let staffing = "Keine reguläre Produktionsbesetzung.";
@@ -372,7 +371,6 @@ export const renderBuildingArticle = (kind: WikiBuildingKind): string => {
     const definition = buildingKindDefinition(kind);
     staffing = `${definition.workers} Arbeiter · ${definition.carriers} Träger${definition.merchants ? ` · ${definition.merchants} Händler` : ""}`;
   } else if (kind === "hq") staffing = "Zuweisbare Träger.";
-  else if (kind === "house") staffing = "Kein Produktionspersonal.";
   else if (kind === "palisade") staffing = "Kein Personal.";
 
   const professions = buildingProfessions(kind);
