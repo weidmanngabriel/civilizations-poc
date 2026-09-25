@@ -55,6 +55,8 @@ const samePosition = (a: { q: number; r: number }, b: { q: number; r: number }):
 const freePerson = (world: World): Person | undefined =>
   world.people.find(
     (candidate) =>
+      candidate.ageStage !== "child" &&
+      !candidate.familyTask &&
       !candidate.assignment &&
       !candidate.woodcutter &&
       !candidate.fisher &&

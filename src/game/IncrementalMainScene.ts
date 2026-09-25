@@ -67,6 +67,7 @@ export class IncrementalMainScene extends MainScene {
   private staffGraphics?: Phaser.GameObjects.Graphics;
   private inventoryLabels?: Phaser.GameObjects.Container;
   private personLayer?: Phaser.GameObjects.Container;
+  private familyEffectLayer?: Phaser.GameObjects.Container;
   private personMarkers = new Map<number, PersonMarkerObjects>();
   private lastMapSignature = "";
   private lastBushSignature = "";
@@ -108,7 +109,8 @@ export class IncrementalMainScene extends MainScene {
     this.staffGraphics = this.add.graphics();
     this.inventoryLabels = this.add.container(0, 0);
     this.personLayer = this.add.container(0, 0).setDepth(30);
-    markers.add([this.bushGraphics, this.inventoryGraphics, this.staffGraphics, this.inventoryLabels]);
+    this.familyEffectLayer = this.add.container(0, 0).setDepth(45);
+    markers.add([this.bushGraphics, this.inventoryGraphics, this.staffGraphics, this.inventoryLabels, this.familyEffectLayer]);
     return true;
   }
 
@@ -344,7 +346,11 @@ export class IncrementalMainScene extends MainScene {
 
       const marker = this.personMarkers.get(person.id) ?? this.createPersonMarker(person);
       this.personMarkers.set(person.id, marker);
-      marker.dot.setPosition(x, y).setFillStyle(color).setVisible(true);
+      const childAge = person.bornAtTick === undefined ? Number.POSITIVE_INFINITY : this.worldRef.round - person.bornAtTick;
+      const radius = person.ageStage === "child"
+        ? childAge < 150 * CONFIG.simulationHz ? PERSON_MARKER_RADIUS * 0.6 : PERSON_MARKER_RADIUS * 0.8
+        : PERSON_MARKER_RADIUS;
+      marker.dot.setPosition(x, y).setRadius(radius).setFillStyle(color).setVisible(true);
       marker.label.setPosition(x, y).setVisible(true);
       const personLabel = this.internals().personMarker(person);
       if (marker.label.text !== personLabel) marker.label.setText(personLabel);
@@ -369,6 +375,35 @@ export class IncrementalMainScene extends MainScene {
       } else {
         marker.cargo.setVisible(false);
       }
+    }
+  }
+
+
+  private syncFamilyEffects(): void {
+    if (!this.familyEffectLayer) return;
+    this.familyEffectLayer.removeAll(true);
+    for (const effect of this.worldRef.familyEffects ?? []) {
+      const home = this.worldRef.buildings.find(
+        (building) => building.id === effect.homeId && !building.retired,
+      );
+      if (!home) continue;
+      const center = pixel(home.position);
+      const preBirth = this.worldRef.round < effect.birthAtTick;
+      const progress = Math.max(
+        0,
+        Math.min(1, (this.worldRef.round - effect.startedAtTick) / Math.max(1, effect.expiresAtTick - effect.startedAtTick)),
+      );
+      const hearts = this.add.text(center.x, center.y - HEX_Y * 1.7, preBirth ? "💕" : "💗", {
+        fontFamily: "system-ui",
+        fontSize: "10px",
+      }).setOrigin(0.5).setScale(0.65);
+      const bird = this.add.text(
+        center.x - HEX_X * 3 + HEX_X * 6 * progress,
+        center.y - HEX_Y * 2.6,
+        "🕊️",
+        { fontFamily: "system-ui", fontSize: "9px" },
+      ).setOrigin(0.5).setScale(0.7);
+      this.familyEffectLayer.add([hearts, bird]);
     }
   }
 
@@ -412,6 +447,7 @@ export class IncrementalMainScene extends MainScene {
     }
 
     performanceProfiler.profileFeature("renderPeople", () => this.syncPersonMarkers());
+    this.syncFamilyEffects();
 
     performanceProfiler.profileFeature("renderModalSync", () => {
       const modalSignature = this.modalSignature(mapSignature);

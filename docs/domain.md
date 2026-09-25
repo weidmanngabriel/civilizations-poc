@@ -70,3 +70,20 @@ This file is the primary location for verified domain terms, domain rules, invar
 - An unhoused person is a valid simulation state.
 - When the later age system makes a child an adult, that person leaves the parental household and is not assigned a new apartment automatically.
 
+## Family invariants
+
+- Sex does not change profession, work, need or equipment rules.
+- A marriage relation is symmetric: if A has spouse B, B has spouse A.
+- A person can have at most one spouse.
+- Children and parents cannot marry each other; siblings sharing a parent cannot marry each other.
+- Partner candidates are reserved while an active searcher travels to them.
+- Marriage never creates an apartment. It only merges existing household state when housing exists.
+- Married adults with one existing household share it; two existing households collapse to one randomly retained apartment.
+- Only married opposite-sex adults in the same household are eligible for the current biological birth system.
+- One birth creates 1/2/3 children at 90/9/1 percent probabilities.
+- Children remain in the parents' household without consuming another apartment.
+- Children have no hunger, sleep, profession, work assignment or player movement commands.
+- Childhood lasts five simulated minutes; the visual stage switches from baby to child halfway through.
+- Adult transition removes the child from the parental household and never assigns a replacement apartment automatically.
+- Birth policy is always one of low/medium/high; there is deliberately no disabled option.
+

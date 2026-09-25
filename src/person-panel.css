@@ -734,3 +734,42 @@ main.person-staff-picker-open::after {
     overflow: auto;
   }
 }
+
+.person-family-bulk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--panel-border, rgba(80, 70, 50, 0.22));
+}
+
+.person-family-bulk[hidden] {
+  display: none;
+}
+
+.person-family-bulk [data-family-selection-count] {
+  margin-right: auto;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.person-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.person-family-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.person-family-select input {
+  margin: 0;
+}
+

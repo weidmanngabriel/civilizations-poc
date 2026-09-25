@@ -352,10 +352,17 @@ const renderHouseArticle = (): string => {
     <h2 id="handbook-section-1">Wohnungen und Haushalte</h2>
     <p>Ein Single, ein Ehepaar oder eine Familie mit beliebig vielen Kindern belegt genau eine Wohnung. Erwachsene Bewohner bekommen Wohnungen über den Personenbefehl „Wohnung“. Volle Wohnhäuser sind dabei keine gültigen Ziele.</p>
     <p>Wird ein Kind später volljährig, verlässt es automatisch den Elternhaushalt. Es erhält dabei keine neue Wohnung automatisch.</p>
-    <h2 id="handbook-section-2">Stufen und Baukosten</h2>
+    <h2 id="handbook-section-2">Familie und Nachwuchs</h2>
+    <p>Männer und Frauen sind bei Berufen, Arbeit und Bedürfnissen gleichgestellt. Für biologischen Nachwuchs braucht es ein verheiratetes Paar aus Mann und Frau. Unverheiratete Erwachsene können den Befehl „Partner suchen“ erhalten; sie wählen einen erreichbaren, unverheirateten Partner des anderen Geschlechts und heiraten beim Treffen.</p>
+    <p>Bei der Heirat ziehen beide nach Möglichkeit zusammen. Hat nur einer eine Wohnung, wird sie gemeinsam genutzt. Haben beide unterschiedliche Wohnungen, bleibt zufällig eine der beiden Wohnungen bestehen. Eltern und Kinder belegen zusammen weiterhin nur eine Wohnung.</p>
+    <p>Im Hauptquartier steuert „Wenig / Mittel / Viele“ nur die Häufigkeit autonomer Nachwuchsentscheidungen: Wenig prüft alle 3 Minuten mit 15 %, Mittel alle 2 Minuten mit 30 %, Viele jede Minute mit 50 %. Nach einer Geburt gilt für das Paar ein fester Cooldown von 5 Minuten.</p>
+    <p>Pro Geburt entstehen mit 90 % Wahrscheinlichkeit ein Kind, mit 9 % zwei und mit 1 % drei Kinder. Beide Eltern gehen für das Geburtsereignis nach Hause; Herzen und ein fliegender Vogel markieren das Ereignis.</p>
+    <p>Kinder sind nicht steuerbar, haben keine Bedürfnisse und arbeiten nicht. Die Kindheit dauert 5 Minuten: 2,5 Minuten als Krabbelbaby, anschließend 2,5 Minuten als laufendes Kind. Kinder bewegen sich nur in der näheren Umgebung ihres Zuhauses. Mit der Volljährigkeit verlassen sie den Elternhaushalt und erhalten keine Wohnung automatisch.</p>
+    <p>Eltern und Kinder sowie Geschwister können nicht miteinander verheiratet werden.</p>
+    <h2 id="handbook-section-3">Stufen und Baukosten</h2>
     <p>Eine höhere Stufe kann direkt gebaut werden; dann werden die Kosten aller Stufen bis zum Ziel addiert. Beim Ausbau eines bestehenden Hauses werden nur die Materialien der nächsten Stufe benötigt.</p>
     <div class="wiki-recipe-list">${rows}</div>
-    <h2 id="handbook-section-3">Schlafen</h2>
+    <h2 id="handbook-section-4">Schlafen</h2>
     <p>Bewohner mit Wohnung bevorzugen ihr eigenes Wohnhaus als Schlafplatz. Wohnungslose Bewohner nutzen kein fremdes Wohnhaus automatisch und weichen auf Natur oder Boden aus.</p>
     <p class="wiki-overview-return"><button type="button" class="wiki-link" data-handbook-page="buildings">← Alle Gebäude</button></p>
   `;

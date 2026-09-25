@@ -16,3 +16,8 @@ Housing tests cover the apartment counts of all five residential levels, cumulat
 Startup-sensitive domain configuration must be exercised through `validateStartupConfiguration()` in Node tests. In particular, every implemented technology must resolve all construction prerequisites without throwing. This prevents a data/configuration change from breaking a UI module only when the browser starts.
 
 Every full CI validation also runs `npm run smoke:startup` after the production build. The smoke script serves `dist`, opens the real built game in headless Chrome/Chromium, connects through the Chrome DevTools Protocol, and succeeds only when the live document reaches `data-game-ready="true"` with a game canvas present. It terminates the browser explicitly after the assertion, so the game's continuous animation loop cannot make CI hang. A fatal crash marker, browser failure, timeout, or incomplete startup fails the workflow and therefore blocks GitHub Pages deployment.
+
+## Family coverage
+
+Family tests lock the low/medium/high birth cadence, the 90/9/1 multiple-birth thresholds, symmetric partner search and marriage, household merging for one or two existing apartments, close-relative exclusions, the 2.5-minute visual-stage transition, five-minute adulthood transition, automatic departure from the parental household without rehousing, and rejection of manual child movement. Save/load and wiki tests cover the new persistent family state and documented player-facing rules.
+

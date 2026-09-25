@@ -5,6 +5,8 @@ import { startSleepingAfterCompletedAction } from "./sleep";
 const NEED_THRESHOLD = 40;
 
 export const needDueBeforeNewTask = (person: Person): boolean =>
+  person.ageStage === "child" ||
+  Boolean(person.familyTask) ||
   Boolean(person.hungerState) ||
   (person.hunger ?? 100) <= NEED_THRESHOLD ||
   Boolean(person.sleepState) ||
@@ -17,6 +19,7 @@ export const needDueBeforeNewTask = (person: Person): boolean =>
  * usable target is currently available.
  */
 export const pauseForNeedBeforeNewTask = (world: World, person: Person): boolean => {
+  if (person.ageStage === "child" || person.familyTask) return true;
   if (person.hungerState || (person.hunger ?? 100) <= NEED_THRESHOLD) {
     startEatingAfterCompletedAction(world, person);
     return true;

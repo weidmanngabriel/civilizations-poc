@@ -141,6 +141,24 @@ export const validHomes = (world: World, personId?: number): Building[] => {
   });
 };
 
+const familyMembersForNewHousehold = (world: World, person: Person): Person[] => {
+  const members = [person];
+  const spouse = person.spouseId
+    ? world.people.find((candidate) => candidate.id === person.spouseId && !candidate.householdId)
+    : undefined;
+  if (spouse) members.push(spouse);
+  for (const childId of person.childIds ?? []) {
+    const child = world.people.find(
+      (candidate) =>
+        candidate.id === childId &&
+        candidate.ageStage === "child" &&
+        !candidate.householdId,
+    );
+    if (child && !members.includes(child)) members.push(child);
+  }
+  return members;
+};
+
 const nextHouseholdId = (world: World): HouseholdId => {
   world.nextHouseholdId ??= 1;
   return `household-${world.nextHouseholdId++}`;
@@ -157,7 +175,7 @@ export function assignPersonHome(
 ): boolean {
   const person = world.people.find((candidate) => candidate.id === personId);
   const house = world.buildings.find((building) => building.id === buildingId);
-  if (!person || !house || !usableHouse(house)) return false;
+  if (!person || person.ageStage === "child" || !house || !usableHouse(house)) return false;
 
   const existing = householdForPerson(world, person);
   if (existing?.homeId === house.id) return true;
@@ -171,14 +189,15 @@ export function assignPersonHome(
     return true;
   }
 
+  const members = familyMembersForNewHousehold(world, person);
   const household: Household = {
     id: nextHouseholdId(world),
     homeId: house.id,
     apartmentIndex,
-    memberIds: [person.id],
+    memberIds: members.map((member) => member.id),
   };
   households(world).push(household);
-  person.householdId = household.id;
+  for (const member of members) member.householdId = household.id;
   return true;
 }
 
@@ -203,3 +222,57 @@ export function releaseHouseholdsForHouse(world: World, buildingId: BuildingId):
     if (person.householdId && ids.has(person.householdId)) person.householdId = undefined;
   world.households = households(world).filter((household) => !ids.has(household.id));
 }
+
+/**
+ * Joins two married adults into one household without creating housing.
+ * When both already have apartments, preferredHouseholdId selects which one remains.
+ */
+export function mergeHouseholdsForMarriage(
+  world: World,
+  first: Person,
+  second: Person,
+  preferredHouseholdId?: HouseholdId,
+): Household | undefined {
+  const firstHousehold = householdForPerson(world, first);
+  const secondHousehold = householdForPerson(world, second);
+
+  if (firstHousehold?.id === secondHousehold?.id) {
+    if (!firstHousehold) return;
+    for (const person of [first, second]) {
+      if (!firstHousehold.memberIds.includes(person.id)) firstHousehold.memberIds.push(person.id);
+      person.householdId = firstHousehold.id;
+    }
+    return firstHousehold;
+  }
+
+  if (!firstHousehold && !secondHousehold) return;
+  const keep =
+    firstHousehold && secondHousehold
+      ? preferredHouseholdId === secondHousehold.id
+        ? secondHousehold
+        : firstHousehold
+      : firstHousehold ?? secondHousehold!;
+  const remove =
+    firstHousehold && secondHousehold
+      ? keep.id === firstHousehold.id
+        ? secondHousehold
+        : firstHousehold
+      : undefined;
+
+  const memberIds = new Set([
+    ...keep.memberIds,
+    ...(remove?.memberIds ?? []),
+    first.id,
+    second.id,
+  ]);
+  keep.memberIds = [...memberIds];
+
+  for (const person of world.people)
+    if (memberIds.has(person.id)) person.householdId = keep.id;
+
+  if (remove)
+    world.households = households(world).filter((candidate) => candidate.id !== remove.id);
+
+  return keep;
+}
+
