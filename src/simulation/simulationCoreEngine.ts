@@ -102,7 +102,7 @@ export const stonecutters = (w: World): Person[] =>
 export const builders = (w: World): Person[] =>
   w.people.filter((p) => p.builder);
 export const freePeople = (w: World): Person[] =>
-  w.people.filter((p) => !p.profession && !p.assignment && !p.woodcutter && !p.fisher && !p.hunter && !p.extractor && !p.builder);
+  w.people.filter((p) => p.ageStage !== "child" && !p.familyTask && !p.profession && !p.assignment && !p.woodcutter && !p.fisher && !p.hunter && !p.extractor && !p.builder);
 export const isUnderConstruction = (b: Building): boolean =>
   Boolean(b.construction && !b.construction.complete);
 const isStorageBuilding = (b: Building): boolean =>
@@ -1310,8 +1310,13 @@ function movePeople(w: World): void {
           ? "merchant"
           : undefined;
     if (logisticsProfession) gainProfessionExperience(p, logisticsProfession);
+    const ageMovementMultiplier =
+      p.ageStage === "child"
+        ? (p.bornAtTick !== undefined && w.round - p.bornAtTick < 150 * 60 ? 0.35 : 0.7)
+        : 1;
     p.movement +=
       CONFIG.movementPerTick *
+      ageMovementMultiplier *
       (logisticsProfession ? logisticsSpeedMultiplier(p, logisticsProfession) : 1) *
       equipmentMovementSpeedMultiplier(p);
     let moves = 0;
