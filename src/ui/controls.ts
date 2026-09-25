@@ -48,6 +48,7 @@ import { same } from "../simulation/hex";
 import { canPlaceWaypost, removeWaypost, wayposts } from "../simulation/wayposts";
 import { orderScoutWaypost } from "../simulation/scouting";
 import { performanceNow, performanceProfiler } from "../debug/performanceProfiler";
+import { RUNTIME_CRASH_EVENT } from "../runtime/crashReporter";
 import { BUILDING_SVG, GOOD_ICONS, buildingIcon } from "../icons";
 import { confirmDialog } from "./modalDialog";
 import { buildingUpgradeRule } from "../simulation/buildingUpgradeRules";
@@ -733,6 +734,8 @@ export function mountControls(w: World, renderMap: () => void): void {
     autoplayButton.textContent = "Fortsetzen";
     autoplayButton.setAttribute("aria-pressed", "false");
   };
+
+  window.addEventListener(RUNTIME_CRASH_EVENT, stopAutoplay, { once: true });
 
   const startAutoplay = () => {
     if (autoplayFrame !== undefined) window.cancelAnimationFrame(autoplayFrame);
