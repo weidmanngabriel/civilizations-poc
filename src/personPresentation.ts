@@ -3,11 +3,18 @@ import { currentProfession, PROFESSION_LABELS } from "./simulation/experience";
 import { GOODS } from "./simulation/simulation";
 
 export const personProfessionLabel = (world: World, person: Person): string => {
+  if (person.ageStage === "child") return "Kind";
   const profession = currentProfession(world, person);
   return profession ? PROFESSION_LABELS[profession] : "Frei";
 };
 
 export const personActivityLabel = (person: Person): string => {
+  if (person.ageStage === "child")
+    return person.bornAtTick === undefined ? "Kind" : "Spielt";
+  if (person.familyTask?.kind === "partner-search")
+    return person.familyTask.partnerId ? "Sucht Partner" : "Sucht passenden Partner";
+  if (person.familyTask?.kind === "birth")
+    return person.path.length ? "Geht nach Hause" : "Familienzeit";
   if (person.educationTask) {
     if (person.hungerState || person.sleepState) {
       // Need labels below take precedence while a lesson is paused.
