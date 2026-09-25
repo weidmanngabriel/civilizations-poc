@@ -118,6 +118,11 @@ const buildingFactMarkup = (world: World, buildingId: BuildingId | undefined, fa
   return `<button type="button" class="person-fact-link" data-person-building-id="${building.id}">${escapeHtml(building.name)} <span aria-hidden="true">⌖</span></button>`;
 };
 
+const personFactMarkup = (person: Person | undefined, fallback = "—"): string =>
+  person
+    ? `<button type="button" class="person-fact-link" data-person-related-id="${person.id}">${escapeHtml(personName(person.id))} <span aria-hidden="true">›</span></button>`
+    : escapeHtml(fallback);
+
 const cargoMarkup = (person: Person): string =>
   person.trip?.picked
     ? `<button type="button" class="person-fact-link wiki-link" data-wiki-good="${person.trip.good}"><span aria-hidden="true">${GOOD_ICONS[person.trip.good]}</span> ${GOODS[person.trip.good]}</button>`
@@ -356,6 +361,17 @@ export function mountPersonPanel(world: World): void {
     const activity = personActivityLabel(person);
     const home = homeLabel(world, person);
     const cargo = cargoLabel(person);
+    const spouse = person.spouseId
+      ? world.people.find((candidate) => candidate.id === person.spouseId)
+      : undefined;
+    const parents = (person.parentIds ?? [])
+      .map((id) => world.people.find((candidate) => candidate.id === id))
+      .filter((candidate): candidate is Person => Boolean(candidate));
+    const children = (person.childIds ?? [])
+      .map((id) => world.people.find((candidate) => candidate.id === id))
+      .filter((candidate): candidate is Person => Boolean(candidate));
+    const sexLabel = person.sex === "female" ? "Frau" : person.sex === "male" ? "Mann" : "—";
+    const ageLabel = person.ageStage === "child" ? "Kind" : "Erwachsen";
     const tool = equipmentForSlot(person, "tool");
     const shoes = equipmentForSlot(person, "shoes");
     const equipmentSlot = (slot: EquipmentSlot): string => {
@@ -379,6 +395,11 @@ export function mountPersonPanel(world: World): void {
       activity,
       home,
       cargo,
+      person.sex ?? "",
+      person.ageStage ?? "adult",
+      person.spouseId ?? "",
+      (person.parentIds ?? []).join(","),
+      (person.childIds ?? []).join(","),
       tool?.good ?? "",
       tool?.durability ?? "",
       tool?.workProgress ?? "",
@@ -391,7 +412,7 @@ export function mountPersonPanel(world: World): void {
     inspector.hidden = false;
     inspector.innerHTML = `
       <header class="person-panel-header person-inspector-header">
-        <button class="person-context-toggle" type="button" data-person-action="open-context">
+        <button class="person-context-toggle" type="button" data-person-action="open-context" ${person.ageStage === "child" ? "disabled" : ""}>
           <span class="person-context-toggle-icon" aria-hidden="true"></span><span>Aktionen</span>
         </button>
         <div class="person-inspector-identity">
@@ -402,7 +423,7 @@ export function mountPersonPanel(world: World): void {
         </div>
         <button class="person-inspector-close" type="button" data-person-action="close-inspector" aria-label="Person schließen">×</button>
       </header>
-      <div class="person-needs">
+      ${person.ageStage === "child" ? "" : `<div class="person-needs">
         <div class="person-need-row">
           <span>Hunger</span>
           <div class="person-meter"><i style="width:${hunger}%"></i></div>
@@ -413,7 +434,7 @@ export function mountPersonPanel(world: World): void {
           <div class="person-meter"><i style="width:${sleep}%"></i></div>
           <strong>${sleep}</strong>
         </div>
-      </div>
+      </div>`}
       <dl class="person-facts person-facts-primary">
         <div><dt>Aktuell</dt><dd>${escapeHtml(activity)}</dd></div>
       </dl>
