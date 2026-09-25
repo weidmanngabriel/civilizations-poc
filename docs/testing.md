@@ -10,3 +10,7 @@ Every newly introduced building profession requires a regression test covering t
 
 Housing tests cover the apartment counts of all five residential levels, cumulative direct-build costs, next-level upgrade costs, the one-household-per-apartment capacity invariant, moving an existing household between houses, and exclusion of full houses from valid home targets. Save/load tests use the current save version so household state remains part of the authoritative JSON roundtrip. Wiki tests cover the residential rules and all five level rows.
 
+## Map render-cache fallback
+
+The RenderTexture cache is treated as a non-authoritative optimization. Unit coverage verifies that guarded cache operations report success normally and convert renderer exceptions into a fallback signal instead of propagating them. Full TypeScript/Vite builds remain required because the fallback is wired through Phaser presentation code that is not instantiated in Node tests.
+

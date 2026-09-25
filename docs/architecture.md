@@ -385,3 +385,7 @@ The person command for choosing a home uses the same household model. Only compl
 
 Save format version 7 persists household records, person household references, and residential level state as part of the authoritative world snapshot.
 
+### Map render-cache fallback
+
+The incremental Phaser renderer may cache the static terrain map in a RenderTexture for performance. That cache is an optimization only: `MainScene.drawMap()` remains the authoritative presentation path. RenderTexture creation or refresh can fail on renderer/browser combinations even when the rest of Phaser remains operational. `IncrementalMainScene` therefore guards both cache creation and cache refresh. On the first cache failure it destroys/disables the cache for the remainder of the scene and keeps the direct `mapGraphics` (and its map-label container) visible. A cache failure must never abort `renderWorld()` or leave the canvas showing only the Phaser background.
+
