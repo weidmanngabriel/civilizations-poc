@@ -101,10 +101,10 @@ const workplaceLabel = (world: World, person: Person): string => {
   return "—";
 };
 
+const homeBuilding = (world: World, person: Person) => homeForPerson(world, person);
+
 const homeLabel = (world: World, person: Person): string =>
-  person.home
-    ? world.buildings.find((building) => building.id === person.home && !building.retired)?.name ?? "Unbekannte Wohnung"
-    : "—";
+  homeBuilding(world, person)?.name ?? "—";
 
 const cargoLabel = (person: Person): string =>
   person.trip?.picked
