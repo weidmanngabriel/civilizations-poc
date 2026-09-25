@@ -87,8 +87,15 @@ try {
   const dom = browser.stdout ?? "";
   if (browser.status !== 0)
     throw new Error(`Browser-Smoke-Test ist fehlgeschlagen.\n${browser.stderr ?? ""}`);
-  if (dom.includes('data-game-crashed="true"'))
-    throw new Error(`Spiel ist beim Browser-Startup gecrasht.\n${dom.slice(0, 5000)}`);
+  if (dom.includes('data-game-crashed="true"')) {
+    const crashIndex = dom.indexOf('id="runtime-crash-screen"');
+    const crashExcerpt = crashIndex >= 0
+      ? dom.slice(Math.max(0, crashIndex - 300), crashIndex + 3500)
+      : dom.slice(0, 5000);
+    throw new Error(
+      `Spiel ist beim Browser-Startup gecrasht.\nBrowser stderr:\n${browser.stderr ?? ""}\nCrash DOM:\n${crashExcerpt}`,
+    );
+  }
   if (!dom.includes('data-game-ready="true"'))
     throw new Error(
       `Spiel hat den Ready-Zustand nicht erreicht.\nBrowser stderr:\n${browser.stderr ?? ""}\nDOM:\n${dom.slice(0, 5000)}`,
