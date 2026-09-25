@@ -374,3 +374,14 @@ Wiki-Links werden als data-wiki-good beziehungsweise data-wiki-building markiert
 Die zentralen Wiki-Ziele umfassen zusätzlich `AnimalKind` und `Profession`. `wikiCatalog.ts` erzeugt deren Übersichten und Detailartikel aus den bestehenden Typen, `PROFESSION_LABELS`, Erfahrungsregeln und den fachlich relevanten Tierdaten. Alle Übersichts- und Beziehungslisten werden anhand ihrer deutschen Anzeigenamen sortiert.
 
 Das Handbuch signalisiert seinen Sichtbarkeitszustand über `poc-handbook-visibility`. Die Controls bleiben alleiniger Besitzer des Simulations-Loops: Beim Öffnen merken sie sich, ob die Simulation lief, pausieren gegebenenfalls und starten beim Schließen nur dann wieder, wenn sie vor dem Handbuch lief. Das Wiki selbst startet oder tickt keine Simulation.
+
+## Housing and households
+
+Residential capacity is modeled as apartments and households in the authoritative simulation state, not as a per-person capacity on the UI. `World.households` contains the household records; a person points to at most one household through `householdId`, and the household points to exactly one residential building and apartment index. Residential buildings remain a single `house` building kind and carry `houseLevel` (1–5), so later level-specific benefits can be added without multiplying building kinds.
+
+Housing rules and costs live in `src/simulation/housing.ts`. A level-1 house has two apartments and every further level adds one apartment up to six at level 5. Direct construction of a higher level uses the cumulative costs of all levels up to the target. An in-place upgrade uses only the next level's cost and stores `houseUpgradeTarget` until construction completes; the additional apartment becomes available only when construction finishes.
+
+The person command for choosing a home uses the same household model. Only completed houses with a free apartment (or the person's current household) are valid targets. Reassigning a person moves their existing household as a unit, which keeps the command compatible with later couples and families. Sleeping resolves the assigned house through the household; an unhoused person does not implicitly occupy another residential building and falls back to the existing nature/ground sleep behavior.
+
+Save format version 7 persists household records, person household references, and residential level state as part of the authoritative world snapshot.
+
