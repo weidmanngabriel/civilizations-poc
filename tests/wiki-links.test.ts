@@ -119,7 +119,7 @@ test("house wiki stays concise while covering apartments, levels and sleep", () 
   assert.match(house, /Wohnungen/);
   assert.match(house, /Stufe 1 · 2 Wohnungen/);
   assert.match(house, /Stufe 5 · 6 Wohnungen/);
-  assert.match(house, /schlafen immer in ihrem eigenen Wohnhaus/);
+  assert.match(house, /schlafen in ihrem eigenen Wohnhaus, wenn es erreichbar ist/);
   assert.match(house, /data-wiki-good="marble"/);
   assert.doesNotMatch(house, /Familie und Nachwuchs|90 % Wahrscheinlichkeit|Kindheit dauert|Wenig \/ Mittel \/ Viele/);
   assert.ok(buildingConsumersForGood("marble").includes("house"));
