@@ -68,7 +68,7 @@ app.innerHTML = `
           <div class="field">
             <label for="building-select">Vorhandenes Gebäude</label>
             <select id="building-select">
-              <option value="">— Neues Gebäude —</option>
+              <option value="">— Gebäude wählen —</option>
             </select>
           </div>
           <p class="help building-load-note" id="building-load-note" hidden></p>
