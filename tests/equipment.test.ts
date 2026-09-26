@@ -143,3 +143,23 @@ test("used equipment is dropped physically when no HQ or warehouse exists and ke
   assert.equal(equipmentWearPercent(reused), 52);
   assert.equal(world.looseGoods?.some((candidate) => candidate.id === stack.id), false);
 });
+
+
+test("children cannot receive equipment assignments", () => {
+  const world = createWorld(1);
+  const child = world.people[0]!;
+  const hq = world.buildings.find((building) => building.kind === "hq")!;
+  child.ageStage = "child";
+  child.hunger = undefined;
+  child.sleep = undefined;
+  hq.inventory!.woodenTool = 1;
+  hq.inventory!.shoes = 1;
+
+  assert.equal(assignEquipment(world, child.id, "woodenTool"), false);
+  assert.equal(assignEquipment(world, child.id, "shoes"), false);
+  assert.equal(child.equipmentTask, undefined);
+  assert.equal(equipmentForSlot(child, "tool"), undefined);
+  assert.equal(equipmentForSlot(child, "shoes"), undefined);
+  assert.equal(equipmentStock(world, "woodenTool"), 1);
+  assert.equal(equipmentStock(world, "shoes"), 1);
+});

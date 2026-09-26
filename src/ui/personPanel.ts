@@ -374,6 +374,34 @@ export function mountPersonPanel(world: World): void {
       return;
     }
 
+    if (person.ageStage === "child") {
+      const parents = (person.parentIds ?? [])
+        .map((id) => world.people.find((candidate) => candidate.id === id))
+        .filter((candidate): candidate is Person => Boolean(candidate));
+      const home = homeForPerson(world, person);
+      const signature = [
+        "child",
+        person.id,
+        (person.parentIds ?? []).join(","),
+        home?.id ?? "",
+      ].join("|");
+      if (signature === inspectorSignature && !inspector.hidden) return;
+      inspectorSignature = signature;
+      inspector.hidden = false;
+      inspector.innerHTML = `
+        <header class="person-panel-header person-inspector-header">
+          <div class="person-inspector-identity">
+            <strong>${escapeHtml(personName(person.id))}</strong>
+          </div>
+          <button class="person-inspector-close" type="button" data-person-action="close-inspector" aria-label="Person schließen">×</button>
+        </header>
+        <dl class="person-facts person-facts-primary">
+          <div><dt>Eltern</dt><dd>${parents.length ? parents.map((parent) => escapeHtml(personName(parent.id))).join(", ") : "—"}</dd></div>
+          <div><dt>Wohnhaus</dt><dd>${home ? escapeHtml(home.name) : "—"}</dd></div>
+        </dl>`;
+      return;
+    }
+
     const profession = professionOf(world, person);
     const professionText = profession ? PROFESSION_LABELS[profession] : "Frei";
     const experience = profession ? Math.round(professionExperience(person, profession)) : undefined;
@@ -394,7 +422,7 @@ export function mountPersonPanel(world: World): void {
       .map((id) => world.people.find((candidate) => candidate.id === id))
       .filter((candidate): candidate is Person => Boolean(candidate));
     const sexLabel = person.sex === "female" ? "Frau" : person.sex === "male" ? "Mann" : "—";
-    const ageLabel = person.ageStage === "child" ? "Kind" : "Erwachsen";
+    const ageLabel = "Erwachsen";
     const tool = equipmentForSlot(person, "tool");
     const shoes = equipmentForSlot(person, "shoes");
     const equipmentSlot = (slot: EquipmentSlot): string => {
@@ -436,7 +464,7 @@ export function mountPersonPanel(world: World): void {
     inspector.hidden = false;
     inspector.innerHTML = `
       <header class="person-panel-header person-inspector-header">
-        <button class="person-context-toggle" type="button" data-person-action="open-context" ${person.ageStage === "child" ? "disabled" : ""}>
+        <button class="person-context-toggle" type="button" data-person-action="open-context">
           <span class="person-context-toggle-icon" aria-hidden="true"></span><span>Aktionen</span>
         </button>
         <div class="person-inspector-identity">
@@ -447,7 +475,7 @@ export function mountPersonPanel(world: World): void {
         </div>
         <button class="person-inspector-close" type="button" data-person-action="close-inspector" aria-label="Person schließen">×</button>
       </header>
-      ${person.ageStage === "child" ? "" : `<div class="person-needs">
+      <div class="person-needs">
         <div class="person-need-row">
           <span>Hunger</span>
           <div class="person-meter"><i style="width:${hunger}%"></i></div>
@@ -458,7 +486,7 @@ export function mountPersonPanel(world: World): void {
           <div class="person-meter"><i style="width:${sleep}%"></i></div>
           <strong>${sleep}</strong>
         </div>
-      </div>`}
+      </div>
       <dl class="person-facts person-facts-primary">
         <div>
           <dt>Aktuell</dt>

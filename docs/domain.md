@@ -96,4 +96,10 @@ This file is the primary location for verified domain terms, domain rules, invar
 - Adult transition removes the child from the parental household and never assigns a replacement apartment automatically.
 - Birth policy is always one of low/medium/high; there is deliberately no disabled option.
 - Active family tasks yield to hunger and sleep. The family task remains authoritative and resumes after the need is fulfilled.
+- Once both parents reach home for a birth, the family sequence lasts exactly 15 simulated seconds.
+- Hearts-only family time lasts from second 0 through 5; the stork flight runs from second 5 through 10; children are created exactly at second 7.5.
+- Parents remain unavailable until second 15 even though the children already exist from second 7.5 onward.
+- Completing the birth family sequence sets both parents' sleep to 100.
+- Children cannot receive equipment assignments.
+- A child's person detail view is read-only and exposes only name, parents and home.
 

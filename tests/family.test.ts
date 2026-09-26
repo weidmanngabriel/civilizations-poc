@@ -319,3 +319,58 @@ test("active family task prevents a woodcutter work area from reclaiming the hom
   assert.deepEqual(first.path, familyPath);
   assert.equal(first.familyTask?.kind, "birth");
 });
+
+
+test("birth sequence creates children at 7.5 seconds and releases rested parents at 15 seconds", () => {
+  const world = createTestWorld({ population: 2 });
+  world.households = [];
+  world.nextHouseholdId = 1;
+  const [first, second] = adultPair(world);
+  const house = addHouse(world, "house-family-sequence", 6);
+
+  first.spouseId = second.id;
+  second.spouseId = first.id;
+  assert.equal(assignPersonHome(world, first.id, house.id), true);
+  first.position = { ...house.position };
+  second.position = { ...house.position };
+  first.familyTask = { kind: "birth", partnerId: second.id, homeId: house.id };
+  second.familyTask = { kind: "birth", partnerId: first.id, homeId: house.id };
+
+  const startTick = world.round;
+  advanceFamily(world);
+
+  const effect = world.familyEffects?.[0];
+  assert.ok(effect);
+  assert.equal(effect.storkStartsAtTick - startTick, 5 * 60);
+  assert.equal(effect.birthAtTick - startTick, 7.5 * 60);
+  assert.equal(effect.storkEndsAtTick - startTick, 10 * 60);
+  assert.equal(effect.expiresAtTick - startTick, 15 * 60);
+
+  world.round = effect.birthAtTick - 1;
+  advanceFamily(world);
+  assert.equal(world.people.length, 2);
+  assert.equal(first.familyTask?.kind, "birth");
+
+  world.round = effect.birthAtTick;
+  advanceFamily(world);
+  assert.ok(world.people.length > 2);
+  const populationAfterBirth = world.people.length;
+  const newborns = world.people.filter((person) => person.ageStage === "child");
+  assert.ok(newborns.length > 0);
+  assert.ok(newborns.every((child) => child.nextChildWanderTick === effect.expiresAtTick));
+  assert.equal(first.familyTask?.kind, "birth");
+
+  world.round = effect.expiresAtTick - 1;
+  advanceFamily(world);
+  assert.equal(world.people.length, populationAfterBirth);
+  assert.equal(first.familyTask?.kind, "birth");
+
+  world.round = effect.expiresAtTick;
+  first.sleep = 23;
+  second.sleep = 41;
+  advanceFamily(world);
+  assert.equal(first.familyTask, undefined);
+  assert.equal(second.familyTask, undefined);
+  assert.equal(first.sleep, 100);
+  assert.equal(second.sleep, 100);
+});

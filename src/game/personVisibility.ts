@@ -21,6 +21,26 @@ const personOnBuildingFootprint = (
 export function personInsideBuilding(world: World, person: Person): boolean {
   if (person.path.length) return false;
 
+  const household = person.householdId
+    ? world.households?.find((candidate) => candidate.id === person.householdId)
+    : undefined;
+  const familyHome = household
+    ? world.buildings.find((building) => building.id === household.homeId && !building.retired)
+    : undefined;
+  const activeBirthAtHome = Boolean(
+    household &&
+    familyHome &&
+    same(person.position, familyHome.position) &&
+    (
+      person.familyTask?.kind === "birth" ||
+      (person.ageStage === "child" && household.memberIds.some((memberId) => {
+        const member = world.people.find((candidate) => candidate.id === memberId);
+        return member?.familyTask?.kind === "birth" && member.familyTask.homeId === household.homeId;
+      }))
+    ),
+  );
+  if (activeBirthAtHome) return true;
+
   if (person.trip?.transferUntilTick !== undefined) {
     if (!person.trip.picked && person.trip.sourceKind !== "resource" && person.trip.sourceKind !== "looseGood") {
       const source = world.buildings.find((building) =>
