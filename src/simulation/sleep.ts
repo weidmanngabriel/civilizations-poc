@@ -169,14 +169,13 @@ const assignedHomeSleepTarget = (
       };
   }
 
-  const path = routeTo(world, person, home.position) ?? [];
+  const path = routeTo(world, person, home.position);
+  if (!path) return;
   return {
     kind: "house",
     target: home.position,
     path,
-    cost: path.length
-      ? pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier)
-      : Number.POSITIVE_INFINITY,
+    cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier),
     localNeedSearch: false,
   };
 };
@@ -352,17 +351,14 @@ const startSleeping = (world: World, person: Person, context: SleepSearchContext
   const localCandidate = assignedHome
     ? undefined
     : chooseLocalSleepTarget(world, person, context, new Set(), origin);
-  const assignedHomeNeedsAnchor = Boolean(
-    assignedHome &&
-    !same(person.position, assignedHome.target) &&
-    assignedHome.path.length === 0,
-  );
-  const anchorReturn = localCandidate || (assignedHome && !assignedHomeNeedsAnchor)
+  const anchorReturn = assignedHome || localCandidate
     ? undefined
     : findLocalNeedAnchorReturn(world, person, CONFIG.roadSpeedMultiplier);
-  const candidate = anchorReturn
-    ? { kind: "ground" as const, target: anchorReturn.anchor, path: anchorReturn.path, localNeedSearch: false as const }
-    : assignedHome ?? localCandidate ?? chooseGlobalSleepTarget(world, person, context);
+  const candidate = assignedHome ?? localCandidate ?? (
+    anchorReturn
+      ? { kind: "ground" as const, target: anchorReturn.anchor, path: anchorReturn.path, localNeedSearch: false as const }
+      : chooseGlobalSleepTarget(world, person, context)
+  );
   if (candidate.kind === "ground" && !anchorReturn) clearNavigationBlocked(person);
   if (anchorReturn) clearNavigationBlocked(person);
   person.sleepState = {
