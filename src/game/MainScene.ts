@@ -5,6 +5,7 @@ import type {
   BuildingId,
   Good,
   Hex,
+  HouseLevel,
   Person,
   PlaceableBuildingKind,
   Tile,
@@ -86,8 +87,8 @@ type PointerPosition = { x: number; y: number };
 type CameraSnapshot = { scrollX: number; scrollY: number; zoom: number };
 type MerchantTargetModeDetail = { active: boolean; sourceId?: BuildingId };
 type BuildPlacementKind = PlaceableBuildingKind | "waypost" | "palisade";
-type BuildModeDetail = { active: boolean; kind?: BuildPlacementKind };
-type UpgradePreviewDetail = { active: boolean; buildingId?: BuildingId; targetKind?: BuildableBuildingKind };
+type BuildModeDetail = { active: boolean; kind?: BuildPlacementKind; houseLevel?: HouseLevel };
+type UpgradePreviewDetail = { active: boolean; buildingId?: BuildingId; targetKind?: PlaceableBuildingKind; targetLevel?: number };
 type WorldBounds = { minX: number; maxX: number; minY: number; maxY: number };
 
 const underConstruction = (b: Building): boolean =>
@@ -117,10 +118,11 @@ export class MainScene extends Phaser.Scene {
   private merchantTargetSourceId?: BuildingId;
   private cameraBeforeMerchantTarget?: CameraSnapshot;
   private buildKind?: BuildPlacementKind;
+  private buildHouseLevel?: HouseLevel;
   private buildHover?: Hex;
   private buildPositionChosen = false;
   private palisadeStart?: Hex;
-  private upgradePreview?: { buildingId: BuildingId; targetKind: BuildableBuildingKind };
+  private upgradePreview?: { buildingId: BuildingId; targetKind: PlaceableBuildingKind; targetLevel: number };
   private cachedWorldBounds?: WorldBounds;
 
   constructor(private world: World) {
@@ -181,13 +183,18 @@ export class MainScene extends Phaser.Scene {
     const setUpgradePreview = (event: Event) => {
       const detail = (event as CustomEvent<UpgradePreviewDetail>).detail;
       this.upgradePreview = detail.active && detail.buildingId && detail.targetKind
-        ? { buildingId: detail.buildingId, targetKind: detail.targetKind }
+        ? {
+            buildingId: detail.buildingId,
+            targetKind: detail.targetKind,
+            targetLevel: detail.targetLevel ?? 1,
+          }
         : undefined;
       this.renderWorld();
     };
     const setBuildMode = (event: Event) => {
       const detail = (event as CustomEvent<BuildModeDetail>).detail;
       this.buildKind = detail.active ? detail.kind : undefined;
+      this.buildHouseLevel = detail.active ? detail.houseLevel : undefined;
       this.buildHover = undefined;
       this.buildPositionChosen = false;
       this.palisadeStart = undefined;
@@ -732,8 +739,14 @@ export class MainScene extends Phaser.Scene {
         );
         return;
       }
-      const valid = canPlaceBuilding(this.world, this.buildHover, this.buildKind);
-      const footprint = footprintAt(this.buildKind, this.buildHover);
+      const buildLevel = this.buildKind === "house" ? (this.buildHouseLevel ?? 1) : 1;
+      const valid = canPlaceBuilding(
+        this.world,
+        this.buildHover,
+        this.buildKind,
+        this.buildKind === "house" ? { houseLevel: buildLevel as HouseLevel } : undefined,
+      );
+      const footprint = footprintAt(this.buildKind, this.buildHover, buildLevel);
       for (const position of footprint) {
         highlights.fillStyle(valid ? 0xb8e69f : 0xe18b7d, 0.48);
         highlights.fillPoints(this.hexPoints(position), true);
@@ -762,7 +775,11 @@ export class MainScene extends Phaser.Scene {
       );
       if (!source) return;
       const anchor = buildingVisualAnchor(source);
-      const footprint = footprintAt(this.upgradePreview.targetKind, anchor);
+      const footprint = footprintAt(
+        this.upgradePreview.targetKind,
+        anchor,
+        this.upgradePreview.targetLevel,
+      );
       const blockers = upgradePlacementBlockers(this.world, source);
       const blockedPositions = new Set(blockers.map((blocker) => key(blocker.position)));
 
