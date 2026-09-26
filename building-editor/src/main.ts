@@ -459,6 +459,18 @@ function definition(): BuildingVisualDefinition {
   };
 }
 
+function selectedDefinition(): BuildingVisualDefinition {
+  storeActiveLevel();
+  const snapshot = levelSnapshots.get(activeLevel);
+  if (!snapshot) throw new Error("Ausgewählte Variante fehlt.");
+  return {
+    schema: "civilizations-building-visual",
+    version: 4,
+    id: idInput.value.trim(),
+    levels: [visualLevelFromSnapshot(snapshot)],
+  };
+}
+
 function errors(): string[] {
   storeActiveLevel();
   const missingSprites = [...levelSnapshots.values()]
@@ -714,7 +726,7 @@ downloadButton.addEventListener("click", () => {
     return;
   }
   if (!refreshStatus()) return;
-  const value = definition();
+  const value = selectedDefinition();
   downloadBlob(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }), "building.json");
   const snapshot = levelSnapshots.get(activeLevel);
   if (snapshot?.spriteFile) downloadBlob(snapshot.spriteFile, snapshot.spriteName);
