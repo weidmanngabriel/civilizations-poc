@@ -21,6 +21,7 @@ import type {
   BuildingVisualLevel,
 } from "./buildingVisualDefinition";
 import { validateBuildingVisualDefinition } from "./buildingVisualDefinition";
+import { buildingVisualLevels } from "./buildingVisualVariants";
 
 type BuildingVisualKind = ManagedBuildingKind | "field";
 
@@ -49,6 +50,10 @@ const validateRegisteredDefinition = (
   definition: BuildingVisualDefinition,
 ): BuildingVisualDefinition => {
   const errors = validateBuildingVisualDefinition(definition);
+  const allowedLevels = new Set(buildingVisualLevels(kind));
+  for (const level of definition.levels)
+    if (!allowedLevels.has(level.level))
+      errors.push(`Stufe ${level.level} ist für ${kind} im Hauptspiel nicht definiert.`);
   if (errors.length)
     throw new Error(`Ungültige Building-Definition für ${kind}: ${errors.join(" ")}`);
   return definition;
