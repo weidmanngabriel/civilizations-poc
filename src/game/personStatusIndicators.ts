@@ -11,10 +11,10 @@ import {
 } from "./personMarkerGeometry";
 
 const TEXT_RESOLUTION = 3;
-const BUBBLE_HEIGHT = 8;
-const BUBBLE_GAP = 3;
-const ICON_FONT_SIZE = 5;
-const BUBBLE_Y_OFFSET = PERSON_MARKER_RADIUS + BUBBLE_HEIGHT + BUBBLE_GAP;
+const BUBBLE_HEIGHT = 4.5;
+const BUBBLE_GAP = 0.75;
+const ICON_FONT_SIZE = 3;
+const BUBBLE_Y_OFFSET = PERSON_MARKER_RADIUS + BUBBLE_HEIGHT / 2 + BUBBLE_GAP;
 
 const SEVERITY_COLORS: Record<PersonAlertSeverity, { fill: number; text: string }> = {
   critical: { fill: 0xd9483b, text: "#ffffff" },
@@ -37,10 +37,10 @@ const drawThoughtBubble = (
   graphics.clear();
   graphics.fillStyle(fill, 0.97);
   graphics.lineStyle(0.75, 0x263c2d, 0.9);
-  graphics.fillRoundedRect(-width / 2, -BUBBLE_HEIGHT / 2, width, BUBBLE_HEIGHT, 3);
-  graphics.strokeRoundedRect(-width / 2, -BUBBLE_HEIGHT / 2, width, BUBBLE_HEIGHT, 3);
-  graphics.fillCircle(-width * 0.2, BUBBLE_HEIGHT / 2 + 2, 1.35);
-  graphics.fillCircle(-width * 0.28, BUBBLE_HEIGHT / 2 + 4, 0.8);
+  graphics.fillRoundedRect(-width / 2, -BUBBLE_HEIGHT / 2, width, BUBBLE_HEIGHT, 1.5);
+  graphics.strokeRoundedRect(-width / 2, -BUBBLE_HEIGHT / 2, width, BUBBLE_HEIGHT, 1.5);
+  graphics.fillCircle(-width * 0.2, BUBBLE_HEIGHT / 2 + 0.9, 0.7);
+  graphics.fillCircle(-width * 0.28, BUBBLE_HEIGHT / 2 + 1.8, 0.4);
 };
 
 export function installPersonStatusIndicators(scene: Phaser.Scene, world: World): void {
@@ -77,7 +77,7 @@ export function installPersonStatusIndicators(scene: Phaser.Scene, world: World)
         const severity = alerts[0]!.severity;
         const icons = alerts.map((alert) => PERSON_ALERT_ICONS[alert.code]).join(" ");
         const signature = `${severity}:${icons}`;
-        const width = Math.max(11, 7 + icons.length * 4.2);
+        const width = Math.max(7, 4 + icons.length * 2.6);
         const colors = SEVERITY_COLORS[severity];
 
         if (!indicator) {
