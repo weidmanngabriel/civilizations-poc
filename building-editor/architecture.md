@@ -15,16 +15,15 @@ src/buildings/
 src/assets/buildings/
   <building-id>/
     building.json
-    sprite.png|webp
+    sprite*.png|webp
 ```
 
 Der Editor importiert die gemeinsame Kartenprojektion und Hex-Geometrie aus `src/game/mapProjection.ts`. Zellzentren, Hex-Ecken und damit die sichtbare Rasterform entsprechen der Spielansicht. Der Editor verwendet nur einen festen Vorschau-Zoom; Raster und Sprite werden mit demselben Faktor vergrößert. Dieser Vorschau-Zoom verändert keine exportierten Daten.
 
 ## Datenmodell
 
-`BuildingVisualDefinition` Version 3 enthält ausschließlich:
+`BuildingVisualDefinition` Version 4 enthält eine stabile `id` und eine lückenlose Liste von `levels`, beginnend bei Stufe 1. Jede Stufe besitzt vollständig eigene visuelle/räumliche Daten:
 
-- stabile `id`,
 - Sprite-Dateiname,
 - `spriteAnchor` als normalisierte x/y-Position relativ zur Bildgröße,
 - positive `spriteWorldWidth` als sichtbare Breite in Weltpixeln,
@@ -32,7 +31,7 @@ Der Editor importiert die gemeinsame Kartenprojektion und Hex-Geometrie aus `src
 - `blocked` als Teilmenge des Footprints,
 - genau eine nicht blockierte `entrance`-Zelle.
 
-Sprite-Ausrichtung und Weltgröße sind dadurch unabhängig von der Quellauflösung. Begehbare Gebäudezellen ergeben sich aus `footprint - blocked`; sie werden nicht redundant gespeichert.
+Sprite-Ausrichtung und Weltgröße sind dadurch unabhängig von der Quellauflösung. Begehbare Gebäudezellen ergeben sich aus `footprint - blocked`; sie werden nicht redundant gespeichert. Unterschiedliche Stufen dürfen unterschiedliche Grundrisse, Eingänge und Sprites besitzen.
 
 ## Editor-Interaktion
 
@@ -50,19 +49,19 @@ Die Overlay-Stärke der markierten Rasterzellen ist eine reine Editor-Vorschau-E
 
 Der Editor liest die vorhandenen Visual-Asset-Slots unter `src/assets/buildings/<kind>/` direkt über Vite-Module ein. Das Dropdown verwendet die zentralen deutschen Gebäudenamen des Spiels und sortiert sie mit deutscher Sortierung alphabetisch. Verwaltete Gebäude und `field` werden angeboten; Infrastruktur wie Palisaden bleibt außerhalb dieses generischen Editors.
 
-Nicht-placeholder `building.json`-Dateien werden mit demselben aktuellen Schema validiert wie manuelle Reimporte. Bei Auswahl werden Definition und das referenzierte Sprite vollständig in den Editorzustand geladen. Placeholder-Slots bleiben ebenfalls auswählbar: der Editor übernimmt ihre ID, leert den räumlich-visuellen Bearbeitungszustand und weist darauf hin, dass noch keine Konfiguration existiert.
+Nicht-placeholder `building.json`-Dateien werden mit demselben aktuellen Schema validiert wie manuelle Reimporte. Bei Auswahl werden Definition und alle referenzierten Stufen-Sprites vollständig in den Editorzustand geladen. Der Editor hält den Zustand jeder Stufe separat; beim Stufenwechsel werden Sprite, Anchor, Weltbreite, Grundriss, Blockierung und Eingang gewechselt. Neue Stufen werden lückenlos am Ende angefügt und übernehmen als Startpunkt die räumliche Konfiguration der vorherigen Stufe, aber keinen Sprite. Placeholder-Slots bleiben ebenfalls auswählbar: der Editor übernimmt ihre ID, leert den räumlich-visuellen Bearbeitungszustand und weist darauf hin, dass noch keine Konfiguration existiert.
 
 Beim lokalen direkten Speichern bleiben Definition-ID und Asset-Slot getrennt. Wurde ein vorhandenes Projektgebäude aus dem Dropdown geladen, schreibt der Development-Endpunkt zurück in genau dessen bestehenden Slot, auch wenn dessen `BuildingVisualDefinition.id` davon abweicht.
 
 ## Export und Reimport
 
-Im Produktionsbuild/GitHub Pages lädt **Dateien herunterladen** `building.json` und das unveränderte Sprite als lokale Dateien herunter.
+Im Produktionsbuild/GitHub Pages lädt **Dateien herunterladen** `building.json` und alle unveränderten Stufen-Sprites als lokale Dateien herunter.
 
-Der Editor kann ein Exportpaar wieder importieren. `building.json` wird strukturell und über die gemeinsame Schema-Validierung geprüft. Anschließend muss unter den gleichzeitig ausgewählten Dateien genau das vom JSON referenzierte PNG/WebP vorhanden sein. Erst nach erfolgreicher Prüfung werden Editorzustand und Sprite ersetzt. Dasselbe funktioniert per gemeinsamer Dateiauswahl oder Drag & Drop beider Dateien.
+Der Editor kann einen Export aus `building.json` plus allen darin referenzierten Stufen-Sprites wieder importieren. `building.json` wird strukturell und über die gemeinsame Schema-Validierung geprüft. Anschließend muss unter den gleichzeitig ausgewählten Dateien genau das vom JSON referenzierte PNG/WebP vorhanden sein. Erst nach erfolgreicher Prüfung werden Editorzustand und Sprite ersetzt. Dasselbe funktioniert per gemeinsamer Dateiauswahl oder Drag & Drop beider Dateien.
 
 Aktuell gibt es bewusst **keine Rückwärtskompatibilität** für ältere Editor-/Building-Visual-Schemata. Der aktuelle Schemastand ist verbindlich; alte Exporte dürfen abgelehnt werden. Migrationen oder Defaults werden erst ergänzt, wenn dies ausdrücklich als Produktanforderung festgelegt wird.
 
-Im Vite-Entwicklungsserver ist zusätzlich **Direkt ins Projekt speichern** verfügbar. Ein Development-only-Middleware-Endpunkt validiert ID und Bildtyp und schreibt nach `src/assets/buildings/<id>/`. Dieser Endpunkt existiert im statischen Produktionsbuild nicht und benötigt keine GitHub-Anmeldedaten.
+Im Vite-Entwicklungsserver ist zusätzlich **Direkt ins Projekt speichern** verfügbar. Ein Development-only-Middleware-Endpunkt validiert ID und Bildtyp und schreibt `building.json` plus alle referenzierten Stufen-Sprites nach `src/assets/buildings/<id>/`. Dieser Endpunkt existiert im statischen Produktionsbuild nicht und benötigt keine GitHub-Anmeldedaten.
 
 ## Build
 
