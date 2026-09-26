@@ -69,6 +69,7 @@ const PATH_REASON_LABELS: Record<PathReason, string> = {
   logistics: "Träger / Versorgung",
   merchant: "Händler",
   farm: "Farm",
+  family: "Familie / Wohnen",
   reroute: "Neuberechnung",
   other: "Sonstige",
 };
