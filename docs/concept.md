@@ -57,12 +57,12 @@ Gameplay-Regeln bleiben im Spielcode und umfassen unter anderem:
 - Baukosten und Bauzeit,
 - Technologie-Freischaltungen.
 
-Der Gebäudeeditor definiert ausschließlich die räumlich-visuelle Seite:
+Der Gebäudeeditor definiert ausschließlich die räumlich-visuelle Seite. Eine Gebäude-ID kann mehrere lückenlose Stufen besitzen; jede Stufe definiert:
 
-- Sprite,
+- eigenen Sprite,
 - relativen Sprite-Anchor,
 - sichtbare Breite in der Spielwelt,
-- Gebäudegrundriss,
+- eigenen Gebäudegrundriss,
 - blockierte Zellen,
 - genau eine begehbare Eingangszelle.
 
@@ -93,7 +93,7 @@ Diese Trennung ist für weitere baubare Infrastruktur vorgesehen, insbesondere T
 
 ## Bauen, Freiraum und Abriss
 
-Gebäude brauchen ihren vollständigen Grundriss plus einen freien Ring von zwei Mikrozellen rundherum. Für registrierte Gebäudetypen kommt der Grundriss aus der aktuellen Editor-Definition; für noch nicht registrierte Typen gilt die derzeitige codebasierte Form.
+Gebäude brauchen den vollständigen Grundriss ihrer aktuell gebauten Stufe plus einen freien Ring von zwei Mikrozellen rundherum. Bei einem Upgrade wird derselbe Test für die Zielstufe verwendet; ist deren Grundriss oder Freiraum blockiert, kann das Upgrade nicht gestartet werden. Sobald das Upgrade startet, wird die Zielfläche sofort reserviert. Für registrierte Gebäudetypen kommt der Grundriss aus der aktuellen Editor-Definition; für noch nicht registrierte Typen gilt die derzeitige codebasierte Form.
 
 Zusätzlich darf ein Gebäude nur gebaut werden, wenn sein **Eingang innerhalb des 3,5-Weltkachel-Radius mindestens eines platzierten Wegweisers** liegt. Es genügt jeder Wegweiser; er muss nicht mit einem anderen Wegweiser verbunden sein. Damit können bewusst mehrere voneinander getrennte Logistiknetze bestehen, etwa auf unterschiedlichen Inseln.
 
@@ -109,9 +109,9 @@ Die Arbeitsfläche soll die spätere Spielansicht räumlich zuverlässig vorwegn
 
 Die Sprite-Größe wird als Breite in der Spielwelt eingestellt, nicht mehr als Multiplikator der Bildpixel. Der Sprite-Anchor wird relativ zur Bildgröße gespeichert. So bleiben WYSIWYG-Ausrichtung und Größe auch dann identisch, wenn dieselbe Grafik später in einer anderen Auflösung vorliegt.
 
-Der Editor bietet die vorhandenen visuellen Gebäude-Slots in einem Dropdown nach deutschem Gebäudenamen alphabetisch sortiert an. Bei bereits konfigurierten Gebäuden lädt die Auswahl das aktuelle Sprite sowie Anchor, Weltbreite, Grundriss, blockierte Zellen und Eingang. Placeholder bleiben ebenfalls sichtbar; sie übernehmen mindestens ihre vorhandene ID und zeigen an, dass noch keine Konfiguration existiert. Palisaden bleiben als Infrastruktur außerhalb dieses generischen Gebäudeeditors.
+Der Editor bietet die vorhandenen visuellen Gebäude-Slots in einem Dropdown nach deutschem Gebäudenamen alphabetisch sortiert an. Innerhalb eines Gebäudes können Stufen ausgewählt, am Ende ergänzt und separat bearbeitet werden. Bei bereits konfigurierten Gebäuden lädt die Auswahl alle Stufen samt Sprite, Anchor, Weltbreite, Grundriss, blockierten Zellen und Eingang. Placeholder bleiben ebenfalls sichtbar; sie übernehmen mindestens ihre vorhandene ID und zeigen an, dass noch keine Konfiguration existiert. Palisaden bleiben als Infrastruktur außerhalb dieses generischen Gebäudeeditors.
 
-Im veröffentlichten Editor werden `building.json` und das **unveränderte** Sprite heruntergeladen. Der Export verkleinert oder recomprimiert die gewählte Bilddatei nicht. Dieses Dateipaar kann gemeinsam wieder importiert und vollständig weiterbearbeitet werden, sofern es dem aktuellen Schema entspricht. Bei lokaler Entwicklung kann derselbe Stand direkt in den zugehörigen Asset-Slot unter `src/assets/buildings/<kind>/` gespeichert werden. Bei neu angelegten, nicht aus dem Projekt geladenen Definitionen dient weiterhin die Definition-ID als neuer Slotname.
+Im veröffentlichten Editor werden `building.json` und das **unveränderte** Sprite heruntergeladen. Der Export verkleinert oder recomprimiert die gewählte Bilddatei nicht. Dieses Dateipaar kann gemeinsam wieder importiert und vollständig weiterbearbeitet werden, sofern es dem aktuellen Schema entspricht. Bei lokaler Entwicklung kann derselbe Stand mit `building.json` und allen Stufen-Sprites direkt in den zugehörigen Asset-Slot unter `src/assets/buildings/<kind>/` gespeichert werden. Bei neu angelegten, nicht aus dem Projekt geladenen Definitionen dient weiterhin die Definition-ID als neuer Slotname.
 
 Ältere Editor-/Building-Visual-Schemata werden nicht unterstützt oder migriert. Nur der aktuelle Schemastand ist verbindlich.
 
