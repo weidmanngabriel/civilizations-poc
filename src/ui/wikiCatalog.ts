@@ -354,7 +354,7 @@ const renderHouseArticle = (): string => {
     <h2 id="handbook-section-2">Stufen</h2>
     <div class="wiki-recipe-list">${rows}</div>
     <h2 id="handbook-section-3">Schlafen</h2>
-    <p>Bewohner mit Wohnung schlafen immer in ihrem eigenen Wohnhaus. Wohnungslose Bewohner schlafen in der Natur oder auf dem Boden.</p>
+    <p>Bewohner mit Wohnung schlafen in ihrem eigenen Wohnhaus, wenn es erreichbar ist. Sonst schlafen sie wie Wohnungslose in der Natur oder auf dem Boden.</p>
     <p class="wiki-overview-return"><button type="button" class="wiki-link" data-handbook-page="buildings">← Alle Gebäude</button></p>
   `;
 };
