@@ -120,28 +120,15 @@ test("house upgrades request only the next level materials and keep current apar
 });
 
 
-test("house upgrades use the target-level placement check", () => {
+test("house upgrades keep their current geometry until a target visual level is authored", () => {
   const world = createTestWorld({ population: 0 });
   const target = addHouse(world, "house-upgrade-space", 1);
   target.position = { q: 4, r: 0 };
   target.footprint = [{ ...target.position }];
+  const before = target.footprint.map((cell) => ({ ...cell }));
 
-  const targetFootprint = footprintAt("house", target.position, 2);
-  const blockedCell = targetFootprint.find(
-    (cell) => cell.q !== target.position.q || cell.r !== target.position.r,
-  );
-  assert.ok(blockedCell);
-  const tile = world.tiles.find(
-    (candidate) => candidate.q === blockedCell.q && candidate.r === blockedCell.r,
-  );
-  assert.ok(tile);
-  tile.terrain = "river";
-
-  const blockers = upgradePlacementBlockers(world, target);
-  assert.ok(blockers.some((blocker) =>
-    blocker.kind === "terrain" &&
-    blocker.position.q === blockedCell.q &&
-    blocker.position.r === blockedCell.r
-  ));
-  assert.equal(startBuildingUpgrade(world, target), false);
+  assert.deepEqual(upgradePlacementBlockers(world, target), []);
+  assert.equal(startBuildingUpgrade(world, target), true);
+  assert.deepEqual(target.footprint, before);
+  assert.equal(target.houseUpgradeTarget, 2);
 });
