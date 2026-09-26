@@ -213,6 +213,7 @@ test("stone extractor keeps an active sleep route instead of returning to its re
   assert.ok(stone);
 
   removeNatureSleepTargets(world);
+  world.naturalResources = [stone];
   const bush = nearbyGrassTile(world);
   bush.bush = true;
   bush.bushAvailable = true;
