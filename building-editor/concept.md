@@ -45,8 +45,6 @@ Beim Werkzeug **Blockierte Zellen** wird eine leere Zelle beim Setzen automatisc
 
 Vorhandene Projektgebäude können über **Vorhandenes Gebäude** geladen werden. Die Einträge zeigen ihre deutschen Gebäudenamen und sind alphabetisch sortiert. Für bereits konfigurierte Slots werden Sprite und alle visuellen/räumlichen Werte geladen. Placeholder bleiben sichtbar; bei ihrer Auswahl wird die vorhandene ID übernommen und ausdrücklich angezeigt, dass noch keine Konfiguration existiert.
 
-Vorhandene Projektgebäude können über **Vorhandenes Gebäude** geladen werden. Die Einträge zeigen ihre deutschen Gebäudenamen und sind alphabetisch sortiert. Für bereits konfigurierte Slots werden Sprite und alle visuellen/räumlichen Werte geladen. Placeholder bleiben sichtbar; bei ihrer Auswahl wird die vorhandene ID übernommen und ausdrücklich angezeigt, dass noch keine Konfiguration existiert.
-
 Ein Export kann über **Gebäudedefinition öffnen** geladen werden. Dabei werden `building.json` und das darin referenzierte PNG/WebP gemeinsam ausgewählt. Alternativ können beide Dateien zusammen auf die Sprite-Fläche gezogen werden. Der aktuelle Editorzustand wird nur ersetzt, wenn Schema, Rasterdaten und Sprite vollständig zusammenpassen.
 
 Aktuell wird **keine Rückwärtskompatibilität** gepflegt. Nur der aktuelle Editor-/Building-Visual-Schemastand muss funktionieren; ältere Exporte dürfen bei Schemaänderungen abgelehnt werden. Rückwärtskompatibilität wird erst ergänzt, wenn sie ausdrücklich angefordert wird.
