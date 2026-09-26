@@ -9,13 +9,11 @@ import { installFishSchoolIndicators } from "./game/fishSchoolIndicators";
 import { installWildlifeIndicators } from "./game/wildlifeIndicators";
 import { installBushIndicators } from "./game/bushIndicators";
 import { installDesktopBuildPlacement } from "./game/desktopBuildPlacement";
-import { installHungerIndicators } from "./game/hungerIndicators";
 import { installLooseGoodsIndicators } from "./game/looseGoodsIndicators";
 import { installNaturalResourceIndicators } from "./game/naturalResourceIndicators";
 import { installPersonSelection } from "./game/personSelection";
+import { installPersonStatusIndicators } from "./game/personStatusIndicators";
 import { installPersonCommandInteraction } from "./game/personCommandInteraction";
-import { installNavigationBlockedIndicators } from "./game/navigationBlockedIndicators";
-import { installSleepIndicators } from "./game/sleepIndicators";
 import { installWorkAreaInteraction } from "./game/workAreaInteraction";
 import { installWaypostIndicators } from "./game/waypostIndicators";
 import {
@@ -184,10 +182,8 @@ export async function bootstrapGame(): Promise<void> {
   installFishingIndicators(scene, world);
   installFishSchoolIndicators(scene, world);
   installWildlifeIndicators(scene, world);
-  installHungerIndicators(scene, world);
-  installSleepIndicators(scene, world);
+  installPersonStatusIndicators(scene, world);
   installPersonSelection(scene, world);
-  installNavigationBlockedIndicators(scene, world);
   installWorkAreaInteraction(scene, world);
   installPersonCommandInteraction(scene, world);
   installWaypostIndicators(scene, world);
