@@ -351,14 +351,17 @@ const startSleeping = (world: World, person: Person, context: SleepSearchContext
   const localCandidate = assignedHome
     ? undefined
     : chooseLocalSleepTarget(world, person, context, new Set(), origin);
-  const anchorReturn = assignedHome || localCandidate
+  const assignedHomeNeedsAnchor = Boolean(
+    assignedHome &&
+    !same(person.position, assignedHome.target) &&
+    assignedHome.path.length === 0,
+  );
+  const anchorReturn = localCandidate || (assignedHome && !assignedHomeNeedsAnchor)
     ? undefined
     : findLocalNeedAnchorReturn(world, person, CONFIG.roadSpeedMultiplier);
-  const candidate = assignedHome ?? localCandidate ?? (
-    anchorReturn
-      ? { kind: "ground" as const, target: anchorReturn.anchor, path: anchorReturn.path, localNeedSearch: false as const }
-      : chooseGlobalSleepTarget(world, person, context)
-  );
+  const candidate = anchorReturn
+    ? { kind: "ground" as const, target: anchorReturn.anchor, path: anchorReturn.path, localNeedSearch: false as const }
+    : assignedHome ?? localCandidate ?? chooseGlobalSleepTarget(world, person, context);
   if (candidate.kind === "ground" && !anchorReturn) clearNavigationBlocked(person);
   if (anchorReturn) clearNavigationBlocked(person);
   person.sleepState = {
