@@ -54,14 +54,6 @@ Nicht-placeholder `building.json`-Dateien werden mit demselben aktuellen Schema 
 
 Beim lokalen direkten Speichern bleiben Definition-ID und Asset-Slot getrennt. Wurde ein vorhandenes Projektgebäude aus dem Dropdown geladen, schreibt der Development-Endpunkt zurück in genau dessen bestehenden Slot, auch wenn dessen `BuildingVisualDefinition.id` davon abweicht.
 
-## Projektgebäude laden
-
-Der Editor liest die vorhandenen Visual-Asset-Slots unter `src/assets/buildings/<kind>/` direkt über Vite-Module ein. Das Dropdown verwendet die zentralen deutschen Gebäudenamen des Spiels und sortiert sie mit deutscher Sortierung alphabetisch. Verwaltete Gebäude und `field` werden angeboten; Infrastruktur wie Palisaden bleibt außerhalb dieses generischen Editors.
-
-Nicht-placeholder `building.json`-Dateien werden mit demselben aktuellen Schema validiert wie manuelle Reimporte. Bei Auswahl werden Definition und das referenzierte Sprite vollständig in den Editorzustand geladen. Placeholder-Slots bleiben ebenfalls auswählbar: der Editor übernimmt ihre ID, leert den räumlich-visuellen Bearbeitungszustand und weist darauf hin, dass noch keine Konfiguration existiert.
-
-Beim lokalen direkten Speichern bleiben Definition-ID und Asset-Slot getrennt. Wurde ein vorhandenes Projektgebäude aus dem Dropdown geladen, schreibt der Development-Endpunkt zurück in genau dessen bestehenden Slot, auch wenn dessen `BuildingVisualDefinition.id` davon abweicht.
-
 ## Export und Reimport
 
 Im Produktionsbuild/GitHub Pages lädt **Dateien herunterladen** `building.json` und das unveränderte Sprite als lokale Dateien herunter.
