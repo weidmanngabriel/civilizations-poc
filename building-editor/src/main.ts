@@ -758,7 +758,7 @@ saveProjectButton.addEventListener("click", async () => {
     const result = await response.json() as { ok?: boolean; path?: string; error?: string };
     if (!response.ok || !result.ok) throw new Error(result.error ?? "Speichern fehlgeschlagen");
     activeVariant.configured = true;
-    const option = [...buildingSelect.options].find(
+    const option = Array.from(buildingSelect.options).find(
       (candidate) => candidate.value === buildingVisualVariantKey(activeVariant!.variant),
     );
     if (option) option.textContent = "✓ " + activeVariant.variant.label;
