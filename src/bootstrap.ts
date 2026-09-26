@@ -28,8 +28,10 @@ import {
   hasRuntimeCrashed,
   markRuntimePhase,
   setCrashContextProvider,
+  setCrashSaveProvider,
 } from "./runtime/crashReporter";
 import { validateStartupConfiguration } from "./runtime/startupValidation";
+import { installAutomaticSaves, saveCrashSnapshot } from "./runtime/automaticSaves";
 import { createDefaultGameWorld } from "./simulation/scenario";
 import { serializeSaveGame } from "./simulation/saveGame";
 import { installTileSelectionGuard, mountBuildMenu } from "./ui/buildMenu";
@@ -113,6 +115,7 @@ export async function bootstrapGame(): Promise<void> {
 
   markRuntimePhase("world-create");
   const world = createDefaultGameWorld();
+  setCrashSaveProvider(() => saveCrashSnapshot(world));
   setCrashContextProvider(() => {
     let saveGame: unknown;
     try {
@@ -271,6 +274,7 @@ export async function bootstrapGame(): Promise<void> {
   mountBuildMenu(world);
   mountHandbook();
   mountGameMenu(world, () => scene.renderWorld(), () => scene.captureSettlementThumbnail());
+  installAutomaticSaves(world, () => scene.captureSettlementThumbnail());
   mountPersonPanel(world);
   mountPersonContextMenu(world);
   mountBuildingPanel(world);
