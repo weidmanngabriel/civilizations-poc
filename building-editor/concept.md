@@ -6,17 +6,17 @@ Der Gebäudeeditor ist ein internes Authoring-Werkzeug für neue Gebäudevisuals
 
 Ein neues Gebäude soll ohne Codeänderung räumlich beschrieben werden können:
 
-1. Optional ein vorhandenes Projektgebäude aus der alphabetisch sortierten Liste laden; Placeholder sind ebenfalls auswählbar und liefern mindestens ihre ID.
-2. Gebäude-ID festlegen.
-3. Eine Gebäudestufe auswählen oder eine neue Stufe am Ende ergänzen.
-4. Für diese Stufe einen Sprite laden oder hineinziehen.
-5. Sprite passend skalieren und relativ zum feinen Spielraster ausrichten.
-6. Zellen des Gebäudegrundrisses markieren.
-7. Zellen innerhalb des Grundrisses als blockiert markieren.
-8. Genau eine begehbare Eingangszelle wählen.
-9. Weitere Stufen mit eigenem Sprite und eigener räumlicher Konfiguration ergänzen.
-10. Definition exportieren oder lokal direkt ins Projekt speichern.
-11. Einen aktuellen Export aus `building.json` plus allen zugehörigen Stufen-Sprites wieder vollständig importieren und weiterbearbeiten.
+1. Eine vom Hauptspiel definierte Gebäudevariante aus der alphabetisch sortierten Liste wählen, etwa Wohnhaus 1–5 oder Töpferei 1/2.
+2. Der Editor zeigt, ob diese Variante bereits konfiguriert ist oder noch als Platzhalter gilt.
+3. Für die ausgewählte Variante einen Sprite laden oder hineinziehen.
+4. Sprite passend skalieren und relativ zum feinen Spielraster ausrichten.
+5. Zellen des Gebäudegrundrisses markieren.
+6. Zellen innerhalb des Grundrisses als blockiert markieren.
+7. Genau eine begehbare Eingangszelle wählen.
+8. Die ausgewählte Variante exportieren oder lokal direkt ins Projekt speichern.
+9. Einen passenden Export für die ausgewählte Variante wieder importieren und weiterbearbeiten.
+
+Welche Varianten und Stufen existieren, wird ausschließlich im Hauptspiel definiert. Der Editor kann keine zusätzlichen Stufen anlegen oder vorhandene Spielstufen löschen.
 
 Der Editor definiert **nicht**, was ein Gebäude im Spiel tut. Produktion, Waren, Arbeiter, Baukosten, Technologie und andere Funktionalität bleiben im Hauptspiel.
 
@@ -29,7 +29,7 @@ Der Editor definiert **nicht**, was ein Gebäude im Spiel tut. Produktion, Waren
 - `spriteAnchor`: Ausrichtung des Bildes gegenüber dem Raster als normalisierte x/y-Position innerhalb des Sprites.
 - `spriteWorldWidth`: positive sichtbare Breite des unveränderten Sprites in Weltpixeln.
 
-Das aktuelle Building-Visual-Schema ist Version 4. Eine Definition enthält lückenlose Gebäudestufen ab Stufe 1; jede Stufe besitzt ihren eigenen Sprite, Anchor, Weltbreite, Grundriss, Blockierung und Eingang. Sprite-Größe und Anchor bleiben dadurch unabhängig von der Pixelauflösung der Quelldatei.
+Das aktuelle Building-Visual-Schema ist Version 4. Eine Definition speichert die bereits konfigurierten Stufen; erlaubte Stufen kommen aus dem Hauptspiel-Katalog. Noch nicht konfigurierte erlaubte Stufen dürfen deshalb in `building.json` fehlen. Jede vorhandene Stufe besitzt ihren eigenen Sprite, Anchor, Weltbreite, Grundriss, Blockierung und Eingang. Sprite-Größe und Anchor bleiben dadurch unabhängig von der Pixelauflösung der Quelldatei.
 
 ## Bedienung und Vorschau
 
@@ -45,7 +45,7 @@ Rasterbearbeitung folgt einem Paint-Verhalten: Ein einzelner Klick toggelt die a
 
 Beim Werkzeug **Blockierte Zellen** wird eine leere Zelle beim Setzen automatisch Teil des Grundrisses. Wird diese rote Zelle erneut getoggelt oder mit `Shift` zurückgesetzt, wird sie vollständig entfernt und nicht als grüne Grundrisszelle stehen gelassen.
 
-Vorhandene Projektgebäude können über **Vorhandenes Gebäude** geladen werden. Die Einträge zeigen ihre deutschen Gebäudenamen und sind alphabetisch sortiert. Für bereits konfigurierte Slots werden alle Stufen mit ihren Sprites und visuellen/räumlichen Werten geladen. Placeholder bleiben sichtbar; bei ihrer Auswahl wird die vorhandene ID übernommen und ausdrücklich angezeigt, dass noch keine Konfiguration existiert.
+Die Auswahl **Vorhandenes Gebäude** zeigt jede vom Hauptspiel erlaubte visuelle Variante als eigenen Eintrag und sortiert nach deutschem Anzeigenamen. Ein **✓** kennzeichnet Varianten mit vorhandenem Sprite und Plan; ein **○** mit dem Zusatz **Platzhalter** kennzeichnet noch nicht konfigurierte Varianten. Das gilt auch für einzelne fehlende Wohnhausstufen innerhalb eines bereits teilweise konfigurierten Haus-Slots.
 
 Ein Export kann über **Gebäudedefinition öffnen** geladen werden. Dabei werden `building.json` und alle darin referenzierten PNG/WebP-Sprites gemeinsam ausgewählt. Alternativ können beide Dateien zusammen auf die Sprite-Fläche gezogen werden. Der aktuelle Editorzustand wird nur ersetzt, wenn Schema, Rasterdaten und Sprite vollständig zusammenpassen.
 
