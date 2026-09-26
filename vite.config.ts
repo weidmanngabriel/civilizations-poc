@@ -144,7 +144,7 @@ function buildingEditorLocalExportPlugin(): Plugin {
             targetId?: string;
           };
           const id = payload.definition?.id ?? "";
-          if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) throw new Error("Ungültige Gebäude-ID.");
+          if (!/^[A-Za-z0-9][A-Za-z0-9-]*$/.test(id)) throw new Error("Ungültige Gebäude-ID.");
           const targetId = payload.targetId ?? id;
           if (!/^[a-zA-Z0-9][a-zA-Z0-9-]*$/.test(targetId)) throw new Error("Ungültiger Gebäude-Asset-Slot.");
 
