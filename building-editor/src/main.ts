@@ -168,6 +168,7 @@ const saveProjectButton = document.querySelector<HTMLButtonElement>("#save-proje
 let currentTool: Tool = "footprint";
 let spriteFile: File | undefined;
 let spriteDataUrl = "";
+let spriteName = "sprite-1.png";
 let spriteWorldWidth = 60;
 let activeLevel = 1;
 const levelSnapshots = new Map<number, LevelSnapshot>();
@@ -402,14 +403,14 @@ function renderSpritePosition(): void {
   spritePreview.style.top = `${origin.y - anchorY * previewHeight}px`;
 }
 
-function setWorldWidth(nextWidth: number): void {
+function setWorldWidth(nextWidth: number, refresh = true): void {
   spriteWorldWidth = Math.max(0.1, Math.min(1000, nextWidth));
   const width = roundedWorldWidth();
   scaleNumber.value = String(width);
   scaleRange.value = String(Math.max(Number(scaleRange.min), Math.min(Number(scaleRange.max), width)));
-  scaleLabel.textContent = `${width} Welt-px`; 
+  scaleLabel.textContent = String(width) + " Welt-px";
   renderSpritePosition();
-  refreshStatus();
+  if (refresh) refreshStatus();
 }
 
 function setOverlayStrength(percent: number): void {
@@ -424,34 +425,65 @@ function setOverlayStrength(percent: number): void {
   grid.style.setProperty("--overlay-glow-alpha", String(0.8 * strength));
 }
 
+
+function snapshotCurrentLevel(): LevelSnapshot {
+  return {
+    level: activeLevel,
+    spriteFile,
+    spriteDataUrl,
+    spriteName,
+    spriteWorldWidth,
+    anchorX: (Number(anchorXInput.value) || 0) / 100,
+    anchorY: (Number(anchorYInput.value) || 0) / 100,
+    footprint: [...footprint.values()].map((cell) => ({ ...cell })),
+    blocked: [...blocked.values()].map((cell) => ({ ...cell })),
+    entrance: entrance ? { ...entrance } : undefined,
+  };
+}
+
+function storeActiveLevel(): void {
+  levelSnapshots.set(activeLevel, snapshotCurrentLevel());
+}
+
+function visualLevelFromSnapshot(snapshot: LevelSnapshot): BuildingVisualLevel {
+  return {
+    level: snapshot.level,
+    sprite: snapshot.spriteName,
+    spriteAnchor: { x: snapshot.anchorX, y: snapshot.anchorY },
+    spriteWorldWidth: snapshot.spriteWorldWidth,
+    footprint: snapshot.footprint.map((cell) => ({ ...cell })),
+    blocked: snapshot.blocked.map((cell) => ({ ...cell })),
+    entrance: snapshot.entrance ?? { q: Number.NaN, r: Number.NaN },
+  };
+}
+
 function definition(): BuildingVisualDefinition {
-  const extension = spriteFile?.type === "image/webp" ? "webp" : "png";
+  storeActiveLevel();
   return {
     schema: "civilizations-building-visual",
-    version: 3,
+    version: 4,
     id: idInput.value.trim(),
-    sprite: `sprite.${extension}`,
-    spriteAnchor: {
-      x: (Number(anchorXInput.value) || 0) / 100,
-      y: (Number(anchorYInput.value) || 0) / 100,
-    },
-    spriteWorldWidth,
-    footprint: [...footprint.values()],
-    blocked: [...blocked.values()],
-    entrance: entrance ?? { q: Number.NaN, r: Number.NaN },
+    levels: [...levelSnapshots.values()]
+      .sort((a, b) => a.level - b.level)
+      .map(visualLevelFromSnapshot),
   };
 }
 
 function errors(): string[] {
-  if (!spriteFile) return ["Ein Sprite fehlt."];
-  if (!entrance) return ["Ein Eingang fehlt."];
+  storeActiveLevel();
+  const missingSprites = [...levelSnapshots.values()]
+    .filter((snapshot) => !snapshot.spriteFile)
+    .map((snapshot) => "Stufe " + snapshot.level + ": Ein Sprite fehlt.");
+  if (missingSprites.length) return missingSprites;
   return validateBuildingVisualDefinition(definition());
 }
 
 function refreshStatus(message?: string): boolean {
   const currentErrors = errors();
   status.classList.toggle("error", currentErrors.length > 0);
-  status.textContent = message ?? (currentErrors.length ? currentErrors.join("\n") : `Bereit · ${footprint.size} Grundrisszellen, ${blocked.size} blockiert · ${roundedWorldWidth()} Welt-px Sprite-Breite.`);
+  status.textContent = message ?? (currentErrors.length
+    ? currentErrors.join("\n")
+    : "Stufe " + activeLevel + " bereit · " + footprint.size + " Grundrisszellen, " + blocked.size + " blockiert · " + roundedWorldWidth() + " Welt-px Sprite-Breite.");
   return currentErrors.length === 0;
 }
 
@@ -469,12 +501,23 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-async function loadSprite(file: File, preserveTransform = false): Promise<void> {
+const spriteMimeForName = (name: string): "image/png" | "image/webp" =>
+  name.toLowerCase().endsWith(".webp") ? "image/webp" : "image/png";
+
+const defaultSpriteName = (level: number, type = "image/png"): string =>
+  "sprite-" + level + "." + (type === "image/webp" ? "webp" : "png");
+
+async function loadSprite(
+  file: File,
+  preserveTransform = false,
+  exportName?: string,
+): Promise<void> {
   if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
     setError("Nur PNG und WebP werden unterstützt.");
     return;
   }
   spriteFile = file;
+  spriteName = exportName ?? defaultSpriteName(activeLevel, file.type);
   spriteDataUrl = await fileToDataUrl(file);
   spritePreview.onload = () => {
     if (!preserveTransform) {
@@ -491,30 +534,110 @@ async function loadSprite(file: File, preserveTransform = false): Promise<void> 
   };
   spritePreview.src = spriteDataUrl;
   spritePreview.hidden = false;
-  dropzone.textContent = `${file.name} · ${spritePreview.naturalWidth || "?"}×${spritePreview.naturalHeight || "?"} px · ${Math.round(file.size / 1024)} KB`;
+  dropzone.textContent = spriteName + " · " + Math.round(file.size / 1024) + " KB";
+  storeActiveLevel();
   refreshStatus();
 }
 
-function clearEditorForProjectBuilding(id: string): void {
+function refreshLevelSelect(): void {
+  const levels = [...levelSnapshots.keys()].sort((a, b) => a - b);
+  levelSelect.replaceChildren();
+  for (const level of levels) {
+    const option = document.createElement("option");
+    option.value = String(level);
+    option.textContent = "Stufe " + level;
+    levelSelect.append(option);
+  }
+  levelSelect.value = String(activeLevel);
+  const highest = levels.at(-1) ?? 1;
+  removeLevelButton.disabled = levels.length <= 1 || activeLevel !== highest;
+}
+
+function clearWorkingLevel(level: number): void {
+  activeLevel = level;
   spriteFile = undefined;
   spriteDataUrl = "";
+  spriteName = defaultSpriteName(level);
+  spriteWorldWidth = 60;
   spritePreview.onload = null;
   spritePreview.hidden = true;
   spritePreview.removeAttribute("src");
   dropzone.innerHTML = "PNG oder WebP hier hineinziehen<br />oder klicken";
-  idInput.value = id;
   anchorXInput.value = "50";
   anchorYInput.value = "82";
   footprint.clear();
   blocked.clear();
   entrance = undefined;
-  setWorldWidth(60);
+  setWorldWidth(60, false);
   renderGrid();
+}
+
+function loadLevelSnapshot(level: number): void {
+  const snapshot = levelSnapshots.get(level);
+  if (!snapshot) return;
+  activeLevel = level;
+  spriteFile = snapshot.spriteFile;
+  spriteDataUrl = snapshot.spriteDataUrl;
+  spriteName = snapshot.spriteName;
+  anchorXInput.value = String(Math.round(snapshot.anchorX * 1000) / 10);
+  anchorYInput.value = String(Math.round(snapshot.anchorY * 1000) / 10);
+  footprint.clear();
+  blocked.clear();
+  for (const cell of snapshot.footprint) footprint.set(cellKey(cell), { ...cell });
+  for (const cell of snapshot.blocked) blocked.set(cellKey(cell), { ...cell });
+  entrance = snapshot.entrance ? { ...snapshot.entrance } : undefined;
+  setWorldWidth(snapshot.spriteWorldWidth, false);
+
+  if (snapshot.spriteDataUrl && snapshot.spriteFile) {
+    spritePreview.onload = renderSpritePosition;
+    spritePreview.src = snapshot.spriteDataUrl;
+    spritePreview.hidden = false;
+    dropzone.textContent = snapshot.spriteName + " · " + Math.round(snapshot.spriteFile.size / 1024) + " KB";
+  } else {
+    spritePreview.onload = null;
+    spritePreview.hidden = true;
+    spritePreview.removeAttribute("src");
+    dropzone.innerHTML = "PNG oder WebP hier hineinziehen<br />oder klicken";
+  }
+  refreshLevelSelect();
+  renderGrid();
+  refreshStatus();
+}
+
+function resetDefinitionState(id: string): void {
+  levelSnapshots.clear();
+  idInput.value = id;
+  clearWorkingLevel(1);
+  storeActiveLevel();
+  refreshLevelSelect();
 }
 
 function setBuildingLoadNote(message?: string): void {
   buildingLoadNote.hidden = !message;
   buildingLoadNote.textContent = message ?? "";
+}
+
+async function snapshotsForDefinition(
+  visualDefinition: BuildingVisualDefinition,
+  fileForSprite: (sprite: string) => Promise<File>,
+): Promise<Map<number, LevelSnapshot>> {
+  const snapshots = new Map<number, LevelSnapshot>();
+  for (const level of visualDefinition.levels) {
+    const file = await fileForSprite(level.sprite);
+    snapshots.set(level.level, {
+      level: level.level,
+      spriteFile: file,
+      spriteDataUrl: await fileToDataUrl(file),
+      spriteName: level.sprite,
+      spriteWorldWidth: level.spriteWorldWidth,
+      anchorX: level.spriteAnchor.x,
+      anchorY: level.spriteAnchor.y,
+      footprint: level.footprint.map((cell) => ({ ...cell })),
+      blocked: level.blocked.map((cell) => ({ ...cell })),
+      entrance: { ...level.entrance },
+    });
+  }
+  return snapshots;
 }
 
 async function loadProjectBuilding(kind: BuildingVisualKind): Promise<void> {
@@ -526,37 +649,32 @@ async function loadProjectBuilding(kind: BuildingVisualKind): Promise<void> {
 
   const placeholder = parsePlaceholderDefinition(entry.raw);
   if (placeholder) {
-    clearEditorForProjectBuilding(placeholder.id);
-    setBuildingLoadNote(`${entry.label}: Für dieses Gebäude existiert noch keine Konfiguration. Die ID wurde übernommen.`);
+    resetDefinitionState(placeholder.id);
+    setBuildingLoadNote(entry.label + ": Für dieses Gebäude existiert noch keine Konfiguration. Die ID wurde übernommen.");
     status.classList.remove("error");
-    status.textContent = "Neue Konfiguration kann jetzt erstellt werden.";
+    status.textContent = "Stufe 1 kann jetzt konfiguriert werden.";
     return;
   }
 
   const parsed = parseDefinition(entry.raw);
-  if (!entry.spriteUrl) {
-    setError(`Zum Projektgebäude ${entry.label} fehlt das Sprite ${parsed.sprite}.`);
-    return;
-  }
+  const snapshots = await snapshotsForDefinition(parsed, async (sprite) => {
+    const spritePath = Object.keys(PROJECT_SPRITE_MODULES).find(
+      (path) => path.endsWith("/buildings/" + kind + "/" + sprite),
+    );
+    const spriteUrl = spritePath ? PROJECT_SPRITE_MODULES[spritePath] : undefined;
+    if (!spriteUrl) throw new Error("Zum Projektgebäude " + entry.label + " fehlt das Sprite " + sprite + ".");
+    const response = await fetch(spriteUrl);
+    if (!response.ok) throw new Error("Sprite " + sprite + " für " + entry.label + " konnte nicht geladen werden.");
+    const blob = await response.blob();
+    return new File([blob], sprite, { type: spriteMimeForName(sprite) });
+  });
 
-  setBuildingLoadNote();
+  levelSnapshots.clear();
+  for (const [level, snapshot] of snapshots) levelSnapshots.set(level, snapshot);
   idInput.value = parsed.id;
-  anchorXInput.value = String(Math.round(parsed.spriteAnchor.x * 1000) / 10);
-  anchorYInput.value = String(Math.round(parsed.spriteAnchor.y * 1000) / 10);
-  footprint.clear();
-  blocked.clear();
-  for (const cell of parsed.footprint) footprint.set(cellKey(cell), cell);
-  for (const cell of parsed.blocked) blocked.set(cellKey(cell), cell);
-  entrance = parsed.entrance;
-  setWorldWidth(parsed.spriteWorldWidth);
-
-  const response = await fetch(entry.spriteUrl);
-  if (!response.ok) throw new Error(`Sprite für ${entry.label} konnte nicht geladen werden.`);
-  const blob = await response.blob();
-  const type = parsed.sprite.toLowerCase().endsWith(".webp") ? "image/webp" : "image/png";
-  await loadSprite(new File([blob], parsed.sprite, { type }), true);
-  renderGrid();
-  refreshStatus(`Geladen: ${entry.label}`);
+  setBuildingLoadNote();
+  loadLevelSnapshot(parsed.levels[0]!.level);
+  refreshStatus("Geladen: " + entry.label + " · " + parsed.levels.length + " Stufe" + (parsed.levels.length === 1 ? "" : "n"));
 }
 
 function syncProjectBuildingSelection(id: string): void {
@@ -573,24 +691,21 @@ async function importFiles(files: File[]): Promise<void> {
     const jsonFile = files.find((file) => file.name.toLowerCase().endsWith(".json"));
     if (!jsonFile) throw new Error("Zum Import fehlt building.json.");
     const parsed = parseDefinition(JSON.parse(await jsonFile.text()) as unknown);
-    const imageFile = files.find((file) => file.name === parsed.sprite);
-    if (!imageFile) throw new Error(`Zum Import fehlt das Sprite ${parsed.sprite}.`);
-    if (!SUPPORTED_IMAGE_TYPES.has(imageFile.type)) throw new Error("Das Sprite muss PNG oder WebP sein.");
+    const snapshots = await snapshotsForDefinition(parsed, async (sprite) => {
+      const imageFile = files.find((file) => file.name === sprite);
+      if (!imageFile) throw new Error("Zum Import fehlt das Sprite " + sprite + ".");
+      if (!SUPPORTED_IMAGE_TYPES.has(imageFile.type))
+        throw new Error("Das Sprite " + sprite + " muss PNG oder WebP sein.");
+      return imageFile;
+    });
 
+    levelSnapshots.clear();
+    for (const [level, snapshot] of snapshots) levelSnapshots.set(level, snapshot);
     idInput.value = parsed.id;
     syncProjectBuildingSelection(parsed.id);
     setBuildingLoadNote();
-    anchorXInput.value = String(Math.round(parsed.spriteAnchor.x * 1000) / 10);
-    anchorYInput.value = String(Math.round(parsed.spriteAnchor.y * 1000) / 10);
-    setWorldWidth(parsed.spriteWorldWidth);
-    footprint.clear();
-    blocked.clear();
-    for (const cell of parsed.footprint) footprint.set(cellKey(cell), cell);
-    for (const cell of parsed.blocked) blocked.set(cellKey(cell), cell);
-    entrance = parsed.entrance;
-    await loadSprite(imageFile, true);
-    renderGrid();
-    refreshStatus(`Importiert: ${parsed.id}`);
+    loadLevelSnapshot(parsed.levels[0]!.level);
+    refreshStatus("Importiert: " + parsed.id + " · " + parsed.levels.length + " Stufe" + (parsed.levels.length === 1 ? "" : "n"));
   } catch (error) {
     setError(error instanceof Error ? error.message : "Import fehlgeschlagen.");
   } finally {
@@ -611,32 +726,74 @@ downloadButton.addEventListener("click", () => {
   if (!refreshStatus()) return;
   const value = definition();
   downloadBlob(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }), "building.json");
-  if (spriteFile) downloadBlob(spriteFile, value.sprite);
-  refreshStatus("Dateien werden heruntergeladen: building.json + unverändertes Sprite.");
+  for (const snapshot of [...levelSnapshots.values()].sort((a, b) => a.level - b.level))
+    if (snapshot.spriteFile) downloadBlob(snapshot.spriteFile, snapshot.spriteName);
+  refreshStatus("Dateien werden heruntergeladen: building.json + " + value.levels.length + " Sprite" + (value.levels.length === 1 ? "" : "s") + ".");
 });
 
 saveProjectButton.addEventListener("click", async () => {
-  if (!refreshStatus() || !spriteDataUrl) return;
+  if (!refreshStatus()) return;
+  storeActiveLevel();
   saveProjectButton.disabled = true;
   try {
-    const response = await fetch(`${import.meta.env.BASE_URL}__building-editor/save`, {
+    const response = await fetch(import.meta.env.BASE_URL + "__building-editor/save", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         definition: definition(),
-        spriteDataUrl,
+        sprites: [...levelSnapshots.values()]
+          .sort((a, b) => a.level - b.level)
+          .map((snapshot) => ({
+            name: snapshot.spriteName,
+            dataUrl: snapshot.spriteDataUrl,
+          })),
         targetId: buildingSelect.value || undefined,
       }),
     });
     const result = await response.json() as { ok?: boolean; path?: string; error?: string };
     if (!response.ok || !result.ok) throw new Error(result.error ?? "Speichern fehlgeschlagen");
-    refreshStatus(`Gespeichert: ${result.path}`);
+    refreshStatus("Gespeichert: " + result.path);
   } catch (error) {
     setError(error instanceof Error ? error.message : "Speichern fehlgeschlagen.");
   } finally {
     saveProjectButton.disabled = false;
   }
 });
+
+levelSelect.addEventListener("change", () => {
+  storeActiveLevel();
+  loadLevelSnapshot(Number(levelSelect.value));
+});
+
+addLevelButton.addEventListener("click", () => {
+  storeActiveLevel();
+  const previous = levelSnapshots.get(activeLevel)!;
+  const nextLevel = Math.max(...levelSnapshots.keys()) + 1;
+  const next: LevelSnapshot = {
+    level: nextLevel,
+    spriteDataUrl: "",
+    spriteName: defaultSpriteName(nextLevel),
+    spriteWorldWidth: previous.spriteWorldWidth,
+    anchorX: previous.anchorX,
+    anchorY: previous.anchorY,
+    footprint: previous.footprint.map((cell) => ({ ...cell })),
+    blocked: previous.blocked.map((cell) => ({ ...cell })),
+    entrance: previous.entrance ? { ...previous.entrance } : undefined,
+  };
+  levelSnapshots.set(nextLevel, next);
+  loadLevelSnapshot(nextLevel);
+  refreshStatus("Stufe " + nextLevel + " angelegt. Grundriss und Ausrichtung wurden von Stufe " + previous.level + " übernommen; Sprite fehlt noch.");
+});
+
+removeLevelButton.addEventListener("click", () => {
+  storeActiveLevel();
+  const levels = [...levelSnapshots.keys()].sort((a, b) => a - b);
+  const highest = levels.at(-1);
+  if (levels.length <= 1 || highest !== activeLevel) return;
+  levelSnapshots.delete(activeLevel);
+  loadLevelSnapshot(levels.at(-2)!);
+});
+
 
 function selectTool(tool: Tool): void {
   finishCellPaint();
