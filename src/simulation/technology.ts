@@ -1,10 +1,12 @@
-import type { PlaceableBuildingKind, Profession, World } from "./model";
+import type { HouseLevel, PlaceableBuildingKind, Profession, World } from "./model";
 import { professionExperience } from "./experience";
 import { isTechnologyCheatEnabled } from "./debugCheats";
 import {
   BUILDING_CONSTRUCTION_REQUIREMENTS,
   requiredProductionBuildings,
+  requiredProductionBuildingsForGoods,
 } from "./constructionRules";
+import { HOUSE_LEVELS, houseDirectCost } from "./housing";
 
 export const TECHNOLOGY_XP_THRESHOLD = 10;
 
@@ -16,7 +18,7 @@ export type TechnologyUnlockRule = {
   threshold: number;
 };
 
-export const STARTING_TECHNOLOGIES: TechnologyId[] = ["house", "farm"];
+export const STARTING_TECHNOLOGIES: TechnologyId[] = ["farm"];
 
 export const TECHNOLOGY_UNLOCK_RULES: TechnologyUnlockRule[] = [
   { technology: "warehouse", profession: "carrier", threshold: TECHNOLOGY_XP_THRESHOLD },
@@ -89,6 +91,35 @@ export function isTechnologyUnlocked(world: World, technology: TechnologyId): bo
 
 export function isBuildingUnlocked(world: World, kind: PlaceableBuildingKind): boolean {
   return isTechnologyUnlocked(world, kind);
+}
+
+export function requiredProductionBuildingsForHouseLevel(level: HouseLevel): PlaceableBuildingKind[] {
+  return requiredProductionBuildingsForGoods(houseDirectCost(level));
+}
+
+export function isHouseLevelUnlocked(world: World, level: HouseLevel): boolean {
+  if (isTechnologyCheatEnabled(world)) return true;
+  if (!world.unlockedTechnologies) return true;
+  return world.unlockedHouseLevels?.includes(level) ?? false;
+}
+
+export function updateHouseLevelUnlocks(world: World): HouseLevel[] {
+  if (!world.unlockedTechnologies) return [];
+  world.unlockedHouseLevels ??= [];
+  const newlyUnlocked: HouseLevel[] = [];
+
+  for (const level of HOUSE_LEVELS) {
+    if (world.unlockedHouseLevels.includes(level)) continue;
+    const missingProducer = requiredProductionBuildingsForHouseLevel(level).some(
+      (kind) => !hasCompletedBuilding(world, kind),
+    );
+    if (missingProducer) continue;
+    world.unlockedHouseLevels.push(level);
+    newlyUnlocked.push(level);
+  }
+
+  updateHouseLevelUnlocks(world);
+  return newlyUnlocked;
 }
 
 export function technologyProgress(
