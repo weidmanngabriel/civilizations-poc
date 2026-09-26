@@ -216,6 +216,10 @@ const currentTaskTarget = (world: World, person: Person): Hex | undefined => {
 const resumeTask = (world: World, person: Person, hungerState: HungerState): void => {
   person.active = false;
   person.movement = 0;
+  if (person.familyTask) {
+    person.path = [];
+    return;
+  }
   if (
     person.hunter &&
     (person.huntTarget || person.huntLootTarget || person.huntLootQueue?.length || person.outdoorCarry)
@@ -713,7 +717,7 @@ export function advanceHungerTick(world: World): void {
   for (const person of world.people) {
     if (person.ageStage === "child") continue;
     decayHunger(person);
-    if (person.familyTask || person.manualMoveTarget) continue;
+    if (person.manualMoveTarget) continue;
     if (person.hungerState) {
       if (person.hungerState.returningToNeedOrigin) ensureEatingReturn(world, person);
       else if (person.hungerState.returningToNeedAnchor) continueLocalNeedAnchorReturn(world, person);
