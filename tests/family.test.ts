@@ -237,6 +237,32 @@ test("active birth journey yields to hunger and resumes after eating", () => {
   assert.deepEqual(first.path.at(-1), house.position);
 });
 
+test("active birth journey keeps its planned home route between family ticks", () => {
+  const world = createTestWorld({ population: 2 });
+  world.households = [];
+  world.nextHouseholdId = 1;
+  const [first, second] = adultPair(world);
+  const house = addHouse(world, "house-a", 12);
+
+  first.spouseId = second.id;
+  second.spouseId = first.id;
+  assert.equal(assignPersonHome(world, first.id, house.id), true);
+
+  first.position = { q: 0, r: 0 };
+  second.position = { ...house.position };
+  first.familyTask = { kind: "birth", partnerId: second.id, homeId: house.id };
+  second.familyTask = { kind: "birth", partnerId: first.id, homeId: house.id };
+
+  advanceFamily(world);
+  assert.ok(first.path.length > 0);
+  const plannedPath = first.path;
+
+  world.round += 1;
+  advanceFamily(world);
+
+  assert.equal(first.path, plannedPath);
+});
+
 test("active birth journey yields to assigned-home sleep", () => {
   const world = createTestWorld({ population: 2 });
   world.households = [];
