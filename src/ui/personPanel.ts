@@ -231,6 +231,34 @@ export function mountPersonPanel(world: World): void {
   const staffPickerPriority = (person: Person): number => {
     if (!staffPicker) return 0;
     const requiredProfession = staffPickerProfession();
+    if (person.ageStage === "child") {
+      const parents = (person.parentIds ?? [])
+        .map((id) => world.people.find((candidate) => candidate.id === id))
+        .filter((candidate): candidate is Person => Boolean(candidate));
+      const home = homeForPerson(world, person);
+      const signature = [
+        "child",
+        person.id,
+        (person.parentIds ?? []).join(","),
+        home?.id ?? "",
+      ].join("|");
+      if (signature === inspectorSignature && !inspector.hidden) return;
+      inspectorSignature = signature;
+      inspector.hidden = false;
+      inspector.innerHTML = `
+        <header class="person-panel-header person-inspector-header">
+          <div class="person-inspector-identity">
+            <strong>${escapeHtml(personName(person.id))}</strong>
+          </div>
+          <button class="person-inspector-close" type="button" data-person-action="close-inspector" aria-label="Person schließen">×</button>
+        </header>
+        <dl class="person-facts person-facts-primary">
+          <div><dt>Eltern</dt><dd>${parents.length ? parents.map((parent) => escapeHtml(personName(parent.id))).join(", ") : "—"}</dd></div>
+          <div><dt>Wohnhaus</dt><dd>${home ? escapeHtml(home.name) : "—"}</dd></div>
+        </dl>`;
+      return;
+    }
+
     const profession = professionOf(world, person);
     if (requiredProfession && profession === requiredProfession && !person.assignment) return 0;
     if (!profession) return 1;
