@@ -10,10 +10,10 @@ import {
   personMarkerPositions,
 } from "./personMarkerGeometry";
 
-const TEXT_RESOLUTION = 3;
+const TEXT_RESOLUTION = 8;
 const BUBBLE_HEIGHT = 4.5;
 const BUBBLE_GAP = 0.75;
-const ICON_FONT_SIZE = 3;
+const ICON_FONT_SIZE = 3.2;
 const BUBBLE_Y_OFFSET = PERSON_MARKER_RADIUS + BUBBLE_HEIGHT / 2 + BUBBLE_GAP;
 
 const SEVERITY_COLORS: Record<PersonAlertSeverity, { fill: number; text: string }> = {
@@ -75,9 +75,14 @@ export function installPersonStatusIndicators(scene: Phaser.Scene, world: World)
         }
 
         const severity = alerts[0]!.severity;
-        const icons = alerts.map((alert) => PERSON_ALERT_ICONS[alert.code]).join(" ");
+        const icons = alerts.map((alert) => PERSON_ALERT_ICONS[alert.code]).join(" ");
         const signature = `${severity}:${icons}`;
-        const width = Math.max(7, 4 + icons.length * 2.6);
+        const iconCount = alerts.length;
+        const width = iconCount === 1
+          ? 5.25
+          : iconCount === 2
+            ? 8
+            : 10.75;
         const colors = SEVERITY_COLORS[severity];
 
         if (!indicator) {
