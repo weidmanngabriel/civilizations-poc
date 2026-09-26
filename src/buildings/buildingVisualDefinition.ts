@@ -30,8 +30,8 @@ export function validateBuildingVisualDefinition(
   definition: BuildingVisualDefinition,
 ): string[] {
   const errors: string[] = [];
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(definition.id))
-    errors.push("Die ID darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten.");
+  if (!/^[A-Za-z0-9][A-Za-z0-9-]*$/.test(definition.id))
+    errors.push("Die ID darf nur Buchstaben, Zahlen und Bindestriche enthalten.");
   if (!validSpriteFilename(definition.sprite))
     errors.push("Das Sprite muss eine lokale PNG- oder WebP-Datei sein.");
   if (!normalized(definition.spriteAnchor.x) || !normalized(definition.spriteAnchor.y))

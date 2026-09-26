@@ -4,11 +4,25 @@ import {
   type BuildingVisualDefinition,
 } from "../../src/buildings/buildingVisualDefinition";
 import { HEX_X, HEX_Y, hexCornerOffsets } from "../../src/game/mapProjection";
-import type { Hex } from "../../src/simulation/model";
+import { BUILDING_WIKI_LABELS } from "../../src/ui/wikiLinks";
+import type { BuildingKind, Hex } from "../../src/simulation/model";
 
 type Tool = "move" | "footprint" | "blocked" | "entrance";
 type PaintMode = "set" | "remove";
 type PaintTool = Exclude<Tool, "move">;
+type BuildingVisualKind = Exclude<BuildingKind, "palisade">;
+type PlaceholderDefinition = {
+  placeholder: true;
+  id: string;
+  sprite: string;
+};
+type ProjectBuildingEntry = {
+  kind: BuildingVisualKind;
+  label: string;
+  raw: unknown;
+  placeholder: boolean;
+  spriteUrl?: string;
+};
 
 const GRID_RADIUS = 8;
 const PREVIEW_SCALE = 10;
@@ -16,6 +30,14 @@ const CELL_X = HEX_X * PREVIEW_SCALE;
 const CELL_Y = HEX_Y * PREVIEW_SCALE;
 const SVG_NS = "http://www.w3.org/2000/svg";
 const SUPPORTED_IMAGE_TYPES = new Set(["image/png", "image/webp"]);
+const PROJECT_DEFINITION_MODULES = import.meta.glob(
+  "../../src/assets/buildings/*/building.json",
+  { eager: true, import: "default" },
+) as Record<string, unknown>;
+const PROJECT_SPRITE_MODULES = import.meta.glob(
+  "../../src/assets/buildings/*/*.{png,webp}",
+  { eager: true, query: "?url", import: "default" },
+) as Record<string, string>;
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Editor root missing");
@@ -43,6 +65,13 @@ app.innerHTML = `
       <aside class="sidebar">
         <section class="panel">
           <h2>Gebäude</h2>
+          <div class="field">
+            <label for="building-select">Vorhandenes Gebäude</label>
+            <select id="building-select">
+              <option value="">— Gebäude wählen —</option>
+            </select>
+          </div>
+          <p class="help building-load-note" id="building-load-note" hidden></p>
           <div class="field"><label for="building-id">ID</label><input id="building-id" type="text" value="new-building" spellcheck="false" /></div>
           <div class="dropzone" id="dropzone">PNG oder WebP hier hineinziehen<br />oder klicken</div>
           <input id="sprite-input" type="file" accept="image/png,image/webp" hidden />
@@ -97,6 +126,8 @@ const spriteInput = document.querySelector<HTMLInputElement>("#sprite-input")!;
 const importInput = document.querySelector<HTMLInputElement>("#import-input")!;
 const importButton = document.querySelector<HTMLButtonElement>("#import-building")!;
 const dropzone = document.querySelector<HTMLDivElement>("#dropzone")!;
+const buildingSelect = document.querySelector<HTMLSelectElement>("#building-select")!;
+const buildingLoadNote = document.querySelector<HTMLParagraphElement>("#building-load-note")!;
 const idInput = document.querySelector<HTMLInputElement>("#building-id")!;
 const anchorXInput = document.querySelector<HTMLInputElement>("#anchor-x")!;
 const anchorYInput = document.querySelector<HTMLInputElement>("#anchor-y")!;
@@ -128,6 +159,16 @@ function parseHex(value: unknown): Hex | undefined {
   if (!isRecord(value) || typeof value.q !== "number" || typeof value.r !== "number") return undefined;
   if (!Number.isFinite(value.q) || !Number.isFinite(value.r)) return undefined;
   return { q: value.q, r: value.r };
+}
+
+function parsePlaceholderDefinition(value: unknown): PlaceholderDefinition | undefined {
+  if (
+    !isRecord(value) ||
+    value.placeholder !== true ||
+    typeof value.id !== "string" ||
+    typeof value.sprite !== "string"
+  ) return undefined;
+  return { placeholder: true, id: value.id, sprite: value.sprite };
 }
 
 function parseDefinition(value: unknown): BuildingVisualDefinition {
@@ -163,6 +204,38 @@ function parseDefinition(value: unknown): BuildingVisualDefinition {
   const definitionErrors = validateBuildingVisualDefinition(parsed);
   if (definitionErrors.length) throw new Error(definitionErrors.join("\n"));
   return parsed;
+}
+
+const buildingEditorLabel = (kind: BuildingVisualKind): string =>
+  kind === "field" ? "Feld" : BUILDING_WIKI_LABELS[kind];
+
+const PROJECT_BUILDINGS: ProjectBuildingEntry[] = Object.entries(PROJECT_DEFINITION_MODULES)
+  .map(([path, raw]): ProjectBuildingEntry | undefined => {
+    const match = path.match(/\/buildings\/([^/]+)\/building\.json$/);
+    if (!match) return undefined;
+    const kind = match[1] as BuildingKind;
+    if (kind === "palisade") return undefined;
+    if (kind !== "field" && !(kind in BUILDING_WIKI_LABELS)) return undefined;
+
+    const placeholder = parsePlaceholderDefinition(raw);
+    const spriteName = placeholder?.sprite ?? parseDefinition(raw).sprite;
+    const spritePath = path.replace(/building\.json$/, spriteName);
+    return {
+      kind: kind as BuildingVisualKind,
+      label: buildingEditorLabel(kind as BuildingVisualKind),
+      raw,
+      placeholder: Boolean(placeholder),
+      spriteUrl: PROJECT_SPRITE_MODULES[spritePath],
+    };
+  })
+  .filter((entry): entry is ProjectBuildingEntry => Boolean(entry))
+  .sort((a, b) => a.label.localeCompare(b.label, "de"));
+
+for (const entry of PROJECT_BUILDINGS) {
+  const option = document.createElement("option");
+  option.value = entry.kind;
+  option.textContent = entry.label;
+  buildingSelect.append(option);
 }
 
 const center = (): { x: number; y: number } => ({
@@ -384,6 +457,79 @@ async function loadSprite(file: File, preserveTransform = false): Promise<void> 
   refreshStatus();
 }
 
+function clearEditorForProjectBuilding(id: string): void {
+  spriteFile = undefined;
+  spriteDataUrl = "";
+  spritePreview.onload = null;
+  spritePreview.hidden = true;
+  spritePreview.removeAttribute("src");
+  dropzone.innerHTML = "PNG oder WebP hier hineinziehen<br />oder klicken";
+  idInput.value = id;
+  anchorXInput.value = "50";
+  anchorYInput.value = "82";
+  footprint.clear();
+  blocked.clear();
+  entrance = undefined;
+  setWorldWidth(60);
+  renderGrid();
+}
+
+function setBuildingLoadNote(message?: string): void {
+  buildingLoadNote.hidden = !message;
+  buildingLoadNote.textContent = message ?? "";
+}
+
+async function loadProjectBuilding(kind: BuildingVisualKind): Promise<void> {
+  const entry = PROJECT_BUILDINGS.find((candidate) => candidate.kind === kind);
+  if (!entry) {
+    setError("Gebäude konnte im Projekt nicht gefunden werden.");
+    return;
+  }
+
+  const placeholder = parsePlaceholderDefinition(entry.raw);
+  if (placeholder) {
+    clearEditorForProjectBuilding(placeholder.id);
+    setBuildingLoadNote(`${entry.label}: Für dieses Gebäude existiert noch keine Konfiguration. Die ID wurde übernommen.`);
+    status.classList.remove("error");
+    status.textContent = "Neue Konfiguration kann jetzt erstellt werden.";
+    return;
+  }
+
+  const parsed = parseDefinition(entry.raw);
+  if (!entry.spriteUrl) {
+    setError(`Zum Projektgebäude ${entry.label} fehlt das Sprite ${parsed.sprite}.`);
+    return;
+  }
+
+  setBuildingLoadNote();
+  idInput.value = parsed.id;
+  anchorXInput.value = String(Math.round(parsed.spriteAnchor.x * 1000) / 10);
+  anchorYInput.value = String(Math.round(parsed.spriteAnchor.y * 1000) / 10);
+  footprint.clear();
+  blocked.clear();
+  for (const cell of parsed.footprint) footprint.set(cellKey(cell), cell);
+  for (const cell of parsed.blocked) blocked.set(cellKey(cell), cell);
+  entrance = parsed.entrance;
+  setWorldWidth(parsed.spriteWorldWidth);
+
+  const response = await fetch(entry.spriteUrl);
+  if (!response.ok) throw new Error(`Sprite für ${entry.label} konnte nicht geladen werden.`);
+  const blob = await response.blob();
+  const type = parsed.sprite.toLowerCase().endsWith(".webp") ? "image/webp" : "image/png";
+  await loadSprite(new File([blob], parsed.sprite, { type }), true);
+  renderGrid();
+  refreshStatus(`Geladen: ${entry.label}`);
+}
+
+function syncProjectBuildingSelection(id: string): void {
+  const match = PROJECT_BUILDINGS.find((entry) => {
+    const placeholder = parsePlaceholderDefinition(entry.raw);
+    if (placeholder) return placeholder.id === id || entry.kind === id;
+    return parseDefinition(entry.raw).id === id || entry.kind === id;
+  });
+  buildingSelect.value = match?.kind ?? "";
+}
+
 async function importFiles(files: File[]): Promise<void> {
   try {
     const jsonFile = files.find((file) => file.name.toLowerCase().endsWith(".json"));
@@ -394,6 +540,8 @@ async function importFiles(files: File[]): Promise<void> {
     if (!SUPPORTED_IMAGE_TYPES.has(imageFile.type)) throw new Error("Das Sprite muss PNG oder WebP sein.");
 
     idInput.value = parsed.id;
+    syncProjectBuildingSelection(parsed.id);
+    setBuildingLoadNote();
     anchorXInput.value = String(Math.round(parsed.spriteAnchor.x * 1000) / 10);
     anchorYInput.value = String(Math.round(parsed.spriteAnchor.y * 1000) / 10);
     setWorldWidth(parsed.spriteWorldWidth);
@@ -436,7 +584,11 @@ saveProjectButton.addEventListener("click", async () => {
     const response = await fetch(`${import.meta.env.BASE_URL}__building-editor/save`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ definition: definition(), spriteDataUrl }),
+      body: JSON.stringify({
+        definition: definition(),
+        spriteDataUrl,
+        targetId: buildingSelect.value || undefined,
+      }),
     });
     const result = await response.json() as { ok?: boolean; path?: string; error?: string };
     if (!response.ok || !result.ok) throw new Error(result.error ?? "Speichern fehlgeschlagen");
@@ -501,6 +653,17 @@ spritePreview.addEventListener("pointercancel", finishSpriteDrag);
 window.addEventListener("pointerup", finishCellPaint);
 window.addEventListener("pointercancel", finishCellPaint);
 window.addEventListener("blur", finishCellPaint);
+
+buildingSelect.addEventListener("change", () => {
+  const kind = buildingSelect.value as BuildingVisualKind;
+  if (!kind) {
+    setBuildingLoadNote();
+    return;
+  }
+  void loadProjectBuilding(kind).catch((error) => {
+    setError(error instanceof Error ? error.message : "Projektgebäude konnte nicht geladen werden.");
+  });
+});
 
 importButton.addEventListener("click", () => importInput.click());
 importInput.addEventListener("change", () => {
