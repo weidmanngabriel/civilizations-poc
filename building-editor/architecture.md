@@ -22,7 +22,9 @@ Der Editor importiert die gemeinsame Kartenprojektion und Hex-Geometrie aus `src
 
 ## Datenmodell
 
-`BuildingVisualDefinition` Version 4 enthält eine stabile `id` und eine lückenlose Liste von `levels`, beginnend bei Stufe 1. Jede Stufe besitzt vollständig eigene visuelle/räumliche Daten:
+`src/buildings/buildingVisualVariants.ts` ist die Hauptspiel-Quelle dafür, welche visuellen Gebäudevarianten überhaupt existieren. Der Editor darf diese Varianten weder hinzufügen noch löschen. Beispiele sind Wohnhaus 1–5 sowie Töpferei 1/2 und Steinmetzhütte 1/2.
+
+`BuildingVisualDefinition` Version 4 enthält eine stabile `id` und die bereits konfigurierten `levels`. Die Liste darf lückenhaft sein, weil eine vom Hauptspiel definierte Variante noch keinen fertigen Editor-Export haben kann. Jede vorhandene Stufe besitzt vollständig eigene visuelle/räumliche Daten:
 
 - Sprite-Dateiname,
 - `spriteAnchor` als normalisierte x/y-Position relativ zur Bildgröße,
@@ -47,17 +49,19 @@ Die Overlay-Stärke der markierten Rasterzellen ist eine reine Editor-Vorschau-E
 
 ## Projektgebäude laden
 
-Der Editor liest die vorhandenen Visual-Asset-Slots unter `src/assets/buildings/<kind>/` direkt über Vite-Module ein. Das Dropdown verwendet die zentralen deutschen Gebäudenamen des Spiels und sortiert sie mit deutscher Sortierung alphabetisch. Verwaltete Gebäude und `field` werden angeboten; Infrastruktur wie Palisaden bleibt außerhalb dieses generischen Editors.
+Der Editor baut sein Dropdown aus dem Hauptspiel-Katalog in `src/buildings/buildingVisualVariants.ts`. Jeder Katalogeintrag ist direkt auswählbar, etwa **Wohnhaus 1**, **Wohnhaus 2** oder **Töpferei 2**. Die Liste ist nach deutschem Anzeigenamen alphabetisch sortiert. Infrastruktur wie Palisaden bleibt außerhalb dieses generischen Editors.
 
-Nicht-placeholder `building.json`-Dateien werden mit demselben aktuellen Schema validiert wie manuelle Reimporte. Bei Auswahl werden Definition und alle referenzierten Stufen-Sprites vollständig in den Editorzustand geladen. Der Editor hält den Zustand jeder Stufe separat; beim Stufenwechsel werden Sprite, Anchor, Weltbreite, Grundriss, Blockierung und Eingang gewechselt. Neue Stufen werden lückenlos am Ende angefügt und übernehmen als Startpunkt die räumliche Konfiguration der vorherigen Stufe, aber keinen Sprite. Placeholder-Slots bleiben ebenfalls auswählbar: der Editor übernimmt ihre ID, leert den räumlich-visuellen Bearbeitungszustand und weist darauf hin, dass noch keine Konfiguration existiert.
+Der Editor gleicht jeden Katalogeintrag mit dem zugehörigen Asset-Slot unter `src/assets/buildings/<kind>/` ab. **✓** bedeutet, dass für diese Variante bereits Sprite und räumlicher Plan vorhanden sind. **○ … · Platzhalter** bedeutet entweder, dass der ganze Slot noch ein Placeholder ist oder dass genau diese vom Spiel erlaubte Variante in einer ansonsten vorhandenen Definition noch fehlt.
+
+Bei Auswahl wird ausschließlich die gewählte Variante bearbeitet. Andere bereits konfigurierte Stufen desselben Asset-Slots bleiben beim lokalen Speichern unverändert erhalten. Der Editor besitzt keine Bedienung zum Erzeugen oder Löschen von Stufen.
 
 Beim lokalen direkten Speichern bleiben Definition-ID und Asset-Slot getrennt. Wurde ein vorhandenes Projektgebäude aus dem Dropdown geladen, schreibt der Development-Endpunkt zurück in genau dessen bestehenden Slot, auch wenn dessen `BuildingVisualDefinition.id` davon abweicht.
 
 ## Export und Reimport
 
-Im Produktionsbuild/GitHub Pages lädt **Dateien herunterladen** `building.json` und alle unveränderten Stufen-Sprites als lokale Dateien herunter.
+Im Produktionsbuild/GitHub Pages lädt **Dateien herunterladen** für die aktuell ausgewählte Variante eine `building.json` mit genau dieser Stufe sowie deren unveränderten Sprite herunter.
 
-Der Editor kann einen Export aus `building.json` plus allen darin referenzierten Stufen-Sprites wieder importieren. `building.json` wird strukturell und über die gemeinsame Schema-Validierung geprüft. Anschließend muss unter den gleichzeitig ausgewählten Dateien genau das vom JSON referenzierte PNG/WebP vorhanden sein. Erst nach erfolgreicher Prüfung werden Editorzustand und Sprite ersetzt. Dasselbe funktioniert per gemeinsamer Dateiauswahl oder Drag & Drop beider Dateien.
+Der Editor kann für die zuvor im Dropdown ausgewählte Variante einen passenden Export aus `building.json` plus referenziertem Sprite wieder importieren. `building.json` wird strukturell und über die gemeinsame Schema-Validierung geprüft. Anschließend muss unter den gleichzeitig ausgewählten Dateien genau das vom JSON referenzierte PNG/WebP vorhanden sein. Erst nach erfolgreicher Prüfung werden Editorzustand und Sprite ersetzt. Dasselbe funktioniert per gemeinsamer Dateiauswahl oder Drag & Drop beider Dateien.
 
 Aktuell gibt es bewusst **keine Rückwärtskompatibilität** für ältere Editor-/Building-Visual-Schemata. Der aktuelle Schemastand ist verbindlich; alte Exporte dürfen abgelehnt werden. Migrationen oder Defaults werden erst ergänzt, wenn dies ausdrücklich als Produktanforderung festgelegt wird.
 
