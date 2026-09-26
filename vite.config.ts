@@ -141,9 +141,12 @@ function buildingEditorLocalExportPlugin(): Plugin {
           const payload = JSON.parse(body) as {
             definition?: { id?: string; sprite?: string };
             spriteDataUrl?: string;
+            targetId?: string;
           };
           const id = payload.definition?.id ?? "";
           if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) throw new Error("Ungültige Gebäude-ID.");
+          const targetId = payload.targetId ?? id;
+          if (!/^[a-zA-Z0-9][a-zA-Z0-9-]*$/.test(targetId)) throw new Error("Ungültiger Gebäude-Asset-Slot.");
 
           const match = payload.spriteDataUrl?.match(/^data:(image\/(?:png|webp));base64,(.+)$/);
           if (!match) throw new Error("Sprite muss PNG oder WebP sein.");
@@ -153,14 +156,14 @@ function buildingEditorLocalExportPlugin(): Plugin {
           const extension = mime === "image/webp" ? "webp" : "png";
           if (payload.definition?.sprite !== `sprite.${extension}`) throw new Error("Sprite-Dateiname passt nicht zum Bildtyp.");
 
-          const target = resolve(process.cwd(), "src", "assets", "buildings", id);
+          const target = resolve(process.cwd(), "src", "assets", "buildings", targetId);
           await mkdir(target, { recursive: true });
           await writeFile(resolve(target, "building.json"), `${JSON.stringify(payload.definition, null, 2)}\n`, "utf8");
           await writeFile(resolve(target, `sprite.${extension}`), Buffer.from(encoded, "base64"));
 
           response.statusCode = 200;
           response.setHeader("content-type", "application/json");
-          response.end(JSON.stringify({ ok: true, path: `src/assets/buildings/${id}/` }));
+          response.end(JSON.stringify({ ok: true, path: `src/assets/buildings/${targetId}/` }));
         } catch (error) {
           response.statusCode = 400;
           response.setHeader("content-type", "application/json");
