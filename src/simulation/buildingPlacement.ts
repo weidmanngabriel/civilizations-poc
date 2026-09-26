@@ -9,6 +9,7 @@ import type {
 } from "./model";
 import {
   bindBuildingDefinition,
+  buildingDefinition,
   buildingInteractionAt,
   buildingVisualAnchor,
   definitionBlockedAt,
@@ -293,15 +294,24 @@ export function upgradePlacementBlockers(
   const targetKind: PlaceableBuildingKind = houseTarget ? "house" : rule!.to;
   const targetLevel = houseTarget ?? 1;
   const anchor = buildingVisualAnchor(building);
-  const targetFootprint = footprintAt(targetKind, anchor, targetLevel);
-  const targetClearance = clearanceAt(targetKind, anchor, targetLevel);
+  const authoredHouseTarget = houseTarget
+    ? buildingDefinition("house", houseTarget)
+    : undefined;
+  const targetFootprint = houseTarget && !authoredHouseTarget
+    ? buildingFootprint(building)
+    : footprintAt(targetKind, anchor, targetLevel);
+  const targetClearance = houseTarget && !authoredHouseTarget
+    ? ringAround(targetFootprint)
+    : clearanceAt(targetKind, anchor, targetLevel);
   const currentFootprint = new Set(buildingFootprint(building).map(key));
   const tiles = tileIndex(world.tiles);
   const activeResources = world.naturalResources.filter((resource) => !resource.depleted);
   const looseGoodsByPosition = new Map(looseGoodStacks(world).map((stack) => [key(stack.position), stack]));
   const blockers: UpgradePlacementBlocker[] = [];
 
-  const entrance = buildingInteractionAt(targetKind, anchor, targetLevel);
+  const entrance = houseTarget && !authoredHouseTarget
+    ? { ...building.position }
+    : buildingInteractionAt(targetKind, anchor, targetLevel);
   if (!isWithinWaypostOrientation(world.wayposts?.map((waypost) => waypost.position), entrance)) {
     pushUpgradeBlocker(blockers, { kind: "orientation", position: entrance });
   }
@@ -393,48 +403,53 @@ export function startBuildingUpgrade(world: World, building: Building): boolean 
     const target = nextHouseLevel(building);
     if (!target || !canUpgradeBuilding(world, building)) return false;
 
-    const anchor = buildingVisualAnchor(building);
-    const oldFootprint = buildingFootprint(building);
-    const oldFootprintKeys = new Set(oldFootprint.map(key));
-    const targetFootprint = footprintAt("house", anchor, target);
-    const targetFootprintKeys = new Set(targetFootprint.map(key));
-    const targetBlocked = new Set(
-      (definitionBlockedAt("house", anchor, target) ?? []).map(key),
-    );
-    const tiles = tileIndex(world.tiles);
-    const oldBaseTerrains = building.baseTerrains;
+    const authoredTarget = buildingDefinition("house", target);
+    if (authoredTarget) {
+      const anchor = buildingVisualAnchor(building);
+      const oldFootprint = buildingFootprint(building);
+      const oldFootprintKeys = new Set(oldFootprint.map(key));
+      const targetFootprint = footprintAt("house", anchor, target);
+      const targetFootprintKeys = new Set(targetFootprint.map(key));
+      const targetBlocked = new Set(
+        (definitionBlockedAt("house", anchor, target) ?? []).map(key),
+      );
+      const tiles = tileIndex(world.tiles);
+      const oldBaseTerrains = building.baseTerrains;
 
-    for (const position of oldFootprint) {
-      if (targetFootprintKeys.has(key(position))) continue;
-      const tile = tiles.get(key(position));
-      if (!tile) continue;
-      tile.terrain = oldBaseTerrains?.[key(position)] ?? "grass";
-      tile.buildingBlocking = undefined;
-      tile.trafficTicks = undefined;
+      for (const position of oldFootprint) {
+        if (targetFootprintKeys.has(key(position))) continue;
+        const tile = tiles.get(key(position));
+        if (!tile) continue;
+        tile.terrain = oldBaseTerrains?.[key(position)] ?? "grass";
+        tile.buildingBlocking = undefined;
+        tile.trafficTicks = undefined;
+      }
+
+      building.position = buildingInteractionAt("house", anchor, target);
+      building.footprint = targetFootprint.map((position) => ({ ...position }));
+      building.baseTerrains = Object.fromEntries(
+        targetFootprint.map((position) => [
+          key(position),
+          oldFootprintKeys.has(key(position))
+            ? oldBaseTerrains?.[key(position)] ?? "grass"
+            : "grass",
+        ]),
+      );
+
+      for (const position of targetFootprint) {
+        const tile = tiles.get(key(position));
+        if (!tile) continue;
+        tile.bush = undefined;
+        tile.bushAvailable = undefined;
+        tile.bushRegrowTick = undefined;
+        tile.terrain = "building";
+        tile.buildingBlocking = targetBlocked.has(key(position)) || undefined;
+        tile.trafficTicks = undefined;
+      }
+      markTerrainChanged(world);
+      markBushChanged(world);
     }
-
     building.houseUpgradeTarget = target;
-    building.position = buildingInteractionAt("house", anchor, target);
-    building.footprint = targetFootprint.map((position) => ({ ...position }));
-    building.baseTerrains = Object.fromEntries(
-      targetFootprint.map((position) => [
-        key(position),
-        oldFootprintKeys.has(key(position))
-          ? oldBaseTerrains?.[key(position)] ?? "grass"
-          : "grass",
-      ]),
-    );
-
-    for (const position of targetFootprint) {
-      const tile = tiles.get(key(position));
-      if (!tile) continue;
-      tile.bush = undefined;
-      tile.bushAvailable = undefined;
-      tile.bushRegrowTick = undefined;
-      tile.terrain = "building";
-      tile.buildingBlocking = targetBlocked.has(key(position)) || undefined;
-      tile.trafficTicks = undefined;
-    }
 
     const plan = constructionPlan(HOUSE_LEVEL_DEFINITIONS[target].upgradeCost);
     building.construction = {
@@ -444,8 +459,6 @@ export function startBuildingUpgrade(world: World, building: Building): boolean 
       progress: 0,
       complete: false,
     };
-    markTerrainChanged(world);
-    markBushChanged(world);
     notifyConstructionSiteAdded(world);
     return true;
   }
