@@ -77,9 +77,10 @@ There is no fake natural-resource mirror for loose goods and no hidden HQ storag
 
 ## Generic editor-authored building definitions
 
-`src/buildings/buildingVisualDefinition.ts` defines version 3 of the shared editor/runtime spatial schema:
+`src/buildings/buildingVisualDefinition.ts` defines version 4 of the shared editor/runtime spatial schema. A building definition owns a stable `id` plus contiguous `levels` starting at 1. Each level independently contains:
 
 ```text
+level
 sprite
 spriteAnchor      normalized x/y inside the source image
 spriteWorldWidth  rendered width in world pixels
@@ -92,13 +93,13 @@ Gameplay properties such as recipes, workers, inventory, costs and technology st
 
 Sprite placement is intentionally independent from source-image resolution. `spriteAnchor` is stored as a relative position in the image and `spriteWorldWidth` is the authoritative rendered width in world pixels. Replacing a sprite with the same artwork at a higher pixel resolution therefore does not require recalculating its world size or anchor. The editor exports the selected PNG/WebP bytes without dimensional downscaling; runtime quality is determined by the supplied source asset rather than by a generated low-resolution copy.
 
-`src/buildings/buildingDefinitionRegistry.ts` is the runtime registry. It maps a gameplay `BuildingKind` to a validated visual/spatial definition and sprite URL. A registered definition is authoritative for every current instance of that building kind; there is no per-instance compatibility or migration gate. `visualDefinitionId` may still be present as runtime/save metadata, but it does not select an older definition or suppress the current registry entry.
+`src/buildings/buildingDefinitionRegistry.ts` is the runtime registry. It maps a gameplay `BuildingKind` to a validated visual/spatial definition and sprite URL. A registered definition is authoritative for every current instance of that building kind and the runtime selects the active visual level from building state; there is no per-instance compatibility or migration gate. `visualDefinitionId` may still be present as runtime/save metadata, but it does not select an older definition or suppress the current registry entry.
 
-Every current managed building kind plus `field` has a same-key asset slot under `src/assets/buildings/<key>/`. The building editor discovers these slots directly for its project-building dropdown, uses the shared German building labels for display, and sorts entries alphabetically. Real definitions load their current sprite and complete visual/spatial state; placeholder definitions remain selectable and seed only their ID plus an explicit no-configuration state. Each slot contains `building.json` plus a sprite file. Types without a finished editor export use an explicit `{"placeholder": true, ...}` JSON and a transparent placeholder image; `tailor` currently uses such a placeholder slot; the registry imports these managed-building/field slots but skips placeholder JSONs, so current gameplay remains unchanged until a real export replaces the two files. Infrastructure is not registered through this building-visual path even if a legacy or placeholder asset folder exists for it. Future managed building kinds must receive the same-key slot in the same implementation run. There is intentionally no CI/build failure just for a placeholder slot.
+Every current managed building kind plus `field` has a same-key asset slot under `src/assets/buildings/<key>/`. The building editor discovers these slots directly for its project-building dropdown, uses the shared German building labels for display, and sorts entries alphabetically. Real definitions load all authored visual levels and their sprites; placeholder definitions remain selectable and seed only their ID plus an explicit no-configuration state. Each slot contains `building.json` plus a sprite file. Types without a finished editor export use an explicit `{"placeholder": true, ...}` JSON and a transparent placeholder image; `tailor` currently uses such a placeholder slot; the registry imports these managed-building/field slots but skips placeholder JSONs, so current gameplay remains unchanged until a real export replaces the two files. Infrastructure is not registered through this building-visual path even if a legacy or placeholder asset folder exists for it. Future managed building kinds must receive the same-key slot in the same implementation run. There is intentionally no CI/build failure just for a placeholder slot.
 
 The currently active editor definitions are HQ, bakery, farm, well and mill. For a registered building, the editor placement coordinate is the **visual/spatial anchor**. The simulation stores `Building.position` as the gameplay **interaction coordinate**, which is the authored `entrance`. The visual anchor is recovered deterministically as `position - entrance`. This preserves the existing simulation convention that workers, carriers and other systems route to `Building.position`, while the sprite and footprint remain aligned exactly as authored.
 
-The authoritative footprint and collision semantics for registered buildings are therefore:
+For houses, `houseLevel` selects the current visual level and `houseUpgradeTarget` selects the target level during an active upgrade. Other current building kinds use visual level 1. The authoritative footprint and collision semantics for registered buildings are therefore:
 
 - `footprint` comes from the current registered `building.json` translated by the visual anchor;
 - `blocked` becomes the derived `Tile.buildingBlocking` overlay;
@@ -130,7 +131,7 @@ Every placeable building additionally requires its gameplay interaction coordina
 
 Active natural-resource footprints reserve both the building footprint and the two-micro-cell clearance ring. Loose goods block only the actual footprint because they remain walkable and may stay in the surrounding clearance area.
 
-For registered placeable buildings, construction stores the interaction position at the authored entrance, writes the authored footprint and `buildingBlocking` overlay, and otherwise preserves the existing construction/gameplay semantics.
+For registered placeable buildings, construction stores the interaction position at the authored entrance for the selected visual level, writes that level's authored footprint and `buildingBlocking` overlay, and otherwise preserves the existing construction/gameplay semantics. House direct-build placement uses the selected house level. If the target house level has an authored visual definition, house upgrades run the same target-footprint/clearance blocker check as other upgrades; when such an upgrade starts, the target-level footprint is reserved immediately and becomes the construction footprint. Until a target level has actually been authored, upgrading preserves the house's current spatial footprint instead of inventing geometry from a fallback shape.
 
 Demolition restores the complete footprint, clears the building collision overlay and stale traffic state, and preserves the existing rule that a road covered by construction returns as grass rather than reappearing.
 

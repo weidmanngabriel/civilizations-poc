@@ -9,7 +9,11 @@ import {
   householdsForHouse,
   validHomes,
 } from "../src/simulation/housing";
-import { startBuildingUpgrade } from "../src/simulation/buildingPlacement";
+import {
+  footprintAt,
+  startBuildingUpgrade,
+  upgradePlacementBlockers,
+} from "../src/simulation/buildingPlacement";
 import { createTestWorld } from "./testWorld";
 
 const house = (id: string, level: HouseLevel): Building => ({
@@ -113,4 +117,18 @@ test("house upgrades request only the next level materials and keep current apar
   assert.equal(target.construction?.complete, false);
   assert.equal(homeForPerson(world, world.people[0]!)?.id, target.id);
   assert.equal(HOUSE_LEVEL_DEFINITIONS[target.houseLevel!].apartments, 4);
+});
+
+
+test("house upgrades keep their current geometry until a target visual level is authored", () => {
+  const world = createTestWorld({ population: 0 });
+  const target = addHouse(world, "house-upgrade-space", 1);
+  target.position = { q: 10, r: 5 };
+  target.footprint = [{ ...target.position }];
+  const before = target.footprint.map((cell) => ({ ...cell }));
+
+  assert.deepEqual(upgradePlacementBlockers(world, target), []);
+  assert.equal(startBuildingUpgrade(world, target), true);
+  assert.deepEqual(target.footprint, before);
+  assert.equal(target.houseUpgradeTarget, 2);
 });

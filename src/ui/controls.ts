@@ -264,7 +264,14 @@ export function mountControls(w: World, renderMap: () => void): void {
               ) &&
               canPlaceWaypost(w, buildPlacementPosition)
             )
-          : canPlaceBuilding(w, buildPlacementPosition, buildPlacementKind))
+          : canPlaceBuilding(
+              w,
+              buildPlacementPosition,
+              buildPlacementKind,
+              buildPlacementKind === "house"
+                ? { houseLevel: buildPlacementHouseLevel ?? 1 }
+                : undefined,
+            ))
     );
     if (buildPlacementKind === "palisade") {
       const copy = document.querySelector<HTMLElement>("#build-placement-copy");
@@ -330,6 +337,9 @@ export function mountControls(w: World, renderMap: () => void): void {
       const costs = (Object.entries(required) as [Good, number][])
         .map(([good, amount]) => `${GOOD_ICONS[good]} ${amount} ${GOODS[good]}`)
         .join(" + ");
+      const blockers = upgradePlacementBlockers(w, b);
+      if (blockers.length)
+        return `<section class="upgrade-card"><strong>Ausbau zu Wohnhaus ${target}</strong><p class="recipe">${costs}</p><button data-action="upgrade-blockers">Ausbau blockiert · ${blockers.length} Hindernis${blockers.length === 1 ? "" : "se"} anzeigen</button></section>`;
       return `<section class="upgrade-card"><strong>Ausbau zu Wohnhaus ${target}</strong><p class="recipe">${costs}</p><button data-action="upgrade" ${canUpgradeBuilding(w, b) ? "" : "disabled"}>Ausbauen</button></section>`;
     }
 
@@ -836,7 +846,11 @@ export function mountControls(w: World, renderMap: () => void): void {
     buildPlacementOverlay.hidden = false;
     updateBuildPlacementConfirm();
     window.dispatchEvent(new CustomEvent(BUILD_MODE_EVENT, {
-      detail: { active: true, kind },
+      detail: {
+        active: true,
+        kind,
+        houseLevel: kind === "house" ? buildPlacementHouseLevel : undefined,
+      },
     }));
     renderSelectionPanel();
   };
@@ -1088,14 +1102,22 @@ export function mountControls(w: World, renderMap: () => void): void {
     }
     if (action === "upgrade-blockers" && selectedBuildingId) {
       const source = w.buildings.find((candidate) => candidate.id === selectedBuildingId && !candidate.retired);
-      const rule = source ? buildingUpgradeRule(source.kind) : undefined;
-      if (!source || !rule) return;
+      if (!source) return;
+      const rule = buildingUpgradeRule(source.kind);
+      const houseTarget = source.kind === "house" ? nextHouseLevel(source) : undefined;
+      const targetKind = houseTarget ? "house" : rule?.to;
+      if (!targetKind) return;
       upgradePreviewBuildingId = source.id;
       upgradePreviewOverlay.hidden = false;
       main.classList.add("merchant-target-mode");
       renderUpgradePreview();
       window.dispatchEvent(new CustomEvent(UPGRADE_PREVIEW_EVENT, {
-        detail: { active: true, buildingId: source.id, targetKind: rule.to },
+        detail: {
+          active: true,
+          buildingId: source.id,
+          targetKind,
+          targetLevel: houseTarget ?? 1,
+        },
       }));
       renderMap();
       return;

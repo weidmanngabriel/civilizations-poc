@@ -16,14 +16,18 @@ import livestockBreederJson from "../assets/buildings/livestockBreeder/building.
 import warehouseJson from "../assets/buildings/warehouse/building.json";
 import wellJson from "../assets/buildings/well/building.json";
 import type { Building, BuildingKind, Hex, ManagedBuildingKind } from "../simulation/model";
-import type { BuildingVisualDefinition } from "./buildingVisualDefinition";
+import type {
+  BuildingVisualDefinition,
+  BuildingVisualLevel,
+} from "./buildingVisualDefinition";
 import { validateBuildingVisualDefinition } from "./buildingVisualDefinition";
 
 type BuildingVisualKind = ManagedBuildingKind | "field";
 
-export type RegisteredBuildingDefinition = {
+export type RegisteredBuildingLevel = {
   kind: BuildingVisualKind;
-  visual: BuildingVisualDefinition;
+  definitionId: string;
+  visual: BuildingVisualLevel;
   spriteUrl: string;
 };
 
@@ -52,26 +56,22 @@ const validateRegisteredDefinition = (
 
 const spriteUrlFor = (
   kind: BuildingVisualKind,
-  definition: BuildingVisualDefinition,
+  level: BuildingVisualLevel,
 ): string =>
   new URL(
-    `../assets/buildings/${kind}/${definition.sprite}`,
+    `../assets/buildings/${kind}/${level.sprite}`,
     import.meta.url,
   ).href;
 
-const DEFINITIONS = new Map<BuildingVisualKind, RegisteredBuildingDefinition>();
+const DEFINITIONS = new Map<BuildingVisualKind, BuildingVisualDefinition>();
 
 const register = (kind: BuildingVisualKind, raw: unknown): void => {
   if (isPlaceholderDefinition(raw)) return;
-  const visual = validateRegisteredDefinition(
+  const definition = validateRegisteredDefinition(
     kind,
     raw as BuildingVisualDefinition,
   );
-  DEFINITIONS.set(kind, {
-    kind,
-    visual,
-    spriteUrl: spriteUrlFor(kind, visual),
-  });
+  DEFINITIONS.set(kind, definition);
 };
 
 register("hq", headquarterJson);
@@ -92,25 +92,62 @@ register("livestockBreeder", livestockBreederJson);
 register("warehouse", warehouseJson);
 register("house", houseJson);
 
-export const registeredBuildingDefinitions = (): RegisteredBuildingDefinition[] =>
-  [...DEFINITIONS.values()];
+export const buildingVisualDefinition = (
+  kind: BuildingKind,
+): BuildingVisualDefinition | undefined =>
+  kind === "palisade" ? undefined : DEFINITIONS.get(kind);
 
 export const buildingDefinition = (
   kind: BuildingKind,
-): RegisteredBuildingDefinition | undefined =>
-  kind === "palisade" ? undefined : DEFINITIONS.get(kind);
+  level = 1,
+): RegisteredBuildingLevel | undefined => {
+  if (kind === "palisade") return;
+  const definition = DEFINITIONS.get(kind);
+  const visual = definition?.levels.find((candidate) => candidate.level === level);
+  if (!definition || !visual) return;
+  return {
+    kind,
+    definitionId: definition.id,
+    visual,
+    spriteUrl: spriteUrlFor(kind, visual),
+  };
+};
 
-export const hasBuildingDefinition = (kind: BuildingKind): boolean =>
-  kind !== "palisade" && DEFINITIONS.has(kind);
+export const registeredBuildingDefinitions = (): RegisteredBuildingLevel[] =>
+  [...DEFINITIONS.entries()].flatMap(([kind, definition]) =>
+    definition.levels.map((visual) => ({
+      kind,
+      definitionId: definition.id,
+      visual,
+      spriteUrl: spriteUrlFor(kind, visual),
+    })),
+  );
 
-/** Registered definitions are authoritative for their building kind. */
+export const hasBuildingDefinition = (kind: BuildingKind, level = 1): boolean =>
+  buildingDefinition(kind, level) !== undefined;
+
+export const visualLevelForBuilding = (building: Building): number =>
+  building.kind === "house"
+    ? (building.houseUpgradeTarget ?? building.houseLevel ?? 1)
+    : 1;
+
+/** Registered definitions are authoritative for their building kind and visual level. */
 export const definitionForBuilding = (
   building: Building,
-): RegisteredBuildingDefinition | undefined => buildingDefinition(building.kind);
+): RegisteredBuildingLevel | undefined => {
+  const requestedLevel = visualLevelForBuilding(building);
+  const exact = buildingDefinition(building.kind, requestedLevel);
+  if (exact) return exact;
+  const definition = buildingVisualDefinition(building.kind);
+  const fallback = definition?.levels
+    .filter((level) => level.level <= requestedLevel)
+    .sort((a, b) => b.level - a.level)[0];
+  return fallback ? buildingDefinition(building.kind, fallback.level) : undefined;
+};
 
 export const bindBuildingDefinition = (building: Building): void => {
-  const definition = buildingDefinition(building.kind);
-  building.visualDefinitionId = definition?.visual.id;
+  const definition = buildingVisualDefinition(building.kind);
+  building.visualDefinitionId = definition?.id;
 };
 
 const add = (a: Hex, b: Hex): Hex => ({ q: a.q + b.q, r: a.r + b.r });
@@ -121,8 +158,12 @@ const subtract = (a: Hex, b: Hex): Hex => ({ q: a.q - b.q, r: a.r - b.r });
  * Building.position remains the gameplay interaction coordinate; for
  * editor-authored buildings that is the authored entrance cell.
  */
-export const buildingInteractionAt = (kind: BuildingKind, visualAnchor: Hex): Hex => {
-  const definition = buildingDefinition(kind);
+export const buildingInteractionAt = (
+  kind: BuildingKind,
+  visualAnchor: Hex,
+  level = 1,
+): Hex => {
+  const definition = buildingDefinition(kind, level);
   return definition ? add(visualAnchor, definition.visual.entrance) : { ...visualAnchor };
 };
 
@@ -136,16 +177,18 @@ export const buildingVisualAnchor = (building: Building): Hex => {
 export const definitionFootprintAt = (
   kind: BuildingKind,
   visualAnchor: Hex,
+  level = 1,
 ): Hex[] | undefined => {
-  const definition = buildingDefinition(kind);
+  const definition = buildingDefinition(kind, level);
   return definition?.visual.footprint.map((cell) => add(visualAnchor, cell));
 };
 
 export const definitionBlockedAt = (
   kind: BuildingKind,
   visualAnchor: Hex,
+  level = 1,
 ): Hex[] | undefined => {
-  const definition = buildingDefinition(kind);
+  const definition = buildingDefinition(kind, level);
   return definition?.visual.blocked.map((cell) => add(visualAnchor, cell));
 };
 

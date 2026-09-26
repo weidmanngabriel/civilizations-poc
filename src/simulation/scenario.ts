@@ -249,7 +249,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
       kind: "hq",
       name: "Hauptquartier",
       position: hqPosition,
-      ...(suppliedStart ? { visualDefinitionId: hqDefinition!.visual.id } : {}),
+      ...(suppliedStart ? { visualDefinitionId: hqDefinition!.definitionId } : {}),
       footprint: authoredHqFootprint ?? compactFootprint(hqVisualAnchor),
       workers: 0,
       carriers: 2,

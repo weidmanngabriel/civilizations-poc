@@ -9,6 +9,7 @@ import type {
 } from "./model";
 import {
   bindBuildingDefinition,
+  buildingDefinition,
   buildingInteractionAt,
   buildingVisualAnchor,
   definitionBlockedAt,
@@ -110,8 +111,13 @@ export const footprintFromShape = (shape: BuildingPlacementShape, anchorPosition
     r: anchorPosition.r + cell.r - shape.anchor.r,
   }));
 
-export const footprintAt = (kind: PlaceableBuildingKind, anchorPosition: Hex): Hex[] =>
-  definitionFootprintAt(kind, anchorPosition) ?? footprintFromShape(SHAPES[kind], anchorPosition);
+export const footprintAt = (
+  kind: PlaceableBuildingKind,
+  anchorPosition: Hex,
+  level = 1,
+): Hex[] =>
+  definitionFootprintAt(kind, anchorPosition, level) ??
+  footprintFromShape(SHAPES[kind], anchorPosition);
 
 export const buildingFootprint = (building: Building): Hex[] =>
   definitionFootprintForBuilding(building) ??
@@ -140,18 +146,23 @@ const ringAround = (footprint: Hex[]): Hex[] => {
 /** Buildings keep a compact two-micro-cell clearance around their authored footprint. */
 export const footprintRing = (footprint: Hex[]): Hex[] => ringAround(footprint);
 
-const relativeFootprint = (kind: PlaceableBuildingKind): Hex[] =>
-  footprintAt(kind, { q: 0, r: 0 });
+const clearanceCache = new Map<string, Hex[]>();
 
-const SHAPE_RINGS: Record<PlaceableBuildingKind, Hex[]> = Object.fromEntries(
-  (Object.keys(SHAPES) as PlaceableBuildingKind[]).map((kind) => [
-    kind,
-    ringAround(relativeFootprint(kind)),
-  ]),
-) as Record<PlaceableBuildingKind, Hex[]>;
+const relativeClearance = (kind: PlaceableBuildingKind, level: number): Hex[] => {
+  const cacheKey = `${kind}:${level}`;
+  const cached = clearanceCache.get(cacheKey);
+  if (cached) return cached;
+  const ring = ringAround(footprintAt(kind, { q: 0, r: 0 }, level));
+  clearanceCache.set(cacheKey, ring);
+  return ring;
+};
 
-const clearanceAt = (kind: PlaceableBuildingKind, anchorPosition: Hex): Hex[] =>
-  SHAPE_RINGS[kind].map((cell) => ({
+const clearanceAt = (
+  kind: PlaceableBuildingKind,
+  anchorPosition: Hex,
+  level = 1,
+): Hex[] =>
+  relativeClearance(kind, level).map((cell) => ({
     q: anchorPosition.q + cell.q,
     r: anchorPosition.r + cell.r,
   }));
@@ -195,11 +206,12 @@ const canPlaceWithLookup = (
   lookup: PlacementLookup,
   anchorPosition: Hex,
   kind: PlaceableBuildingKind,
+  level = 1,
 ): boolean => {
-  const entrance = buildingInteractionAt(kind, anchorPosition);
+  const entrance = buildingInteractionAt(kind, anchorPosition, level);
   if (!isWithinWaypostOrientation(lookup.wayposts, entrance)) return false;
 
-  const footprint = footprintAt(kind, anchorPosition);
+  const footprint = footprintAt(kind, anchorPosition, level);
   if (
     lookup.wayposts?.some((waypostPosition) =>
       footprint.some(
@@ -208,7 +220,7 @@ const canPlaceWithLookup = (
     )
   ) return false;
   if (!footprint.every((position) => freePlacementTile(lookup, position, true))) return false;
-  if (!clearanceAt(kind, anchorPosition).every((position) => freePlacementTile(lookup, position, false))) return false;
+  if (!clearanceAt(kind, anchorPosition, level).every((position) => freePlacementTile(lookup, position, false))) return false;
   return !footprint.some((position) => lookup.people.has(key(position)));
 };
 
@@ -221,10 +233,13 @@ export function canPlaceBuilding(
   world: World,
   anchorPosition: Hex,
   kind: PlaceableBuildingKind,
+  options?: { houseLevel?: HouseLevel },
 ): boolean {
   if (!isBuildingUnlocked(world, kind)) return false;
   if (kind === "livestockBreeder" && hasExistingLivestockBreeder(world)) return false;
-  return canPlaceWithLookup(createPlacementLookup(world), anchorPosition, kind);
+  const level = kind === "house" ? (options?.houseLevel ?? 1) : 1;
+  if (kind === "house" && !isHouseLevelUnlocked(world, level as HouseLevel)) return false;
+  return canPlaceWithLookup(createPlacementLookup(world), anchorPosition, kind, level);
 }
 
 export type UpgradePlacementBlockerKind =
@@ -272,19 +287,31 @@ export function upgradePlacementBlockers(
   world: World,
   building: Building,
 ): UpgradePlacementBlocker[] {
+  const houseTarget = building.kind === "house" ? nextHouseLevel(building) : undefined;
   const rule = buildingUpgradeRule(building.kind);
-  if (!rule) return [];
+  if (!houseTarget && !rule) return [];
 
+  const targetKind: PlaceableBuildingKind = houseTarget ? "house" : rule!.to;
+  const targetLevel = houseTarget ?? 1;
   const anchor = buildingVisualAnchor(building);
-  const targetFootprint = footprintAt(rule.to, anchor);
-  const targetClearance = clearanceAt(rule.to, anchor);
+  const authoredHouseTarget = houseTarget
+    ? buildingDefinition("house", houseTarget)
+    : undefined;
+  const targetFootprint = houseTarget && !authoredHouseTarget
+    ? buildingFootprint(building)
+    : footprintAt(targetKind, anchor, targetLevel);
+  const targetClearance = houseTarget && !authoredHouseTarget
+    ? ringAround(targetFootprint)
+    : clearanceAt(targetKind, anchor, targetLevel);
   const currentFootprint = new Set(buildingFootprint(building).map(key));
   const tiles = tileIndex(world.tiles);
   const activeResources = world.naturalResources.filter((resource) => !resource.depleted);
   const looseGoodsByPosition = new Map(looseGoodStacks(world).map((stack) => [key(stack.position), stack]));
   const blockers: UpgradePlacementBlocker[] = [];
 
-  const entrance = buildingInteractionAt(rule.to, anchor);
+  const entrance = houseTarget && !authoredHouseTarget
+    ? { ...building.position }
+    : buildingInteractionAt(targetKind, anchor, targetLevel);
   if (!isWithinWaypostOrientation(world.wayposts?.map((waypost) => waypost.position), entrance)) {
     pushUpgradeBlocker(blockers, { kind: "orientation", position: entrance });
   }
@@ -360,7 +387,9 @@ export function canUpgradeBuilding(world: World, building: Building): boolean {
     return false;
   if (building.kind === "house") {
     const target = nextHouseLevel(building);
-    return target !== undefined && isHouseLevelUnlocked(world, target);
+    return target !== undefined &&
+      isHouseLevelUnlocked(world, target) &&
+      upgradePlacementBlockers(world, building).length === 0;
   }
 
   const rule = buildingUpgradeRule(building.kind);
@@ -373,8 +402,56 @@ export function startBuildingUpgrade(world: World, building: Building): boolean 
   if (building.kind === "house") {
     const target = nextHouseLevel(building);
     if (!target || !canUpgradeBuilding(world, building)) return false;
-    const plan = constructionPlan(HOUSE_LEVEL_DEFINITIONS[target].upgradeCost);
+
+    const authoredTarget = buildingDefinition("house", target);
+    if (authoredTarget) {
+      const anchor = buildingVisualAnchor(building);
+      const oldFootprint = buildingFootprint(building);
+      const oldFootprintKeys = new Set(oldFootprint.map(key));
+      const targetFootprint = footprintAt("house", anchor, target);
+      const targetFootprintKeys = new Set(targetFootprint.map(key));
+      const targetBlocked = new Set(
+        (definitionBlockedAt("house", anchor, target) ?? []).map(key),
+      );
+      const tiles = tileIndex(world.tiles);
+      const oldBaseTerrains = building.baseTerrains;
+
+      for (const position of oldFootprint) {
+        if (targetFootprintKeys.has(key(position))) continue;
+        const tile = tiles.get(key(position));
+        if (!tile) continue;
+        tile.terrain = oldBaseTerrains?.[key(position)] ?? "grass";
+        tile.buildingBlocking = undefined;
+        tile.trafficTicks = undefined;
+      }
+
+      building.position = buildingInteractionAt("house", anchor, target);
+      building.footprint = targetFootprint.map((position) => ({ ...position }));
+      building.baseTerrains = Object.fromEntries(
+        targetFootprint.map((position) => [
+          key(position),
+          oldFootprintKeys.has(key(position))
+            ? oldBaseTerrains?.[key(position)] ?? "grass"
+            : "grass",
+        ]),
+      );
+
+      for (const position of targetFootprint) {
+        const tile = tiles.get(key(position));
+        if (!tile) continue;
+        tile.bush = undefined;
+        tile.bushAvailable = undefined;
+        tile.bushRegrowTick = undefined;
+        tile.terrain = "building";
+        tile.buildingBlocking = targetBlocked.has(key(position)) || undefined;
+        tile.trafficTicks = undefined;
+      }
+      markTerrainChanged(world);
+      markBushChanged(world);
+    }
     building.houseUpgradeTarget = target;
+
+    const plan = constructionPlan(HOUSE_LEVEL_DEFINITIONS[target].upgradeCost);
     building.construction = {
       required: { ...plan.required },
       delivered: isMaterialCheatEnabled(world) ? { ...plan.required } : {},
@@ -456,12 +533,15 @@ export function startBuildingUpgrade(world: World, building: Building): boolean 
 export function validBuildingAnchors(
   world: World,
   kind: PlaceableBuildingKind,
+  options?: { houseLevel?: HouseLevel },
 ): Hex[] {
   if (!isBuildingUnlocked(world, kind)) return [];
   if (kind === "livestockBreeder" && hasExistingLivestockBreeder(world)) return [];
+  const level = kind === "house" ? (options?.houseLevel ?? 1) : 1;
+  if (kind === "house" && !isHouseLevelUnlocked(world, level as HouseLevel)) return [];
   const lookup = createPlacementLookup(world);
   return world.tiles
-    .filter((tile) => canPlaceWithLookup(lookup, tile, kind))
+    .filter((tile) => canPlaceWithLookup(lookup, tile, kind, level))
     .map((tile) => ({ q: tile.q, r: tile.r }));
 }
 
@@ -476,9 +556,13 @@ export function buildWithFootprint(
     options?.houseLevel &&
     !isHouseLevelUnlocked(world, options.houseLevel)
   ) return;
-  if (!canPlaceBuilding(world, anchorPosition, kind)) return;
-  const footprint = footprintAt(kind, anchorPosition);
-  const blocked = new Set((definitionBlockedAt(kind, anchorPosition) ?? []).map(key));
+  const houseLevel = kind === "house" ? (options?.houseLevel ?? 1) : undefined;
+  if (!canPlaceBuilding(world, anchorPosition, kind, houseLevel ? { houseLevel } : undefined)) return;
+  const visualLevel = houseLevel ?? 1;
+  const footprint = footprintAt(kind, anchorPosition, visualLevel);
+  const blocked = new Set(
+    (definitionBlockedAt(kind, anchorPosition, visualLevel) ?? []).map(key),
+  );
   const baseTerrains: Record<string, "grass" | "road"> = {};
   for (const position of footprint) {
     // Roads never survive construction. After demolition every footprint tile becomes grass.
@@ -487,7 +571,7 @@ export function buildWithFootprint(
 
   const created = buildAt(
     world,
-    buildingInteractionAt(kind, anchorPosition),
+    buildingInteractionAt(kind, anchorPosition, visualLevel),
     kind as BuildableBuildingKind,
   );
   if (!created) return;
