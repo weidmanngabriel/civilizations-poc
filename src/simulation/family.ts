@@ -436,8 +436,8 @@ const advanceBirthTasks = (world: World): void => {
 
     const firstHome = hexDistance(first.position, home.position) === 0;
     const secondHome = hexDistance(second.position, home.position) === 0;
-    if (!firstHome) routeParentHome(world, first, household);
-    if (!secondHome) routeParentHome(world, second, household);
+    if (!firstHome && first.path.length === 0) routeParentHome(world, first, household);
+    if (!secondHome && second.path.length === 0) routeParentHome(world, second, household);
     if (!firstHome || !secondHome) continue;
 
     first.path = [];
