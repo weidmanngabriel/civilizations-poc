@@ -412,15 +412,21 @@ export class IncrementalMainScene extends MainScene {
           0,
           Math.min(1, (now - effect.storkStartsAtTick) / Math.max(1, effect.storkEndsAtTick - effect.storkStartsAtTick)),
         );
-        const angle = (-Math.PI / 8) + (Math.PI / 4) * flightProgress;
-        const radiusX = HEX_X * 5.4;
-        const radiusY = HEX_Y * 4.2;
+        const centeredProgress = flightProgress * 2 - 1;
+        const speedProfile =
+          0.5 +
+          0.5 * (
+            0.25 * centeredProgress +
+            0.75 * centeredProgress * centeredProgress * centeredProgress
+          );
+        const angle = (-Math.PI / 3) + ((2 * Math.PI) / 3) * speedProfile;
+        const radius = HEX_X * 15;
         const storkTexture = now < effect.birthAtTick
           ? STORK_WITH_BABY_TEXTURE
           : STORK_WITHOUT_BABY_TEXTURE;
         const bird = this.add.image(
-          center.x + radiusX * Math.sin(angle),
-          center.y - HEX_Y * 5.1 + radiusY * Math.cos(angle),
+          center.x + radius * Math.sin(angle),
+          center.y - radius - HEX_Y + radius * Math.cos(angle),
           storkTexture,
         ).setOrigin(0.5).setDisplaySize(STORK_DISPLAY_SIZE, STORK_DISPLAY_SIZE);
         this.familyEffectLayer.add(bird);
