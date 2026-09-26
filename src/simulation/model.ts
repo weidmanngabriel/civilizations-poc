@@ -176,7 +176,11 @@ export interface FamilyTask {
   partnerId: number;
   /** Birth journeys require both parents to reach their shared home. */
   homeId?: BuildingId;
-  /** Short celebration phase after both parents reached home. */
+  /** Tick at which the child/children are created during the family sequence. */
+  birthAtTick?: number;
+  /** True after the birth event fired so repeated ticks cannot create duplicates. */
+  birthCreated?: boolean;
+  /** Tick at which parents leave the house and normal behavior resumes. */
   completeAtTick?: number;
 }
 
@@ -185,8 +189,13 @@ export interface FamilyEffect {
   kind: "birth";
   homeId: BuildingId;
   startedAtTick: number;
-  /** Children appear at this tick; presentation shows hearts/stork before it. */
+  /** Stork flight begins after the initial hearts-only family time. */
+  storkStartsAtTick: number;
+  /** Children appear at this tick, halfway through the stork flight. */
   birthAtTick: number;
+  /** Stork flight ends before the family leaves the house. */
+  storkEndsAtTick: number;
+  /** Family effect ends when the parents are released. */
   expiresAtTick: number;
 }
 export interface Waypost {
