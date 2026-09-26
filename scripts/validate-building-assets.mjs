@@ -58,20 +58,46 @@ function validateWebp(buffer, label) {
     fail(`${label}: WebP enthält keine vollständigen Bilddaten.`);
 }
 
+async function validateSprite(directory, definitionPath, sprite) {
+  if (typeof sprite !== "string" || !/^[a-z0-9][a-z0-9._-]*\.(?:png|webp)$/i.test(sprite))
+    fail(`${definitionPath}: ungültiger Sprite-Dateiname.`);
+
+  const spritePath = join(root, directory, sprite);
+  const info = await stat(spritePath).catch(() => undefined);
+  if (!info?.isFile()) fail(`${definitionPath}: Sprite fehlt: ${sprite}`);
+
+  const buffer = await readFile(spritePath);
+  const extension = extname(sprite).toLowerCase();
+  if (extension === ".png") validatePng(buffer, spritePath);
+  else validateWebp(buffer, spritePath);
+}
+
 async function validateBuilding(directory) {
   const definitionPath = join(root, directory, "building.json");
   const definition = JSON.parse(await readFile(definitionPath, "utf8"));
-  if (typeof definition.sprite !== "string" || !/^[a-z0-9][a-z0-9._-]*\.(?:png|webp)$/i.test(definition.sprite))
-    fail(`${definitionPath}: ungültiger Sprite-Dateiname.`);
 
-  const spritePath = join(root, directory, definition.sprite);
-  const info = await stat(spritePath).catch(() => undefined);
-  if (!info?.isFile()) fail(`${definitionPath}: Sprite fehlt: ${definition.sprite}`);
+  if (definition.placeholder === true) {
+    await validateSprite(directory, definitionPath, definition.sprite);
+    return 1;
+  }
 
-  const buffer = await readFile(spritePath);
-  const extension = extname(definition.sprite).toLowerCase();
-  if (extension === ".png") validatePng(buffer, spritePath);
-  else validateWebp(buffer, spritePath);
+  if (
+    definition.schema !== "civilizations-building-visual" ||
+    definition.version !== 4 ||
+    !Array.isArray(definition.levels) ||
+    !definition.levels.length
+  ) fail(`${definitionPath}: ungültiges Building-Visual-Schema.`);
+
+  const sprites = new Set();
+  for (const [index, level] of definition.levels.entries()) {
+    if (level?.level !== index + 1)
+      fail(`${definitionPath}: Gebäudestufen müssen lückenlos bei Stufe 1 beginnen.`);
+    if (sprites.has(level.sprite))
+      fail(`${definitionPath}: Sprite wird von mehreren Stufen verwendet: ${level.sprite}`);
+    sprites.add(level.sprite);
+    await validateSprite(directory, definitionPath, level.sprite);
+  }
+  return sprites.size;
 }
 
 const directories = (await readdir(root, { withFileTypes: true }))
@@ -79,5 +105,6 @@ const directories = (await readdir(root, { withFileTypes: true }))
   .map((entry) => entry.name)
   .sort();
 
-for (const directory of directories) await validateBuilding(directory);
-console.log(`Building assets validiert: ${directories.length} Sprite(s).`);
+let sprites = 0;
+for (const directory of directories) sprites += await validateBuilding(directory);
+console.log(`Building assets validiert: ${directories.length} Slots, ${sprites} Sprite(s).`);
