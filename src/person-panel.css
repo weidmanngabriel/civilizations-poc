@@ -324,6 +324,57 @@
   font-size: 11px;
 }
 
+
+.person-current-value {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.person-current-activity {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-current-status {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.person-current-status > span {
+  min-width: 0;
+  padding: 2px 5px;
+  border-radius: 999px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.person-current-status--critical > span {
+  background: #f4d2cf;
+  color: #8f3029;
+}
+
+.person-current-status--warning > span {
+  background: #f3e9b9;
+  color: #775d14;
+}
+
+.person-current-status--info > span {
+  background: #d9eaf6;
+  color: #315f7d;
+}
+
 .person-open-list {
   width: 100%;
   margin-top: 10px;
@@ -447,6 +498,17 @@ main.merchant-target-mode .person-inspector {
 
   .person-facts > div:first-child {
     grid-column: span 2;
+  }
+
+
+  .person-current-value {
+    gap: 4px;
+  }
+
+  .person-current-status > span {
+    max-width: 120px;
+    padding: 2px 4px;
+    font-size: 8px;
   }
 
   .person-list-item {
