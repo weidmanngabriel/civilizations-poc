@@ -101,5 +101,6 @@ This file is the primary location for verified domain terms, domain rules, invar
 - Parents remain unavailable until second 15 even though the children already exist from second 7.5 onward.
 - Completing the birth family sequence sets both parents' sleep to 100.
 - Children cannot receive equipment assignments.
-- A child's person detail view is read-only and exposes only name, parents and home.
+- A child's person detail view is read-only and exposes only name, age, parents and home.
+- Child age is derived only from `bornAtTick` and the total childhood duration: five simulated minutes map linearly to ages 0 through 18; age is not stored as separate state.
 
