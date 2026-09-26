@@ -317,7 +317,7 @@ export interface Person {
   childIds?: number[];
   /** Another resident temporarily reserves this unmarried resident as a partner candidate. */
   partnerReservedBy?: number;
-  /** Family-owned movement suspends normal work/need decisions without changing profession. */
+  /** Family-owned movement suspends normal work without changing profession; hunger and sleep may interrupt it. */
   familyTask?: FamilyTask;
   /** Explicit profession chosen by the player. Legacy worlds may still derive it from assignment flags. */
   profession?: Profession;

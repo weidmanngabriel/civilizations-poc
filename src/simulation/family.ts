@@ -189,6 +189,7 @@ const marry = (world: World, first: Person, second: Person): void => {
 const advancePartnerSearch = (world: World, person: Person): void => {
   const task = person.familyTask;
   if (task?.kind !== "partner-search") return;
+  if (person.hungerState || person.sleepState) return;
 
   if (person.spouseId || !isAdult(person)) {
     releasePartnerReservation(world, person);
@@ -420,6 +421,9 @@ const advanceBirthTasks = (world: World): void => {
       if (second?.familyTask?.partnerId === first.id) second.familyTask = undefined;
       continue;
     }
+
+    if (first.hungerState || first.sleepState || second.hungerState || second.sleepState)
+      continue;
 
     const home = world.buildings.find(
       (building) => building.id === household.homeId && !building.retired,

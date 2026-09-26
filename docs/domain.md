@@ -95,4 +95,5 @@ This file is the primary location for verified domain terms, domain rules, invar
 - Childhood lasts five simulated minutes; the visual stage switches from baby to child halfway through.
 - Adult transition removes the child from the parental household and never assigns a replacement apartment automatically.
 - Birth policy is always one of low/medium/high; there is deliberately no disabled option.
+- Active family tasks yield to hunger and sleep. The family task remains authoritative and resumes after the need is fulfilled.
 

@@ -14,6 +14,8 @@ import {
 } from "../src/simulation/family";
 import { assignPersonHome, householdForPerson, householdsForHouse } from "../src/simulation/housing";
 import { orderPersonMove } from "../src/simulation/personCommands";
+import { advanceHungerTick, resolveFoodArrivals } from "../src/simulation/needs";
+import { advanceSleepTick } from "../src/simulation/sleep";
 import { createTestWorld } from "./testWorld";
 
 const addHouse = (world: World, id: string, q: number): Building => {
@@ -186,4 +188,81 @@ test("children cannot receive manual movement orders", () => {
   child.sleep = undefined;
 
   assert.equal(orderPersonMove(world, child.id, { q: 1, r: 0 }), false);
+});
+
+
+test("active birth journey yields to hunger and resumes after eating", () => {
+  const world = createTestWorld({ population: 2 });
+  world.households = [];
+  world.nextHouseholdId = 1;
+  const [first, second] = adultPair(world);
+  const house = addHouse(world, "house-a", 6);
+
+  first.spouseId = second.id;
+  second.spouseId = first.id;
+  assert.equal(assignPersonHome(world, first.id, house.id), true);
+  assert.equal(first.householdId, second.householdId);
+
+  first.position = { q: 0, r: 0 };
+  second.position = { ...house.position };
+  world.buildings.find((building) => building.id === "hq")!.inventory!.bread = 2;
+
+  first.familyTask = { kind: "birth", partnerId: second.id, homeId: house.id };
+  second.familyTask = { kind: "birth", partnerId: first.id, homeId: house.id };
+  first.hunger = 20;
+  second.hunger = 100;
+
+  advanceHungerTick(world);
+
+  assert.ok(first.hungerState);
+  assert.equal(first.familyTask?.kind, "birth");
+
+  const foodPath = first.path.map((step) => ({ ...step }));
+  advanceFamily(world);
+  assert.deepEqual(first.path, foodPath);
+
+  if (first.hungerState?.eatingUntilTick === undefined)
+    resolveFoodArrivals(world);
+  assert.ok(first.hungerState?.eatingUntilTick !== undefined);
+
+  world.round = first.hungerState!.eatingUntilTick!;
+  resolveFoodArrivals(world);
+
+  assert.equal(first.hungerState, undefined);
+  assert.equal(first.path.length, 0);
+
+  advanceFamily(world);
+
+  assert.ok(first.path.length > 0);
+  assert.deepEqual(first.path.at(-1), house.position);
+});
+
+test("active birth journey yields to assigned-home sleep", () => {
+  const world = createTestWorld({ population: 2 });
+  world.households = [];
+  world.nextHouseholdId = 1;
+  const [first, second] = adultPair(world);
+  const house = addHouse(world, "house-a", 6);
+
+  first.spouseId = second.id;
+  second.spouseId = first.id;
+  assert.equal(assignPersonHome(world, first.id, house.id), true);
+
+  first.position = { q: 0, r: 0 };
+  second.position = { ...house.position };
+  first.familyTask = { kind: "birth", partnerId: second.id, homeId: house.id };
+  second.familyTask = { kind: "birth", partnerId: first.id, homeId: house.id };
+  first.hunger = 100;
+  first.sleep = 20;
+
+  advanceSleepTick(world);
+
+  assert.equal(first.sleepState?.kind, "house");
+  assert.deepEqual(first.sleepState?.target, house.position);
+
+  const sleepPath = first.path.map((step) => ({ ...step }));
+  advanceFamily(world);
+
+  assert.deepEqual(first.path, sleepPath);
+  assert.equal(first.familyTask?.kind, "birth");
 });
