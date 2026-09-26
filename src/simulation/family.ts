@@ -18,6 +18,7 @@ import {
   mergeHouseholdsForMarriage,
 } from "./housing";
 import { SIMULATION_HZ } from "./timing";
+import { performanceProfiler } from "../debug/performanceProfiler";
 
 export const CHILDHOOD_TICKS = 5 * 60 * SIMULATION_HZ;
 export const BABY_STAGE_TICKS = CHILDHOOD_TICKS / 2;
@@ -122,12 +123,14 @@ const partnerCandidates = (world: World, seeker: Person): Person[] =>
     .map(({ candidate }) => candidate);
 
 const routeToPartner = (world: World, seeker: Person, partner: Person): boolean => {
-  const path = findRequiredNavigationPath(
-    world,
-    seeker,
-    partner.position,
-    ROAD_SPEED_MULTIPLIER,
-    "destination",
+  const path = performanceProfiler.withPathReason("family", () =>
+    findRequiredNavigationPath(
+      world,
+      seeker,
+      partner.position,
+      ROAD_SPEED_MULTIPLIER,
+      "destination",
+    ),
   );
   if (!path) return false;
   seeker.path = path;
@@ -270,12 +273,14 @@ const routeParentHome = (world: World, person: Person, household: Household): bo
     person.path = [];
     return true;
   }
-  const path = findRequiredNavigationPath(
-    world,
-    person,
-    home.position,
-    ROAD_SPEED_MULTIPLIER,
-    "destination",
+  const path = performanceProfiler.withPathReason("family", () =>
+    findRequiredNavigationPath(
+      world,
+      person,
+      home.position,
+      ROAD_SPEED_MULTIPLIER,
+      "destination",
+    ),
   );
   if (!path) return false;
   person.path = path;
