@@ -389,11 +389,13 @@ export class IncrementalMainScene extends MainScene {
       if (!home) continue;
       const center = pixel(home.position);
       const now = this.worldRef.round;
-      const hearts = this.add.text(center.x, center.y - HEX_Y * 1.7, now < effect.birthAtTick ? "💕" : "💗", {
-        fontFamily: "system-ui",
-        fontSize: "10px",
-      }).setOrigin(0.5).setScale(0.65);
-      this.familyEffectLayer.add(hearts);
+      if (now < effect.storkStartsAtTick) {
+        const hearts = this.add.text(center.x, center.y - HEX_Y * 1.7, "💕", {
+          fontFamily: "system-ui",
+          fontSize: "18px",
+        }).setResolution(4).setOrigin(0.5).setScale(0.36);
+        this.familyEffectLayer.add(hearts);
+      }
 
       if (now >= effect.storkStartsAtTick && now <= effect.storkEndsAtTick) {
         const flightProgress = Math.max(
@@ -401,14 +403,14 @@ export class IncrementalMainScene extends MainScene {
           Math.min(1, (now - effect.storkStartsAtTick) / Math.max(1, effect.storkEndsAtTick - effect.storkStartsAtTick)),
         );
         const angle = (-Math.PI / 8) + (Math.PI / 4) * flightProgress;
-        const radiusX = HEX_X * 7.5;
-        const radiusY = HEX_Y * 1.8;
+        const radiusX = HEX_X * 5.4;
+        const radiusY = HEX_Y * 4.2;
         const bird = this.add.text(
           center.x + radiusX * Math.sin(angle),
-          center.y - HEX_Y * 3.1 + radiusY * Math.cos(angle),
+          center.y - HEX_Y * 5.1 + radiusY * Math.cos(angle),
           "🕊️",
-          { fontFamily: "system-ui", fontSize: "9px" },
-        ).setOrigin(0.5).setScale(0.7);
+          { fontFamily: "system-ui", fontSize: "18px" },
+        ).setResolution(4).setOrigin(0.5).setScale(0.35);
         this.familyEffectLayer.add(bird);
       }
     }
