@@ -201,16 +201,11 @@ test("assigned residents choose their own home over a closer nature sleep target
   assert.deepEqual(person.sleepState?.target, house.position);
 });
 
-test("assigned residents fall back to local nature when their home is unreachable", () => {
+test("assigned residents keep their own home as sleep target when it is unreachable", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
   removeNatureSleepTargets(world);
-  const bush = world.tiles.find(
-    (tile) =>
-      tile.terrain === "grass" &&
-      tile.q === person.position.q &&
-      tile.r === person.position.r,
-  )!;
+  const bush = nearbyGrassTile(world);
   bush.bush = true;
   bush.bushAvailable = true;
   const house = addHouse(world, 2);
@@ -232,8 +227,9 @@ test("assigned residents fall back to local nature when their home is unreachabl
 
   advanceSleepTick(world);
 
-  assert.equal(person.sleepState?.kind, "nature");
-  assert.deepEqual(person.sleepState?.target, person.position);
+  assert.equal(person.sleepState?.kind, "house");
+  assert.deepEqual(person.sleepState?.target, house.position);
+  assert.equal(person.path.length, 0);
 });
 
 test("stone extractor keeps an active sleep route instead of returning to its resource", () => {
