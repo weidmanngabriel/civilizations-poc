@@ -5,23 +5,26 @@ import {
   type BuildingVisualLevel,
 } from "../../src/buildings/buildingVisualDefinition";
 import { HEX_X, HEX_Y, hexCornerOffsets } from "../../src/game/mapProjection";
-import { BUILDING_WIKI_LABELS } from "../../src/ui/wikiLinks";
-import type { BuildingKind, Hex } from "../../src/simulation/model";
+import {
+  BUILDING_VISUAL_VARIANTS,
+  buildingVisualVariantKey,
+  type BuildingVisualKind,
+  type BuildingVisualVariant,
+} from "../../src/buildings/buildingVisualVariants";
+import type { Hex } from "../../src/simulation/model";
 
 type Tool = "move" | "footprint" | "blocked" | "entrance";
 type PaintMode = "set" | "remove";
 type PaintTool = Exclude<Tool, "move">;
-type BuildingVisualKind = Exclude<BuildingKind, "palisade">;
 type PlaceholderDefinition = {
   placeholder: true;
   id: string;
   sprite: string;
 };
-type ProjectBuildingEntry = {
-  kind: BuildingVisualKind;
-  label: string;
+type ProjectVariantEntry = {
+  variant: BuildingVisualVariant;
   raw: unknown;
-  placeholder: boolean;
+  configured: boolean;
 };
 type LevelSnapshot = {
   level: number;
@@ -84,21 +87,13 @@ app.innerHTML = `
             </select>
           </div>
           <p class="help building-load-note" id="building-load-note" hidden></p>
-          <div class="field"><label for="building-id">ID</label><input id="building-id" type="text" value="new-building" spellcheck="false" /></div>
-          <div class="level-controls">
-            <div class="field level-field">
-              <label for="level-select">Gebäudestufe</label>
-              <select id="level-select"></select>
-            </div>
-            <button class="secondary compact" id="add-level" type="button">+ Stufe</button>
-            <button class="secondary compact" id="remove-level" type="button">Stufe löschen</button>
-          </div>
-          <p class="help">Jede Stufe besitzt einen eigenen Sprite, Grundriss, blockierte Zellen und Eingang.</p>
+          <div class="field"><label for="building-id">ID</label><input id="building-id" type="text" value="" spellcheck="false" readonly /></div>
+          <p class="help">✓ = Sprite und Plan vorhanden · ○ = Platzhalter / noch nicht konfiguriert. Welche Varianten existieren, wird ausschließlich im Hauptspiel definiert.</p>
           <div class="dropzone" id="dropzone">PNG oder WebP hier hineinziehen<br />oder klicken</div>
           <input id="sprite-input" type="file" accept="image/png,image/webp" hidden />
           <button class="secondary" id="import-building">Gebäudedefinition öffnen</button>
           <input id="import-input" type="file" accept="application/json,image/png,image/webp,.json,.png,.webp" multiple hidden />
-          <p class="help">building.json und das zugehörige Sprite gemeinsam auswählen oder zusammen hier hineinziehen.</p>
+          <p class="help">Für die ausgewählte Variante können building.json und das zugehörige Sprite gemeinsam importiert werden.</p>
         </section>
         <section class="panel">
           <h2>Sprite</h2>
@@ -150,9 +145,6 @@ const dropzone = document.querySelector<HTMLDivElement>("#dropzone")!;
 const buildingSelect = document.querySelector<HTMLSelectElement>("#building-select")!;
 const buildingLoadNote = document.querySelector<HTMLParagraphElement>("#building-load-note")!;
 const idInput = document.querySelector<HTMLInputElement>("#building-id")!;
-const levelSelect = document.querySelector<HTMLSelectElement>("#level-select")!;
-const addLevelButton = document.querySelector<HTMLButtonElement>("#add-level")!;
-const removeLevelButton = document.querySelector<HTMLButtonElement>("#remove-level")!;
 const anchorXInput = document.querySelector<HTMLInputElement>("#anchor-x")!;
 const anchorYInput = document.querySelector<HTMLInputElement>("#anchor-y")!;
 const scaleRange = document.querySelector<HTMLInputElement>("#sprite-scale")!;
@@ -172,6 +164,7 @@ let spriteName = "sprite-1.png";
 let spriteWorldWidth = 60;
 let activeLevel = 1;
 const levelSnapshots = new Map<number, LevelSnapshot>();
+let activeVariant: ProjectVariantEntry | undefined;
 let dragStart: { pointerX: number; pointerY: number; anchorX: number; anchorY: number } | undefined;
 let paintDrag: { tool: PaintTool; mode: PaintMode; visited: Set<string> } | undefined;
 const footprint = new Map<string, Hex>();
@@ -247,33 +240,30 @@ function parseDefinition(value: unknown): BuildingVisualDefinition {
   return parsed;
 }
 
-const buildingEditorLabel = (kind: BuildingVisualKind): string =>
-  kind === "field" ? "Feld" : BUILDING_WIKI_LABELS[kind];
+const definitionModuleForKind = (kind: BuildingVisualKind): unknown => {
+  const path = Object.keys(PROJECT_DEFINITION_MODULES).find(
+    (candidate) => candidate.endsWith("/buildings/" + kind + "/building.json"),
+  );
+  return path ? PROJECT_DEFINITION_MODULES[path] : undefined;
+};
 
-const PROJECT_BUILDINGS: ProjectBuildingEntry[] = Object.entries(PROJECT_DEFINITION_MODULES)
-  .map(([path, raw]): ProjectBuildingEntry | undefined => {
-    const match = path.match(/\/buildings\/([^/]+)\/building\.json$/);
-    if (!match) return undefined;
-    const kind = match[1] as BuildingKind;
-    if (kind === "palisade") return undefined;
-    if (kind !== "field" && !(kind in BUILDING_WIKI_LABELS)) return undefined;
+const PROJECT_VARIANTS: ProjectVariantEntry[] = BUILDING_VISUAL_VARIANTS.map((variant) => {
+  const raw = definitionModuleForKind(variant.kind);
+  const placeholder = parsePlaceholderDefinition(raw);
+  const parsed = raw && !placeholder ? parseDefinition(raw) : undefined;
+  return {
+    variant,
+    raw,
+    configured: Boolean(parsed?.levels.some((level) => level.level === variant.level)),
+  };
+});
 
-    const placeholder = parsePlaceholderDefinition(raw);
-    if (!placeholder) parseDefinition(raw);
-    return {
-      kind: kind as BuildingVisualKind,
-      label: buildingEditorLabel(kind as BuildingVisualKind),
-      raw,
-      placeholder: Boolean(placeholder),
-    };
-  })
-  .filter((entry): entry is ProjectBuildingEntry => Boolean(entry))
-  .sort((a, b) => a.label.localeCompare(b.label, "de"));
-
-for (const entry of PROJECT_BUILDINGS) {
+for (const entry of PROJECT_VARIANTS) {
   const option = document.createElement("option");
-  option.value = entry.kind;
-  option.textContent = entry.label;
+  option.value = buildingVisualVariantKey(entry.variant);
+  option.textContent = entry.configured
+    ? "✓ " + entry.variant.label
+    : "○ " + entry.variant.label + " · Platzhalter";
   buildingSelect.append(option);
 }
 
@@ -539,20 +529,6 @@ async function loadSprite(
   refreshStatus();
 }
 
-function refreshLevelSelect(): void {
-  const levels = [...levelSnapshots.keys()].sort((a, b) => a - b);
-  levelSelect.replaceChildren();
-  for (const level of levels) {
-    const option = document.createElement("option");
-    option.value = String(level);
-    option.textContent = "Stufe " + level;
-    levelSelect.append(option);
-  }
-  levelSelect.value = String(activeLevel);
-  const highest = levels.at(-1) ?? 1;
-  removeLevelButton.disabled = levels.length <= 1 || activeLevel !== highest;
-}
-
 function clearWorkingLevel(level: number): void {
   activeLevel = level;
   spriteFile = undefined;
@@ -599,17 +575,14 @@ function loadLevelSnapshot(level: number): void {
     spritePreview.removeAttribute("src");
     dropzone.innerHTML = "PNG oder WebP hier hineinziehen<br />oder klicken";
   }
-  refreshLevelSelect();
   renderGrid();
   refreshStatus();
 }
 
-function resetDefinitionState(id: string): void {
+function resetDefinitionState(id: string, level: number): void {
   levelSnapshots.clear();
   idInput.value = id;
-  clearWorkingLevel(1);
-  storeActiveLevel();
-  refreshLevelSelect();
+  clearWorkingLevel(level);
 }
 
 function setBuildingLoadNote(message?: string): void {
@@ -640,72 +613,85 @@ async function snapshotsForDefinition(
   return snapshots;
 }
 
-async function loadProjectBuilding(kind: BuildingVisualKind): Promise<void> {
-  const entry = PROJECT_BUILDINGS.find((candidate) => candidate.kind === kind);
-  if (!entry) {
-    setError("Gebäude konnte im Projekt nicht gefunden werden.");
-    return;
-  }
+async function spriteFileForProject(kind: BuildingVisualKind, sprite: string): Promise<File> {
+  const spritePath = Object.keys(PROJECT_SPRITE_MODULES).find(
+    (path) => path.endsWith("/buildings/" + kind + "/" + sprite),
+  );
+  const spriteUrl = spritePath ? PROJECT_SPRITE_MODULES[spritePath] : undefined;
+  if (!spriteUrl) throw new Error("Im Projekt fehlt das Sprite " + sprite + ".");
+  const response = await fetch(spriteUrl);
+  if (!response.ok) throw new Error("Sprite " + sprite + " konnte nicht geladen werden.");
+  return new File([await response.blob()], sprite, { type: spriteMimeForName(sprite) });
+}
 
+async function loadProjectVariant(entry: ProjectVariantEntry): Promise<void> {
+  activeVariant = entry;
+  const { variant } = entry;
   const placeholder = parsePlaceholderDefinition(entry.raw);
-  if (placeholder) {
-    resetDefinitionState(placeholder.id);
-    setBuildingLoadNote(entry.label + ": Für dieses Gebäude existiert noch keine Konfiguration. Die ID wurde übernommen.");
+
+  if (placeholder || !entry.raw) {
+    resetDefinitionState(placeholder?.id ?? variant.kind, variant.level);
+    setBuildingLoadNote(variant.label + ": Für diese Variante existiert noch keine Konfiguration.");
     status.classList.remove("error");
-    status.textContent = "Stufe 1 kann jetzt konfiguriert werden.";
+    status.textContent = "Sprite und Plan für " + variant.label + " können jetzt erstellt werden.";
     return;
   }
 
   const parsed = parseDefinition(entry.raw);
-  const snapshots = await snapshotsForDefinition(parsed, async (sprite) => {
-    const spritePath = Object.keys(PROJECT_SPRITE_MODULES).find(
-      (path) => path.endsWith("/buildings/" + kind + "/" + sprite),
-    );
-    const spriteUrl = spritePath ? PROJECT_SPRITE_MODULES[spritePath] : undefined;
-    if (!spriteUrl) throw new Error("Zum Projektgebäude " + entry.label + " fehlt das Sprite " + sprite + ".");
-    const response = await fetch(spriteUrl);
-    if (!response.ok) throw new Error("Sprite " + sprite + " für " + entry.label + " konnte nicht geladen werden.");
-    const blob = await response.blob();
-    return new File([blob], sprite, { type: spriteMimeForName(sprite) });
-  });
-
+  const snapshots = await snapshotsForDefinition(
+    parsed,
+    (sprite) => spriteFileForProject(variant.kind, sprite),
+  );
   levelSnapshots.clear();
   for (const [level, snapshot] of snapshots) levelSnapshots.set(level, snapshot);
   idInput.value = parsed.id;
-  setBuildingLoadNote();
-  loadLevelSnapshot(parsed.levels[0]!.level);
-  refreshStatus("Geladen: " + entry.label + " · " + parsed.levels.length + " Stufe" + (parsed.levels.length === 1 ? "" : "n"));
-}
 
-function syncProjectBuildingSelection(id: string): void {
-  const match = PROJECT_BUILDINGS.find((entry) => {
-    const placeholder = parsePlaceholderDefinition(entry.raw);
-    if (placeholder) return placeholder.id === id || entry.kind === id;
-    return parseDefinition(entry.raw).id === id || entry.kind === id;
-  });
-  buildingSelect.value = match?.kind ?? "";
+  const selected = levelSnapshots.get(variant.level);
+  if (selected) {
+    setBuildingLoadNote();
+    loadLevelSnapshot(variant.level);
+    refreshStatus("Geladen: " + variant.label);
+  } else {
+    clearWorkingLevel(variant.level);
+    setBuildingLoadNote(variant.label + ": Für diese vom Hauptspiel definierte Variante existiert noch keine Konfiguration.");
+    status.classList.remove("error");
+    status.textContent = "Sprite und Plan für " + variant.label + " können jetzt erstellt werden.";
+  }
 }
 
 async function importFiles(files: File[]): Promise<void> {
   try {
+    if (!activeVariant)
+      throw new Error("Bitte zuerst eine Gebäudevariante aus der Liste auswählen.");
     const jsonFile = files.find((file) => file.name.toLowerCase().endsWith(".json"));
     if (!jsonFile) throw new Error("Zum Import fehlt building.json.");
     const parsed = parseDefinition(JSON.parse(await jsonFile.text()) as unknown);
-    const snapshots = await snapshotsForDefinition(parsed, async (sprite) => {
-      const imageFile = files.find((file) => file.name === sprite);
-      if (!imageFile) throw new Error("Zum Import fehlt das Sprite " + sprite + ".");
-      if (!SUPPORTED_IMAGE_TYPES.has(imageFile.type))
-        throw new Error("Das Sprite " + sprite + " muss PNG oder WebP sein.");
-      return imageFile;
-    });
+    const importedLevel = parsed.levels.find(
+      (level) => level.level === activeVariant!.variant.level,
+    );
+    if (!importedLevel)
+      throw new Error("building.json enthält die ausgewählte Variante nicht.");
 
-    levelSnapshots.clear();
-    for (const [level, snapshot] of snapshots) levelSnapshots.set(level, snapshot);
-    idInput.value = parsed.id;
-    syncProjectBuildingSelection(parsed.id);
+    const imageFile = files.find((file) => file.name === importedLevel.sprite);
+    if (!imageFile) throw new Error("Zum Import fehlt das Sprite " + importedLevel.sprite + ".");
+    if (!SUPPORTED_IMAGE_TYPES.has(imageFile.type))
+      throw new Error("Das Sprite muss PNG oder WebP sein.");
+
+    levelSnapshots.set(importedLevel.level, {
+      level: importedLevel.level,
+      spriteFile: imageFile,
+      spriteDataUrl: await fileToDataUrl(imageFile),
+      spriteName: importedLevel.sprite,
+      spriteWorldWidth: importedLevel.spriteWorldWidth,
+      anchorX: importedLevel.spriteAnchor.x,
+      anchorY: importedLevel.spriteAnchor.y,
+      footprint: importedLevel.footprint.map((cell) => ({ ...cell })),
+      blocked: importedLevel.blocked.map((cell) => ({ ...cell })),
+      entrance: { ...importedLevel.entrance },
+    });
+    loadLevelSnapshot(importedLevel.level);
     setBuildingLoadNote();
-    loadLevelSnapshot(parsed.levels[0]!.level);
-    refreshStatus("Importiert: " + parsed.id + " · " + parsed.levels.length + " Stufe" + (parsed.levels.length === 1 ? "" : "n"));
+    refreshStatus("Importiert: " + activeVariant.variant.label);
   } catch (error) {
     setError(error instanceof Error ? error.message : "Import fehlgeschlagen.");
   } finally {
@@ -723,35 +709,48 @@ function downloadBlob(blob: Blob, filename: string): void {
 }
 
 downloadButton.addEventListener("click", () => {
+  if (!activeVariant) {
+    setError("Bitte zuerst eine Gebäudevariante auswählen.");
+    return;
+  }
   if (!refreshStatus()) return;
   const value = definition();
   downloadBlob(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }), "building.json");
-  for (const snapshot of [...levelSnapshots.values()].sort((a, b) => a.level - b.level))
-    if (snapshot.spriteFile) downloadBlob(snapshot.spriteFile, snapshot.spriteName);
-  refreshStatus("Dateien werden heruntergeladen: building.json + " + value.levels.length + " Sprite" + (value.levels.length === 1 ? "" : "s") + ".");
+  const snapshot = levelSnapshots.get(activeLevel);
+  if (snapshot?.spriteFile) downloadBlob(snapshot.spriteFile, snapshot.spriteName);
+  refreshStatus("Dateien werden heruntergeladen: building.json + Sprite für " + activeVariant.variant.label + ".");
 });
 
 saveProjectButton.addEventListener("click", async () => {
+  if (!activeVariant) {
+    setError("Bitte zuerst eine Gebäudevariante auswählen.");
+    return;
+  }
   if (!refreshStatus()) return;
   storeActiveLevel();
   saveProjectButton.disabled = true;
   try {
+    const snapshot = levelSnapshots.get(activeLevel)!;
     const response = await fetch(import.meta.env.BASE_URL + "__building-editor/save", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         definition: definition(),
-        sprites: [...levelSnapshots.values()]
-          .sort((a, b) => a.level - b.level)
-          .map((snapshot) => ({
-            name: snapshot.spriteName,
-            dataUrl: snapshot.spriteDataUrl,
-          })),
-        targetId: buildingSelect.value || undefined,
+        sprites: [{
+          name: snapshot.spriteName,
+          dataUrl: snapshot.spriteDataUrl,
+        }],
+        targetId: activeVariant.variant.kind,
       }),
     });
     const result = await response.json() as { ok?: boolean; path?: string; error?: string };
     if (!response.ok || !result.ok) throw new Error(result.error ?? "Speichern fehlgeschlagen");
+    activeVariant.configured = true;
+    const option = [...buildingSelect.options].find(
+      (candidate) => candidate.value === buildingVisualVariantKey(activeVariant!.variant),
+    );
+    if (option) option.textContent = "✓ " + activeVariant.variant.label;
+    setBuildingLoadNote();
     refreshStatus("Gespeichert: " + result.path);
   } catch (error) {
     setError(error instanceof Error ? error.message : "Speichern fehlgeschlagen.");
@@ -759,41 +758,6 @@ saveProjectButton.addEventListener("click", async () => {
     saveProjectButton.disabled = false;
   }
 });
-
-levelSelect.addEventListener("change", () => {
-  storeActiveLevel();
-  loadLevelSnapshot(Number(levelSelect.value));
-});
-
-addLevelButton.addEventListener("click", () => {
-  storeActiveLevel();
-  const previous = levelSnapshots.get(activeLevel)!;
-  const nextLevel = Math.max(...levelSnapshots.keys()) + 1;
-  const next: LevelSnapshot = {
-    level: nextLevel,
-    spriteDataUrl: "",
-    spriteName: defaultSpriteName(nextLevel),
-    spriteWorldWidth: previous.spriteWorldWidth,
-    anchorX: previous.anchorX,
-    anchorY: previous.anchorY,
-    footprint: previous.footprint.map((cell) => ({ ...cell })),
-    blocked: previous.blocked.map((cell) => ({ ...cell })),
-    entrance: previous.entrance ? { ...previous.entrance } : undefined,
-  };
-  levelSnapshots.set(nextLevel, next);
-  loadLevelSnapshot(nextLevel);
-  refreshStatus("Stufe " + nextLevel + " angelegt. Grundriss und Ausrichtung wurden von Stufe " + previous.level + " übernommen; Sprite fehlt noch.");
-});
-
-removeLevelButton.addEventListener("click", () => {
-  storeActiveLevel();
-  const levels = [...levelSnapshots.keys()].sort((a, b) => a - b);
-  const highest = levels.at(-1);
-  if (levels.length <= 1 || highest !== activeLevel) return;
-  levelSnapshots.delete(activeLevel);
-  loadLevelSnapshot(levels.at(-2)!);
-});
-
 
 function selectTool(tool: Tool): void {
   finishCellPaint();
@@ -850,12 +814,15 @@ window.addEventListener("pointercancel", finishCellPaint);
 window.addEventListener("blur", finishCellPaint);
 
 buildingSelect.addEventListener("change", () => {
-  const kind = buildingSelect.value as BuildingVisualKind;
-  if (!kind) {
+  const entry = PROJECT_VARIANTS.find(
+    (candidate) => buildingVisualVariantKey(candidate.variant) === buildingSelect.value,
+  );
+  if (!entry) {
+    activeVariant = undefined;
     setBuildingLoadNote();
     return;
   }
-  void loadProjectBuilding(kind).catch((error) => {
+  void loadProjectVariant(entry).catch((error) => {
     setError(error instanceof Error ? error.message : "Projektgebäude konnte nicht geladen werden.");
   });
 });
@@ -888,11 +855,10 @@ dropzone.addEventListener("drop", (event) => {
   else void loadSprite(files[0]!);
 });
 
-idInput.addEventListener("input", () => refreshStatus());
 anchorXInput.addEventListener("input", renderSpritePosition);
 anchorYInput.addEventListener("input", renderSpritePosition);
 window.addEventListener("resize", renderGrid);
 
 setOverlayStrength(Number(overlayRange.value));
-resetDefinitionState("new-building");
-refreshStatus();
+resetDefinitionState("", 1);
+setError("Bitte eine Gebäudevariante aus der Liste auswählen.");
