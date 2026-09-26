@@ -56,6 +56,13 @@ This file is the primary location for verified domain terms, domain rules, invar
 - Die visuelle Position eines Schwarms innerhalb seiner Region beeinflusst die Angelbarkeit nicht.
 - Bei Beständen von 3, 2 oder 1 werden exakt 3, 2 oder 1 sichtbare Fische dargestellt; bei 0 keiner.
 
+## Building progression invariants
+
+- A building unlocks only after all of its current unlock prerequisites have been satisfied. Prerequisites may come from the required production chain and from resident qualification or profession experience.
+- Building unlocks are permanent progression. Once a building has been unlocked, later loss of a prerequisite production building or qualified resident never revokes that unlock.
+- If a building type has multiple construction or upgrade levels, each level is unlocked separately.
+- Each level evaluates its own prerequisites. Unlocking one level never implicitly unlocks later levels unless their prerequisites are also satisfied.
+
 ## Housing invariants
 
 - A completed residential building has a level from 1 through 5 and therefore 2 through 6 apartments.
