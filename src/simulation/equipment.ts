@@ -215,7 +215,7 @@ export function cancelEquipmentPickup(world: World, person: Person): void {
 
 export function assignEquipment(world: World, personId: number, good: EquipmentGood): boolean {
   const person = world.people.find((candidate) => candidate.id === personId);
-  if (!person) return false;
+  if (!person || person.ageStage === "child") return false;
   const definition = EQUIPMENT_DEFINITIONS[good];
   const existing = equipmentForSlot(person, definition.slot);
 
@@ -292,6 +292,7 @@ const tryPreferred = (world: World, person: Person, slot: EquipmentSlot): void =
 
 export function maintainEquipment(world: World): void {
   for (const person of world.people) {
+    if (person.ageStage === "child") continue;
     tryPreferred(world, person, "tool");
     tryPreferred(world, person, "shoes");
   }
