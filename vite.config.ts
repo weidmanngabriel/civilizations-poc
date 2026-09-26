@@ -155,8 +155,8 @@ function buildingEditorLocalExportPlugin(): Plugin {
             (payload.definition?.levels ?? []).map((level) => level.sprite).filter(Boolean),
           );
           if (!referencedSprites.size) throw new Error("Die Gebäudedefinition enthält keine Sprites.");
-          if (!Array.isArray(payload.sprites) || payload.sprites.length !== referencedSprites.size)
-            throw new Error("Zu jeder Gebäudestufe muss genau ein Sprite übertragen werden.");
+          if (!Array.isArray(payload.sprites) || payload.sprites.length < 1)
+            throw new Error("Mindestens ein Sprite muss übertragen werden.");
 
           const spriteWrites: Array<{ name: string; bytes: Buffer }> = [];
           for (const sprite of payload.sprites) {
