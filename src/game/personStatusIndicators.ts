@@ -3,12 +3,17 @@ import type { World } from "../simulation/model";
 import {
   PERSON_ALERT_ICONS,
   personAlerts,
+  type PersonAlertCode,
   type PersonAlertSeverity,
 } from "../personStatus";
 import {
   PERSON_MARKER_RADIUS,
   personMarkerPositions,
 } from "./personMarkerGeometry";
+import {
+  personStatusBubbleWidth,
+  personStatusIconCenters,
+} from "./personStatusLayout";
 
 const TEXT_RESOLUTION = 8;
 const BUBBLE_HEIGHT = 4.5;
@@ -25,8 +30,33 @@ const SEVERITY_COLORS: Record<PersonAlertSeverity, { fill: number; text: string 
 type StatusIndicator = {
   root: Phaser.GameObjects.Container;
   shape: Phaser.GameObjects.Graphics;
-  text: Phaser.GameObjects.Text;
+  icons: Phaser.GameObjects.Container;
   signature: string;
+};
+
+const createStatusIcon = (
+  scene: Phaser.Scene,
+  code: PersonAlertCode,
+  x: number,
+  textColor: string,
+): Phaser.GameObjects.GameObject => {
+  if (code === "no-route") {
+    const icon = scene.add.graphics().setPosition(x, 0);
+    const radius = 1.05;
+    icon.lineStyle(0.45, 0xd9483b, 1);
+    icon.strokeCircle(0, 0, radius);
+    icon.beginPath();
+    icon.moveTo(-0.72, -0.72);
+    icon.lineTo(0.72, 0.72);
+    icon.strokePath();
+    return icon;
+  }
+
+  return scene.add.text(x, 0, PERSON_ALERT_ICONS[code], {
+    fontFamily: "system-ui",
+    fontSize: `${ICON_FONT_SIZE}px`,
+    color: textColor,
+  }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
 };
 
 const drawThoughtBubble = (
@@ -75,33 +105,30 @@ export function installPersonStatusIndicators(scene: Phaser.Scene, world: World)
         }
 
         const severity = alerts[0]!.severity;
-        const icons = alerts.map((alert) => PERSON_ALERT_ICONS[alert.code]).join(" ");
-        const signature = `${severity}:${icons}`;
+        const signature = `${severity}:${alerts.map((alert) => alert.code).join(",")}`;
         const iconCount = alerts.length;
-        const width = iconCount === 1
-          ? 5.25
-          : iconCount === 2
-            ? 8
-            : 10.75;
+        const width = personStatusBubbleWidth(iconCount);
         const colors = SEVERITY_COLORS[severity];
 
         if (!indicator) {
           const root = scene.add.container(position.x, position.y - BUBBLE_Y_OFFSET);
           const shape = scene.add.graphics();
-          const text = scene.add.text(0, -0.25, icons, {
-            fontFamily: "system-ui",
-            fontSize: `${ICON_FONT_SIZE}px`,
-            color: colors.text,
-          }).setResolution(TEXT_RESOLUTION).setOrigin(0.5);
-          root.add([shape, text]);
+          const icons = scene.add.container(0, 0);
+          root.add([shape, icons]);
           layer.add(root);
-          indicator = { root, shape, text, signature: "" };
+          indicator = { root, shape, icons, signature: "" };
           indicators.set(person.id, indicator);
         }
 
         if (indicator.signature !== signature) {
           drawThoughtBubble(indicator.shape, width, colors.fill);
-          indicator.text.setText(icons).setColor(colors.text);
+          indicator.icons.removeAll(true);
+          const centers = personStatusIconCenters(iconCount);
+          alerts.forEach((alert, index) => {
+            indicator.icons.add(
+              createStatusIcon(scene, alert.code, centers[index] ?? 0, colors.text),
+            );
+          });
           indicator.signature = signature;
         }
 
