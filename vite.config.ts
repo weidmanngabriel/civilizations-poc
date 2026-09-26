@@ -139,8 +139,11 @@ function buildingEditorLocalExportPlugin(): Plugin {
           }
 
           const payload = JSON.parse(body) as {
-            definition?: { id?: string; sprite?: string };
-            spriteDataUrl?: string;
+            definition?: {
+              id?: string;
+              levels?: Array<{ sprite?: string }>;
+            };
+            sprites?: Array<{ name?: string; dataUrl?: string }>;
             targetId?: string;
           };
           const id = payload.definition?.id ?? "";
@@ -148,18 +151,33 @@ function buildingEditorLocalExportPlugin(): Plugin {
           const targetId = payload.targetId ?? id;
           if (!/^[a-zA-Z0-9][a-zA-Z0-9-]*$/.test(targetId)) throw new Error("Ungültiger Gebäude-Asset-Slot.");
 
-          const match = payload.spriteDataUrl?.match(/^data:(image\/(?:png|webp));base64,(.+)$/);
-          if (!match) throw new Error("Sprite muss PNG oder WebP sein.");
-          const mime = match[1];
-          const encoded = match[2];
-          if (!mime || !encoded) throw new Error("Sprite-Daten fehlen.");
-          const extension = mime === "image/webp" ? "webp" : "png";
-          if (payload.definition?.sprite !== `sprite.${extension}`) throw new Error("Sprite-Dateiname passt nicht zum Bildtyp.");
+          const referencedSprites = new Set(
+            (payload.definition?.levels ?? []).map((level) => level.sprite).filter(Boolean),
+          );
+          if (!referencedSprites.size) throw new Error("Die Gebäudedefinition enthält keine Sprites.");
+          if (!Array.isArray(payload.sprites) || payload.sprites.length !== referencedSprites.size)
+            throw new Error("Zu jeder Gebäudestufe muss genau ein Sprite übertragen werden.");
+
+          const spriteWrites: Array<{ name: string; bytes: Buffer }> = [];
+          for (const sprite of payload.sprites) {
+            const name = sprite.name ?? "";
+            if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.(?:png|webp)$/.test(name) || name.includes("/"))
+              throw new Error("Ungültiger Sprite-Dateiname.");
+            if (!referencedSprites.has(name))
+              throw new Error("Übertragenes Sprite wird von building.json nicht referenziert.");
+            const match = sprite.dataUrl?.match(/^data:(image\/(?:png|webp));base64,(.+)$/);
+            if (!match) throw new Error("Sprite muss PNG oder WebP sein.");
+            const expectedExtension = match[1] === "image/webp" ? "webp" : "png";
+            if (!name.toLowerCase().endsWith("." + expectedExtension))
+              throw new Error("Sprite-Dateiname passt nicht zum Bildtyp.");
+            spriteWrites.push({ name, bytes: Buffer.from(match[2]!, "base64") });
+          }
 
           const target = resolve(process.cwd(), "src", "assets", "buildings", targetId);
           await mkdir(target, { recursive: true });
           await writeFile(resolve(target, "building.json"), `${JSON.stringify(payload.definition, null, 2)}\n`, "utf8");
-          await writeFile(resolve(target, `sprite.${extension}`), Buffer.from(encoded, "base64"));
+          for (const sprite of spriteWrites)
+            await writeFile(resolve(target, sprite.name), sprite.bytes);
 
           response.statusCode = 200;
           response.setHeader("content-type", "application/json");
