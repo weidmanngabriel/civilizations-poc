@@ -507,6 +507,7 @@ function resetUnpickedTrip(world: World, person: Person): void {
 
 function enforceResourceWorker(world: World, person: Person): void {
   const area = person.workArea!;
+  if (person.hungerState || person.sleepState) return;
 
   if (person.outdoorCarry) {
     if (!routeOutdoorCarryToFlag(world, person)) return;
