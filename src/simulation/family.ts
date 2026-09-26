@@ -422,14 +422,8 @@ const advanceBirthTasks = (world: World): void => {
       continue;
     }
 
-    if (first.hungerState || first.sleepState || second.hungerState || second.sleepState) {
-      if (task.completeAtTick !== undefined) {
-        task.completeAtTick += 1;
-        if (second.familyTask?.kind === "birth" && second.familyTask.completeAtTick !== undefined)
-          second.familyTask.completeAtTick += 1;
-      }
+    if (first.hungerState || first.sleepState || second.hungerState || second.sleepState)
       continue;
-    }
 
     const home = world.buildings.find(
       (building) => building.id === household.homeId && !building.retired,
