@@ -123,7 +123,7 @@ test("house upgrades request only the next level materials and keep current apar
 test("house upgrades keep their current geometry until a target visual level is authored", () => {
   const world = createTestWorld({ population: 0 });
   const target = addHouse(world, "house-upgrade-space", 1);
-  target.position = { q: 4, r: 0 };
+  target.position = { q: 10, r: 5 };
   target.footprint = [{ ...target.position }];
   const before = target.footprint.map((cell) => ({ ...cell }));
 
