@@ -24,8 +24,10 @@ export const CHILDHOOD_TICKS = 5 * 60 * SIMULATION_HZ;
 export const BABY_STAGE_TICKS = CHILDHOOD_TICKS / 2;
 export const CHILD_WANDER_RADIUS = 4 * GRID_REFINEMENT;
 export const BIRTH_COOLDOWN_TICKS = 5 * 60 * SIMULATION_HZ;
-const BIRTH_CELEBRATION_TICKS = 3 * SIMULATION_HZ;
-const FAMILY_EFFECT_TICKS = 5 * SIMULATION_HZ;
+const FAMILY_HEARTS_TICKS = 5 * SIMULATION_HZ;
+const FAMILY_STORK_TICKS = 5 * SIMULATION_HZ;
+const FAMILY_RELEASE_TICKS = 15 * SIMULATION_HZ;
+const BIRTH_OFFSET_TICKS = FAMILY_HEARTS_TICKS + FAMILY_STORK_TICKS / 2;
 const PARTNER_REPLAN_TICKS = SIMULATION_HZ;
 const ROAD_SPEED_MULTIPLIER = 1.3;
 
@@ -346,16 +348,24 @@ const startBirthCelebration = (
   first: Person,
   second: Person,
 ): void => {
-  const birthAtTick = world.round + BIRTH_CELEBRATION_TICKS;
-  first.familyTask!.completeAtTick = birthAtTick;
-  second.familyTask!.completeAtTick = birthAtTick;
+  const startedAtTick = world.round;
+  const storkStartsAtTick = startedAtTick + FAMILY_HEARTS_TICKS;
+  const birthAtTick = startedAtTick + BIRTH_OFFSET_TICKS;
+  const storkEndsAtTick = storkStartsAtTick + FAMILY_STORK_TICKS;
+  const completeAtTick = startedAtTick + FAMILY_RELEASE_TICKS;
+  first.familyTask!.birthAtTick = birthAtTick;
+  second.familyTask!.birthAtTick = birthAtTick;
+  first.familyTask!.completeAtTick = completeAtTick;
+  second.familyTask!.completeAtTick = completeAtTick;
   const effect: FamilyEffect = {
     id: nextFamilyEffectId(world),
     kind: "birth",
     homeId: household.homeId,
-    startedAtTick: world.round,
+    startedAtTick,
+    storkStartsAtTick,
     birthAtTick,
-    expiresAtTick: birthAtTick + FAMILY_EFFECT_TICKS,
+    storkEndsAtTick,
+    expiresAtTick: completeAtTick,
   };
   (world.familyEffects ??= []).push(effect);
 };
@@ -389,18 +399,33 @@ const createChild = (
   return child;
 };
 
-const completeBirth = (
+const createBirthChildren = (
   world: World,
   household: Household,
   first: Person,
   second: Person,
 ): void => {
+  if (first.familyTask?.birthCreated || second.familyTask?.birthCreated) return;
   const count = birthCountFromRoll(randomFraction(world));
   for (let index = 0; index < count; index += 1)
     createChild(world, household, first, second);
 
   household.lastBirthTick = world.round;
   household.nextBirthCheckTick = world.round + BIRTH_COOLDOWN_TICKS;
+  first.familyTask!.birthCreated = true;
+  second.familyTask!.birthCreated = true;
+};
+
+const completeBirthFamilyTime = (
+  first: Person,
+  second: Person,
+): void => {
+  first.sleep = 100;
+  second.sleep = 100;
+  first.sleepAccumulator = 0;
+  second.sleepAccumulator = 0;
+  first.sleepGraceTicks = 0;
+  second.sleepGraceTicks = 0;
   first.familyTask = undefined;
   second.familyTask = undefined;
   first.active = false;
@@ -447,12 +472,14 @@ const advanceBirthTasks = (world: World): void => {
 
     first.path = [];
     second.path = [];
-    if (task.completeAtTick === undefined) {
+    if (task.completeAtTick === undefined || task.birthAtTick === undefined) {
       startBirthCelebration(world, household, first, second);
       continue;
     }
+    if (world.round >= task.birthAtTick && !task.birthCreated)
+      createBirthChildren(world, household, first, second);
     if (world.round >= task.completeAtTick)
-      completeBirth(world, household, first, second);
+      completeBirthFamilyTime(first, second);
   }
 };
 
