@@ -6,10 +6,8 @@ export interface SpriteAnchor {
   y: number;
 }
 
-export interface BuildingVisualDefinition {
-  schema: "civilizations-building-visual";
-  version: 3;
-  id: string;
+export interface BuildingVisualLevel {
+  level: number;
   sprite: string;
   /** Resolution-independent anchor inside the sprite image. */
   spriteAnchor: SpriteAnchor;
@@ -20,11 +18,39 @@ export interface BuildingVisualDefinition {
   entrance: Hex;
 }
 
+export interface BuildingVisualDefinition {
+  schema: "civilizations-building-visual";
+  version: 4;
+  id: string;
+  levels: BuildingVisualLevel[];
+}
+
 const sameHex = (a: Hex, b: Hex): boolean => a.q === b.q && a.r === b.r;
 const normalized = (value: number): boolean =>
   Number.isFinite(value) && value >= 0 && value <= 1;
 const validSpriteFilename = (value: string): boolean =>
   /^[a-z0-9][a-z0-9._-]*\.(?:png|webp)$/i.test(value) && !value.includes("/");
+
+export function validateBuildingVisualLevel(level: BuildingVisualLevel): string[] {
+  const errors: string[] = [];
+  if (!Number.isInteger(level.level) || level.level < 1)
+    errors.push("Die Gebäudestufe muss eine positive ganze Zahl sein.");
+  if (!validSpriteFilename(level.sprite))
+    errors.push(`Stufe ${level.level}: Das Sprite muss eine lokale PNG- oder WebP-Datei sein.`);
+  if (!normalized(level.spriteAnchor.x) || !normalized(level.spriteAnchor.y))
+    errors.push(`Stufe ${level.level}: Der Sprite-Anchor muss normalisiert zwischen 0 und 1 liegen.`);
+  if (!Number.isFinite(level.spriteWorldWidth) || level.spriteWorldWidth <= 0)
+    errors.push(`Stufe ${level.level}: Die Sprite-Breite in der Spielwelt muss größer als 0 sein.`);
+  if (level.footprint.length === 0)
+    errors.push(`Stufe ${level.level}: Der Gebäudegrundriss darf nicht leer sein.`);
+  if (!level.footprint.some((cell) => sameHex(cell, level.entrance)))
+    errors.push(`Stufe ${level.level}: Der Eingang muss innerhalb des Gebäudegrundrisses liegen.`);
+  if (level.blocked.some((cell) => !level.footprint.some((footprint) => sameHex(footprint, cell))))
+    errors.push(`Stufe ${level.level}: Blockierte Zellen müssen zum Gebäudegrundriss gehören.`);
+  if (level.blocked.some((cell) => sameHex(cell, level.entrance)))
+    errors.push(`Stufe ${level.level}: Der Eingang darf nicht blockiert sein.`);
+  return errors;
+}
 
 export function validateBuildingVisualDefinition(
   definition: BuildingVisualDefinition,
@@ -32,19 +58,19 @@ export function validateBuildingVisualDefinition(
   const errors: string[] = [];
   if (!/^[A-Za-z0-9][A-Za-z0-9-]*$/.test(definition.id))
     errors.push("Die ID darf nur Buchstaben, Zahlen und Bindestriche enthalten.");
-  if (!validSpriteFilename(definition.sprite))
-    errors.push("Das Sprite muss eine lokale PNG- oder WebP-Datei sein.");
-  if (!normalized(definition.spriteAnchor.x) || !normalized(definition.spriteAnchor.y))
-    errors.push("Der Sprite-Anchor muss normalisiert zwischen 0 und 1 liegen.");
-  if (!Number.isFinite(definition.spriteWorldWidth) || definition.spriteWorldWidth <= 0)
-    errors.push("Die Sprite-Breite in der Spielwelt muss größer als 0 sein.");
-  if (definition.footprint.length === 0)
-    errors.push("Der Gebäudegrundriss darf nicht leer sein.");
-  if (!definition.footprint.some((cell) => sameHex(cell, definition.entrance)))
-    errors.push("Der Eingang muss innerhalb des Gebäudegrundrisses liegen.");
-  if (definition.blocked.some((cell) => !definition.footprint.some((footprint) => sameHex(footprint, cell))))
-    errors.push("Blockierte Zellen müssen zum Gebäudegrundriss gehören.");
-  if (definition.blocked.some((cell) => sameHex(cell, definition.entrance)))
-    errors.push("Der Eingang darf nicht blockiert sein.");
+  if (!definition.levels.length)
+    errors.push("Mindestens eine Gebäudestufe ist erforderlich.");
+
+  const sorted = [...definition.levels].sort((a, b) => a.level - b.level);
+  const seenSprites = new Set<string>();
+  for (let index = 0; index < sorted.length; index += 1) {
+    const level = sorted[index]!;
+    if (level.level !== index + 1)
+      errors.push("Gebäudestufen müssen lückenlos bei Stufe 1 beginnen.");
+    if (seenSprites.has(level.sprite))
+      errors.push(`Das Sprite ${level.sprite} wird von mehreren Gebäudestufen verwendet.`);
+    seenSprites.add(level.sprite);
+    errors.push(...validateBuildingVisualLevel(level));
+  }
   return errors;
 }
