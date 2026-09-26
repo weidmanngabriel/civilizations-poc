@@ -196,7 +196,7 @@ test("assigned residents choose their own home over a closer nature sleep target
   )!;
   bush.bush = true;
   bush.bushAvailable = true;
-  const house = addHouse(world, 20);
+  const house = addHouse(world, 2);
   assert.equal(assignPersonHome(world, person.id, house.id), true);
   person.sleep = 20;
 
@@ -218,11 +218,21 @@ test("assigned residents fall back to local nature when their home is unreachabl
   )!;
   bush.bush = true;
   bush.bushAvailable = true;
-  const house = addHouse(world, 20);
+  const house = addHouse(world, 2);
   assert.equal(assignPersonHome(world, person.id, house.id), true);
 
-  world.wayposts = [];
-  world.waypostRevision = (world.waypostRevision ?? 0) + 1;
+  const ring = [
+    { q: house.position.q + 1, r: house.position.r },
+    { q: house.position.q - 1, r: house.position.r },
+    { q: house.position.q, r: house.position.r + 1 },
+    { q: house.position.q, r: house.position.r - 1 },
+    { q: house.position.q + 1, r: house.position.r - 1 },
+    { q: house.position.q - 1, r: house.position.r + 1 },
+  ];
+  for (const position of ring) {
+    const tile = world.tiles.find((candidate) => candidate.q === position.q && candidate.r === position.r);
+    if (tile) tile.terrain = "mountain";
+  }
   person.sleep = 20;
 
   advanceSleepTick(world);
