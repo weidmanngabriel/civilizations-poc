@@ -1,7 +1,7 @@
 import type { Good, HouseLevel, PlaceableBuildingKind, World } from "../simulation/model";
 import { CONSTRUCTION_PLANS } from "../simulation/buildingPlacement";
 import { GOODS } from "../simulation/simulation";
-import { isBuildingUnlocked } from "../simulation/technology";
+import { isBuildingUnlocked, isHouseLevelUnlocked } from "../simulation/technology";
 import { GOOD_ICONS, buildingIcon } from "../icons";
 import { HOUSE_LEVELS, houseDirectCost } from "../simulation/housing";
 
@@ -115,7 +115,14 @@ export function mountBuildMenu(world: World): void {
   const refreshAvailability = (): void => {
     menu.querySelectorAll<HTMLElement>("[data-build-entry]").forEach((entry) => {
       const kind = entry.dataset.buildEntry as BuildMenuKind;
-      entry.hidden = kind !== "palisade" && !isBuildingUnlocked(world, kind);
+      const houseLevel = kind === "house" && entry.dataset.houseLevel
+        ? Number(entry.dataset.houseLevel) as HouseLevel
+        : undefined;
+      entry.hidden =
+        kind !== "palisade" &&
+        (kind === "house" && houseLevel
+          ? !isHouseLevelUnlocked(world, houseLevel)
+          : !isBuildingUnlocked(world, kind));
     });
   };
 
@@ -140,7 +147,12 @@ export function mountBuildMenu(world: World): void {
     const houseLevel = kind === "house" && button.dataset.houseLevel
       ? Number(button.dataset.houseLevel) as HouseLevel
       : undefined;
-    if (kind !== "palisade" && !isBuildingUnlocked(world, kind)) return;
+    if (
+      kind !== "palisade" &&
+      (kind === "house" && houseLevel
+        ? !isHouseLevelUnlocked(world, houseLevel)
+        : !isBuildingUnlocked(world, kind))
+    ) return;
     const launcherTile = world.tiles.find((tile) => tile.terrain === "grass" || tile.terrain === "road");
     if (!launcherTile) return;
 

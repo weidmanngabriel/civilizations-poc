@@ -360,7 +360,7 @@ const renderHouseArticle = (): string => {
     <p>Kinder sind nicht steuerbar, haben keine Bedürfnisse und arbeiten nicht. Die Kindheit dauert 5 Minuten: 2,5 Minuten als Krabbelbaby, anschließend 2,5 Minuten als laufendes Kind. Kinder bewegen sich nur in der näheren Umgebung ihres Zuhauses. Mit der Volljährigkeit verlassen sie den Elternhaushalt und erhalten keine Wohnung automatisch.</p>
     <p>Eltern und Kinder sowie Geschwister können nicht miteinander verheiratet werden.</p>
     <h2 id="handbook-section-3">Stufen und Baukosten</h2>
-    <p>Eine höhere Stufe kann direkt gebaut werden; dann werden die Kosten aller Stufen bis zum Ziel addiert. Beim Ausbau eines bestehenden Hauses werden nur die Materialien der nächsten Stufe benötigt.</p>
+    <p>Eine höhere Stufe kann direkt gebaut werden; dann werden die Kosten aller Stufen bis zum Ziel addiert. Beim Ausbau eines bestehenden Hauses werden nur die Materialien der nächsten Stufe benötigt.</p>\n    <p>Stufe 1 wird nach dem Bau einer Farm freigeschaltet. Höhere Stufen erscheinen, sobald die Produktionsgebäude für ihre zusätzlichen Bauwaren vorhanden sind. Einmal freigeschaltete Stufen bleiben dauerhaft verfügbar.</p>
     <div class="wiki-recipe-list">${rows}</div>
     <h2 id="handbook-section-4">Schlafen</h2>
     <p>Bewohner mit Wohnung bevorzugen ihr eigenes Wohnhaus als Schlafplatz. Wohnungslose Bewohner nutzen kein fremdes Wohnhaus automatisch und weichen auf Natur oder Boden aus.</p>

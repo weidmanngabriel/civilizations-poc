@@ -67,6 +67,8 @@ This file is the primary location for verified domain terms, domain rules, invar
 - Assigning a home to an already housed person moves the existing household as a unit.
 - A residential upgrade does not grant its additional apartment until the upgrade construction is complete.
 - Direct construction of residential level N costs the sum of level costs 1 through N; an upgrade costs only the target level's increment.
+- Residential level 1 requires a completed farm. Higher levels additionally require the production buildings for every processed construction material in their cumulative direct-build cost.
+- Residential level unlocks are permanent world progression. Removing a prerequisite production building never revokes an already unlocked residential level.
 - An unhoused person is a valid simulation state.
 - When the later age system makes a child an adult, that person leaves the parental household and is not assigned a new apartment automatically.
 

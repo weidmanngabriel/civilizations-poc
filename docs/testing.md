@@ -8,7 +8,9 @@ Every newly introduced building profession requires a regression test covering t
 
 ## Housing coverage
 
-Housing tests cover the apartment counts of all five residential levels, cumulative direct-build costs, next-level upgrade costs, the one-household-per-apartment capacity invariant, moving an existing household between houses, and exclusion of full houses from valid home targets. Save/load tests use the current save version so household state remains part of the authoritative JSON roundtrip. Wiki tests cover the residential rules and all five level rows.
+Housing tests cover the apartment counts of all five residential levels, cumulative direct-build costs, next-level upgrade costs, the one-household-per-apartment capacity invariant, moving an existing household between houses, and exclusion of full houses from valid home targets. Save/load tests use the current save version so household state remains part of the authoritative JSON roundtrip. Wiki tests cover the residential rules and all five level rows. Technology tests cover the material-producer prerequisites for all five house levels and verify that removing prerequisite buildings cannot revoke a previously unlocked level.
+
+Browser-save tests lock the five-real-minute autosave cadence, the three fixed rolling autosave slots, the separate crash-save slot and the rule that automatic saves are distinct from manual save identity.
 
 
 ## Startup integrity

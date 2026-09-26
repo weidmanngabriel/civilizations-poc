@@ -481,7 +481,7 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     nextFieldId: 1,
     ...(suppliedStart ? { nextWaypostId: 1, waypostRevision: 0 } : {}),
     rngState: 0x1a2b3c4d,
-    ...(suppliedStart ? { unlockedTechnologies: [...STARTING_TECHNOLOGIES] } : {}),
+    ...(suppliedStart ? { unlockedTechnologies: [...STARTING_TECHNOLOGIES], unlockedHouseLevels: [] } : {}),
     buildings,
     households: [],
     nextHouseholdId: 1,

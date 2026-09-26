@@ -134,7 +134,9 @@ For registered placeable buildings, construction stores the interaction position
 
 Demolition restores the complete footprint, clears the building collision overlay and stale traffic state, and preserves the existing rule that a road covered by construction returns as grass rather than reappearing.
 
-Construction requirements are centralized in `src/simulation/constructionRules.ts`. `buildingPlacement.ts` derives construction plans and durations from these shared requirements instead of owning a second cost table. The same module maps processed construction goods to the building type that produces them, so progression can derive prerequisites from actual construction costs.
+Construction requirements are centralized in `src/simulation/constructionRules.ts`. `buildingPlacement.ts` derives construction plans and durations from these shared requirements instead of owning a second cost table. The same module maps processed construction goods to the building type that produces them, so progression can derive prerequisites from actual construction costs. Residential level progression uses the cumulative direct-build material requirements through this same producer mapping and persists unlocked house levels separately on the world; unlocks are monotonic and are never re-evaluated as revocable state.
+
+Browser persistence keeps manual saves, three fixed rolling autosave slots and one fixed crash-save slot in the existing IndexedDB save store. `src/runtime/automaticSaves.ts` owns automatic persistence: autosaves are scheduled from wall-clock time every five minutes and do not depend on simulation ticks, pause state or speed. Crash persistence is injected into the generic crash reporter through a provider callback so the reporter remains independent of simulation serialization and IndexedDB details.
 
 ## Fishing
 

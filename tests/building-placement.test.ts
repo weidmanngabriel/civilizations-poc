@@ -7,6 +7,7 @@ import { hexDistance, same } from "../src/simulation/hex";
 import { placeLooseGood } from "../src/simulation/looseGoods";
 import { buildingInteractionAt } from "../src/buildings/buildingDefinitionRegistry";
 import { WAYPOST_ORIENTATION_RADIUS } from "../src/simulation/wayposts";
+import { setTechnologyCheatEnabled } from "../src/simulation/debugCheats";
 import {
   buildingFootprint,
   buildWithFootprint,
@@ -60,6 +61,7 @@ test("valid anchor enumeration matches the authoritative placement rule", () => 
 
 test("player buildings require their entrance to be inside any placed waypost radius", () => {
   const world = createDefaultGameWorld();
+  setTechnologyCheatEnabled(world, true);
   const origin = findValidOrigin(world, "house");
   const entrance = buildingInteractionAt("house", origin);
 
@@ -90,6 +92,7 @@ test("player buildings require their entrance to be inside any placed waypost ra
 
 test("wayposts reserve their cell plus one neighboring micro-cell from building footprints", () => {
   const world = createDefaultGameWorld();
+  setTechnologyCheatEnabled(world, true);
   const waypost = world.wayposts![0]!;
   const candidate = validBuildingAnchors(world, "house").find((anchor) => {
     const footprint = footprintAt("house", anchor);

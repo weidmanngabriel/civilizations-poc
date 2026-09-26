@@ -28,6 +28,7 @@ type CrashReport = {
 let phase = "entry";
 let crashed = false;
 let contextProvider: (() => CrashContext) | undefined;
+let crashSaveProvider: (() => Promise<void>) | undefined;
 let lastReport: CrashReport | undefined;
 
 const normalizedError = (value: unknown): Error => {
@@ -166,6 +167,10 @@ export const setCrashContextProvider = (provider: () => CrashContext): void => {
   contextProvider = provider;
 };
 
+export const setCrashSaveProvider = (provider: () => Promise<void>): void => {
+  crashSaveProvider = provider;
+};
+
 export const markRuntimePhase = (nextPhase: string): void => {
   phase = nextPhase;
 };
@@ -176,6 +181,10 @@ export const reportRuntimeCrash = (error: unknown, source = "runtime"): CrashRep
   if (lastReport) return lastReport;
   crashed = true;
   lastReport = createReport(error, source);
+  if (crashSaveProvider)
+    void crashSaveProvider().catch((saveError) => {
+      console.warn("Crash-Sicherung konnte nicht gespeichert werden.", saveError);
+    });
   window.dispatchEvent(new CustomEvent(RUNTIME_CRASH_EVENT, { detail: lastReport }));
   showCrashScreen(lastReport);
   return lastReport;
@@ -187,6 +196,15 @@ export const installGlobalCrashReporter = (): void => {
   });
 
   window.addEventListener("unhandledrejection", (event) => {
+    const error = normalizedError(event.reason);
+    if (
+      error.name === "InvalidStateError" &&
+      error.message.includes("Failed to start the audio device")
+    ) {
+      event.preventDefault();
+      console.warn("Audiogerät konnte nicht gestartet werden; das Spiel läuft ohne diesen Audiostart weiter.", error);
+      return;
+    }
     reportRuntimeCrash(event.reason, "unhandledrejection");
   });
 };

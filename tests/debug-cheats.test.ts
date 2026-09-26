@@ -41,6 +41,7 @@ test("technology cheat unlocks buildings without mutating persistent unlock stat
 test("material cheat pre-delivers materials for newly placed buildings", () => {
   const world = createDefaultGameWorld();
   assert.equal(isMaterialCheatEnabled(world), false);
+  setTechnologyCheatEnabled(world, true);
   setMaterialCheatEnabled(world, true);
 
   const anchor = validBuildingAnchors(world, "house")[0];
