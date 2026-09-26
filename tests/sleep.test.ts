@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CONFIG, createWorld } from "../src/simulation/scenario";
+import { CONFIG, createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
 import { advanceSleepTick, SLEEP_RULES } from "../src/simulation/sleep";
 import { tick } from "../src/simulation/simulation";
 import type { Building, World } from "../src/simulation/model";
@@ -182,6 +182,79 @@ test("a tired sawmill worker does not start resupply after finishing the current
 
   assert.ok(person.sleepState);
   assert.equal(person.assignment?.building, sawmill.id);
+});
+
+test("assigned residents choose their own home over a closer nature sleep target", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  removeNatureSleepTargets(world);
+  const bush = nearbyGrassTile(world);
+  bush.bush = true;
+  bush.bushAvailable = true;
+  const house = addHouse(world, 2);
+  assert.equal(assignPersonHome(world, person.id, house.id), true);
+  person.sleep = 20;
+
+  advanceSleepTick(world);
+
+  assert.equal(person.sleepState?.kind, "house");
+  assert.deepEqual(person.sleepState?.target, house.position);
+});
+
+test("assigned residents fall back to local nature when their home is unreachable", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  removeNatureSleepTargets(world);
+  const bush = nearbyGrassTile(world);
+  bush.bush = true;
+  bush.bushAvailable = true;
+  const house = addHouse(world, 8);
+  assert.equal(assignPersonHome(world, person.id, house.id), true);
+
+  const ring = [
+    { q: house.position.q + 1, r: house.position.r },
+    { q: house.position.q - 1, r: house.position.r },
+    { q: house.position.q, r: house.position.r + 1 },
+    { q: house.position.q, r: house.position.r - 1 },
+    { q: house.position.q + 1, r: house.position.r - 1 },
+    { q: house.position.q - 1, r: house.position.r + 1 },
+  ];
+  for (const position of ring) {
+    const tile = world.tiles.find((candidate) => candidate.q === position.q && candidate.r === position.r);
+    if (tile) tile.terrain = "mountain";
+  }
+  person.sleep = 20;
+
+  advanceSleepTick(world);
+
+  assert.equal(person.sleepState?.kind, "nature");
+  assert.deepEqual(person.sleepState?.target, { q: bush.q, r: bush.r });
+});
+
+test("stone extractor keeps an active sleep route instead of returning to its resource", () => {
+  const world = createDefaultGameWorld();
+  const person = world.people[0]!;
+  const stone = world.naturalResources.find((resource) => resource.kind === "stone");
+  assert.ok(stone);
+
+  removeNatureSleepTargets(world);
+  world.naturalResources = [stone];
+  const bush = nearbyGrassTile(world);
+  bush.bush = true;
+  bush.bushAvailable = true;
+
+  person.extractor = "stone";
+  person.resourceTarget = stone.id;
+  person.workArea = { center: { ...stone.position }, radius: 13 };
+  person.active = false;
+  person.path = [];
+  person.sleep = 20;
+
+  advanceSleepTick(world);
+  assert.equal(person.sleepState?.kind, "nature");
+  assert.deepEqual(person.sleepState?.target, { q: bush.q, r: bush.r });
+
+  waitForSleepProgress(world);
 });
 
 test("house sleep restores 50 sleep points per five-second phase up to 100", () => {

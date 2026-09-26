@@ -147,6 +147,39 @@ const bestCandidate = (
   return best;
 };
 
+const assignedHomeSleepTarget = (
+  world: World,
+  person: Person,
+  origin: Hex = person.position,
+): SleepCandidate | undefined => {
+  const home = homeForPerson(world, person);
+  if (!home) return;
+  if (same(person.position, home.position))
+    return { kind: "house", target: home.position, path: [], cost: 0, localNeedSearch: false };
+
+  if (hexDistance(person.position, home.position) <= NEED_LOCAL_NAVIGATION_RADIUS) {
+    const path = localRouteTo(world, person, origin, home.position);
+    if (path)
+      return {
+        kind: "house",
+        target: home.position,
+        path,
+        cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier),
+        localNeedSearch: true,
+      };
+  }
+
+  const path = routeTo(world, person, home.position);
+  if (!path) return;
+  return {
+    kind: "house",
+    target: home.position,
+    path,
+    cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier),
+    localNeedSearch: false,
+  };
+};
+
 const chooseLocalSleepTarget = (
   world: World,
   person: Person,
@@ -154,7 +187,6 @@ const chooseLocalSleepTarget = (
   excludedTargets: ReadonlySet<string> = new Set(),
   origin: Hex = person.position,
 ): SleepCandidate | undefined =>
-  bestCandidate(world, person, "house", context, excludedTargets, origin, true) ??
   bestCandidate(world, person, "nature", context, excludedTargets, origin, true);
 
 const chooseGlobalSleepTarget = (
@@ -163,7 +195,6 @@ const chooseGlobalSleepTarget = (
   context: SleepSearchContext,
   excludedTargets: ReadonlySet<string> = new Set(),
 ): SleepCandidate | { kind: "ground"; target: Hex; path: Hex[]; localNeedSearch: false } =>
-  bestCandidate(world, person, "house", context, excludedTargets, person.position, false) ??
   bestCandidate(world, person, "nature", context, excludedTargets, person.position, false) ??
   { kind: "ground", target: { ...person.position }, path: [], localNeedSearch: false };
 
@@ -174,6 +205,7 @@ const chooseSleepTarget = (
   excludedTargets: ReadonlySet<string> = new Set(),
   origin: Hex = person.position,
 ): SleepCandidate | { kind: "ground"; target: Hex; path: Hex[]; localNeedSearch: false } =>
+  assignedHomeSleepTarget(world, person, origin) ??
   chooseLocalSleepTarget(world, person, context, excludedTargets, origin) ??
   chooseGlobalSleepTarget(world, person, context, excludedTargets);
 
@@ -315,11 +347,14 @@ const recoveryPerPhase = (person: Person, kind: SleepLocationKind): number => {
 
 const startSleeping = (world: World, person: Person, context: SleepSearchContext): void => {
   const origin = { ...person.position };
-  const localCandidate = chooseLocalSleepTarget(world, person, context, new Set(), origin);
-  const anchorReturn = localCandidate
+  const assignedHome = assignedHomeSleepTarget(world, person, origin);
+  const localCandidate = assignedHome
+    ? undefined
+    : chooseLocalSleepTarget(world, person, context, new Set(), origin);
+  const anchorReturn = assignedHome || localCandidate
     ? undefined
     : findLocalNeedAnchorReturn(world, person, CONFIG.roadSpeedMultiplier);
-  const candidate = localCandidate ?? (
+  const candidate = assignedHome ?? localCandidate ?? (
     anchorReturn
       ? { kind: "ground" as const, target: anchorReturn.anchor, path: anchorReturn.path, localNeedSearch: false as const }
       : chooseGlobalSleepTarget(world, person, context)

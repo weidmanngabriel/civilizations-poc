@@ -114,17 +114,14 @@ test("building articles expose linked construction, recipes and concise help", (
   assert.doesNotMatch(school, /Essen|Schlafen|Pause/);
 });
 
-test("house wiki documents apartments and all residential levels", () => {
+test("house wiki stays concise while covering apartments, levels and sleep", () => {
   const house = renderBuildingArticle("house");
-  assert.match(house, /Wohnungen und Haushalte/);
+  assert.match(house, /Wohnungen/);
   assert.match(house, /Stufe 1 · 2 Wohnungen/);
   assert.match(house, /Stufe 5 · 6 Wohnungen/);
-  assert.match(house, /keine neue Wohnung automatisch/);
-  assert.match(house, /Familie und Nachwuchs/);
-  assert.match(house, /90 % Wahrscheinlichkeit ein Kind/);
-  assert.match(house, /Kindheit dauert 5 Minuten/);
-  assert.match(house, /Wenig \/ Mittel \/ Viele/);
+  assert.match(house, /schlafen in ihrem eigenen Wohnhaus, wenn es erreichbar ist/);
   assert.match(house, /data-wiki-good="marble"/);
+  assert.doesNotMatch(house, /Familie und Nachwuchs|90 % Wahrscheinlichkeit|Kindheit dauert|Wenig \/ Mittel \/ Viele/);
   assert.ok(buildingConsumersForGood("marble").includes("house"));
 });
 
