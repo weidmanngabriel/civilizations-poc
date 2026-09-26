@@ -28,10 +28,10 @@ export const CONSTRUCTION_GOOD_PRODUCERS: Partial<Record<Good, PlaceableBuilding
   brick: "pottery",
   stoneBlock: "stonemason",
   roofTile: "pottery2",
+  marble: "stonemason2",
 };
 
-export function requiredProductionBuildings(kind: PlaceableBuildingKind): PlaceableBuildingKind[] {
-  const requirements = BUILDING_CONSTRUCTION_REQUIREMENTS[kind];
+export function requiredProductionBuildingsForGoods(requirements: GoodAmounts): PlaceableBuildingKind[] {
   const producers = new Set<PlaceableBuildingKind>();
 
   for (const [good, amount] of Object.entries(requirements) as [Good, number | undefined][]) {
@@ -43,4 +43,8 @@ export function requiredProductionBuildings(kind: PlaceableBuildingKind): Placea
   }
 
   return [...producers];
+}
+
+export function requiredProductionBuildings(kind: PlaceableBuildingKind): PlaceableBuildingKind[] {
+  return requiredProductionBuildingsForGoods(BUILDING_CONSTRUCTION_REQUIREMENTS[kind]);
 }
