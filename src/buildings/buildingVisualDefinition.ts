@@ -62,11 +62,12 @@ export function validateBuildingVisualDefinition(
     errors.push("Mindestens eine Gebäudestufe ist erforderlich.");
 
   const sorted = [...definition.levels].sort((a, b) => a.level - b.level);
+  const seenLevels = new Set<number>();
   const seenSprites = new Set<string>();
-  for (let index = 0; index < sorted.length; index += 1) {
-    const level = sorted[index]!;
-    if (level.level !== index + 1)
-      errors.push("Gebäudestufen müssen lückenlos bei Stufe 1 beginnen.");
+  for (const level of sorted) {
+    if (seenLevels.has(level.level))
+      errors.push(`Gebäudestufe ${level.level} ist mehrfach definiert.`);
+    seenLevels.add(level.level);
     if (seenSprites.has(level.sprite))
       errors.push(`Das Sprite ${level.sprite} wird von mehreren Gebäudestufen verwendet.`);
     seenSprites.add(level.sprite);

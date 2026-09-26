@@ -34,7 +34,7 @@ test("building visual definition accepts local PNG and WebP sprite filenames", (
   assert.deepEqual(validateBuildingVisualDefinition(definition), []);
 });
 
-test("building visual definition accepts contiguous independent levels", () => {
+test("building visual definition accepts independent levels", () => {
   const definition = validDefinition();
   definition.levels.push({
     ...definition.levels[0]!,
@@ -46,14 +46,21 @@ test("building visual definition accepts contiguous independent levels", () => {
   assert.deepEqual(validateBuildingVisualDefinition(definition), []);
 });
 
-test("building visual definition rejects level gaps and duplicate sprite names", () => {
-  const definition = validDefinition();
-  definition.levels.push({
-    ...definition.levels[0]!,
+test("building visual definition accepts sparse levels but rejects duplicate levels and sprites", () => {
+  const sparse = validDefinition();
+  sparse.levels.push({
+    ...sparse.levels[0]!,
     level: 3,
+    sprite: "sprite-3.png",
   });
-  const errors = validateBuildingVisualDefinition(definition);
-  assert.ok(errors.some((error) => error.includes("lückenlos")));
+  assert.deepEqual(validateBuildingVisualDefinition(sparse), []);
+
+  const duplicate = validDefinition();
+  duplicate.levels.push({
+    ...duplicate.levels[0]!,
+  });
+  const errors = validateBuildingVisualDefinition(duplicate);
+  assert.ok(errors.some((error) => error.includes("mehrfach definiert")));
   assert.ok(errors.some((error) => error.includes("mehreren Gebäudestufen")));
 });
 

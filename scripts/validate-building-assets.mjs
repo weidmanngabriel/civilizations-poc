@@ -89,9 +89,13 @@ async function validateBuilding(directory) {
   ) fail(`${definitionPath}: ungültiges Building-Visual-Schema.`);
 
   const sprites = new Set();
-  for (const [index, level] of definition.levels.entries()) {
-    if (level?.level !== index + 1)
-      fail(`${definitionPath}: Gebäudestufen müssen lückenlos bei Stufe 1 beginnen.`);
+  const levels = new Set();
+  for (const level of definition.levels) {
+    if (!Number.isInteger(level?.level) || level.level < 1)
+      fail(`${definitionPath}: ungültige Gebäudestufe.`);
+    if (levels.has(level.level))
+      fail(`${definitionPath}: Gebäudestufe ${level.level} ist mehrfach definiert.`);
+    levels.add(level.level);
     if (sprites.has(level.sprite))
       fail(`${definitionPath}: Sprite wird von mehreren Stufen verwendet: ${level.sprite}`);
     sprites.add(level.sprite);
