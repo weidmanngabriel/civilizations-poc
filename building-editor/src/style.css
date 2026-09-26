@@ -7,7 +7,7 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: #122018; }
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 button { cursor: pointer; }
 
 .editor-shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
@@ -46,7 +46,8 @@ button { cursor: pointer; }
 .panel h2 { margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: #aebdb2; }
 .field { display: grid; gap: 6px; margin-bottom: 12px; }
 .field label { font-size: 12px; color: #becbc1; }
-.field input[type="text"], .field input[type="number"] { width: 100%; padding: 9px 10px; color: #eef5ef; background: #102018; border: 1px solid #3d5547; border-radius: 7px; }
+.field input[type="text"], .field input[type="number"], .field select { width: 100%; padding: 9px 10px; color: #eef5ef; background: #102018; border: 1px solid #3d5547; border-radius: 7px; }
+.building-load-note { margin-top: -4px; padding: 8px 10px; border-left: 3px solid #799e82; background: #13231a; border-radius: 0 6px 6px 0; }
 .field input[type="range"] { width: 100%; }
 .overlay-field { margin-top: 14px; }
 .dropzone { display: grid; place-items: center; min-height: 92px; padding: 14px; text-align: center; border: 1px dashed #63806d; border-radius: 9px; color: #bdcec1; background: #13231a; }
