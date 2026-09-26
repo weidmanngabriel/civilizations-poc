@@ -507,6 +507,8 @@ export interface World {
   nextBushRegrowTick?: number;
   /** Missing in neutral/sandbox worlds; explicit in the player-facing progression world. */
   unlockedTechnologies?: string[];
+  /** Permanently unlocked residential construction/upgrade levels in progression worlds. */
+  unlockedHouseLevels?: HouseLevel[];
   people: Person[];
   /** Residential households. One household occupies exactly one apartment. */
   households?: Household[];
