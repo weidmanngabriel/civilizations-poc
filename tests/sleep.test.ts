@@ -184,6 +184,53 @@ test("a tired sawmill worker does not start resupply after finishing the current
   assert.equal(person.assignment?.building, sawmill.id);
 });
 
+test("assigned residents choose their own home over a closer nature sleep target", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  removeNatureSleepTargets(world);
+  const bush = world.tiles.find(
+    (tile) =>
+      tile.terrain === "grass" &&
+      tile.q === person.position.q &&
+      tile.r === person.position.r,
+  )!;
+  bush.bush = true;
+  bush.bushAvailable = true;
+  const house = addHouse(world, 20);
+  assert.equal(assignPersonHome(world, person.id, house.id), true);
+  person.sleep = 20;
+
+  advanceSleepTick(world);
+
+  assert.equal(person.sleepState?.kind, "house");
+  assert.deepEqual(person.sleepState?.target, house.position);
+});
+
+test("stone extractor keeps an active sleep route instead of returning to its resource", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  const stone = world.naturalResources.find((resource) => resource.kind === "stone");
+  assert.ok(stone);
+
+  removeNatureSleepTargets(world);
+  const bush = nearbyGrassTile(world);
+  bush.bush = true;
+  bush.bushAvailable = true;
+
+  person.extractor = "stone";
+  person.resourceTarget = stone.id;
+  person.workArea = { center: { ...stone.position }, radius: 13 };
+  person.active = false;
+  person.path = [];
+  person.sleep = 20;
+
+  advanceSleepTick(world);
+  assert.equal(person.sleepState?.kind, "nature");
+  assert.deepEqual(person.sleepState?.target, { q: bush.q, r: bush.r });
+
+  waitForSleepProgress(world);
+});
+
 test("house sleep restores 50 sleep points per five-second phase up to 100", () => {
   const world = createWorld(1);
   const person = world.people[0]!;
