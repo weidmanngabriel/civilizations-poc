@@ -5,8 +5,15 @@ const DB_NAME = "civilizations-poc";
 const DB_VERSION = 1;
 const STORE_NAME = "saveGames";
 
+export type BrowserSaveKind = "manual" | "autosave" | "crash";
+
+export const AUTOSAVE_INTERVAL_MS = 5 * 60 * 1000;
+export const AUTOSAVE_IDS = ["autosave-1", "autosave-2", "autosave-3"] as const;
+export const CRASH_SAVE_ID = "crash-save";
+
 export type BrowserSaveRecord = {
   id: string;
+  kind?: BrowserSaveKind;
   name: string;
   savedAt: string;
   saveVersion: number;
@@ -53,6 +60,7 @@ export const createBrowserSaveRecord = (
   world: World,
   options: {
     id?: string;
+    kind?: BrowserSaveKind;
     name: string;
     savedAt: Date;
     thumbnail: string;
@@ -60,6 +68,7 @@ export const createBrowserSaveRecord = (
   },
 ): BrowserSaveRecord => ({
   id: options.id ?? browserSaveId(),
+  kind: options.kind ?? "manual",
   name: options.name.trim(),
   savedAt: options.savedAt.toISOString(),
   saveVersion: SAVE_VERSION,
@@ -70,6 +79,16 @@ export const createBrowserSaveRecord = (
   thumbnail: options.thumbnail,
   json: options.json,
 });
+
+export const browserSaveKind = (save: BrowserSaveRecord): BrowserSaveKind =>
+  save.kind ?? "manual";
+
+export const nextAutosaveId = (saves: BrowserSaveRecord[]): string => {
+  const autosaves = saves.filter((save) => browserSaveKind(save) === "autosave");
+  for (const id of AUTOSAVE_IDS)
+    if (!autosaves.some((save) => save.id === id)) return id;
+  return [...autosaves].sort((a, b) => a.savedAt.localeCompare(b.savedAt))[0]!.id;
+};
 
 export const findCurrentBrowserSave = (
   saves: BrowserSaveRecord[],
