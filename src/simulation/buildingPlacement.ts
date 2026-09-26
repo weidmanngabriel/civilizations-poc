@@ -18,7 +18,7 @@ import {
 import { hexDistance, key, neighbors, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
 import { applyBuildingKindDefinition, buildAt, notifyConstructionSiteAdded, removeBuilding } from "./simulation";
-import { isBuildingUnlocked } from "./technology";
+import { isBuildingUnlocked, isHouseLevelUnlocked } from "./technology";
 import { isMaterialCheatEnabled } from "./debugCheats";
 import { refinedCellCluster } from "./spatial";
 import { naturalResourceFootprint } from "./naturalResources";
@@ -358,7 +358,10 @@ export function upgradePlacementBlockers(
 export function canUpgradeBuilding(world: World, building: Building): boolean {
   if (building.retired || (building.construction && !building.construction.complete))
     return false;
-  if (building.kind === "house") return nextHouseLevel(building) !== undefined;
+  if (building.kind === "house") {
+    const target = nextHouseLevel(building);
+    return target !== undefined && isHouseLevelUnlocked(world, target);
+  }
 
   const rule = buildingUpgradeRule(building.kind);
   if (!rule) return false;
@@ -468,6 +471,11 @@ export function buildWithFootprint(
   kind: PlaceableBuildingKind,
   options?: { houseLevel?: HouseLevel },
 ): Building | undefined {
+  if (
+    kind === "house" &&
+    options?.houseLevel &&
+    !isHouseLevelUnlocked(world, options.houseLevel)
+  ) return;
   if (!canPlaceBuilding(world, anchorPosition, kind)) return;
   const footprint = footprintAt(kind, anchorPosition);
   const blocked = new Set((definitionBlockedAt(kind, anchorPosition) ?? []).map(key));
