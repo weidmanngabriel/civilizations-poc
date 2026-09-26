@@ -51,6 +51,12 @@ export const childVisualStage = (
   return world.round - person.bornAtTick < BABY_STAGE_TICKS ? "baby" : "child";
 };
 
+export const childAgeYears = (world: World, person: Person): number | undefined => {
+  if (!isChild(person) || person.bornAtTick === undefined) return;
+  const elapsedTicks = Math.max(0, world.round - person.bornAtTick);
+  return Math.min(18, Math.floor((elapsedTicks * 18) / CHILDHOOD_TICKS));
+};
+
 export const birthCountFromRoll = (roll: number): 1 | 2 | 3 =>
   roll < 0.9 ? 1 : roll < 0.99 ? 2 : 3;
 
