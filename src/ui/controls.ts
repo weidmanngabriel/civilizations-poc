@@ -264,7 +264,14 @@ export function mountControls(w: World, renderMap: () => void): void {
               ) &&
               canPlaceWaypost(w, buildPlacementPosition)
             )
-          : canPlaceBuilding(w, buildPlacementPosition, buildPlacementKind))
+          : canPlaceBuilding(
+              w,
+              buildPlacementPosition,
+              buildPlacementKind,
+              buildPlacementKind === "house"
+                ? { houseLevel: buildPlacementHouseLevel ?? 1 }
+                : undefined,
+            ))
     );
     if (buildPlacementKind === "palisade") {
       const copy = document.querySelector<HTMLElement>("#build-placement-copy");
