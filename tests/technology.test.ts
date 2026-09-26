@@ -12,6 +12,8 @@ import {
   STARTING_TECHNOLOGIES,
   TECHNOLOGY_UNLOCK_RULES,
   isBuildingUnlocked,
+  isHouseLevelUnlocked,
+  requiredProductionBuildingsForHouseLevel,
   technologyProgress,
   updateTechnologyUnlocks,
 } from "../src/simulation/technology";
@@ -70,7 +72,8 @@ test("all implemented technologies resolve their construction prerequisites with
   }
 
   assert.deepEqual(requiredProductionBuildings("house"), ["farm"]);
-  assert.equal(technologyProgress(world, "house").unlocked, true);
+  assert.equal(technologyProgress(world, "house").unlocked, false);
+  assert.equal(isHouseLevelUnlocked(world, 1), false);
 });
 
 test("profession rules unlock at exactly ten XP once construction-chain prerequisites exist", () => {
@@ -176,4 +179,56 @@ test("school uses advanced construction materials and unlocks only after their p
   addCompletedBuilding(world, "pottery2");
   updateTechnologyUnlocks(world);
   assert.equal(isBuildingUnlocked(world, "school"), true);
+});
+
+
+test("house levels unlock from cumulative material producers and stay unlocked permanently", () => {
+  const world = createProgressionTestWorld();
+  assert.deepEqual(requiredProductionBuildingsForHouseLevel(1), ["farm"]);
+  assert.deepEqual(requiredProductionBuildingsForHouseLevel(2), ["farm", "pottery"]);
+  assert.deepEqual(requiredProductionBuildingsForHouseLevel(3), ["farm", "pottery", "stonemason"]);
+  assert.deepEqual(requiredProductionBuildingsForHouseLevel(4), ["farm", "pottery", "stonemason", "pottery2"]);
+  assert.deepEqual(
+    requiredProductionBuildingsForHouseLevel(5),
+    ["farm", "pottery", "stonemason", "pottery2", "stonemason2"],
+  );
+
+  updateTechnologyUnlocks(world);
+  assert.equal(isHouseLevelUnlocked(world, 1), false);
+
+  const farm = addCompletedBuilding(world, "farm");
+  updateTechnologyUnlocks(world);
+  assert.equal(isBuildingUnlocked(world, "house"), true);
+  assert.equal(isHouseLevelUnlocked(world, 1), true);
+  assert.equal(isHouseLevelUnlocked(world, 2), false);
+
+  const pottery = addCompletedBuilding(world, "pottery");
+  updateTechnologyUnlocks(world);
+  assert.equal(isHouseLevelUnlocked(world, 2), true);
+  assert.equal(isHouseLevelUnlocked(world, 3), false);
+
+  const stonemason = addCompletedBuilding(world, "stonemason");
+  updateTechnologyUnlocks(world);
+  assert.equal(isHouseLevelUnlocked(world, 3), true);
+
+  const pottery2 = addCompletedBuilding(world, "pottery2");
+  updateTechnologyUnlocks(world);
+  assert.equal(isHouseLevelUnlocked(world, 4), true);
+
+  const stonemason2 = addCompletedBuilding(world, "stonemason2");
+  updateTechnologyUnlocks(world);
+  assert.equal(isHouseLevelUnlocked(world, 5), true);
+
+  world.buildings.splice(
+    world.buildings.indexOf(farm),
+    1,
+  );
+  world.buildings.splice(world.buildings.indexOf(pottery), 1);
+  world.buildings.splice(world.buildings.indexOf(stonemason), 1);
+  world.buildings.splice(world.buildings.indexOf(pottery2), 1);
+  world.buildings.splice(world.buildings.indexOf(stonemason2), 1);
+  updateTechnologyUnlocks(world);
+
+  for (const level of [1, 2, 3, 4, 5] as const)
+    assert.equal(isHouseLevelUnlocked(world, level), true, `house level ${level} must remain unlocked`);
 });
