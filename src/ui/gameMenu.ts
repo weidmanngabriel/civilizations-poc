@@ -2,6 +2,7 @@ import type { World } from "../simulation/model";
 import { createDefaultGameWorld } from "../simulation/scenario";
 import { deserializeSaveGame, replaceWorldState, serializeSaveGame } from "../simulation/saveGame";
 import {
+  browserSaveKind,
   createBrowserSaveRecord,
   deleteBrowserSave,
   findCurrentBrowserSave,
@@ -248,6 +249,7 @@ export function mountGameMenu(
       return;
     }
 
+    saves = saves.filter((save) => browserSaveKind(save) === "manual");
     setOpen(false);
     const modal = createModal("Spiel speichern", "Im Browser speichern");
     modal.body.innerHTML = `
@@ -432,6 +434,7 @@ export function mountGameMenu(
         const image = document.createElement("img");
         image.src = save.thumbnail;
         image.alt = `Vorschau von ${save.name}`;
+        image.hidden = !save.thumbnail;
         const copy = document.createElement("div");
         copy.className = "save-manager-card-copy";
         const title = document.createElement("strong");
@@ -439,7 +442,13 @@ export function mountGameMenu(
         const date = document.createElement("span");
         date.textContent = formatSavedAt(save.savedAt);
         const meta = document.createElement("small");
-        meta.textContent = `${save.population} Bewohner · ${save.buildingCount} Gebäude`;
+        const kindLabel =
+          browserSaveKind(save) === "autosave"
+            ? "AUTOSAVE"
+            : browserSaveKind(save) === "crash"
+              ? "CRASH-SICHERUNG"
+              : "MANUELL";
+        meta.textContent = `${kindLabel} · ${save.population} Bewohner · ${save.buildingCount} Gebäude`;
         copy.append(title, date, meta);
 
         const actions = document.createElement("div");
@@ -456,8 +465,13 @@ export function mountGameMenu(
           try {
             const loaded = deserializeSaveGame(save.json);
             replaceWorldState(world, loaded);
-            currentSaveId = save.id;
-            currentSaveName = save.name;
+            if (browserSaveKind(save) === "manual") {
+              currentSaveId = save.id;
+              currentSaveName = save.name;
+            } else {
+              currentSaveId = undefined;
+              currentSaveName = "Meine Siedlung";
+            }
             modal.close();
             worldReplaced("load");
           } catch (error) {
