@@ -10,7 +10,7 @@ import { GOODS } from "../simulation/simulation";
 import { personName } from "../simulation/personIdentity";
 import { GOOD_ICONS } from "../icons";
 import { personActivityLabel } from "../personPresentation";
-import { personAlertMap, type PersonAlertSeverity } from "./personAlerts";
+import { PERSON_ALERT_ICONS, personAlertMap, personAlerts, type PersonAlertSeverity } from "./personAlerts";
 import { setPersonProfession, setPersonWorkplace } from "../simulation/personCommands";
 import { EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentPendingForSlot, equipmentWearPercent, unequipSlot } from "../simulation/equipment";
 import { PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT } from "./personContextMenu";
@@ -381,6 +381,7 @@ export function mountPersonPanel(world: World): void {
     const sleep = displayNeed(person.sleep);
     const workplace = workplaceLabel(world, person);
     const activity = personActivityLabel(person);
+    const currentAlerts = personAlerts(world, person);
     const home = homeLabel(world, person);
     const cargo = cargoLabel(person);
     const spouse = person.spouseId
@@ -415,6 +416,7 @@ export function mountPersonPanel(world: World): void {
       sleep,
       workplace,
       activity,
+      currentAlerts.map((alert) => `${alert.severity}:${alert.code}:${alert.label}`).join(","),
       home,
       cargo,
       person.sex ?? "",
@@ -458,7 +460,17 @@ export function mountPersonPanel(world: World): void {
         </div>
       </div>`}
       <dl class="person-facts person-facts-primary">
-        <div><dt>Aktuell</dt><dd>${escapeHtml(activity)}</dd></div>
+        <div>
+          <dt>Aktuell</dt>
+          <dd class="person-current-value">
+            <span class="person-current-activity">${escapeHtml(activity)}</span>
+            ${currentAlerts.length === 0
+              ? ""
+              : `<span class="person-current-status person-current-status--${currentAlerts[0]!.severity}">${currentAlerts
+                  .map((alert) => `<span title="${escapeHtml(alert.label)}">${PERSON_ALERT_ICONS[alert.code]} ${escapeHtml(alert.label)}</span>`)
+                  .join("")}</span>`}
+          </dd>
+        </div>
       </dl>
       <details class="person-details" ${detailsOpen ? "open" : ""}>
         <summary>Details</summary>
