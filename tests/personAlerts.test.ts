@@ -49,6 +49,32 @@ test("assigned or otherwise occupied people are not reported as idle", () => {
 });
 
 
+test("free people stay reported as idle while moving or marked active", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  person.hunger = 100;
+  person.sleep = 100;
+  person.active = true;
+  person.path = [{ q: person.position.q + 1, r: person.position.r }];
+
+  assert.deepEqual(personAlert(world, person), {
+    severity: "info",
+    code: "idle",
+    label: "Keine Aufgabe",
+  });
+});
+
+test("temporary real tasks suppress the free-person idle hint", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  person.hunger = 100;
+  person.sleep = 100;
+  person.familyTask = { kind: "partner-search", partnerId: 2 };
+
+  assert.equal(personAlert(world, person), undefined);
+});
+
+
 test("need alerts stay hidden between search and warning thresholds", () => {
   const world = createWorld(2);
   const [hungry, tired] = world.people;
