@@ -2,6 +2,7 @@ import "./style.css";
 import {
   validateBuildingVisualDefinition,
   type BuildingVisualDefinition,
+  type BuildingVisualLevel,
 } from "../../src/buildings/buildingVisualDefinition";
 import { HEX_X, HEX_Y, hexCornerOffsets } from "../../src/game/mapProjection";
 import { BUILDING_WIKI_LABELS } from "../../src/ui/wikiLinks";
@@ -21,7 +22,18 @@ type ProjectBuildingEntry = {
   label: string;
   raw: unknown;
   placeholder: boolean;
-  spriteUrl?: string;
+};
+type LevelSnapshot = {
+  level: number;
+  spriteFile?: File;
+  spriteDataUrl: string;
+  spriteName: string;
+  spriteWorldWidth: number;
+  anchorX: number;
+  anchorY: number;
+  footprint: Hex[];
+  blocked: Hex[];
+  entrance?: Hex;
 };
 
 const GRID_RADIUS = 8;
@@ -73,6 +85,15 @@ app.innerHTML = `
           </div>
           <p class="help building-load-note" id="building-load-note" hidden></p>
           <div class="field"><label for="building-id">ID</label><input id="building-id" type="text" value="new-building" spellcheck="false" /></div>
+          <div class="level-controls">
+            <div class="field level-field">
+              <label for="level-select">Gebäudestufe</label>
+              <select id="level-select"></select>
+            </div>
+            <button class="secondary compact" id="add-level" type="button">+ Stufe</button>
+            <button class="secondary compact" id="remove-level" type="button">Stufe löschen</button>
+          </div>
+          <p class="help">Jede Stufe besitzt einen eigenen Sprite, Grundriss, blockierte Zellen und Eingang.</p>
           <div class="dropzone" id="dropzone">PNG oder WebP hier hineinziehen<br />oder klicken</div>
           <input id="sprite-input" type="file" accept="image/png,image/webp" hidden />
           <button class="secondary" id="import-building">Gebäudedefinition öffnen</button>
@@ -129,6 +150,9 @@ const dropzone = document.querySelector<HTMLDivElement>("#dropzone")!;
 const buildingSelect = document.querySelector<HTMLSelectElement>("#building-select")!;
 const buildingLoadNote = document.querySelector<HTMLParagraphElement>("#building-load-note")!;
 const idInput = document.querySelector<HTMLInputElement>("#building-id")!;
+const levelSelect = document.querySelector<HTMLSelectElement>("#level-select")!;
+const addLevelButton = document.querySelector<HTMLButtonElement>("#add-level")!;
+const removeLevelButton = document.querySelector<HTMLButtonElement>("#remove-level")!;
 const anchorXInput = document.querySelector<HTMLInputElement>("#anchor-x")!;
 const anchorYInput = document.querySelector<HTMLInputElement>("#anchor-y")!;
 const scaleRange = document.querySelector<HTMLInputElement>("#sprite-scale")!;
@@ -145,6 +169,8 @@ let currentTool: Tool = "footprint";
 let spriteFile: File | undefined;
 let spriteDataUrl = "";
 let spriteWorldWidth = 60;
+let activeLevel = 1;
+const levelSnapshots = new Map<number, LevelSnapshot>();
 let dragStart: { pointerX: number; pointerY: number; anchorX: number; anchorY: number } | undefined;
 let paintDrag: { tool: PaintTool; mode: PaintMode; visited: Set<string> } | undefined;
 const footprint = new Map<string, Hex>();
@@ -173,33 +199,47 @@ function parsePlaceholderDefinition(value: unknown): PlaceholderDefinition | und
 
 function parseDefinition(value: unknown): BuildingVisualDefinition {
   if (!isRecord(value)) throw new Error("building.json enthält kein gültiges Objekt.");
-  if (value.schema !== "civilizations-building-visual" || value.version !== 3)
+  if (value.schema !== "civilizations-building-visual" || value.version !== 4)
     throw new Error("building.json hat ein unbekanntes Schema oder eine nicht unterstützte Version.");
-  if (typeof value.id !== "string" || typeof value.sprite !== "string")
-    throw new Error("building.json enthält keine gültige ID oder Sprite-Datei.");
-  if (!isRecord(value.spriteAnchor) || typeof value.spriteAnchor.x !== "number" || typeof value.spriteAnchor.y !== "number")
-    throw new Error("building.json enthält keinen gültigen Sprite-Anchor.");
-  if (typeof value.spriteWorldWidth !== "number" || !Number.isFinite(value.spriteWorldWidth) || value.spriteWorldWidth <= 0)
-    throw new Error("building.json enthält keine gültige Sprite-Breite für das aktuelle Schema.");
-  if (!Array.isArray(value.footprint) || !Array.isArray(value.blocked))
-    throw new Error("building.json enthält keinen gültigen Grundriss.");
+  if (typeof value.id !== "string" || !Array.isArray(value.levels))
+    throw new Error("building.json enthält keine gültige ID oder Gebäudestufen.");
 
-  const footprintCells = value.footprint.map(parseHex);
-  const blockedCells = value.blocked.map(parseHex);
-  const entranceCell = parseHex(value.entrance);
-  if (footprintCells.some((cell) => !cell) || blockedCells.some((cell) => !cell) || !entranceCell)
-    throw new Error("building.json enthält ungültige Rasterkoordinaten.");
+  const levels: BuildingVisualLevel[] = value.levels.map((rawLevel, index) => {
+    if (!isRecord(rawLevel))
+      throw new Error(`Stufe ${index + 1} ist ungültig.`);
+    if (
+      typeof rawLevel.level !== "number" ||
+      typeof rawLevel.sprite !== "string" ||
+      !isRecord(rawLevel.spriteAnchor) ||
+      typeof rawLevel.spriteAnchor.x !== "number" ||
+      typeof rawLevel.spriteAnchor.y !== "number" ||
+      typeof rawLevel.spriteWorldWidth !== "number" ||
+      !Array.isArray(rawLevel.footprint) ||
+      !Array.isArray(rawLevel.blocked)
+    ) throw new Error(`Stufe ${index + 1} enthält ungültige Daten.`);
+
+    const footprintCells = rawLevel.footprint.map(parseHex);
+    const blockedCells = rawLevel.blocked.map(parseHex);
+    const entranceCell = parseHex(rawLevel.entrance);
+    if (footprintCells.some((cell) => !cell) || blockedCells.some((cell) => !cell) || !entranceCell)
+      throw new Error(`Stufe ${rawLevel.level} enthält ungültige Rasterkoordinaten.`);
+
+    return {
+      level: rawLevel.level,
+      sprite: rawLevel.sprite,
+      spriteAnchor: { x: rawLevel.spriteAnchor.x, y: rawLevel.spriteAnchor.y },
+      spriteWorldWidth: rawLevel.spriteWorldWidth,
+      footprint: footprintCells as Hex[],
+      blocked: blockedCells as Hex[],
+      entrance: entranceCell,
+    };
+  });
 
   const parsed: BuildingVisualDefinition = {
     schema: "civilizations-building-visual",
-    version: 3,
+    version: 4,
     id: value.id,
-    sprite: value.sprite,
-    spriteAnchor: { x: value.spriteAnchor.x, y: value.spriteAnchor.y },
-    spriteWorldWidth: value.spriteWorldWidth,
-    footprint: footprintCells as Hex[],
-    blocked: blockedCells as Hex[],
-    entrance: entranceCell,
+    levels,
   };
   const definitionErrors = validateBuildingVisualDefinition(parsed);
   if (definitionErrors.length) throw new Error(definitionErrors.join("\n"));
@@ -218,14 +258,12 @@ const PROJECT_BUILDINGS: ProjectBuildingEntry[] = Object.entries(PROJECT_DEFINIT
     if (kind !== "field" && !(kind in BUILDING_WIKI_LABELS)) return undefined;
 
     const placeholder = parsePlaceholderDefinition(raw);
-    const spriteName = placeholder?.sprite ?? parseDefinition(raw).sprite;
-    const spritePath = path.replace(/building\.json$/, spriteName);
+    if (!placeholder) parseDefinition(raw);
     return {
       kind: kind as BuildingVisualKind,
       label: buildingEditorLabel(kind as BuildingVisualKind),
       raw,
       placeholder: Boolean(placeholder),
-      spriteUrl: PROJECT_SPRITE_MODULES[spritePath],
     };
   })
   .filter((entry): entry is ProjectBuildingEntry => Boolean(entry))
