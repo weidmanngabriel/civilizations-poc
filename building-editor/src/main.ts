@@ -894,5 +894,5 @@ anchorYInput.addEventListener("input", renderSpritePosition);
 window.addEventListener("resize", renderGrid);
 
 setOverlayStrength(Number(overlayRange.value));
-renderGrid();
+resetDefinitionState("new-building");
 refreshStatus();
