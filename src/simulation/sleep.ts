@@ -266,6 +266,10 @@ const resumeTask = (world: World, person: Person, state: SleepState): void => {
   if (state.resumeResourceTarget && !resourceStillAvailable) person.progress = 0;
   person.active = false;
   person.movement = 0;
+  if (person.familyTask) {
+    person.path = [];
+    return;
+  }
   const target = currentTaskTarget(world, person);
   if (!target) { person.path = []; return; }
   if (same(person.position, target)) {
@@ -522,10 +526,6 @@ export function advanceSleepTick(world: World): void {
       if (person.ageStage === "child") continue;
       sleepValue(person);
       if (person.sleepGraceTicks! > 0) person.sleepGraceTicks!--;
-      if (person.familyTask) {
-        decaySleep(person);
-        continue;
-      }
       if (person.manualMoveTarget) continue;
       if (person.sleepState) { ensureSleepRouteOrProgress(world, person, searchContext); continue; }
       decaySleep(person);
