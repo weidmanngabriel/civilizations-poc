@@ -20,7 +20,7 @@ const PERSON_DETAIL_SCALE = 0.28;
 const CARGO_SCALE = 0.28;
 const STORK_WITH_BABY_TEXTURE = "family-stork-with-baby";
 const STORK_WITHOUT_BABY_TEXTURE = "family-stork-without-baby";
-const STORK_DISPLAY_SIZE = HEX_X * 3;
+const STORK_DISPLAY_SIZE = HEX_X * 1.5;
 const STORK_WITH_BABY_URL = new URL("../assets/stork-with-baby.webp", import.meta.url).href;
 const STORK_WITHOUT_BABY_URL = new URL("../assets/stork-without-baby.webp", import.meta.url).href;
 
@@ -416,8 +416,8 @@ export class IncrementalMainScene extends MainScene {
         const speedProfile =
           0.5 +
           0.5 * (
-            0.25 * centeredProgress +
-            0.75 * centeredProgress * centeredProgress * centeredProgress
+            0.6 * centeredProgress +
+            0.4 * centeredProgress * centeredProgress * centeredProgress
           );
         const angle = (-Math.PI / 3) + ((2 * Math.PI) / 3) * speedProfile;
         const radius = HEX_X * 15;
