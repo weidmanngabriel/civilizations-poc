@@ -369,6 +369,14 @@ Das Debug-Menü besitzt zwei voneinander unabhängige, nur für die aktuelle Sit
 
 In scrollenden Menüs bleibt die jeweilige Kopfzeile mit dem Schließen-Button beim Scrollen sichtbar. Im Debug-Menü stehen die beiden Cheat-Schalter direkt unter der festen Kopfzeile und damit vor Performance-, Aufnahme- und Personeninformationen.
 
+## Gebäude-Freischaltungen
+
+Gebäude werden erst freigeschaltet, wenn alle für sie geltenden Voraussetzungen erfüllt sind. Dazu gehören sowohl Voraussetzungen aus der Produktionskette als auch Qualifikation beziehungsweise Berufserfahrung der Bewohner. Benötigt ein Gebäude etwa eine Ware aus einer bestimmten Produktionsstätte, muss diese Produktionsstätte zuvor fertig errichtet worden sein; verlangt die Freischaltung einen ausreichend qualifizierten Bewohner, muss auch diese Voraussetzung erreicht sein.
+
+Eine einmal erhaltene Gebäudefreischaltung bleibt dauerhaft bestehen. Wird später eine ursprünglich benötigte Produktionsstätte abgerissen oder ist kein entsprechend qualifizierter Bewohner mehr vorhanden, wird das bereits freigeschaltete Gebäude nicht wieder gesperrt.
+
+Besitzt ein Gebäudetyp mehrere Stufen, wird jede Stufe separat freigeschaltet. Jede Stufe prüft ihre eigenen Voraussetzungen; eine niedrigere freigeschaltete Stufe schaltet spätere Stufen nicht automatisch mit frei.
+
 ## Wohnhäuser, Wohnungen und Haushalte
 
 Wohnhäuser stellen Wohnungen statt einzelner Bewohnerplätze bereit. Eine Wohnung wird genau von einem Haushalt belegt. Ein Single, ein Ehepaar oder später ein Ehepaar mit beliebig vielen Kindern verbraucht jeweils genau eine Wohnung. Kinder erhöhen den Wohnungsverbrauch ihres Haushalts nicht.
