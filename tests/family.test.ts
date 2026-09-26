@@ -5,6 +5,7 @@ import {
   BABY_STAGE_TICKS,
   BIRTH_POLICY_RULES,
   CHILDHOOD_TICKS,
+  childAgeYears,
   advanceFamily,
   areCloseRelatives,
   birthCountFromRoll,
@@ -373,4 +374,27 @@ test("birth sequence creates children at 7.5 seconds and releases rested parents
   assert.equal(second.familyTask, undefined);
   assert.equal(first.sleep, 100);
   assert.equal(second.sleep, 100);
+});
+
+
+test("child age maps the five-minute childhood linearly to 0 through 18 years", () => {
+  const world = createTestWorld();
+  const child = world.people[0]!;
+  child.ageStage = "child";
+  child.bornAtTick = 100;
+
+  world.round = 100;
+  assert.equal(childAgeYears(world, child), 0);
+
+  world.round = 100 + Math.ceil(CHILDHOOD_TICKS / 18);
+  assert.equal(childAgeYears(world, child), 1);
+
+  world.round = 100 + CHILDHOOD_TICKS / 2;
+  assert.equal(childAgeYears(world, child), 9);
+
+  world.round = 100 + CHILDHOOD_TICKS - 1;
+  assert.equal(childAgeYears(world, child), 17);
+
+  world.round = 100 + CHILDHOOD_TICKS;
+  assert.equal(childAgeYears(world, child), 18);
 });
