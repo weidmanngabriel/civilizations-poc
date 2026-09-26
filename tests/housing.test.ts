@@ -9,7 +9,11 @@ import {
   householdsForHouse,
   validHomes,
 } from "../src/simulation/housing";
-import { startBuildingUpgrade } from "../src/simulation/buildingPlacement";
+import {
+  footprintAt,
+  startBuildingUpgrade,
+  upgradePlacementBlockers,
+} from "../src/simulation/buildingPlacement";
 import { createTestWorld } from "./testWorld";
 
 const house = (id: string, level: HouseLevel): Building => ({
@@ -113,4 +117,31 @@ test("house upgrades request only the next level materials and keep current apar
   assert.equal(target.construction?.complete, false);
   assert.equal(homeForPerson(world, world.people[0]!)?.id, target.id);
   assert.equal(HOUSE_LEVEL_DEFINITIONS[target.houseLevel!].apartments, 4);
+});
+
+
+test("house upgrades use the target-level placement check", () => {
+  const world = createTestWorld({ population: 0 });
+  const target = addHouse(world, "house-upgrade-space", 1);
+  target.position = { q: 4, r: 0 };
+  target.footprint = [{ ...target.position }];
+
+  const targetFootprint = footprintAt("house", target.position, 2);
+  const blockedCell = targetFootprint.find(
+    (cell) => cell.q !== target.position.q || cell.r !== target.position.r,
+  );
+  assert.ok(blockedCell);
+  const tile = world.tiles.find(
+    (candidate) => candidate.q === blockedCell.q && candidate.r === blockedCell.r,
+  );
+  assert.ok(tile);
+  tile.terrain = "river";
+
+  const blockers = upgradePlacementBlockers(world, target);
+  assert.ok(blockers.some((blocker) =>
+    blocker.kind === "terrain" &&
+    blocker.position.q === blockedCell.q &&
+    blocker.position.r === blockedCell.r
+  ));
+  assert.equal(startBuildingUpgrade(world, target), false);
 });
