@@ -1,7 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
-import { personAlert, personAlertMap, personAlerts } from "../src/ui/personAlerts";
+import { PERSON_ALERT_ICONS, personAlert, personAlertMap, personAlerts } from "../src/ui/personAlerts";
+
+test("person alert icons use the shared status symbols", () => {
+  assert.equal(PERSON_ALERT_ICONS["critical-hunger"], "🍴");
+  assert.equal(PERSON_ALERT_ICONS["critical-sleep"], "💤");
+  assert.equal(PERSON_ALERT_ICONS["no-route"], "🚫");
+  assert.equal(PERSON_ALERT_ICONS["no-extractable-resource"], "⛏️");
+  assert.equal(PERSON_ALERT_ICONS.idle, "…");
+});
 
 test("person alerts keep only the highest severity per person", () => {
   const world = createWorld(4);

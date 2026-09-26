@@ -26,8 +26,8 @@ export const PERSON_ALERT_ICONS: Record<PersonAlertCode, string> = {
   "critical-sleep": "💤",
   hunger: "🍴",
   sleep: "💤",
-  "no-route": "!",
-  "no-extractable-resource": "⛏",
+  "no-route": "🚫",
+  "no-extractable-resource": "⛏️",
   idle: "…",
 };
 
