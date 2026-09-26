@@ -109,7 +109,9 @@ Die Arbeitsfläche soll die spätere Spielansicht räumlich zuverlässig vorwegn
 
 Die Sprite-Größe wird als Breite in der Spielwelt eingestellt, nicht mehr als Multiplikator der Bildpixel. Der Sprite-Anchor wird relativ zur Bildgröße gespeichert. So bleiben WYSIWYG-Ausrichtung und Größe auch dann identisch, wenn dieselbe Grafik später in einer anderen Auflösung vorliegt.
 
-Im veröffentlichten Editor werden `building.json` und das **unveränderte** Sprite heruntergeladen. Der Export verkleinert oder recomprimiert die gewählte Bilddatei nicht. Dieses Dateipaar kann gemeinsam wieder importiert und vollständig weiterbearbeitet werden, sofern es dem aktuellen Schema entspricht. Bei lokaler Entwicklung kann derselbe Stand direkt nach `src/assets/buildings/<id>/` gespeichert werden.
+Der Editor bietet die vorhandenen visuellen Gebäude-Slots in einem Dropdown nach deutschem Gebäudenamen alphabetisch sortiert an. Bei bereits konfigurierten Gebäuden lädt die Auswahl das aktuelle Sprite sowie Anchor, Weltbreite, Grundriss, blockierte Zellen und Eingang. Placeholder bleiben ebenfalls sichtbar; sie übernehmen mindestens ihre vorhandene ID und zeigen an, dass noch keine Konfiguration existiert. Palisaden bleiben als Infrastruktur außerhalb dieses generischen Gebäudeeditors.
+
+Im veröffentlichten Editor werden `building.json` und das **unveränderte** Sprite heruntergeladen. Der Export verkleinert oder recomprimiert die gewählte Bilddatei nicht. Dieses Dateipaar kann gemeinsam wieder importiert und vollständig weiterbearbeitet werden, sofern es dem aktuellen Schema entspricht. Bei lokaler Entwicklung kann derselbe Stand direkt in den zugehörigen Asset-Slot unter `src/assets/buildings/<kind>/` gespeichert werden. Bei neu angelegten, nicht aus dem Projekt geladenen Definitionen dient weiterhin die Definition-ID als neuer Slotname.
 
 Ältere Editor-/Building-Visual-Schemata werden nicht unterstützt oder migriert. Nur der aktuelle Schemastand ist verbindlich.
 
