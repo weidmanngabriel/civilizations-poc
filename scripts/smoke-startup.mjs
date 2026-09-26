@@ -39,8 +39,10 @@ const vite = resolve(
 
 const sleep = (ms) => new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 
-const waitForHttp = async (url, label, attempts = 80) => {
+const waitForHttp = async (url, label, attempts = 80, diagnose) => {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const failure = diagnose?.();
+    if (failure) throw new Error(`${label} konnte nicht gestartet werden.\n${failure}`);
     try {
       const response = await fetch(url);
       if (response.ok) return response;
@@ -49,7 +51,8 @@ const waitForHttp = async (url, label, attempts = 80) => {
     }
     await sleep(100);
   }
-  throw new Error(`${label} wurde nicht rechtzeitig erreichbar.`);
+  const failure = diagnose?.();
+  throw new Error(`${label} wurde nicht rechtzeitig erreichbar.${failure ? `\n${failure}` : ""}`);
 };
 
 const connectCdp = async (webSocketDebuggerUrl) => {
@@ -106,6 +109,7 @@ preview.stderr.on("data", (chunk) => { previewLog += String(chunk); });
 
 let browser;
 let browserLog = "";
+let browserSpawnError;
 const profile = mkdtempSync(join(tmpdir(), "civilizations-smoke-"));
 
 try {
@@ -128,10 +132,19 @@ try {
   );
   browser.stdout.on("data", (chunk) => { browserLog += String(chunk); });
   browser.stderr.on("data", (chunk) => { browserLog += String(chunk); });
+  browser.on("error", (error) => { browserSpawnError = error; });
 
   await waitForHttp(
     `http://127.0.0.1:${DEBUG_PORT}/json/list`,
     "Chrome DevTools",
+    200,
+    () => {
+      if (browserSpawnError)
+        return `Chrome-Prozessfehler: ${browserSpawnError.message}\nBrowser:\n${browserLog}`;
+      if (browser?.exitCode !== null)
+        return `Chrome wurde vorzeitig mit Exit-Code ${browser.exitCode} beendet.\nBrowser:\n${browserLog}`;
+      return undefined;
+    },
   );
 
   const targets = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/list`)).json();

@@ -18,6 +18,11 @@ const PERSON_TEXT_RESOLUTION = 4;
 const PERSON_NAME_SCALE = 0.34;
 const PERSON_DETAIL_SCALE = 0.28;
 const CARGO_SCALE = 0.28;
+const STORK_WITH_BABY_TEXTURE = "family-stork-with-baby";
+const STORK_WITHOUT_BABY_TEXTURE = "family-stork-without-baby";
+const STORK_DISPLAY_SIZE = HEX_X * 3;
+const STORK_WITH_BABY_URL = new URL("../assets/stork-with-baby.webp", import.meta.url).href;
+const STORK_WITHOUT_BABY_URL = new URL("../assets/stork-without-baby.webp", import.meta.url).href;
 
 const underConstruction = (building: Building): boolean =>
   Boolean(building.construction && !building.construction.complete);
@@ -77,6 +82,11 @@ export class IncrementalMainScene extends MainScene {
 
   constructor(private readonly worldRef: World) {
     super(worldRef);
+  }
+
+  preload(): void {
+    this.load.image(STORK_WITH_BABY_TEXTURE, STORK_WITH_BABY_URL);
+    this.load.image(STORK_WITHOUT_BABY_TEXTURE, STORK_WITHOUT_BABY_URL);
   }
 
   private internals(): MainSceneInternals {
@@ -405,12 +415,14 @@ export class IncrementalMainScene extends MainScene {
         const angle = (-Math.PI / 8) + (Math.PI / 4) * flightProgress;
         const radiusX = HEX_X * 5.4;
         const radiusY = HEX_Y * 4.2;
-        const bird = this.add.text(
+        const storkTexture = now < effect.birthAtTick
+          ? STORK_WITH_BABY_TEXTURE
+          : STORK_WITHOUT_BABY_TEXTURE;
+        const bird = this.add.image(
           center.x + radiusX * Math.sin(angle),
           center.y - HEX_Y * 5.1 + radiusY * Math.cos(angle),
-          "🕊️",
-          { fontFamily: "system-ui", fontSize: "18px" },
-        ).setResolution(4).setOrigin(0.5).setScale(0.35);
+          storkTexture,
+        ).setOrigin(0.5).setDisplaySize(STORK_DISPLAY_SIZE, STORK_DISPLAY_SIZE);
         this.familyEffectLayer.add(bird);
       }
     }
