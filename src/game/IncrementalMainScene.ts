@@ -20,7 +20,7 @@ const PERSON_DETAIL_SCALE = 0.28;
 const CARGO_SCALE = 0.28;
 const STORK_WITH_BABY_TEXTURE = "family-stork-with-baby";
 const STORK_WITHOUT_BABY_TEXTURE = "family-stork-without-baby";
-const STORK_DISPLAY_SIZE = HEX_X * 1.5;
+const STORK_DISPLAY_SIZE = HEX_X * 2.25;
 const STORK_WITH_BABY_URL = new URL("../assets/stork-with-baby.webp", import.meta.url).href;
 const STORK_WITHOUT_BABY_URL = new URL("../assets/stork-without-baby.webp", import.meta.url).href;
 
