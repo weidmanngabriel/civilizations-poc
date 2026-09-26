@@ -189,6 +189,7 @@ const marry = (world: World, first: Person, second: Person): void => {
 const advancePartnerSearch = (world: World, person: Person): void => {
   const task = person.familyTask;
   if (task?.kind !== "partner-search") return;
+  if (person.hungerState || person.sleepState) return;
 
   if (person.spouseId || !isAdult(person)) {
     releasePartnerReservation(world, person);
@@ -418,6 +419,15 @@ const advanceBirthTasks = (world: World): void => {
     ) {
       first.familyTask = undefined;
       if (second?.familyTask?.partnerId === first.id) second.familyTask = undefined;
+      continue;
+    }
+
+    if (first.hungerState || first.sleepState || second.hungerState || second.sleepState) {
+      if (task.completeAtTick !== undefined) {
+        task.completeAtTick += 1;
+        if (second.familyTask?.kind === "birth" && second.familyTask.completeAtTick !== undefined)
+          second.familyTask.completeAtTick += 1;
+      }
       continue;
     }
 
