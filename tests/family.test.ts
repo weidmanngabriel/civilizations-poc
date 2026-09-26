@@ -333,8 +333,6 @@ test("birth sequence creates children at 7.5 seconds and releases rested parents
   assert.equal(assignPersonHome(world, first.id, house.id), true);
   first.position = { ...house.position };
   second.position = { ...house.position };
-  first.sleep = 23;
-  second.sleep = 41;
   first.familyTask = { kind: "birth", partnerId: second.id, homeId: house.id };
   second.familyTask = { kind: "birth", partnerId: first.id, homeId: house.id };
 
@@ -368,6 +366,8 @@ test("birth sequence creates children at 7.5 seconds and releases rested parents
   assert.equal(first.familyTask?.kind, "birth");
 
   world.round = effect.expiresAtTick;
+  first.sleep = 23;
+  second.sleep = 41;
   advanceFamily(world);
   assert.equal(first.familyTask, undefined);
   assert.equal(second.familyTask, undefined);
