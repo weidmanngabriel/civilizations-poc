@@ -56,6 +56,7 @@ export type PathReason =
   | "logistics"
   | "merchant"
   | "farm"
+  | "family"
   | "reroute"
   | "other";
 
@@ -190,6 +191,7 @@ export const PATH_REASONS: PathReason[] = [
   "logistics",
   "merchant",
   "farm",
+  "family",
   "reroute",
   "other",
 ];
