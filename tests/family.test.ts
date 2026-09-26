@@ -357,6 +357,9 @@ test("birth sequence creates children at 7.5 seconds and releases rested parents
   advanceFamily(world);
   assert.ok(world.people.length > 2);
   const populationAfterBirth = world.people.length;
+  const newborns = world.people.filter((person) => person.ageStage === "child");
+  assert.ok(newborns.length > 0);
+  assert.ok(newborns.every((child) => child.nextChildWanderTick === effect.expiresAtTick));
   assert.equal(first.familyTask?.kind, "birth");
 
   world.round = effect.expiresAtTick - 1;
