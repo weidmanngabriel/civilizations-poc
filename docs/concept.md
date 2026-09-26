@@ -382,6 +382,8 @@ Die Bau- und Ausbaukosten sind:
 - Stufe 4: zusätzlich 2 Holz, 1 Backstein, 1 Steinblock und 4 Dachziegel.
 - Stufe 5: zusätzlich 2 Holz, 1 Backstein, 1 Steinblock, 1 Dachziegel und 5 Marmor.
 
+Wohnhaus-Stufen erscheinen erst im Baumenü, wenn alle Produktionsgebäude vorhanden sind, die für ihre bis dahin benötigten Bauwaren erforderlich sind. Stufe 1 benötigt damit zuerst eine fertige Farm; Stufe 2 zusätzlich die Töpferei, Stufe 3 zusätzlich die Steinmetzhütte, Stufe 4 zusätzlich Töpferei 2 und Stufe 5 zusätzlich Steinmetzhütte 2 für Marmor. Eine einmal freigeschaltete Wohnhaus-Stufe bleibt dauerhaft freigeschaltet, auch wenn ein dafür ursprünglich nötiges Produktionsgebäude später abgerissen wird.
+
 Eine höhere Stufe kann direkt gebaut werden. In diesem Fall werden die Kosten aller Stufen bis zum gewählten Ziel aufsummiert. Beim Ausbau eines bestehenden Wohnhauses werden nur die Kosten der nächsten Stufe verlangt. Die bereits vorhandenen Wohnungen bleiben während eines Ausbaus bewohnbar. Die zusätzliche Wohnung wird erst nach Abschluss des Ausbaus verfügbar.
 
 Die Wohnungszuweisung erfolgt bewusst durch den Spieler über den Personenbefehl „Wohnung“. Im Kartenmodus werden nur fertige Wohnhäuser mit einer freien Wohnung sowie das bereits bewohnte Haus hervorgehoben. Die konkrete freie Wohnung innerhalb des Hauses wird automatisch gewählt. Der Wohnhausdialog zeigt jede Wohnung und ihren Haushalt; die dort aufgeführten Bewohner sind direkt anklickbar.
@@ -396,7 +398,9 @@ Für das spätere Familiensystem gilt bereits als Modellregel: Ein Kind bleibt T
 
 Ein fataler Laufzeit- oder Startfehler darf das Spiel nicht in einem teilweise funktionsfähigen Zustand weiterlaufen lassen. In diesem Fall wird die Simulation angehalten und eine eindeutige Fehleransicht über das Spiel gelegt. Von dort kann der Spieler einen Crash-Report als JSON herunterladen und die Seite neu laden.
 
-Der Crash-Report wird ausschließlich lokal erzeugt und nicht automatisch übertragen. Er enthält technische Diagnoseinformationen und, falls die Welt bereits angelegt war, einen Snapshot des aktuellen Spielzustands, damit ein gemeldeter Fehler reproduziert werden kann.
+Der Crash-Report wird ausschließlich lokal erzeugt und nicht automatisch übertragen. Er enthält technische Diagnoseinformationen und, falls die Welt bereits angelegt war, einen Snapshot des aktuellen Spielzustands, damit ein gemeldeter Fehler reproduziert werden kann. Bei einem fatalen Laufzeitfehler versucht das Spiel zusätzlich, denselben aktuellen Weltzustand als separaten Browser-Crash-Spielstand zu sichern.
+
+Browser-Spielstände unterscheiden manuelle Spielstände, Autosaves und die Crash-Sicherung. Autosaves laufen alle fünf realen Minuten unabhängig von Pause oder Simulationsgeschwindigkeit. Es existieren genau drei rollierende Autosave-Slots; nach dem dritten Slot wird jeweils der älteste überschrieben. Die Crash-Sicherung besitzt einen eigenen einzelnen Slot und überschreibt nur eine frühere Crash-Sicherung.
 
 ## Familie, Heirat und Kinder
 
