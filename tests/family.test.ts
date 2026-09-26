@@ -16,6 +16,7 @@ import { assignPersonHome, householdForPerson, householdsForHouse } from "../src
 import { orderPersonMove } from "../src/simulation/personCommands";
 import { advanceHungerTick, resolveFoodArrivals } from "../src/simulation/needs";
 import { advanceSleepTick } from "../src/simulation/sleep";
+import { syncWorkAreas } from "../src/simulation/workAreas";
 import { createTestWorld } from "./testWorld";
 
 const addHouse = (world: World, id: string, q: number): Building => {
@@ -290,5 +291,31 @@ test("active birth journey yields to assigned-home sleep", () => {
   advanceFamily(world);
 
   assert.deepEqual(first.path, sleepPath);
+  assert.equal(first.familyTask?.kind, "birth");
+});
+
+
+test("active family task prevents a woodcutter work area from reclaiming the home route", () => {
+  const world = createTestWorld({ population: 2 });
+  world.households = [];
+  world.nextHouseholdId = 1;
+  const [first, second] = adultPair(world);
+  const house = addHouse(world, "house-a", 12);
+
+  first.spouseId = second.id;
+  second.spouseId = first.id;
+  assert.equal(assignPersonHome(world, first.id, house.id), true);
+
+  first.woodcutter = true;
+  first.workArea = { center: { q: 0, r: 0 }, radius: 3 };
+  first.resourceTarget = world.naturalResources.find((resource) => resource.kind === "forest")?.id;
+  first.position = { q: 6, r: 0 };
+  first.familyTask = { kind: "birth", partnerId: second.id, homeId: house.id };
+  first.path = [{ q: 7, r: 0 }, { q: 8, r: 0 }, { q: 9, r: 0 }, { q: 10, r: 0 }, { q: 11, r: 0 }, { ...house.position }];
+  const familyPath = first.path.map((step) => ({ ...step }));
+
+  syncWorkAreas(world);
+
+  assert.deepEqual(first.path, familyPath);
   assert.equal(first.familyTask?.kind, "birth");
 });
