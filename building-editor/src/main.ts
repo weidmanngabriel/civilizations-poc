@@ -35,7 +35,7 @@ const PROJECT_DEFINITION_MODULES = import.meta.glob(
   { eager: true, import: "default" },
 ) as Record<string, unknown>;
 const PROJECT_SPRITE_MODULES = import.meta.glob(
-  "../../src/assets/buildings/*/sprite.{png,webp}",
+  "../../src/assets/buildings/*/*.{png,webp}",
   { eager: true, query: "?url", import: "default" },
 ) as Record<string, string>;
 
@@ -584,7 +584,11 @@ saveProjectButton.addEventListener("click", async () => {
     const response = await fetch(`${import.meta.env.BASE_URL}__building-editor/save`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ definition: definition(), spriteDataUrl }),
+      body: JSON.stringify({
+        definition: definition(),
+        spriteDataUrl,
+        targetId: buildingSelect.value || undefined,
+      }),
     });
     const result = await response.json() as { ok?: boolean; path?: string; error?: string };
     if (!response.ok || !result.ok) throw new Error(result.error ?? "Speichern fehlgeschlagen");
