@@ -169,12 +169,13 @@ const assignedHomeSleepTarget = (
       };
   }
 
-  const path = routeTo(world, person, home.position) ?? [];
+  const path = routeTo(world, person, home.position);
+  if (!path) return;
   return {
     kind: "house",
     target: home.position,
     path,
-    cost: path.length ? pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier) : Number.POSITIVE_INFINITY,
+    cost: pathTravelCost(world.tiles, path, CONFIG.roadSpeedMultiplier),
     localNeedSearch: false,
   };
 };
