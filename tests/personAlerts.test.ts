@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
-import { personAlert, personAlertMap } from "../src/ui/personAlerts";
+import { personAlert, personAlertMap, personAlerts } from "../src/ui/personAlerts";
 
 test("person alerts keep only the highest severity per person", () => {
   const world = createWorld(4);
@@ -36,6 +36,37 @@ test("person alerts keep only the highest severity per person", () => {
   assert.equal([...alerts.values()].filter((alert) => alert.severity === "critical").length, 2);
   assert.equal([...alerts.values()].filter((alert) => alert.severity === "warning").length, 1);
   assert.equal([...alerts.values()].filter((alert) => alert.severity === "info").length, 1);
+});
+
+test("person status shows all alerts from only the highest active severity", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  person.hunger = 10;
+  person.sleep = 10;
+  person.navigationBlocked = true;
+  person.navigationBlockedReason = "workplace";
+
+  assert.deepEqual(
+    personAlerts(world, person).map((alert) => alert.code),
+    ["critical-hunger", "critical-sleep"],
+  );
+
+  person.hunger = 30;
+  person.sleep = 30;
+
+  assert.deepEqual(
+    personAlerts(world, person).map((alert) => alert.code),
+    ["hunger", "sleep", "no-route"],
+  );
+
+  person.hunger = 100;
+  person.sleep = 100;
+  person.navigationBlocked = false;
+
+  assert.deepEqual(
+    personAlerts(world, person).map((alert) => alert.code),
+    ["idle"],
+  );
 });
 
 test("assigned or otherwise occupied people are not reported as idle", () => {
