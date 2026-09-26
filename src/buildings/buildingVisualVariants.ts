@@ -8,7 +8,7 @@ export type BuildingVisualVariant = {
   label: string;
 };
 
-export const BUILDING_VISUAL_VARIANTS: readonly BuildingVisualVariant[] = [
+const BUILDING_VISUAL_VARIANTS_UNSORTED: BuildingVisualVariant[] = [
   { kind: "bakery", level: 1, label: "Bäckerei" },
   { kind: "well", level: 1, label: "Brunnen" },
   { kind: "field", level: 1, label: "Feld" },
@@ -30,7 +30,10 @@ export const BUILDING_VISUAL_VARIANTS: readonly BuildingVisualVariant[] = [
   { kind: "house", level: 3, label: "Wohnhaus 3" },
   { kind: "house", level: 4, label: "Wohnhaus 4" },
   { kind: "house", level: 5, label: "Wohnhaus 5" },
-].sort((a, b) => a.label.localeCompare(b.label, "de"));
+];
+
+export const BUILDING_VISUAL_VARIANTS: readonly BuildingVisualVariant[] =
+  BUILDING_VISUAL_VARIANTS_UNSORTED.sort((a, b) => a.label.localeCompare(b.label, "de"));
 
 export const buildingVisualVariantKey = (
   variant: Pick<BuildingVisualVariant, "kind" | "level">,
