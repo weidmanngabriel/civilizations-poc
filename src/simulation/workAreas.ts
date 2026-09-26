@@ -576,6 +576,7 @@ export function syncWorkAreas(world: World): void {
     const hunter = Boolean(person.hunter);
     const storageCarrier = Boolean(storageCarrierWorkplace(world, person));
     if (!resourceWorker && !fisher && !hunter && !storageCarrier) { clearWorkArea(person); continue; }
+    if (person.familyTask) continue;
     if (resourceWorker && !person.workArea && !initializeResourceWorker(world, person)) continue;
     ensureWorkArea(world, person);
 
