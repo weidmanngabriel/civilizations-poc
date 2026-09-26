@@ -93,7 +93,7 @@ Diese Trennung ist für weitere baubare Infrastruktur vorgesehen, insbesondere T
 
 ## Bauen, Freiraum und Abriss
 
-Gebäude brauchen den vollständigen Grundriss ihrer aktuell gebauten Stufe plus einen freien Ring von zwei Mikrozellen rundherum. Bei einem Upgrade wird derselbe Test für die Zielstufe verwendet; ist deren Grundriss oder Freiraum blockiert, kann das Upgrade nicht gestartet werden. Sobald das Upgrade startet, wird die Zielfläche sofort reserviert. Für registrierte Gebäudetypen kommt der Grundriss aus der aktuellen Editor-Definition; für noch nicht registrierte Typen gilt die derzeitige codebasierte Form.
+Gebäude brauchen den vollständigen Grundriss ihrer aktuell gebauten Stufe plus einen freien Ring von zwei Mikrozellen rundherum. Bei einem Upgrade wird derselbe Test für die Zielstufe verwendet, sobald für diese Stufe eine Editor-Definition existiert; ist deren Grundriss oder Freiraum blockiert, kann das Upgrade nicht gestartet werden. Sobald ein solcher Ausbau startet, wird die Zielfläche sofort reserviert. Für noch nicht im Editor definierte Zielstufen bleibt der bestehende Grundriss unverändert. Für registrierte Gebäudetypen kommt der Grundriss aus der aktuellen Editor-Definition; für noch nicht registrierte Typen gilt die derzeitige codebasierte Form.
 
 Zusätzlich darf ein Gebäude nur gebaut werden, wenn sein **Eingang innerhalb des 3,5-Weltkachel-Radius mindestens eines platzierten Wegweisers** liegt. Es genügt jeder Wegweiser; er muss nicht mit einem anderen Wegweiser verbunden sein. Damit können bewusst mehrere voneinander getrennte Logistiknetze bestehen, etwa auf unterschiedlichen Inseln.
 
