@@ -407,8 +407,10 @@ const createBirthChildren = (
 ): void => {
   if (first.familyTask?.birthCreated || second.familyTask?.birthCreated) return;
   const count = birthCountFromRoll(randomFraction(world));
-  for (let index = 0; index < count; index += 1)
-    createChild(world, household, first, second);
+  for (let index = 0; index < count; index += 1) {
+    const child = createChild(world, household, first, second);
+    child.nextChildWanderTick = first.familyTask?.completeAtTick;
+  }
 
   household.lastBirthTick = world.round;
   household.nextBirthCheckTick = world.round + BIRTH_COOLDOWN_TICKS;
