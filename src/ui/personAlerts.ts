@@ -40,17 +40,20 @@ const NAVIGATION_BLOCK_LABELS: Record<NavigationBlockReason, string> = {
 };
 
 const isTrulyIdle = (world: World, person: Person): boolean =>
+  person.ageStage !== "child" &&
   !currentProfession(world, person) &&
   !person.assignment &&
-  !person.builder &&
-  !person.woodcutter &&
-  !person.extractor &&
+  !person.familyTask &&
+  !person.educationTask &&
+  !person.equipmentTask &&
+  !person.scoutWaypostTask &&
   !person.hungerState &&
   !person.sleepState &&
   !person.trip &&
   !person.farmTask &&
-  !person.active &&
-  person.path.length === 0;
+  !person.outdoorCarry &&
+  !person.resourceTarget &&
+  person.progress <= 0;
 
 export const personAlert = (world: World, person: Person): PersonAlert | undefined => {
   const hunger = hungerStatus(person);

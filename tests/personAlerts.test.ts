@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createWorld } from "../src/simulation/scenario";
+import { createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
 import { personAlert, personAlertMap } from "../src/ui/personAlerts";
 
 test("person alerts keep only the highest severity per person", () => {
@@ -44,6 +44,50 @@ test("assigned or otherwise occupied people are not reported as idle", () => {
   person.hunger = 100;
   person.sleep = 100;
   person.builder = true;
+
+  assert.equal(personAlert(world, person), undefined);
+});
+
+
+test("free residents have the blue info hint at game start", () => {
+  const world = createDefaultGameWorld();
+  const freePeople = world.people.filter(
+    (person) =>
+      !person.profession &&
+      !person.assignment &&
+      !person.builder &&
+      !person.woodcutter &&
+      !person.fisher &&
+      !person.hunter &&
+      !person.extractor,
+  );
+
+  assert.ok(freePeople.length > 0);
+  for (const person of freePeople)
+    assert.equal(personAlert(world, person)?.code, "idle");
+});
+
+test("free people stay reported as idle while moving or marked active", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  person.hunger = 100;
+  person.sleep = 100;
+  person.active = true;
+  person.path = [{ q: person.position.q + 1, r: person.position.r }];
+
+  assert.deepEqual(personAlert(world, person), {
+    severity: "info",
+    code: "idle",
+    label: "Keine Aufgabe",
+  });
+});
+
+test("temporary real tasks suppress the free-person idle hint", () => {
+  const world = createWorld(1);
+  const person = world.people[0]!;
+  person.hunger = 100;
+  person.sleep = 100;
+  person.familyTask = { kind: "partner-search", partnerId: 2 };
 
   assert.equal(personAlert(world, person), undefined);
 });
