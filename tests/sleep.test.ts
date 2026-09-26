@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CONFIG, createWorld } from "../src/simulation/scenario";
+import { CONFIG, createDefaultGameWorld, createWorld } from "../src/simulation/scenario";
 import { advanceSleepTick, SLEEP_RULES } from "../src/simulation/sleep";
 import { tick } from "../src/simulation/simulation";
 import type { Building, World } from "../src/simulation/model";
@@ -188,12 +188,7 @@ test("assigned residents choose their own home over a closer nature sleep target
   const world = createWorld(1);
   const person = world.people[0]!;
   removeNatureSleepTargets(world);
-  const bush = world.tiles.find(
-    (tile) =>
-      tile.terrain === "grass" &&
-      tile.q === person.position.q &&
-      tile.r === person.position.r,
-  )!;
+  const bush = nearbyGrassTile(world);
   bush.bush = true;
   bush.bushAvailable = true;
   const house = addHouse(world, 2);
@@ -242,7 +237,7 @@ test("assigned residents fall back to local nature when their home is unreachabl
 });
 
 test("stone extractor keeps an active sleep route instead of returning to its resource", () => {
-  const world = createWorld(1);
+  const world = createDefaultGameWorld();
   const person = world.people[0]!;
   const stone = world.naturalResources.find((resource) => resource.kind === "stone");
   assert.ok(stone);
