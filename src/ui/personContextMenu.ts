@@ -268,7 +268,8 @@ export function mountPersonContextMenu(world: World): void {
   };
 
   const setMenuOpen = (open: boolean): void => {
-    if (open && !selectedPerson()) return;
+    const person = selectedPerson();
+    if (open && (!person || person.ageStage === "child")) return;
     menu.hidden = !open;
     pickerBackdrop.hidden = true;
     if (open) renderMenu();
@@ -455,6 +456,8 @@ export function mountPersonContextMenu(world: World): void {
   window.addEventListener(PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT, (event) => {
     const detail = (event as CustomEvent<{ personId: number; slot?: EquipmentSlot }>).detail;
     selectedPersonId = detail.personId;
+    const person = selectedPerson();
+    if (!person || person.ageStage === "child") return;
     setMenuOpen(true);
     renderEquipmentPicker(detail.slot);
     pickerBackdrop.hidden = false;
