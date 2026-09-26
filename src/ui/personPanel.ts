@@ -16,7 +16,7 @@ import { EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentPendingForSlot, equip
 import { PERSON_EQUIPMENT_PICKER_REQUESTED_EVENT } from "./personContextMenu";
 import { confirmDialog, showDialog } from "./modalDialog";
 import { homeForPerson } from "../simulation/housing";
-import { canSearchForPartner, startPartnerSearchMany } from "../simulation/family";
+import { canSearchForPartner, childAgeYears, startPartnerSearchMany } from "../simulation/family";
 
 const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
@@ -379,9 +379,11 @@ export function mountPersonPanel(world: World): void {
         .map((id) => world.people.find((candidate) => candidate.id === id))
         .filter((candidate): candidate is Person => Boolean(candidate));
       const home = homeForPerson(world, person);
+      const ageYears = childAgeYears(world, person) ?? 0;
       const signature = [
         "child",
         person.id,
+        ageYears,
         (person.parentIds ?? []).join(","),
         home?.id ?? "",
       ].join("|");
@@ -396,6 +398,7 @@ export function mountPersonPanel(world: World): void {
           <button class="person-inspector-close" type="button" data-person-action="close-inspector" aria-label="Person schließen">×</button>
         </header>
         <dl class="person-facts person-facts-primary">
+          <div><dt>Alter</dt><dd>${ageYears} ${ageYears === 1 ? "Jahr" : "Jahre"}</dd></div>
           <div><dt>Eltern</dt><dd>${parents.length ? parents.map((parent) => escapeHtml(personName(parent.id))).join(", ") : "—"}</dd></div>
           <div><dt>Wohnhaus</dt><dd>${home ? escapeHtml(home.name) : "—"}</dd></div>
         </dl>`;
