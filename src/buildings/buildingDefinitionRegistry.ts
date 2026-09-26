@@ -134,8 +134,16 @@ export const visualLevelForBuilding = (building: Building): number =>
 /** Registered definitions are authoritative for their building kind and visual level. */
 export const definitionForBuilding = (
   building: Building,
-): RegisteredBuildingLevel | undefined =>
-  buildingDefinition(building.kind, visualLevelForBuilding(building));
+): RegisteredBuildingLevel | undefined => {
+  const requestedLevel = visualLevelForBuilding(building);
+  const exact = buildingDefinition(building.kind, requestedLevel);
+  if (exact) return exact;
+  const definition = buildingVisualDefinition(building.kind);
+  const fallback = definition?.levels
+    .filter((level) => level.level <= requestedLevel)
+    .sort((a, b) => b.level - a.level)[0];
+  return fallback ? buildingDefinition(building.kind, fallback.level) : undefined;
+};
 
 export const bindBuildingDefinition = (building: Building): void => {
   const definition = buildingVisualDefinition(building.kind);
