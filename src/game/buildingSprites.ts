@@ -19,13 +19,15 @@ type CreatableScene = MainScene & {
   create?: () => void;
 };
 
-const textureKey = (id: string): string => `building-${id}`;
+const textureKey = (definitionId: string, level: number): string =>
+  `building-${definitionId}-level-${level}`;
 const displayable = (building: Building): boolean =>
   !building.retired && (!building.construction || building.construction.complete);
 
 function loadTextures(scene: MainScene): Promise<void> {
   const pending = registeredBuildingDefinitions().filter(
-    (definition) => !scene.textures.exists(textureKey(definition.visual.id)),
+    (definition) =>
+      !scene.textures.exists(textureKey(definition.definitionId, definition.visual.level)),
   );
   if (!pending.length) return Promise.resolve();
 
@@ -46,7 +48,10 @@ function loadTextures(scene: MainScene): Promise<void> {
     scene.load.once(Phaser.Loader.Events.COMPLETE, complete);
     scene.load.once(Phaser.Loader.Events.FILE_LOAD_ERROR, failed);
     for (const definition of pending)
-      scene.load.image(textureKey(definition.visual.id), definition.spriteUrl);
+      scene.load.image(
+        textureKey(definition.definitionId, definition.visual.level),
+        definition.spriteUrl,
+      );
     scene.load.start();
   });
 }
@@ -69,7 +74,7 @@ export function installBuildingSprites(scene: MainScene, world: World): void {
   const createSprite = (building: Building): Phaser.GameObjects.Image | undefined => {
     const registered = definitionForBuilding(building);
     if (!registered) return;
-    const key = textureKey(registered.visual.id);
+    const key = textureKey(registered.definitionId, registered.visual.level);
     const source = scene.textures.get(key).getSourceImage() as HTMLImageElement;
     const worldWidth = registered.visual.spriteWorldWidth;
     const worldHeight = worldWidth * (source.height / source.width);
@@ -94,8 +99,12 @@ export function installBuildingSprites(scene: MainScene, world: World): void {
       if (!activeIds.has(id)) removeSprite(id);
 
     for (const building of active) {
+      const registered = definitionForBuilding(building);
+      if (!registered) continue;
+      const desiredKey = textureKey(registered.definitionId, registered.visual.level);
       let sprite = sprites.get(building.id);
-      if (!sprite) {
+      if (!sprite || sprite.texture.key !== desiredKey) {
+        removeSprite(building.id);
         sprite = createSprite(building);
         if (!sprite) continue;
         sprites.set(building.id, sprite);
