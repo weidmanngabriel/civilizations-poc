@@ -118,7 +118,6 @@ export function updateHouseLevelUnlocks(world: World): HouseLevel[] {
     newlyUnlocked.push(level);
   }
 
-  updateHouseLevelUnlocks(world);
   return newlyUnlocked;
 }
 
@@ -168,5 +167,6 @@ export function updateTechnologyUnlocks(world: World): TechnologyId[] {
     newlyUnlocked.push(technology);
   }
 
+  updateHouseLevelUnlocks(world);
   return newlyUnlocked;
 }
