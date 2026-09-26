@@ -422,7 +422,7 @@ export function mountPersonPanel(world: World): void {
       .map((id) => world.people.find((candidate) => candidate.id === id))
       .filter((candidate): candidate is Person => Boolean(candidate));
     const sexLabel = person.sex === "female" ? "Frau" : person.sex === "male" ? "Mann" : "—";
-    const ageLabel = person.ageStage === "child" ? "Kind" : "Erwachsen";
+    const ageLabel = "Erwachsen";
     const tool = equipmentForSlot(person, "tool");
     const shoes = equipmentForSlot(person, "shoes");
     const equipmentSlot = (slot: EquipmentSlot): string => {
@@ -464,7 +464,7 @@ export function mountPersonPanel(world: World): void {
     inspector.hidden = false;
     inspector.innerHTML = `
       <header class="person-panel-header person-inspector-header">
-        <button class="person-context-toggle" type="button" data-person-action="open-context" ${person.ageStage === "child" ? "disabled" : ""}>
+        <button class="person-context-toggle" type="button" data-person-action="open-context">
           <span class="person-context-toggle-icon" aria-hidden="true"></span><span>Aktionen</span>
         </button>
         <div class="person-inspector-identity">
@@ -475,7 +475,7 @@ export function mountPersonPanel(world: World): void {
         </div>
         <button class="person-inspector-close" type="button" data-person-action="close-inspector" aria-label="Person schließen">×</button>
       </header>
-      ${person.ageStage === "child" ? "" : `<div class="person-needs">
+      <div class="person-needs">
         <div class="person-need-row">
           <span>Hunger</span>
           <div class="person-meter"><i style="width:${hunger}%"></i></div>
@@ -486,7 +486,7 @@ export function mountPersonPanel(world: World): void {
           <div class="person-meter"><i style="width:${sleep}%"></i></div>
           <strong>${sleep}</strong>
         </div>
-      </div>`}
+      </div>
       <dl class="person-facts person-facts-primary">
         <div>
           <dt>Aktuell</dt>
