@@ -60,7 +60,8 @@ test("bakery, farm, well and mill use their editor-authored definitions", () => 
   for (const [kind, id] of expected) {
     const registered = buildingDefinition(kind);
     assert.ok(registered);
-    assert.equal(registered.visual.id, id);
+    assert.equal(registered.definitionId, id);
+    assert.equal(registered.visual.level, 1);
     assert.ok(registered.visual.footprint.length > 0);
     assert.ok(registered.visual.footprint.some((cell) =>
       cell.q === registered.visual.entrance.q && cell.r === registered.visual.entrance.r
@@ -89,7 +90,7 @@ test("registered building kinds always use the current registry definition", () 
     output: 0,
   };
 
-  assert.equal(definitionForBuilding(bakery)?.visual.id, "bakery");
+  assert.equal(definitionForBuilding(bakery)?.definitionId, "bakery");
 });
 
 test("placeholder asset slots stay inactive until replaced by a real editor export", () => {
