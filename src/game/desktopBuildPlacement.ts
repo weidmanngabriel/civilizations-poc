@@ -12,7 +12,14 @@ type BuildPlacementScene = {
 
 type PointerPosition = { x: number; y: number };
 
-const isDesktopPointer = (event: PointerEvent): boolean => event.pointerType === "mouse";
+const hasFinePointer = (): boolean =>
+  window.matchMedia("(any-hover: hover) and (any-pointer: fine)").matches;
+
+const inputModeForPointer = (pointerType?: string): "desktop" | "touch" =>
+  buildPlacementInputModeForPointer(pointerType, hasFinePointer());
+
+const isDesktopPointer = (event: PointerEvent): boolean =>
+  inputModeForPointer(event.pointerType) === "desktop";
 
 export function installDesktopBuildPlacement(
   game: Phaser.Game,
@@ -36,10 +43,7 @@ export function installDesktopBuildPlacement(
   };
 
   const setPlacementInputMode = (pointerType?: string): "desktop" | "touch" => {
-    const mode = buildPlacementInputModeForPointer(
-      pointerType,
-      window.matchMedia("(hover: hover) and (pointer: fine)").matches,
-    );
+    const mode = inputModeForPointer(pointerType);
     const overlay = document.querySelector<HTMLElement>("#build-placement-overlay");
     const copy = overlay?.querySelector<HTMLElement>("span");
     const confirm = document.querySelector<HTMLButtonElement>("#build-placement-confirm");

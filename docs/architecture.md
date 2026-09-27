@@ -27,6 +27,8 @@ The deterministic simulation stays independent from Phaser. Presentation reads s
 
 The DOM UI uses a single light visual theme. Component styles keep layout and feature-specific structure in their existing CSS files; `src/light-theme.css` is imported last from `src/main.ts` and owns the shared light palette plus deliberate overrides for components that previously carried dark palettes. Dark translucent colors remain appropriate for modal backdrops and map-dimming layers, but interactive panels themselves use the light component language.
 
+Responsive layout and input modality are separate presentation concerns. CSS viewport breakpoints adapt panel size and arrangement to available screen space, but they do not decide whether an interaction behaves like mouse or touch. Map interactions classify the current pointer event: `mouse` uses desktop semantics, `touch` and `pen` use touch semantics, and an unknown pointer type falls back to whether the browser exposes any hover-capable fine pointer. User-agent or viewport-width device detection is not authoritative for interaction behavior.
+
 ### Focused map actions
 
 `src/ui/actionMode.ts` aggregates the existing build, merchant-target, upgrade-preview, person-command and work-area mode events into one presentation-only `ui-action-mode` state. CSS hides the normal top-level UI while that state is active and leaves only the map plus the active mode's own action overlay visible. Mode ownership remains in the existing feature modules; the aggregator does not mutate simulation state or replace their completion/cancellation events.
