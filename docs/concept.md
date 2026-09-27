@@ -14,6 +14,12 @@ Ziel bleibt eine personenbasierte Produktions- und Logistiksimulation auf einem 
 
 Bestätigungen und blockierende Hinweise erscheinen als eigene modale Spielfenster statt als Browser-Dialoge. Während einer solchen Abfrage ist die Karte nicht bedienbar. Bestätigen und Abbrechen sind auf Desktop und Touch gleich verfügbar; bei destruktiven Aktionen liegt der Standardfokus auf **Abbrechen**, um versehentliche Löschaktionen zu vermeiden.
 
+### Responsive UI und Eingabe
+
+Die Anordnung und Größe der UI richtet sich nach dem verfügbaren Bildschirmplatz. Kleine Browserfenster dürfen dadurch eine kompaktere Oberfläche erhalten, ohne automatisch als Touch-Gerät behandelt zu werden.
+
+Die Kartenbedienung richtet sich separat nach der aktuellen Eingabemethode. Mit Maus folgt der Bau-Ghost dem Zeiger; ein Linksklick platziert ein normales Gebäude direkt, der zusätzliche **Bauen**-Button wird dabei nicht angezeigt, und Rechtsklick oder Escape brechen ab. Bei Touch oder Stift wählt ein Tippen die Position, Ziehen verschiebt weiterhin die Karte und die Platzierung wird über den sichtbaren **Bauen**-Button bestätigt. Geräte mit mehreren Eingabemethoden dürfen während derselben Sitzung zwischen diesen Bedienarten wechseln.
+
 ## Feineres Raumraster
 
 Die Welt verwendet intern ein **5× feineres Raster pro Raumachse**: aus 41 × 25 werden 205 × 125 Mikrozellen. Die sichtbare Kartengröße bleibt ungefähr gleich. Gebäude und Äcker belegen viele Mikrozellen; Bewohner bewegen sich flüssig und bleiben visuell lesbar.
