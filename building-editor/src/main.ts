@@ -13,9 +13,9 @@ import {
 } from "../../src/buildings/buildingVisualVariants";
 import type { Hex } from "../../src/simulation/model";
 
-type Tool = "move" | "footprint" | "blocked" | "entrance";
+type Tool = "move" | "origin" | "footprint" | "blocked" | "entrance";
 type PaintMode = "set" | "remove";
-type PaintTool = Exclude<Tool, "move">;
+type PaintTool = Exclude<Tool, "move" | "origin">;
 type PlaceholderDefinition = {
   placeholder: true;
   id: string;
@@ -118,6 +118,7 @@ app.innerHTML = `
           <h2>Werkzeug</h2>
           <div class="tool-row">
             <button class="tool" data-tool="move">Sprite verschieben</button>
+            <button class="tool" data-tool="origin">Ursprung setzen</button>
             <button class="tool active" data-tool="footprint">Grundfläche</button>
             <button class="tool" data-tool="blocked">Blockierte Zellen</button>
             <button class="tool" data-tool="entrance">Eingang</button>
@@ -130,7 +131,7 @@ app.innerHTML = `
             <label for="boundary-strength">Außengrenze <span id="boundary-label">80 %</span></label>
             <input id="boundary-strength" type="range" min="0" max="100" step="1" value="80" />
           </div>
-          <p class="help">Ein Klick toggelt die Zelle. Klick halten und ziehen überträgt das Ergebnis der ersten Zelle auf alle weiteren überfahrenen Zellen. Shift + Klick oder Shift + Drag setzt Zellen zurück. Sprite verschieben erlaubt Drag am Bild.</p>
+          <p class="help">Ursprung setzen verschiebt q=0 / r=0 auf die angeklickte Zelle, ohne Sprite oder markierte Gebäudeflächen optisch zu verschieben. Die übrigen Rasterwerkzeuge toggeln per Klick; Ziehen überträgt den Setz-/Löschmodus, Shift erzwingt Löschen.</p>
         </section>
         <section class="panel">
           <h2>Sprite-Ausrichtung</h2>
@@ -499,6 +500,7 @@ function renderGrid(): void {
   fitCanvasToCells(cells);
   grid.setAttribute("viewBox", `0 0 ${canvas.clientWidth} ${canvas.clientHeight}`);
   grid.classList.toggle("moving-sprite", currentTool === "move");
+  grid.classList.toggle("setting-origin", currentTool === "origin");
   spritePreview.classList.toggle("movable", currentTool === "move");
   for (const cell of cells) {
     const key = cellKey(cell);
@@ -528,6 +530,58 @@ function toolHasCell(tool: PaintTool, cell: Hex): boolean {
   if (tool === "footprint") return footprint.has(key);
   if (tool === "blocked") return blocked.has(key);
   return entrance ? cellKey(entrance) === key : false;
+}
+
+function translateHex(cell: Hex, offset: Hex): Hex {
+  return { q: cell.q - offset.q, r: cell.r - offset.r };
+}
+
+function rebaseCellMap(cells: Map<string, Hex>, offset: Hex): void {
+  const rebased = [...cells.values()].map((cell) => translateHex(cell, offset));
+  cells.clear();
+  for (const cell of rebased) cells.set(cellKey(cell), cell);
+}
+
+function setBuildingOrigin(cell: Hex): void {
+  if (cell.q === 0 && cell.r === 0) return;
+  if (!spriteDataUrl || !spritePreview.naturalWidth) {
+    setError("Bitte zuerst ein Sprite laden, bevor der Gebäudeursprung verschoben wird.");
+    return;
+  }
+
+  const previewWidth = spriteWorldWidth * PREVIEW_SCALE;
+  const previewHeight = previewWidth * (spritePreview.naturalHeight / spritePreview.naturalWidth);
+  const deltaX = CELL_X * (cell.q + cell.r / 2);
+  const deltaY = CELL_Y * cell.r;
+  const nextAnchorX = (Number(anchorXInput.value) || 0) + (deltaX / previewWidth) * 100;
+  const nextAnchorY = (Number(anchorYInput.value) || 0) + (deltaY / previewHeight) * 100;
+
+  if (nextAnchorX < 0 || nextAnchorX > 100 || nextAnchorY < 0 || nextAnchorY > 100) {
+    setError("Der Gebäudeursprung muss innerhalb des Sprites liegen.");
+    return;
+  }
+
+  rebaseCellMap(footprint, cell);
+  rebaseCellMap(blocked, cell);
+  if (entrance) entrance = translateHex(entrance, cell);
+
+  anchorXInput.value = String(Math.round(nextAnchorX * 10) / 10);
+  anchorYInput.value = String(Math.round(nextAnchorY * 10) / 10);
+
+  const sOffset = cell.q + cell.r;
+  gridBounds = {
+    minQ: gridBounds.minQ - cell.q,
+    maxQ: gridBounds.maxQ - cell.q,
+    minR: gridBounds.minR - cell.r,
+    maxR: gridBounds.maxR - cell.r,
+    minS: gridBounds.minS + sOffset,
+    maxS: gridBounds.maxS + sOffset,
+  };
+  gridOrigin = { x: gridOrigin.x + deltaX, y: gridOrigin.y + deltaY };
+
+  renderGrid();
+  storeActiveLevel();
+  refreshStatus("Gebäudeursprung auf q=0 / r=0 neu gesetzt.");
 }
 
 function applyCellPaint(tool: PaintTool, cell: Hex, mode: PaintMode): void {
@@ -562,6 +616,10 @@ function applyCellPaint(tool: PaintTool, cell: Hex, mode: PaintMode): void {
 function beginCellPaint(event: PointerEvent, cell: Hex): void {
   if (currentTool === "move" || event.button !== 0) return;
   event.preventDefault();
+  if (currentTool === "origin") {
+    setBuildingOrigin(cell);
+    return;
+  }
   const tool = currentTool as PaintTool;
   const mode: PaintMode = event.shiftKey ? "remove" : toolHasCell(tool, cell) ? "remove" : "set";
   paintDrag = { tool, mode, visited: new Set([cellKey(cell)]) };

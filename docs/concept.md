@@ -74,7 +74,8 @@ Aktuell verwenden Hauptquartier, Bäckerei, Farm, Brunnen und Mühle den generis
 
 Für ein registriertes Gebäude gilt:
 
-- Der im Editor verwendete Bezugspunkt bleibt der räumliche/visuelle Anker.
+- Der im Editor verwendete Bezugspunkt bleibt der räumliche/visuelle Anker. Er entspricht `q=0 / r=0`, kann pro Ausbaustufe im Editor bewusst an eine andere Stelle des Gebäudes gelegt werden und wird beim Export durch Umrechnung der relativen Daten dargestellt, nicht durch ein zusätzliches JSON-Feld.
+- Beim Wechsel auf eine andere Ausbaustufe bleibt dieser Welt-Anker stabil; die Zielstufe richtet ihren eigenen Grundriss, Sprite und Eingang relativ dazu aus.
 - Die Gameplay-Position des Gebäudes liegt an der im Editor definierten Eingangszelle.
 - Sprite, Grundriss und blockierte Zellen werden gemeinsam relativ zum Editor-Anker ausgerichtet.
 - Nur die explizit als `blocked` markierten Grundrisszellen blockieren Bewohner.

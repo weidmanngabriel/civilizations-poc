@@ -10,3 +10,12 @@ test("removing a blocked cell resets both blocked state and footprint", () => {
     /else if \(tool === "blocked"\)[\s\S]*?else \{\s*blocked\.delete\(key\);\s*footprint\.delete\(key\);\s*\}/,
   );
 });
+
+
+test("origin tool rebases spatial data and sprite anchor without changing the export schema", () => {
+  assert.match(source, /data-tool="origin">Ursprung setzen<\/button>/);
+  assert.match(source, /rebaseCellMap\(footprint, cell\);\s*rebaseCellMap\(blocked, cell\);/);
+  assert.match(source, /if \(entrance\) entrance = translateHex\(entrance, cell\);/);
+  assert.match(source, /nextAnchorX[\s\S]*?deltaX \/ previewWidth/);
+  assert.match(source, /gridOrigin = \{ x: gridOrigin\.x \+ deltaX, y: gridOrigin\.y \+ deltaY \};/);
+});
