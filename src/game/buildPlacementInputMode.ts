@@ -4,6 +4,13 @@ export function buildPlacementInputModeForPointer(
   pointerType: string | undefined,
   desktopFallback: boolean,
 ): BuildPlacementInputMode {
-  if (pointerType) return pointerType === "mouse" ? "desktop" : "touch";
-  return desktopFallback ? "desktop" : "touch";
+  switch (pointerType?.toLowerCase()) {
+    case "mouse":
+      return "desktop";
+    case "touch":
+    case "pen":
+      return "touch";
+    default:
+      return desktopFallback ? "desktop" : "touch";
+  }
 }
