@@ -38,8 +38,18 @@ type LevelSnapshot = {
   blocked: Hex[];
   entrance?: Hex;
 };
+type GridBounds = {
+  minQ: number;
+  maxQ: number;
+  minR: number;
+  maxR: number;
+  minS: number;
+  maxS: number;
+};
 
-const GRID_RADIUS = 8;
+const DEFAULT_GRID_RADIUS = 8;
+const GRID_SPRITE_MARGIN = 3;
+const CANVAS_PADDING = 48;
 const PREVIEW_SCALE = 10;
 const CELL_X = HEX_X * PREVIEW_SCALE;
 const CELL_Y = HEX_Y * PREVIEW_SCALE;
@@ -113,8 +123,8 @@ app.innerHTML = `
             <button class="tool" data-tool="entrance">Eingang</button>
           </div>
           <div class="field overlay-field">
-            <label for="interior-strength">Innenbereich <span id="interior-label">50 %</span></label>
-            <input id="interior-strength" type="range" min="0" max="100" step="1" value="50" />
+            <label for="interior-strength">Innenbereich <span id="interior-label">30 %</span></label>
+            <input id="interior-strength" type="range" min="0" max="100" step="1" value="30" />
           </div>
           <div class="field overlay-field">
             <label for="boundary-strength">Außengrenze <span id="boundary-label">80 %</span></label>
@@ -141,6 +151,7 @@ app.innerHTML = `
 
 const grid = document.querySelector<SVGSVGElement>("#grid")!;
 const canvas = document.querySelector<HTMLDivElement>("#canvas")!;
+const workspace = document.querySelector<HTMLElement>(".workspace")!;
 const spritePreview = document.querySelector<HTMLImageElement>("#sprite-preview")!;
 const spriteInput = document.querySelector<HTMLInputElement>("#sprite-input")!;
 const importInput = document.querySelector<HTMLInputElement>("#import-input")!;
@@ -159,6 +170,8 @@ const interiorLabel = document.querySelector<HTMLSpanElement>("#interior-label")
 const boundaryRange = document.querySelector<HTMLInputElement>("#boundary-strength")!;
 const boundaryLabel = document.querySelector<HTMLSpanElement>("#boundary-label")!;
 const originMarker = document.querySelector<HTMLDivElement>("#origin-marker")!;
+const axisQLabel = document.querySelector<HTMLDivElement>(".axis-q")!;
+const axisRLabel = document.querySelector<HTMLDivElement>(".axis-r")!;
 const status = document.querySelector<HTMLDivElement>("#status")!;
 const downloadButton = document.querySelector<HTMLButtonElement>("#download")!;
 const saveProjectButton = document.querySelector<HTMLButtonElement>("#save-project")!;
@@ -177,6 +190,15 @@ const footprint = new Map<string, Hex>();
 const blocked = new Map<string, Hex>();
 const cellElements = new Map<string, SVGPolygonElement>();
 let entrance: Hex | undefined;
+let gridOrigin = { x: 410, y: 400 };
+let gridBounds: GridBounds = {
+  minQ: -DEFAULT_GRID_RADIUS,
+  maxQ: DEFAULT_GRID_RADIUS,
+  minR: -DEFAULT_GRID_RADIUS,
+  maxR: DEFAULT_GRID_RADIUS,
+  minS: -DEFAULT_GRID_RADIUS * 2,
+  maxS: DEFAULT_GRID_RADIUS * 2,
+};
 
 const cellKey = (cell: Hex): string => `${cell.q},${cell.r}`;
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -273,14 +295,142 @@ for (const entry of PROJECT_VARIANTS) {
   buildingSelect.append(option);
 }
 
-const center = (): { x: number; y: number } => ({
-  x: canvas.clientWidth / 2,
-  y: Math.max(300, canvas.clientHeight / 2 + 60),
-});
+const center = (): { x: number; y: number } => gridOrigin;
 
 function projected(cell: Hex): { x: number; y: number } {
   const origin = center();
   return { x: origin.x + CELL_X * (cell.q + cell.r / 2), y: origin.y + CELL_Y * cell.r };
+}
+
+function relativePixelToAxial(x: number, y: number): { q: number; r: number; s: number } {
+  const r = y / CELL_Y;
+  const q = x / CELL_X - r / 2;
+  return { q, r, s: -q - r };
+}
+
+function defaultGridBounds(): GridBounds {
+  return {
+    minQ: -DEFAULT_GRID_RADIUS,
+    maxQ: DEFAULT_GRID_RADIUS,
+    minR: -DEFAULT_GRID_RADIUS,
+    maxR: DEFAULT_GRID_RADIUS,
+    minS: -DEFAULT_GRID_RADIUS * 2,
+    maxS: DEFAULT_GRID_RADIUS * 2,
+  };
+}
+
+function boundsAroundAxialPoints(points: Array<{ q: number; r: number; s: number }>): GridBounds {
+  const minQ = Math.floor(Math.min(...points.map((point) => point.q))) - GRID_SPRITE_MARGIN;
+  const maxQ = Math.ceil(Math.max(...points.map((point) => point.q))) + GRID_SPRITE_MARGIN;
+  const minR = Math.floor(Math.min(...points.map((point) => point.r))) - GRID_SPRITE_MARGIN;
+  const maxR = Math.ceil(Math.max(...points.map((point) => point.r))) + GRID_SPRITE_MARGIN;
+  const minS = Math.floor(Math.min(...points.map((point) => point.s))) - GRID_SPRITE_MARGIN;
+  const maxS = Math.ceil(Math.max(...points.map((point) => point.s))) + GRID_SPRITE_MARGIN;
+  return { minQ, maxQ, minR, maxR, minS, maxS };
+}
+
+function requiredGridBounds(): GridBounds {
+  const points: Array<{ q: number; r: number; s: number }> = [];
+
+  if (spriteDataUrl && spritePreview.naturalWidth) {
+    const anchorX = (Number(anchorXInput.value) || 0) / 100;
+    const anchorY = (Number(anchorYInput.value) || 0) / 100;
+    const width = spriteWorldWidth * PREVIEW_SCALE;
+    const height = width * (spritePreview.naturalHeight / spritePreview.naturalWidth);
+    const left = -anchorX * width;
+    const top = -anchorY * height;
+    const right = left + width;
+    const bottom = top + height;
+    points.push(
+      relativePixelToAxial(left, top),
+      relativePixelToAxial(right, top),
+      relativePixelToAxial(left, bottom),
+      relativePixelToAxial(right, bottom),
+    );
+  }
+
+  for (const cell of footprint.values()) {
+    points.push({ q: cell.q, r: cell.r, s: -cell.q - cell.r });
+  }
+  if (entrance) points.push({ q: entrance.q, r: entrance.r, s: -entrance.q - entrance.r });
+
+  return points.length ? boundsAroundAxialPoints(points) : defaultGridBounds();
+}
+
+function expandGridBoundsToContent(): boolean {
+  const required = requiredGridBounds();
+  const next: GridBounds = {
+    minQ: Math.min(gridBounds.minQ, required.minQ),
+    maxQ: Math.max(gridBounds.maxQ, required.maxQ),
+    minR: Math.min(gridBounds.minR, required.minR),
+    maxR: Math.max(gridBounds.maxR, required.maxR),
+    minS: Math.min(gridBounds.minS, required.minS),
+    maxS: Math.max(gridBounds.maxS, required.maxS),
+  };
+  const changed = Object.keys(next).some(
+    (key) => next[key as keyof GridBounds] !== gridBounds[key as keyof GridBounds],
+  );
+  if (changed) gridBounds = next;
+  return changed;
+}
+
+function cellsInGridBounds(): Hex[] {
+  const cells: Hex[] = [];
+  for (let r = gridBounds.minR; r <= gridBounds.maxR; r += 1) {
+    for (let q = gridBounds.minQ; q <= gridBounds.maxQ; q += 1) {
+      const s = -q - r;
+      if (s < gridBounds.minS || s > gridBounds.maxS) continue;
+      cells.push({ q, r });
+    }
+  }
+  return cells;
+}
+
+function fitCanvasToCells(cells: Hex[]): void {
+  if (!cells.length) return;
+  const corners = hexCornerOffsets(PREVIEW_SCALE);
+  const maxCornerX = Math.max(...corners.map((corner) => Math.abs(corner.x)));
+  const maxCornerY = Math.max(...corners.map((corner) => Math.abs(corner.y)));
+  let minX = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+
+  for (const cell of cells) {
+    const x = CELL_X * (cell.q + cell.r / 2);
+    const y = CELL_Y * cell.r;
+    minX = Math.min(minX, x - maxCornerX);
+    maxX = Math.max(maxX, x + maxCornerX);
+    minY = Math.min(minY, y - maxCornerY);
+    maxY = Math.max(maxY, y + maxCornerY);
+  }
+
+  const shiftX = Math.max(0, CANVAS_PADDING - (gridOrigin.x + minX));
+  const shiftY = Math.max(0, CANVAS_PADDING - (gridOrigin.y + minY));
+  if (shiftX || shiftY) {
+    gridOrigin = { x: gridOrigin.x + shiftX, y: gridOrigin.y + shiftY };
+  }
+
+  const width = Math.max(workspace.clientWidth, gridOrigin.x + maxX + CANVAS_PADDING);
+  const height = Math.max(workspace.clientHeight, gridOrigin.y + maxY + CANVAS_PADDING);
+  canvas.style.width = `${Math.ceil(width)}px`;
+  canvas.style.height = `${Math.ceil(height)}px`;
+
+  if (shiftX) workspace.scrollLeft += shiftX;
+  if (shiftY) workspace.scrollTop += shiftY;
+}
+
+function resetGridForCurrentLevel(): void {
+  canvas.style.width = "";
+  canvas.style.height = "";
+  gridOrigin = {
+    x: Math.max(410, canvas.clientWidth / 2),
+    y: Math.max(300, canvas.clientHeight / 2 + 60),
+  };
+  gridBounds = requiredGridBounds();
+  workspace.scrollLeft = 0;
+  workspace.scrollTop = 0;
+  renderGrid();
 }
 
 function polygonPoints(cell: Hex): string {
@@ -345,29 +495,32 @@ function syncGridCellClasses(): void {
 function renderGrid(): void {
   grid.replaceChildren();
   cellElements.clear();
+  const cells = cellsInGridBounds();
+  fitCanvasToCells(cells);
   grid.setAttribute("viewBox", `0 0 ${canvas.clientWidth} ${canvas.clientHeight}`);
   grid.classList.toggle("moving-sprite", currentTool === "move");
   spritePreview.classList.toggle("movable", currentTool === "move");
-  for (let r = -GRID_RADIUS; r <= GRID_RADIUS; r += 1) {
-    for (let q = -GRID_RADIUS; q <= GRID_RADIUS; q += 1) {
-      const cell = { q, r };
-      const key = cellKey(cell);
-      const polygon = document.createElementNS(SVG_NS, "polygon");
-      polygon.setAttribute("points", polygonPoints(cell));
-      polygon.classList.add("grid-cell");
-      if (q === 0 && r === 0) polygon.classList.add("origin");
-      if (q === 0 || r === 0) polygon.classList.add("axis-cell");
-      polygon.addEventListener("pointerdown", (event) => beginCellPaint(event, cell));
-      polygon.addEventListener("pointerenter", () => continueCellPaint(cell));
-      cellElements.set(key, polygon);
-      grid.append(polygon);
-    }
+  for (const cell of cells) {
+    const key = cellKey(cell);
+    const polygon = document.createElementNS(SVG_NS, "polygon");
+    polygon.setAttribute("points", polygonPoints(cell));
+    polygon.classList.add("grid-cell");
+    if (cell.q === 0 && cell.r === 0) polygon.classList.add("origin");
+    if (cell.q === 0 || cell.r === 0) polygon.classList.add("axis-cell");
+    polygon.addEventListener("pointerdown", (event) => beginCellPaint(event, cell));
+    polygon.addEventListener("pointerenter", () => continueCellPaint(cell));
+    cellElements.set(key, polygon);
+    grid.append(polygon);
   }
   syncGridCellClasses();
   const origin = projected({ q: 0, r: 0 });
   originMarker.style.left = `${origin.x}px`;
   originMarker.style.top = `${origin.y}px`;
-  renderSpritePosition();
+  axisQLabel.style.left = `${origin.x + 150}px`;
+  axisQLabel.style.top = `${origin.y - 2}px`;
+  axisRLabel.style.left = `${origin.x + 88}px`;
+  axisRLabel.style.top = `${origin.y + 120}px`;
+  renderSpritePosition(false);
 }
 
 function toolHasCell(tool: PaintTool, cell: Hex): boolean {
@@ -401,7 +554,8 @@ function applyCellPaint(tool: PaintTool, cell: Hex, mode: PaintMode): void {
     entrance = cell;
   } else if (entrance && cellKey(entrance) === key) entrance = undefined;
 
-  syncGridCellClasses();
+  if (mode === "set" && expandGridBoundsToContent()) renderGrid();
+  else syncGridCellClasses();
   refreshStatus();
 }
 
@@ -430,7 +584,7 @@ function roundedWorldWidth(): number {
   return Math.round(spriteWorldWidth * 10) / 10;
 }
 
-function renderSpritePosition(): void {
+function renderSpritePosition(allowGridExpansion = true): void {
   if (!spriteDataUrl || !spritePreview.naturalWidth) return;
   const origin = projected({ q: 0, r: 0 });
   const anchorX = (Number(anchorXInput.value) || 0) / 100;
@@ -441,6 +595,8 @@ function renderSpritePosition(): void {
   spritePreview.style.height = `${previewHeight}px`;
   spritePreview.style.left = `${origin.x - anchorX * previewWidth}px`;
   spritePreview.style.top = `${origin.y - anchorY * previewHeight}px`;
+
+  if (allowGridExpansion && expandGridBoundsToContent()) renderGrid();
 }
 
 function setWorldWidth(nextWidth: number, refresh = true): void {
@@ -588,8 +744,10 @@ async function loadSprite(
         720 / PREVIEW_SCALE,
         (520 / PREVIEW_SCALE) * aspect,
       );
-      setWorldWidth(fitWidth);
-    } else renderSpritePosition();
+      setWorldWidth(fitWidth, false);
+    }
+    resetGridForCurrentLevel();
+    refreshStatus();
   };
   spritePreview.src = spriteDataUrl;
   spritePreview.hidden = false;
@@ -614,7 +772,7 @@ function clearWorkingLevel(level: number): void {
   blocked.clear();
   entrance = undefined;
   setWorldWidth(60, false);
-  renderGrid();
+  resetGridForCurrentLevel();
 }
 
 function loadLevelSnapshot(level: number): void {
@@ -634,7 +792,7 @@ function loadLevelSnapshot(level: number): void {
   setWorldWidth(snapshot.spriteWorldWidth, false);
 
   if (snapshot.spriteDataUrl && snapshot.spriteFile) {
-    spritePreview.onload = renderSpritePosition;
+    spritePreview.onload = resetGridForCurrentLevel;
     spritePreview.src = snapshot.spriteDataUrl;
     spritePreview.hidden = false;
     dropzone.textContent = snapshot.spriteName + " · " + Math.round(snapshot.spriteFile.size / 1024) + " KB";
@@ -644,7 +802,7 @@ function loadLevelSnapshot(level: number): void {
     spritePreview.removeAttribute("src");
     dropzone.innerHTML = "PNG oder WebP hier hineinziehen<br />oder klicken";
   }
-  renderGrid();
+  if (!snapshot.spriteDataUrl || !snapshot.spriteFile) resetGridForCurrentLevel();
   refreshStatus();
 }
 
@@ -925,9 +1083,21 @@ dropzone.addEventListener("drop", (event) => {
   else void loadSprite(files[0]!);
 });
 
-anchorXInput.addEventListener("input", renderSpritePosition);
-anchorYInput.addEventListener("input", renderSpritePosition);
-window.addEventListener("resize", renderGrid);
+anchorXInput.addEventListener("input", () => renderSpritePosition());
+anchorYInput.addEventListener("input", () => renderSpritePosition());
+window.addEventListener("resize", () => {
+  const previousWidth = canvas.clientWidth;
+  const previousHeight = canvas.clientHeight;
+  canvas.style.width = "";
+  canvas.style.height = "";
+  if (canvas.clientWidth !== previousWidth || canvas.clientHeight !== previousHeight) {
+    gridOrigin = {
+      x: Math.max(gridOrigin.x, canvas.clientWidth / 2),
+      y: Math.max(gridOrigin.y, canvas.clientHeight / 2 + 60),
+    };
+  }
+  renderGrid();
+});
 
 setInteriorStrength(Number(interiorRange.value));
 setBoundaryStrength(Number(boundaryRange.value));
