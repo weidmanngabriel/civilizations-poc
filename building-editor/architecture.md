@@ -45,7 +45,7 @@ Rasterwerkzeuge arbeiten als Paint-Interaktion. Ein einzelner Klick toggelt die 
 
 Beim Werkzeug **Blockierte Zellen** erzeugt das Setzen zugleich die dafür notwendige Footprint-Zelle. Wird dieselbe blockierte Zelle wieder entfernt – per Toggle oder `Shift` – werden Blockierung und diese Footprint-Zelle gemeinsam zurückgesetzt, sodass die Zelle wieder unmarkiert ist.
 
-Die Overlay-Stärke der markierten Rasterzellen ist eine reine Editor-Vorschau-Einstellung. Sie beeinflusst weder `BuildingVisualDefinition` noch exportierte Dateien.
+Die Vorschau besitzt getrennte Regler für **Innenbereich** und **Außengrenze**. Der Innenbereich steuert nur die farbige Flächenfüllung markierter Rasterzellen. Die Außengrenze wird aus der Hex-Nachbarschaft abgeleitet: Kanten zwischen gleichartig markierten Nachbarzellen werden nicht gezeichnet, sodass zusammenhängende grüne, rote oder blaue Regionen jeweils eine gemeinsame äußere Kontur erhalten. Beide Regler sind reine Editor-Vorschau-Einstellungen und beeinflussen weder `BuildingVisualDefinition` noch exportierte Dateien. Standardmäßig stehen Innenbereich auf 50 % und Außengrenze auf 80 %.
 
 ## Projektgebäude laden
 

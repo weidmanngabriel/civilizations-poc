@@ -113,8 +113,12 @@ app.innerHTML = `
             <button class="tool" data-tool="entrance">Eingang</button>
           </div>
           <div class="field overlay-field">
-            <label for="overlay-strength">Overlay-Stärke <span id="overlay-label">100 %</span></label>
-            <input id="overlay-strength" type="range" min="0" max="100" step="1" value="100" />
+            <label for="interior-strength">Innenbereich <span id="interior-label">50 %</span></label>
+            <input id="interior-strength" type="range" min="0" max="100" step="1" value="50" />
+          </div>
+          <div class="field overlay-field">
+            <label for="boundary-strength">Außengrenze <span id="boundary-label">80 %</span></label>
+            <input id="boundary-strength" type="range" min="0" max="100" step="1" value="80" />
           </div>
           <p class="help">Ein Klick toggelt die Zelle. Klick halten und ziehen überträgt das Ergebnis der ersten Zelle auf alle weiteren überfahrenen Zellen. Shift + Klick oder Shift + Drag setzt Zellen zurück. Sprite verschieben erlaubt Drag am Bild.</p>
         </section>
@@ -150,8 +154,10 @@ const anchorYInput = document.querySelector<HTMLInputElement>("#anchor-y")!;
 const scaleRange = document.querySelector<HTMLInputElement>("#sprite-scale")!;
 const scaleNumber = document.querySelector<HTMLInputElement>("#scale-number")!;
 const scaleLabel = document.querySelector<HTMLSpanElement>("#scale-label")!;
-const overlayRange = document.querySelector<HTMLInputElement>("#overlay-strength")!;
-const overlayLabel = document.querySelector<HTMLSpanElement>("#overlay-label")!;
+const interiorRange = document.querySelector<HTMLInputElement>("#interior-strength")!;
+const interiorLabel = document.querySelector<HTMLSpanElement>("#interior-label")!;
+const boundaryRange = document.querySelector<HTMLInputElement>("#boundary-strength")!;
+const boundaryLabel = document.querySelector<HTMLSpanElement>("#boundary-label")!;
 const originMarker = document.querySelector<HTMLDivElement>("#origin-marker")!;
 const status = document.querySelector<HTMLDivElement>("#status")!;
 const downloadButton = document.querySelector<HTMLButtonElement>("#download")!;
@@ -284,12 +290,56 @@ function polygonPoints(cell: Hex): string {
     .join(" ");
 }
 
+const REGION_EDGE_NEIGHBORS: readonly Hex[] = [
+  { q: 1, r: 0 },
+  { q: 0, r: 1 },
+  { q: -1, r: 1 },
+  { q: -1, r: 0 },
+  { q: 0, r: -1 },
+  { q: 1, r: -1 },
+];
+
+function appendRegionBoundary(cells: Map<string, Hex>, className: string): void {
+  if (cells.size === 0) return;
+  const corners = hexCornerOffsets(PREVIEW_SCALE);
+  for (const cell of cells.values()) {
+    const point = projected(cell);
+    REGION_EDGE_NEIGHBORS.forEach((neighbor, edge) => {
+      if (cells.has(cellKey({ q: cell.q + neighbor.q, r: cell.r + neighbor.r }))) return;
+      const line = document.createElementNS(SVG_NS, "line");
+      const start = corners[edge]!;
+      const end = corners[(edge + 1) % corners.length]!;
+      line.setAttribute("x1", String(point.x + start.x));
+      line.setAttribute("y1", String(point.y + start.y));
+      line.setAttribute("x2", String(point.x + end.x));
+      line.setAttribute("y2", String(point.y + end.y));
+      line.classList.add("region-boundary", className);
+      grid.append(line);
+    });
+  }
+}
+
+function syncRegionBoundaries(): void {
+  grid.querySelectorAll(".region-boundary").forEach((line) => line.remove());
+
+  const entranceKey = entrance ? cellKey(entrance) : undefined;
+  const visibleFootprint = new Map<string, Hex>();
+  for (const [key, cell] of footprint) {
+    if (!blocked.has(key) && key !== entranceKey) visibleFootprint.set(key, cell);
+  }
+
+  appendRegionBoundary(visibleFootprint, "footprint-boundary");
+  appendRegionBoundary(blocked, "blocked-boundary");
+  if (entrance) appendRegionBoundary(new Map([[cellKey(entrance), entrance]]), "entrance-boundary");
+}
+
 function syncGridCellClasses(): void {
   for (const [key, polygon] of cellElements) {
     polygon.classList.toggle("footprint", footprint.has(key));
     polygon.classList.toggle("blocked", blocked.has(key));
     polygon.classList.toggle("entrance", entrance ? cellKey(entrance) === key : false);
   }
+  syncRegionBoundaries();
 }
 
 function renderGrid(): void {
@@ -403,16 +453,23 @@ function setWorldWidth(nextWidth: number, refresh = true): void {
   if (refresh) refreshStatus();
 }
 
-function setOverlayStrength(percent: number): void {
+function setInteriorStrength(percent: number): void {
   const clamped = Math.max(0, Math.min(100, percent));
   const strength = clamped / 100;
-  overlayRange.value = String(clamped);
-  overlayLabel.textContent = `${Math.round(clamped)} %`;
-  grid.style.setProperty("--footprint-fill-alpha", String(0.05 + 0.39 * strength));
-  grid.style.setProperty("--blocked-fill-alpha", String(0.06 + 0.5 * strength));
-  grid.style.setProperty("--entrance-fill-alpha", String(0.08 + 0.64 * strength));
-  grid.style.setProperty("--overlay-stroke-alpha", String(0.25 + 0.75 * strength));
-  grid.style.setProperty("--overlay-glow-alpha", String(0.8 * strength));
+  interiorRange.value = String(clamped);
+  interiorLabel.textContent = `${Math.round(clamped)} %`;
+  grid.style.setProperty("--footprint-fill-alpha", String(0.44 * strength));
+  grid.style.setProperty("--blocked-fill-alpha", String(0.56 * strength));
+  grid.style.setProperty("--entrance-fill-alpha", String(0.72 * strength));
+}
+
+function setBoundaryStrength(percent: number): void {
+  const clamped = Math.max(0, Math.min(100, percent));
+  const strength = clamped / 100;
+  boundaryRange.value = String(clamped);
+  boundaryLabel.textContent = `${Math.round(clamped)} %`;
+  grid.style.setProperty("--boundary-stroke-alpha", String(strength));
+  grid.style.setProperty("--boundary-glow-alpha", String(0.9 * strength));
 }
 
 
@@ -789,7 +846,8 @@ scaleNumber.addEventListener("input", () => {
   const width = Number(scaleNumber.value);
   if (Number.isFinite(width) && width > 0) setWorldWidth(width);
 });
-overlayRange.addEventListener("input", () => setOverlayStrength(Number(overlayRange.value)));
+interiorRange.addEventListener("input", () => setInteriorStrength(Number(interiorRange.value)));
+boundaryRange.addEventListener("input", () => setBoundaryStrength(Number(boundaryRange.value)));
 
 spritePreview.addEventListener("pointerdown", (event) => {
   if (!spriteFile || currentTool !== "move") return;
@@ -871,6 +929,7 @@ anchorXInput.addEventListener("input", renderSpritePosition);
 anchorYInput.addEventListener("input", renderSpritePosition);
 window.addEventListener("resize", renderGrid);
 
-setOverlayStrength(Number(overlayRange.value));
+setInteriorStrength(Number(interiorRange.value));
+setBoundaryStrength(Number(boundaryRange.value));
 resetDefinitionState("", 1);
 setError("Bitte eine Gebäudevariante aus der Liste auswählen.");
