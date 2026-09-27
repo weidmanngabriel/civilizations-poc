@@ -170,6 +170,8 @@ const interiorLabel = document.querySelector<HTMLSpanElement>("#interior-label")
 const boundaryRange = document.querySelector<HTMLInputElement>("#boundary-strength")!;
 const boundaryLabel = document.querySelector<HTMLSpanElement>("#boundary-label")!;
 const originMarker = document.querySelector<HTMLDivElement>("#origin-marker")!;
+const axisQLabel = document.querySelector<HTMLDivElement>(".axis-q")!;
+const axisRLabel = document.querySelector<HTMLDivElement>(".axis-r")!;
 const status = document.querySelector<HTMLDivElement>("#status")!;
 const downloadButton = document.querySelector<HTMLButtonElement>("#download")!;
 const saveProjectButton = document.querySelector<HTMLButtonElement>("#save-project")!;
@@ -514,6 +516,10 @@ function renderGrid(): void {
   const origin = projected({ q: 0, r: 0 });
   originMarker.style.left = `${origin.x}px`;
   originMarker.style.top = `${origin.y}px`;
+  axisQLabel.style.left = `${origin.x + 150}px`;
+  axisQLabel.style.top = `${origin.y - 2}px`;
+  axisRLabel.style.left = `${origin.x + 88}px`;
+  axisRLabel.style.top = `${origin.y + 120}px`;
   renderSpritePosition(false);
 }
 
@@ -548,7 +554,8 @@ function applyCellPaint(tool: PaintTool, cell: Hex, mode: PaintMode): void {
     entrance = cell;
   } else if (entrance && cellKey(entrance) === key) entrance = undefined;
 
-  syncGridCellClasses();
+  if (mode === "set" && expandGridBoundsToContent()) renderGrid();
+  else syncGridCellClasses();
   refreshStatus();
 }
 
