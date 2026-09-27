@@ -971,13 +971,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       return;
     }
 
-    if (
-      visibilityWasRunning &&
-      !isRunning() &&
-      merchantTargetSelection === undefined &&
-      !buildPlacementKind &&
-      !handbookWasRunning
-    ) startAutoplay();
+    if (visibilityWasRunning && !isRunning()) startAutoplay();
     visibilityWasRunning = false;
   });
 
