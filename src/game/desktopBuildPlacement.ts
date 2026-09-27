@@ -3,9 +3,11 @@ import type { IncrementalMainScene } from "./IncrementalMainScene";
 import { buildPlacementInputModeForPointer } from "./buildPlacementInputMode";
 
 const BUILD_MODE_EVENT = "poc-build-mode";
+const BUILD_POSITION_SELECTED_EVENT = "poc-build-position-selected";
 const TAP_MAX_DISTANCE = 8;
 
 type BuildModeDetail = { active: boolean; kind?: string };
+type BuildPositionSelectedDetail = { chosen?: boolean };
 type BuildPlacementScene = {
   updateBuildHover: (screenX: number, screenY: number, notify?: boolean) => void;
 };
@@ -33,6 +35,8 @@ export function installDesktopBuildPlacement(
   let clickEligible = false;
   let lastPointer: PointerPosition | undefined;
   let lastPointerType: string | undefined;
+  let palisadeStartSelected = false;
+  let palisadeFinalizeOnClick = false;
 
   const screenPosition = (clientX: number, clientY: number): PointerPosition => {
     const rect = canvas.getBoundingClientRect();
@@ -52,7 +56,7 @@ export function installDesktopBuildPlacement(
         ? "<b>Maus bewegen, um die Position zu wählen.</b> Linksklick platziert. Rechtsklick oder Escape bricht ab. Grün ist gültig, rot blockiert."
         : "<b>Tippen, um eine Position zu wählen.</b> Ziehen verschiebt die Karte. Grün ist gültig, rot blockiert.";
     }
-    if (confirm) confirm.hidden = mode === "desktop" && activeKind !== "palisade";
+    if (confirm) confirm.hidden = mode === "desktop";
     return mode;
   };
 
@@ -63,9 +67,21 @@ export function installDesktopBuildPlacement(
   };
 
   window.addEventListener("pointerdown", (event) => {
+    palisadeFinalizeOnClick =
+      active &&
+      activeKind === "palisade" &&
+      palisadeStartSelected &&
+      isDesktopPointer(event) &&
+      event.button === 0;
     lastPointerType = event.pointerType;
     if (active) setPlacementInputMode(lastPointerType);
   }, { capture: true });
+
+  window.addEventListener(BUILD_POSITION_SELECTED_EVENT, (event) => {
+    if (!active || activeKind !== "palisade") return;
+    const detail = (event as CustomEvent<BuildPositionSelectedDetail>).detail;
+    if (detail.chosen) palisadeStartSelected = true;
+  });
 
   canvas.addEventListener("pointermove", (event) => {
     if (!isDesktopPointer(event)) return;
@@ -90,9 +106,11 @@ export function installDesktopBuildPlacement(
 
   canvas.addEventListener("click", (event) => {
     if (!active || !clickEligible) return;
+    const shouldConfirmPalisade = activeKind === "palisade" && palisadeFinalizeOnClick;
     clickEligible = false;
+    palisadeFinalizeOnClick = false;
     updateGhost(screenPosition(event.clientX, event.clientY));
-    if (activeKind !== "palisade")
+    if (activeKind !== "palisade" || shouldConfirmPalisade)
       document.querySelector<HTMLButtonElement>("#build-placement-confirm")?.click();
   });
 
@@ -108,6 +126,8 @@ export function installDesktopBuildPlacement(
     activeKind = detail.active ? detail.kind : undefined;
     pointerDown = undefined;
     clickEligible = false;
+    palisadeStartSelected = false;
+    palisadeFinalizeOnClick = false;
     if (!active) return;
     const mode = setPlacementInputMode(lastPointerType);
     if (mode !== "desktop") return;
