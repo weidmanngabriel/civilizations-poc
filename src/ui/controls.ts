@@ -142,6 +142,7 @@ export function mountControls(w: World, renderMap: () => void): void {
   let merchantTargetSelection: number | undefined;
   let merchantSelectionWasRunning = false;
   let handbookWasRunning = false;
+  let visibilityWasRunning = false;
   let buildPlacementKind: PlaceableBuildingKind | "waypost" | "palisade" | undefined;
   let buildPlacementHouseLevel: HouseLevel | undefined;
   let buildPlacementPosition: Hex | undefined;
@@ -959,6 +960,19 @@ export function mountControls(w: World, renderMap: () => void): void {
       !buildPlacementKind
     ) startAutoplay();
     handbookWasRunning = false;
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      if (isRunning()) {
+        visibilityWasRunning = true;
+        stopAutoplay();
+      }
+      return;
+    }
+
+    if (visibilityWasRunning && !isRunning()) startAutoplay();
+    visibilityWasRunning = false;
   });
 
   autoplayButton.addEventListener("click", () => {

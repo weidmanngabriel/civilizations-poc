@@ -20,6 +20,10 @@ Die Anordnung und Größe der UI richtet sich nach dem verfügbaren Bildschirmpl
 
 Die Kartenbedienung richtet sich separat nach der aktuellen Eingabemethode. Mit Maus folgt der Bau-Ghost dem Zeiger; ein Linksklick platziert ein normales Gebäude direkt, der zusätzliche **Bauen**-Button wird dabei nicht angezeigt, und Rechtsklick oder Escape brechen ab. Bei linearen Palisaden setzt der erste Linksklick den Startpunkt und der zweite Linksklick baut den aktuell angezeigten Abschnitt direkt. Bei Touch oder Stift wählt ein Tippen die Position beziehungsweise Start und Ziel, Ziehen verschiebt weiterhin die Karte und die Platzierung wird über den sichtbaren **Bauen**-Button bestätigt. Geräte mit mehreren Eingabemethoden dürfen während derselben Sitzung zwischen diesen Bedienarten wechseln.
 
+### Verhalten im Browser-Hintergrund
+
+Wird der Spiel-Tab beziehungsweise die Browserseite nicht mehr sichtbar, pausiert die Simulation automatisch. Sobald die Seite wieder sichtbar wird, läuft die Simulation nur dann automatisch weiter, wenn genau dieser Sichtbarkeitswechsel sie zuvor angehalten hatte. War das Spiel bereits manuell oder durch einen anderen Spielmodus pausiert, bleibt es beim Zurückkehren pausiert. Die zuvor gewählte Simulationsgeschwindigkeit bleibt unverändert; Zeit im Hintergrund wird nicht nachsimuliert.
+
 ## Feineres Raumraster
 
 Die Welt verwendet intern ein **5× feineres Raster pro Raumachse**: aus 41 × 25 werden 205 × 125 Mikrozellen. Die sichtbare Kartengröße bleibt ungefähr gleich. Gebäude und Äcker belegen viele Mikrozellen; Bewohner bewegen sich flüssig und bleiben visuell lesbar.
