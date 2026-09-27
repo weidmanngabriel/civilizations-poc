@@ -18,7 +18,7 @@ Bestätigungen und blockierende Hinweise erscheinen als eigene modale Spielfenst
 
 Die Anordnung und Größe der UI richtet sich nach dem verfügbaren Bildschirmplatz. Kleine Browserfenster dürfen dadurch eine kompaktere Oberfläche erhalten, ohne automatisch als Touch-Gerät behandelt zu werden.
 
-Die Kartenbedienung richtet sich separat nach der aktuellen Eingabemethode. Mit Maus folgt der Bau-Ghost dem Zeiger; ein Linksklick platziert ein normales Gebäude direkt, der zusätzliche **Bauen**-Button wird dabei nicht angezeigt, und Rechtsklick oder Escape brechen ab. Bei Touch oder Stift wählt ein Tippen die Position, Ziehen verschiebt weiterhin die Karte und die Platzierung wird über den sichtbaren **Bauen**-Button bestätigt. Geräte mit mehreren Eingabemethoden dürfen während derselben Sitzung zwischen diesen Bedienarten wechseln.
+Die Kartenbedienung richtet sich separat nach der aktuellen Eingabemethode. Mit Maus folgt der Bau-Ghost dem Zeiger; ein Linksklick platziert ein normales Gebäude direkt, der zusätzliche **Bauen**-Button wird dabei nicht angezeigt, und Rechtsklick oder Escape brechen ab. Bei linearen Palisaden setzt der erste Linksklick den Startpunkt und der zweite Linksklick baut den aktuell angezeigten Abschnitt direkt. Bei Touch oder Stift wählt ein Tippen die Position beziehungsweise Start und Ziel, Ziehen verschiebt weiterhin die Karte und die Platzierung wird über den sichtbaren **Bauen**-Button bestätigt. Geräte mit mehreren Eingabemethoden dürfen während derselben Sitzung zwischen diesen Bedienarten wechseln.
 
 ## Feineres Raumraster
 

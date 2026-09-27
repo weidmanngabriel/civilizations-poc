@@ -41,6 +41,20 @@ test("desktop placement fallback checks any fine pointer instead of viewport siz
   assert.doesNotMatch(desktopPlacementSource, /max-width|min-width|innerWidth|userAgent/);
 });
 
+test("desktop palisades use start click then target click without a confirm button", () => {
+  assert.match(desktopPlacementSource, /confirm\.hidden = mode === "desktop"/);
+  assert.match(desktopPlacementSource, /BUILD_POSITION_SELECTED_EVENT/);
+  assert.match(desktopPlacementSource, /if \(detail\.chosen\) palisadeStartSelected = true/);
+  assert.match(
+    desktopPlacementSource,
+    /activeKind === "palisade" && palisadeFinalizeOnClick/,
+  );
+  assert.match(
+    desktopPlacementSource,
+    /activeKind !== "palisade" \|\| shouldConfirmPalisade/,
+  );
+});
+
 
 test("palisade build mode exposes the same global valid-region highlight layer", () => {
   assert.match(highlightSource, /"palisade"/);
