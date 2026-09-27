@@ -304,19 +304,18 @@ function appendRegionBoundary(cells: Map<string, Hex>, className: string): void 
   const corners = hexCornerOffsets(PREVIEW_SCALE);
   for (const cell of cells.values()) {
     const point = projected(cell);
-    for (let edge = 0; edge < REGION_EDGE_NEIGHBORS.length; edge += 1) {
-      const neighbor = REGION_EDGE_NEIGHBORS[edge];
-      if (cells.has(cellKey({ q: cell.q + neighbor.q, r: cell.r + neighbor.r }))) continue;
+    REGION_EDGE_NEIGHBORS.forEach((neighbor, edge) => {
+      if (cells.has(cellKey({ q: cell.q + neighbor.q, r: cell.r + neighbor.r }))) return;
       const line = document.createElementNS(SVG_NS, "line");
-      const start = corners[edge];
-      const end = corners[(edge + 1) % corners.length];
+      const start = corners[edge]!;
+      const end = corners[(edge + 1) % corners.length]!;
       line.setAttribute("x1", String(point.x + start.x));
       line.setAttribute("y1", String(point.y + start.y));
       line.setAttribute("x2", String(point.x + end.x));
       line.setAttribute("y2", String(point.y + end.y));
       line.classList.add("region-boundary", className);
       grid.append(line);
-    }
+    });
   }
 }
 
