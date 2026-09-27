@@ -5,7 +5,7 @@
   "levels": [
     {
       "level": 1,
-      "sprite": "sprite.webp",
+      "sprite": "sprite.png",
       "spriteAnchor": {
         "x": 0.5193779904306219,
         "y": 0.5676236044657097
