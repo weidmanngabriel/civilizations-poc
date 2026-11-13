@@ -51,6 +51,7 @@ import { performanceNow, performanceProfiler } from "../debug/performanceProfile
 import { RUNTIME_CRASH_EVENT } from "../runtime/crashReporter";
 import { BUILDING_SVG, GOOD_ICONS, buildingIcon } from "../icons";
 import { confirmDialog } from "./modalDialog";
+import { transportTripPlace } from "./transportTripPlace";
 import { buildingUpgradeRule } from "../simulation/buildingUpgradeRules";
 import { isBuildingUnlocked, maxProfessionExperience } from "../simulation/technology";
 import {
@@ -678,13 +679,7 @@ export function mountControls(w: World, renderMap: () => void): void {
       const experience = profession
         ? `${PROFESSION_LABELS[profession]} · ${Math.round(professionExperience(p, profession))} %`
         : "–";
-      const tripPlace = p.trip
-        ? p.trip.picked
-          ? building(w, p.trip.target).name
-          : p.trip.sourceKind === "resource"
-            ? (w.naturalResources.find((resource) => resource.id === p.trip!.source)?.kind === "forest" ? "Wald" : "Vorkommen")
-            : building(w, p.trip.source).name
-        : undefined;
+      const tripPlace = p.trip ? transportTripPlace(w, p.trip) : undefined;
       const state = p.scoutWaypostTask
         ? personActivityLabel(p)
         : p.trip

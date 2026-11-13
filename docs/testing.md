@@ -23,3 +23,7 @@ Every full CI validation also runs `npm run smoke:startup` after the production 
 
 Family tests lock the low/medium/high birth cadence, the 90/9/1 multiple-birth thresholds, symmetric partner search and marriage, household merging for one or two existing apartments, close-relative exclusions, the 2.5-minute visual-stage transition, five-minute adulthood transition, automatic departure from the parental household without rehousing, and rejection of manual child movement. Save/load and wiki tests cover the new persistent family state and documented player-facing rules.
 
+
+## Transport status coverage
+
+The selected-person transport status must resolve building, natural-resource and loose-good pickup sources without assuming source IDs identify buildings. Regression tests also cover removed source/target entities so presentation cannot crash while the authoritative world continues.
