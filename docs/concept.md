@@ -10,6 +10,10 @@ Bis Version 1 wird bewusst keine Rückwärtskompatibilität gepflegt, wenn dafü
 
 Ziel bleibt eine personenbasierte Produktions- und Logistiksimulation auf einem Hex-Grid. Waren liegen physisch an Orten, Personen bewegen sie sichtbar über die Karte und räumliche Planung wirkt direkt auf Produktion, Versorgung und Transport. Hunger und Schlaf konkurrieren mit Arbeit um die Zeit einzelner Personen.
 
+### Spielstände und Vorschaubilder
+
+Die Ladeansicht zeigt jeden Spielstand als vertikale Karte: eine vollbreite Vorschau im 16:9-Format oben, darunter Name, Datum und Spielstandinformationen sowie die Aktionen zum Laden und Löschen. Spielstände ohne Vorschau zeigen keine leere Bildfläche. Neue Vorschaubilder erfassen die Siedlung unabhängig vom Seitenverhältnis des aktuellen Bildschirms als 16:9-Ausschnitt, ohne die Karte zu verzerren oder Gebäude abzuschneiden. Bereits gespeicherte Vorschaubilder bleiben unverändert und werden proportional angezeigt.
+
 ### Benutzerabfragen
 
 Bestätigungen und blockierende Hinweise erscheinen als eigene modale Spielfenster statt als Browser-Dialoge. Während einer solchen Abfrage ist die Karte nicht bedienbar. Bestätigen und Abbrechen sind auf Desktop und Touch gleich verfügbar; bei destruktiven Aktionen liegt der Standardfokus auf **Abbrechen**, um versehentliche Löschaktionen zu vermeiden.
