@@ -853,9 +853,14 @@ export class MainScene extends Phaser.Scene {
 
         const fitWidth = Math.max(1, maxX - minX);
         const fitHeight = Math.max(1, maxY - minY);
+        // Fit the settlement into the landscape crop, not the whole screen.
+        // Portrait devices would otherwise save a tiny village with large margins.
+        const previewAspect = 16 / 9;
+        const cropWidth = Math.min(camera.width, camera.height * previewAspect);
+        const cropHeight = Math.min(camera.height, camera.width / previewAspect);
         const fitZoom = Math.min(
-          camera.width / fitWidth,
-          camera.height / fitHeight,
+          cropWidth / fitWidth,
+          cropHeight / fitHeight,
         ) * 0.92;
         camera.setZoom(Phaser.Math.Clamp(fitZoom, 0.12, MAX_CAMERA_ZOOM));
         camera.centerOn((minX + maxX) / 2, (minY + maxY) / 2);
@@ -883,18 +888,24 @@ export class MainScene extends Phaser.Scene {
 
       const sourceWidth = Math.max(1, this.game.canvas.width);
       const sourceHeight = Math.max(1, this.game.canvas.height);
-      const maxThumbnailSide = 480;
-      const scale = Math.min(
-        maxThumbnailSide / sourceWidth,
-        maxThumbnailSide / sourceHeight,
-        1,
-      );
+      // Crop the rendered viewport centrally to 16:9 before resizing.
+      // This preserves the original proportions without stretching or clipping
+      // the settlement, because the camera was fitted to this crop above.
+      const previewAspect = 16 / 9;
+      const cropWidth = Math.min(sourceWidth, sourceHeight * previewAspect);
+      const cropHeight = cropWidth / previewAspect;
+      const cropX = (sourceWidth - cropWidth) / 2;
+      const cropY = (sourceHeight - cropHeight) / 2;
       const thumbnail = document.createElement("canvas");
-      thumbnail.width = Math.max(1, Math.round(sourceWidth * scale));
-      thumbnail.height = Math.max(1, Math.round(sourceHeight * scale));
+      thumbnail.width = 480;
+      thumbnail.height = 270;
       const context = thumbnail.getContext("2d");
       if (!context) throw new Error("Vorschaubild konnte nicht erzeugt werden.");
-      context.drawImage(source, 0, 0, thumbnail.width, thumbnail.height);
+      context.drawImage(
+        source,
+        cropX, cropY, cropWidth, cropHeight,
+        0, 0, thumbnail.width, thumbnail.height,
+      );
       return thumbnail.toDataURL("image/webp", 0.74);
     } finally {
       camera.setZoom(previous.zoom);
