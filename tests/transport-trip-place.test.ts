@@ -19,7 +19,7 @@ test("transport status resolves building sources", () => {
 
 test("transport status resolves physical ground stacks without treating them as buildings", () => {
   const world = createTestWorld();
-  world.looseGoods = [{ id: "ground-3", good: "wood", quantity: 1, reserved: 0, position: { q: 1, r: 1 } }];
+  world.looseGoods = [{ id: "ground-3", good: "wood", amount: 1, reserved: 0, position: { q: 1, r: 1 } }];
   assert.equal(transportTripPlace(world, trip("ground-3", "looseGood")), "Bodenstapel");
   assert.equal(transportTripPlace(world, trip("ground-38", "looseGood")), "Bodenstapel");
 });
