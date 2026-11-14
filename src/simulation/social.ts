@@ -36,7 +36,12 @@ const hasEmergency = (person: Person): boolean =>
     (person.sleep ?? 100) <= 20,
   );
 
-const atConversationBoundary = (person: Person): boolean =>
+const atConversationBoundary = (world: World, person: Person): boolean =>
+  !world.buildings.some((building) =>
+    building.id === person.assignment?.building &&
+    building.kind === "livestockBreeder" &&
+    (building.breedingGathering || building.breeding)
+  ) &&
   person.ageStage !== "child" &&
   !person.familyTask &&
   (!person.educationTask || Boolean(person.socialWorkBlocked)) &&
@@ -48,9 +53,9 @@ const atConversationBoundary = (person: Person): boolean =>
   !person.trip &&
   !person.farmTask &&
   !person.outdoorCarry &&
-  !person.huntLootTarget &&
-  !person.huntLootQueue?.length &&
-  !person.huntAimTarget &&
+  (!person.huntLootTarget || Boolean(person.socialWorkBlocked)) &&
+  (!person.huntLootQueue?.length || Boolean(person.socialWorkBlocked)) &&
+  (!person.huntAimTarget || Boolean(person.socialWorkBlocked)) &&
   person.fishingWaitUntilTick === undefined &&
   (person.progress === 0 || Boolean(person.socialWorkBlocked)) &&
   (person.path.length === 0 || Boolean(person.idleTarget) || Boolean(person.socialWorkBlocked));
@@ -167,7 +172,7 @@ const partnerCandidate = (
   const possibilities = world.people
     .filter((person) => person.id !== requester.id && !person.socialTask)
     .filter((person) => hexDistance(person.position, requester.position) <= SOCIAL_RULES.searchRadius)
-    .filter((person) => !hasEmergency(person) && atConversationBoundary(person))
+    .filter((person) => !hasEmergency(person) && atConversationBoundary(world, person))
     .filter((person) =>
       requesterIdle
         ? isIdleForSocial(world, person)
@@ -292,7 +297,7 @@ export function advanceSocial(world: World): void {
       cancelSocial(world, person, false);
       continue;
     }
-    if (hasEmergency(person) || !atConversationBoundary(person)) continue;
+    if (hasEmergency(person) || !atConversationBoundary(world, person)) continue;
     const idle = isIdleForSocial(world, person);
     if (!person.socialMode) {
       if (idle && socialValue(person) < SOCIAL_RULES.max) person.socialMode = "idle";
