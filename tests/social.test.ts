@@ -87,7 +87,7 @@ test("manual order pauses until an existing work action finishes and can be canc
   assert.equal(first!.socialTask, undefined);
   first!.progress = 0;
   advance(world, 60);
-  assert.equal(first!.socialTask?.partnerId, second!.id);
+  assert.equal(world.people.find((person) => person.id === first!.id)?.socialTask?.partnerId, second!.id);
   assert.equal(commandStopSocializing(world, first!.id), true);
   assert.equal(first!.socialMode, undefined);
   assert.equal(first!.socialTask, undefined);
