@@ -1378,7 +1378,7 @@ function advanceConstruction(w: World): void {
       continue;
     }
     const activeBuilders = siteBuilders.filter(
-      (p) => p.active && !p.socialTask && !p.trip && !p.path.length && constructionPositionReached(site, p.position),
+      (p) => p.active && !p.socialWorkBlocked && !p.socialMode && !p.socialTask && !p.trip && !p.path.length && constructionPositionReached(site, p.position),
     );
     if (!activeBuilders.length) continue;
     const construction = site.construction!;
