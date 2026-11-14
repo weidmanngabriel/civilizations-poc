@@ -32,6 +32,7 @@ import {
   type PathReason,
 } from "../debug/performanceProfiler";
 import { markBushChanged } from "./worldRevisions";
+import { cancelSocial } from "./social";
 
 const SIMULATION_HZ = 60;
 const EATING_DURATION_TICKS = 5 * SIMULATION_HZ;
@@ -542,6 +543,7 @@ export const commandEat = (world: World, personId: number): boolean => {
   const person = world.people.find((candidate) => candidate.id === personId);
   if (person?.ageStage === "child") return false;
   if (!person || (person.hunger ?? HUNGER_MAX) >= HUNGER_MAX) return false;
+  cancelSocial(world, person, true);
   interruptEating(world, person);
   person.manualMoveTarget = undefined;
   return startEating(world, person);
