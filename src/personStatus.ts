@@ -2,6 +2,7 @@ import type { NavigationBlockReason, Person, World } from "./simulation/model";
 import { currentProfession } from "./simulation/experience";
 import { hungerStatus } from "./simulation/needs";
 import { sleepStatus } from "./simulation/sleep";
+import { SOCIAL_RULES, socialValue } from "./simulation/social";
 import { hexDistance } from "./simulation/spatial";
 
 export type PersonAlertSeverity = "critical" | "warning" | "info";
@@ -11,6 +12,8 @@ export type PersonAlertCode =
   | "critical-sleep"
   | "hunger"
   | "sleep"
+  | "critical-social"
+  | "social"
   | "no-route"
   | "no-extractable-resource"
   | "idle";
@@ -26,6 +29,8 @@ export const PERSON_ALERT_ICONS: Record<PersonAlertCode, string> = {
   "critical-sleep": "💤",
   hunger: "🍴",
   sleep: "💤",
+  "critical-social": "💬",
+  social: "💬",
   "no-route": "🚫",
   "no-extractable-resource": "⛏️",
   idle: "…",
@@ -74,6 +79,8 @@ const isTrulyIdle = (world: World, person: Person): boolean =>
   !person.scoutWaypostTask &&
   !person.hungerState &&
   !person.sleepState &&
+  !person.socialMode &&
+  !person.socialTask &&
   !person.trip &&
   !person.farmTask &&
   !person.outdoorCarry &&
@@ -94,6 +101,14 @@ const allPersonAlerts = (world: World, person: Person): PersonAlert[] => {
     result.push({ severity: "critical", code: "critical-sleep", label: "Totenmüde" });
   else if (sleep === "tired")
     result.push({ severity: "warning", code: "sleep", label: "Müde" });
+
+  if (person.ageStage !== "child") {
+    const social = socialValue(person);
+    if (social <= SOCIAL_RULES.criticalThreshold)
+      result.push({ severity: "critical", code: "critical-social", label: social === 0 ? "Verweigert Arbeit · braucht Gesellschaft" : "Dringender Gesprächsbedarf" });
+    else if (social <= SOCIAL_RULES.needThreshold)
+      result.push({ severity: "warning", code: "social", label: "Braucht Gesellschaft" });
+  }
 
   if (person.navigationBlocked) {
     result.push({
