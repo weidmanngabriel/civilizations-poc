@@ -165,7 +165,7 @@ const partnerCandidate = (
   requesterIdle: boolean,
 ): { person: Person; paths: NonNullable<ReturnType<typeof plannedMeeting>> } | undefined => {
   const possibilities = world.people
-    .filter((person) => person.id !== requester.id && !person.socialTask && !person.socialMode)
+    .filter((person) => person.id !== requester.id && !person.socialTask)
     .filter((person) => hexDistance(person.position, requester.position) <= SOCIAL_RULES.searchRadius)
     .filter((person) => !hasEmergency(person) && atConversationBoundary(person))
     .filter((person) =>
