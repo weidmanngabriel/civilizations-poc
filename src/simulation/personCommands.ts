@@ -2,8 +2,8 @@ import type { Building, BuildingId, Hex, Person, Profession, Role, World } from 
 import { canLearnProfession, currentProfession, workerProfession } from "./experience";
 import { same } from "./hex";
 import { releaseLooseGoodReservation } from "./looseGoods";
-import { commandEat, interruptEating } from "./needs";
-import { commandSleep, interruptSleep } from "./sleep";
+import { commandEat as commandEatNow, interruptEating } from "./needs";
+import { commandSleep as commandSleepNow, interruptSleep } from "./sleep";
 import { clearWorkArea, ensureWorkArea, syncWorkAreas } from "./workAreas";
 import { findRequiredNavigationPath } from "./wayposts";
 import { CONFIG } from "./scenario";
@@ -256,4 +256,17 @@ export function syncManualMoveOrders(world: World): void {
   }
 }
 
-export { commandEat, commandSleep };
+/** UI need commands interrupt an active conversation without coupling scenario initialization to social. */
+export const commandEat = (world: World, personId: number): boolean => {
+  const person = world.people.find((candidate) => candidate.id === personId);
+  if (!person || person.ageStage === "child" || (person.hunger ?? 100) >= 100) return false;
+  cancelSocial(world, person, true);
+  return commandEatNow(world, personId);
+};
+
+export const commandSleep = (world: World, personId: number): boolean => {
+  const person = world.people.find((candidate) => candidate.id === personId);
+  if (!person || person.ageStage === "child" || (person.sleep ?? 100) >= 100) return false;
+  cancelSocial(world, person, true);
+  return commandSleepNow(world, personId);
+};
