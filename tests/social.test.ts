@@ -188,8 +188,11 @@ test("a resident recovering from work need can leave after the half-conversation
   const [worker, idle] = world.people;
   worker!.social = 99;
   idle!.social = 99;
-  worker!.socialMode = "need";
+  assert.equal(commandSocialize(world, worker!.id), true);
   advanceSocial(world);
+  assert.ok(worker!.socialTask);
+  // This participant has a paused job, unlike an autonomous idle visitor.
+  worker!.socialTask!.resumeWork = true;
   advance(world, SOCIAL_RULES.minimumConversationTicks - 1);
   assert.ok(worker!.socialTask, "the minimum conversation is still in progress");
   advance(world, 1);
