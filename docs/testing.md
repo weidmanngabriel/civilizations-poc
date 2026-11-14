@@ -8,7 +8,7 @@ Every newly introduced building profession requires a regression test covering t
 
 ## Social need coverage
 
-`tests/social.test.ts` locks the double working decay versus idle decay, idle-only autonomous partner selection, partial point accrual during conversations, the first-interruption 5-point penalty without penalizing the abandoned partner, subsequent-conversation exemption after a completed conversation in the same phase, manual social orders that wait for active work to end, player movement cancellation, refusal-to-work/recovery thresholds, and JSON save-state persistence. These simulation tests exercise deterministic simulated ticks rather than wall-clock timers.
+`tests/social.test.ts` locks the double working decay versus idle decay, idle-only autonomous partner selection, partial point accrual during conversations, the first-interruption 5-point penalty without penalizing the abandoned partner, subsequent-conversation exemption after a completed conversation in the same phase, manual social orders that wait for active work to end, player movement cancellation, refusal-to-work/recovery thresholds, and JSON save-state persistence. Tests also cover the 7.5-second minimum duration even when a social meter fills early, natural halftime completion for a recovered worker, continuous back-to-back conversations between two idle residents at 100, and distinct neighboring reachable conversation positions. These simulation tests exercise deterministic simulated ticks rather than wall-clock timers.
 
 ## Housing coverage
 
