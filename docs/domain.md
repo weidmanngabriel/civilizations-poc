@@ -2,6 +2,17 @@
 
 This file is the primary location for verified domain terms, domain rules, invariants, value ranges, and state transitions; code alone is not sufficient evidence for a domain rule.
 
+## Social need invariants
+
+- Adult social need ranges from 0 to 100; children do not consume social need.
+- At rest social need loses 1 point per 20 simulated seconds; during actual work it loses 1 per 10 seconds. A job assignment alone is not active work.
+- One shared conversation has exactly two adults, a common meeting cell and a duration of 15 simulated seconds. Each participant recovers up to 12 points continuously during the conversation, capped at 100.
+- An idle person's autonomous social invitation may involve only another idle person. Neither person may be simultaneously involved in another conversation.
+- At social need 0 normal work is refused. The refusal remains active until need reaches at least 40; critical hunger and sleep can interrupt social activity.
+- A participant who is avoidably removed during the first unfinished conversation of a continuous social phase loses 5 points; points already received are not rolled back. Once that participant completes one conversation in the same phase, later conversation interruptions in that phase have no penalty. Involuntary loss of a partner and critical hunger/sleep are exempt. The other participant is never penalized for somebody else's removal.
+- The complete paired task and per-person phase progress are authoritative save state; a player command can end the activity immediately.
+- Taverns, gardens, festivals, their delayed effects and religion are not part of the current implemented rules.
+
 ## Strukturkategorien
 
 - **Verwaltbare Gebäude** sind normale Gebäudeinstanzen, die in der Gebäudeübersicht erscheinen und gebäudebezogene Verwaltungs- oder Hinweisfunktionen besitzen können.
