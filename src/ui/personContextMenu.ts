@@ -24,6 +24,7 @@ import { personName } from "../simulation/personIdentity";
 import { assignEquipment, EQUIPMENT_DEFINITIONS, equipmentForSlot, equipmentPendingForSlot, equipmentStock } from "../simulation/equipment";
 import { completedSchools, educationTeacherCandidates, startEducation } from "../simulation/education";
 import { canSearchForPartner, startPartnerSearch } from "../simulation/family";
+import { commandSocialize, commandStopSocializing, socialValue } from "../simulation/social";
 
 const PERSON_SELECTED_EVENT = "poc-person-selected";
 const PERSON_CLEARED_EVENT = "poc-person-selection-cleared";
@@ -44,6 +45,7 @@ type ActionId =
   | "move"
   | "eat"
   | "sleep"
+  | "social"
   | "waypost"
   | "equipment"
   | "partner";
@@ -66,6 +68,7 @@ const ACTIONS: Action[] = [
   { id: "waypost", slot: 8, icon: "🪧", label: "Wegweiser" },
   { id: "equipment", slot: 9, icon: "🎒", label: "Ausrüstung" },
   { id: "partner", slot: 10, icon: "💍", label: "Partner suchen" },
+  { id: "social", slot: 11, icon: "💬", label: "Sozialisieren" },
 ];
 
 const isEditableTarget = (target: EventTarget | null): boolean => {
@@ -134,6 +137,7 @@ export function mountPersonContextMenu(world: World): void {
     if (action.id === "workarea") return supportsWorkArea(person);
     if (action.id === "eat") return (person.hunger ?? 100) < 100;
     if (action.id === "sleep") return (person.sleep ?? 100) < 100;
+    if (action.id === "social") return Boolean(person.socialMode || person.socialTask) || socialValue(person) < 100;
     if (action.id === "waypost") return currentProfession(world, person) === "scout";
     return true;
   };
@@ -148,7 +152,7 @@ export function mountPersonContextMenu(world: World): void {
       .filter((action) => actionVisible(action, person))
       .map((action) => `
         <button type="button" role="menuitem" class="person-context-action slot-${action.slot}" data-context-action="${action.id}">
-          <span aria-hidden="true">${action.icon}</span><small>${action.label}</small>
+          <span aria-hidden="true">${action.icon}</span><small>${action.id === "social" && (person.socialMode || person.socialTask) ? "Gespräch beenden" : action.label}</small>
         </button>`)
       .join("");
     frame.innerHTML = placeholders + actions;
@@ -317,6 +321,17 @@ export function mountPersonContextMenu(world: World): void {
     }
     if (action === "partner") {
       if (!startPartnerSearch(world, person.id)) return;
+      setMenuOpen(false);
+      window.dispatchEvent(new CustomEvent(PERSON_SELECTION_REQUESTED_EVENT, {
+        detail: { id: person.id, focus: false },
+      }));
+      return;
+    }
+    if (action === "social") {
+      const success = person.socialMode || person.socialTask
+        ? commandStopSocializing(world, person.id)
+        : commandSocialize(world, person.id);
+      if (!success) return;
       setMenuOpen(false);
       window.dispatchEvent(new CustomEvent(PERSON_SELECTION_REQUESTED_EVENT, {
         detail: { id: person.id, focus: false },
