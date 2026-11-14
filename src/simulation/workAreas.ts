@@ -334,7 +334,6 @@ function enforceFisher(world: World, person: Person): void {
   }
 
   if (person.fishingSpot && same(person.position, person.fishingSpot)) {
-    if (pauseForNeedBeforeNewTask(world, person)) return;
     startFishingCycle(world, person);
     return;
   }
