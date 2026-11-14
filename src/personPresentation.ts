@@ -37,6 +37,10 @@ export const personActivityLabel = (person: Person): string => {
     return person.path.length ? "Geht essen" : "Sucht Essen";
   }
   if (person.sleepState) return person.path.length ? "Sucht Schlafplatz" : "Schläft";
+  if (person.socialTask)
+    return person.socialTask.startedAtTick !== undefined
+      ? "Unterhält sich"
+      : (person.path.length ? "Geht zum Gespräch" : "Wartet auf Gesprächspartner");
   if (person.trip?.picked) return `Transportiert ${GOODS[person.trip.good]}`;
   if (person.outdoorCarry) return `Trägt ${GOODS[person.outdoorCarry]} zur Flagge`;
   if (person.trip) return `Holt ${GOODS[person.trip.good]}`;
@@ -60,6 +64,8 @@ export const personActivityLabel = (person: Person): string => {
     if (person.huntTarget) return "Jagt";
     return "Sucht Wild";
   }
+  if (person.socialMode) return "Sucht Gesellschaft";
+  if (person.socialWorkBlocked) return "Braucht dringend Gesellschaft";
   if (person.idleTarget) return person.path.length ? "Unterwegs" : "Wartet";
   if (person.active) return "Arbeitet";
   if (person.path.length) return "Unterwegs";
