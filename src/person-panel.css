@@ -293,6 +293,10 @@
   background: #7ca6c7;
 }
 
+.person-need-row.social .person-meter i {
+  background: #77b9a2;
+}
+
 .person-facts {
   margin: 10px 0 0;
   display: grid;
