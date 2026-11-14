@@ -39,7 +39,7 @@ const hasEmergency = (person: Person): boolean =>
 const atConversationBoundary = (person: Person): boolean =>
   person.ageStage !== "child" &&
   !person.familyTask &&
-  !person.educationTask &&
+  (!person.educationTask || Boolean(person.socialWorkBlocked)) &&
   !person.equipmentTask &&
   !person.scoutWaypostTask &&
   !person.manualMoveTarget &&
@@ -52,8 +52,8 @@ const atConversationBoundary = (person: Person): boolean =>
   !person.huntLootQueue?.length &&
   !person.huntAimTarget &&
   person.fishingWaitUntilTick === undefined &&
-  person.progress === 0 &&
-  (person.path.length === 0 || Boolean(person.idleTarget));
+  (person.progress === 0 || Boolean(person.socialWorkBlocked)) &&
+  (person.path.length === 0 || Boolean(person.idleTarget) || Boolean(person.socialWorkBlocked));
 
 /** True only while real work/travel is performed, not merely because a profession exists. */
 export const isWorkingForSocial = (person: Person): boolean =>
