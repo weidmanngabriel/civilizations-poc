@@ -9,10 +9,19 @@ import {
   commandStopSocializing,
 } from "../src/simulation/social";
 import { orderPersonMove } from "../src/simulation/personCommands";
+import { hexDistance } from "../src/simulation/hex";
 import { needDueBeforeNewTask } from "../src/simulation/workNeeds";
 
 const advance = (world: ReturnType<typeof createWorld>, ticks: number): void => {
   for (let step = 0; step < ticks; step++) {
+    // Isolated social-state tests start after arrival at each participant's
+    // reachable meeting target; path movement belongs to the core tick.
+    for (const person of world.people) {
+      if (!person.socialTask || !person.path.length) continue;
+      person.position = { ...person.socialTask.target };
+      person.path = [];
+      person.movement = 0;
+    }
     world.round++;
     advanceSocial(world);
   }
@@ -159,4 +168,70 @@ test("zero social value can suspend unfinished production and preserve its progr
   assert.equal(worker!.progress, 10, "ongoing work progress must be retained across a conversation");
   advance(world, SOCIAL_RULES.conversationTicks);
   assert.equal(worker!.progress, 10);
+});
+
+
+test("a nearly full resident remains in the first half of a conversation", () => {
+  const world = createWorld(2);
+  const [first, second] = world.people;
+  first!.social = 99;
+  second!.social = 99;
+  advanceSocial(world);
+  assert.ok(first!.socialTask);
+  advance(world, SOCIAL_RULES.minimumConversationTicks - 1);
+  assert.equal(first!.social, 100);
+  assert.ok(first!.socialTask, "reaching 100 must not end the talk before its minimum duration");
+});
+
+test("a resident recovering from work need can leave after the half-conversation", () => {
+  const world = createWorld(2);
+  const [worker, idle] = world.people;
+  worker!.social = 99;
+  idle!.social = 99;
+  assert.equal(commandSocialize(world, worker!.id), true);
+  advanceSocial(world);
+  assert.ok(worker!.socialTask);
+  // This participant has a paused job, unlike an autonomous idle visitor.
+  worker!.socialTask!.resumeWork = true;
+  advance(world, SOCIAL_RULES.minimumConversationTicks - 1);
+  assert.ok(worker!.socialTask, "the minimum conversation is still in progress");
+  advance(world, 1);
+  assert.equal(worker!.socialTask, undefined);
+  assert.equal(idle!.socialTask, undefined);
+  assert.equal(worker!.socialCompleted, undefined, "half a conversation is not a fully completed talk");
+});
+
+test("two idle residents continue chatting without a pause, even when both social meters are full", () => {
+  const world = createWorld(2);
+  const [first, second] = world.people;
+  first!.social = 99;
+  second!.social = 99;
+  advanceSocial(world);
+  advance(world, SOCIAL_RULES.conversationTicks);
+  assert.equal(first!.social, 100);
+  assert.equal(second!.social, 100);
+  assert.equal(first!.socialCompleted, true);
+  assert.equal(second!.socialCompleted, true);
+  assert.equal(first!.socialTask?.progressTicks, 0);
+  assert.equal(second!.socialTask?.progressTicks, 0);
+  advance(world, SOCIAL_RULES.conversationTicks / 2);
+  assert.ok(first!.socialTask && second!.socialTask, "full social meters must not stop idle conversation");
+  const before = first!.social!;
+  cancelSocial(world, first!, true);
+  assert.equal(first!.social, before, "completed first talk protects later conversation from penalties");
+});
+
+test("paired residents receive distinct adjacent and reachable meeting positions", () => {
+  const world = createWorld(2);
+  const [first, second] = world.people;
+  first!.social = 70;
+  second!.social = 70;
+  advanceSocial(world);
+  const targetA = first!.socialTask?.target;
+  const targetB = second!.socialTask?.target;
+  assert.ok(targetA && targetB);
+  assert.notDeepEqual(targetA, targetB, "residents must not stand on top of each other");
+  assert.equal(hexDistance(targetA, targetB), 1, "residents should meet on neighboring hexes");
+  assert.ok(first!.path.length > 0 || hexDistance(first!.position, targetA) === 0);
+  assert.ok(second!.path.length > 0 || hexDistance(second!.position, targetB) === 0);
 });

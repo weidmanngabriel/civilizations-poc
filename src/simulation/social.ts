@@ -1,5 +1,5 @@
 import type { Hex, Person, World } from "./model";
-import { same } from "./hex";
+import { hexDistance as distance, key, neighbors, same, tileIndex, walkable } from "./hex";
 import { CONFIG } from "./scenario";
 import { SIMULATION_HZ } from "./timing";
 import { findNavigationPath } from "./wayposts";
@@ -18,6 +18,7 @@ export const SOCIAL_RULES = {
   idleSecondsPerPoint: 20,
   workingSecondsPerPoint: 10,
   conversationTicks: 15 * SIMULATION_HZ,
+  minimumConversationTicks: Math.round(7.5 * SIMULATION_HZ),
   conversationRecovery: 12,
   needThreshold: 40,
   criticalThreshold: 20,
@@ -127,30 +128,65 @@ const plannedMeeting = (
   world: World,
   first: Person,
   second: Person,
-): { target: Hex; firstPath: Hex[]; secondPath: Hex[] } | undefined => {
+): { firstTarget: Hex; secondTarget: Hex; firstPath: Hex[]; secondPath: Hex[] } | undefined => {
   const direct = routeBetween(world, first, second.position);
   if (!direct) return;
-  const target = direct[Math.floor(direct.length / 2)] ?? first.position;
-  const firstPath = routeBetween(world, first, target);
-  const secondPath = routeBetween(world, second, target);
-  if (!firstPath || !secondPath) return;
-  return { target: { ...target }, firstPath, secondPath };
+  const tiles = tileIndex(world.tiles);
+  const midpoint = Math.floor(direct.length / 2);
+  const centers = [direct[midpoint] ?? first.position, ...direct, first.position];
+  const visited = new Set<string>();
+  for (const center of centers) {
+    if (visited.has(key(center))) continue;
+    visited.add(key(center));
+    const tile = tiles.get(key(center));
+    if (!tile || !walkable(tile)) continue;
+    const firstPath = routeBetween(world, first, center);
+    if (!firstPath) continue;
+    const availableNeighbors = neighbors(center)
+      .filter((candidate) => {
+        const neighborTile = tiles.get(key(candidate));
+        return neighborTile && walkable(neighborTile);
+      })
+      .sort((a, b) => {
+        const occupied = (candidate: Hex): number =>
+          world.people.some((person) =>
+            person.id !== first.id && person.id !== second.id && same(person.position, candidate)
+          ) ? 1 : 0;
+        return occupied(a) - occupied(b) ||
+          distance(a, second.position) - distance(b, second.position) ||
+          a.q - b.q || a.r - b.r;
+      });
+    for (const secondTarget of availableNeighbors) {
+      const secondPath = routeBetween(world, second, secondTarget);
+      if (secondPath) return {
+        firstTarget: { ...center },
+        secondTarget: { ...secondTarget },
+        firstPath,
+        secondPath,
+      };
+    }
+  }
+  return undefined;
 };
 
 const beginConversation = (
   world: World,
   first: Person,
   second: Person,
-  paths: { target: Hex; firstPath: Hex[]; secondPath: Hex[] },
+  paths: NonNullable<ReturnType<typeof plannedMeeting>>,
 ): void => {
   const participants = [first, second] as const;
   for (const [index, person] of participants.entries()) {
     const partner = participants[1 - index]!;
-    person.socialMode ??= isIdleForSocial(world, person) ? "idle" : "need";
+    // Capture work availability before reserving the social task; once
+    // reserved, all participants correctly appear busy to the idle planner.
+    const resumeWork = !isIdleForSocial(world, person);
+    person.socialMode ??= resumeWork ? "need" : "idle";
     person.socialTask = {
       partnerId: partner.id,
-      target: { ...paths.target },
+      target: { ...(index === 0 ? paths.firstTarget : paths.secondTarget) },
       progressTicks: 0,
+      resumeWork,
     };
     person.idleTarget = undefined;
     person.path = index === 0 ? paths.firstPath : paths.secondPath;
@@ -186,9 +222,11 @@ const partnerCandidate = (
   }
 };
 
-const finishConversation = (world: World, first: Person, second: Person): void => {
-  first.socialCompleted = true;
-  second.socialCompleted = true;
+const finishConversation = (world: World, first: Person, second: Person, completed: boolean): void => {
+  if (completed) {
+    first.socialCompleted = true;
+    second.socialCompleted = true;
+  }
   first.socialTask = undefined;
   second.socialTask = undefined;
   for (const person of [first, second]) {
@@ -228,7 +266,8 @@ const progressConversations = (world: World): void => {
       continue;
     }
     if (first.path.length || second.path.length) continue;
-    if (!same(first.position, task.target) || !same(second.position, task.target)) {
+    if (!same(first.position, task.target) || !same(second.position, otherTask.target) ||
+        distance(first.position, second.position) !== 1) {
       cancelSocial(world, first, false);
       continue;
     }
@@ -241,10 +280,24 @@ const progressConversations = (world: World): void => {
     const earned = SOCIAL_RULES.conversationRecovery / SOCIAL_RULES.conversationTicks;
     first.social = Math.min(SOCIAL_RULES.max, socialValue(first) + earned);
     second.social = Math.min(SOCIAL_RULES.max, socialValue(second) + earned);
-    if (
-      task.progressTicks >= SOCIAL_RULES.conversationTicks ||
-      (socialValue(first) >= SOCIAL_RULES.max && socialValue(second) >= SOCIAL_RULES.max)
-    ) finishConversation(world, first, second);
+    if (task.progressTicks >= SOCIAL_RULES.conversationTicks) {
+      // Free residents can carry on talking without an artificial break,
+      // even after both social meters have reached 100.
+      if (first.socialMode === "idle" && second.socialMode === "idle") {
+        first.socialCompleted = true;
+        second.socialCompleted = true;
+        task.progressTicks = 0;
+        otherTask.progressTicks = 0;
+      } else finishConversation(world, first, second, true);
+    } else if (
+      task.progressTicks >= SOCIAL_RULES.minimumConversationTicks &&
+      ((task.resumeWork && socialValue(first) >= SOCIAL_RULES.max) ||
+       (otherTask.resumeWork && socialValue(second) >= SOCIAL_RULES.max))
+    ) {
+      // Work may resume after the minimum half-conversation. This is a
+      // natural ending, not a player interruption or a fully completed talk.
+      finishConversation(world, first, second, false);
+    }
   }
 };
 
