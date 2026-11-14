@@ -44,6 +44,7 @@ import { advanceEducation } from "./education";
 import { advanceHunting } from "./hunting";
 import { resolveEquipmentPickups } from "./equipment";
 import { advanceFamily } from "./family";
+import { advanceSocial } from "./social";
 
 const RESOURCE_DROP_RADIUS = GRID_REFINEMENT;
 
@@ -367,6 +368,7 @@ export function tick(world: World): void {
   );
   advanceFamily(world);
   syncManualMoveOrders(world);
+  advanceSocial(world);
   coreTick(world);
   advanceEducation(world);
   performanceProfiler.profileFeature("production", () =>
