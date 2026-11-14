@@ -134,3 +134,29 @@ test("social value zero blocks work until the recovery threshold and state survi
   assert.ok((first!.social ?? 0) >= 40);
   assert.equal(first!.socialWorkBlocked, undefined);
 });
+
+test("a completed idle social phase ends if no other idle partner remains", () => {
+  const world = createWorld(2);
+  const [first, second] = world.people;
+  first!.social = 60;
+  first!.socialMode = "idle";
+  first!.socialCompleted = true;
+  second!.hunger = 10;
+  advanceSocial(world);
+  assert.equal(first!.socialMode, undefined, "an idle resident cannot keep a phase open with no partner");
+  assert.equal(needDueBeforeNewTask(first!), false, "an old completed conversation must not block work");
+});
+
+test("zero social value can suspend unfinished production and preserve its progress", () => {
+  const world = createWorld(2);
+  const [worker, partner] = world.people;
+  worker!.social = 0;
+  worker!.progress = 10;
+  partner!.social = 0;
+  advanceSocial(world);
+  assert.equal(worker!.socialWorkBlocked, true);
+  assert.equal(worker!.socialTask?.partnerId, partner!.id);
+  assert.equal(worker!.progress, 10, "ongoing work progress must be retained across a conversation");
+  advance(world, SOCIAL_RULES.conversationTicks);
+  assert.equal(worker!.progress, 10);
+});
