@@ -66,6 +66,7 @@ const hunterInterrupted = (person: Person): boolean =>
     person.hungerState ||
     person.sleepState ||
     person.manualMoveTarget ||
+    person.socialTask ||
     person.trip,
   );
 
