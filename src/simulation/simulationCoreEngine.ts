@@ -1342,7 +1342,7 @@ function advanceNaturalResourceExtraction(
 ): NaturalResource[] {
   const depletedResources: NaturalResource[] = [];
   for (const p of w.people) {
-    if (!p.resourceTarget || !p.active || p.trip || p.path.length || p.farmTask || p.hungerState || p.sleepState || p.socialTask)
+    if (!p.resourceTarget || !p.active || p.trip || p.path.length || p.farmTask || p.hungerState || p.sleepState || p.socialTask || p.socialWorkBlocked)
       continue;
     const resource = w.naturalResources.find((candidate) => candidate.id === p.resourceTarget);
     if (!resource || resource.depleted || !same(p.position, resource.position)) continue;
@@ -1587,7 +1587,7 @@ export function tick(w: World): void {
   measureFeature("production", () => {
     newlyDepletedResources = advanceNaturalResourceExtraction(w, immediateDecisionPeople);
     for (const p of w.people) {
-      if (!p.assignment || !p.active || p.trip || p.path.length || p.farmTask || p.socialTask) continue;
+      if (!p.assignment || !p.active || p.trip || p.path.length || p.farmTask || p.socialTask || p.socialWorkBlocked) continue;
       const b = building(w, p.assignment.building);
       if (!same(p.position, b.position)) continue;
       if (
