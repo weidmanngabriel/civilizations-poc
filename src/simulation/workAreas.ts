@@ -334,6 +334,7 @@ function enforceFisher(world: World, person: Person): void {
   }
 
   if (person.fishingSpot && same(person.position, person.fishingSpot)) {
+    if (person.socialWorkBlocked) return;
     startFishingCycle(world, person);
     return;
   }
