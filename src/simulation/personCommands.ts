@@ -2,13 +2,14 @@ import type { Building, BuildingId, Hex, Person, Profession, Role, World } from 
 import { canLearnProfession, currentProfession, workerProfession } from "./experience";
 import { same } from "./hex";
 import { releaseLooseGoodReservation } from "./looseGoods";
-import { commandEat, interruptEating } from "./needs";
-import { commandSleep, interruptSleep } from "./sleep";
+import { commandEat as commandEatNow, interruptEating } from "./needs";
+import { commandSleep as commandSleepNow, interruptSleep } from "./sleep";
 import { clearWorkArea, ensureWorkArea, syncWorkAreas } from "./workAreas";
 import { findRequiredNavigationPath } from "./wayposts";
 import { CONFIG } from "./scenario";
 import { cancelEquipmentPickup } from "./equipment";
 import { assignPersonHome, validHomes as validHousingHomes } from "./housing";
+import { cancelSocial } from "./social";
 
 const BUILDING_PROFESSIONS = new Set<Profession>([
   "carrier",
@@ -61,6 +62,7 @@ const releaseTripReservation = (world: World, person: Person): void => {
 
 const stopCurrentWork = (world: World, person: Person): boolean => {
   if (person.trip?.picked || person.outdoorCarry) return false;
+  cancelSocial(world, person, true);
   if (person.sleepState) interruptSleep(world, person);
   releaseTripReservation(world, person);
   if (person.huntLootTarget) releaseLooseGoodReservation(world, person.huntLootTarget, 1);
@@ -178,6 +180,7 @@ export function setPersonWorkplace(world: World, personId: number, buildingId: B
   if (person.trip?.picked || person.outdoorCarry) return false;
 
   if (person.sleepState) interruptSleep(world, person);
+  cancelSocial(world, person, true);
   releaseTripReservation(world, person);
   person.trip = undefined;
   person.assignment = { building: target.id, role };
@@ -206,7 +209,9 @@ export const validHomes = (world: World, personId?: number): Building[] => {
 export function setPersonHome(world: World, personId: number, buildingId: BuildingId): boolean {
   const person = world.people.find((candidate) => candidate.id === personId);
   if (!person || person.ageStage === "child" || person.familyTask) return false;
-  return assignPersonHome(world, personId, buildingId);
+  const changed = assignPersonHome(world, personId, buildingId);
+  if (changed) cancelSocial(world, person, true);
+  return changed;
 }
 
 export function orderPersonMove(world: World, personId: number, target: Hex): boolean {
@@ -219,6 +224,7 @@ export function orderPersonMove(world: World, personId: number, target: Hex): bo
   ) return false;
   const path = findRequiredNavigationPath(world, person, target, CONFIG.roadSpeedMultiplier, "manual");
   if (!path) return false;
+  cancelSocial(world, person, true);
   cancelEquipmentPickup(world, person);
   interruptEating(world, person);
   if (person.sleepState) interruptSleep(world, person);
@@ -250,4 +256,17 @@ export function syncManualMoveOrders(world: World): void {
   }
 }
 
-export { commandEat, commandSleep };
+/** UI need commands interrupt an active conversation without coupling scenario initialization to social. */
+export const commandEat = (world: World, personId: number): boolean => {
+  const person = world.people.find((candidate) => candidate.id === personId);
+  if (!person || person.ageStage === "child" || (person.hunger ?? 100) >= 100) return false;
+  cancelSocial(world, person, true);
+  return commandEatNow(world, personId);
+};
+
+export const commandSleep = (world: World, personId: number): boolean => {
+  const person = world.people.find((candidate) => candidate.id === personId);
+  if (!person || person.ageStage === "child" || (person.sleep ?? 100) >= 100) return false;
+  cancelSocial(world, person, true);
+  return commandSleepNow(world, personId);
+};

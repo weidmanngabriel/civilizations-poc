@@ -334,6 +334,7 @@ function enforceFisher(world: World, person: Person): void {
   }
 
   if (person.fishingSpot && same(person.position, person.fishingSpot)) {
+    if (person.socialWorkBlocked) return;
     startFishingCycle(world, person);
     return;
   }
@@ -576,7 +577,9 @@ export function syncWorkAreas(world: World): void {
     const hunter = Boolean(person.hunter);
     const storageCarrier = Boolean(storageCarrierWorkplace(world, person));
     if (!resourceWorker && !fisher && !hunter && !storageCarrier) { clearWorkArea(person); continue; }
-    if (person.familyTask) continue;
+    if (person.familyTask || person.socialTask) continue;
+    if (person.socialMode && !person.trip && !person.farmTask && !person.outdoorCarry &&
+        person.progress <= 0 && person.fishingWaitUntilTick === undefined) continue;
     if (resourceWorker && !person.workArea && !initializeResourceWorker(world, person)) continue;
     ensureWorkArea(world, person);
 

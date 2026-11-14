@@ -462,6 +462,8 @@ function createScenario({ population, suppliedStart }: ScenarioOptions): World {
     sleep: 100,
     sleepAccumulator: 0,
     sleepGraceTicks: 0,
+    social: 100,
+    socialAccumulator: 0,
     active: false,
     progress: 0,
     movement: 0,

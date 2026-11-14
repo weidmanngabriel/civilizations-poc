@@ -10,7 +10,8 @@ export const needDueBeforeNewTask = (person: Person): boolean =>
   Boolean(person.hungerState) ||
   (person.hunger ?? 100) <= NEED_THRESHOLD ||
   Boolean(person.sleepState) ||
-  (person.sleep ?? 100) <= NEED_THRESHOLD;
+  (person.sleep ?? 100) <= NEED_THRESHOLD ||
+  Boolean(person.socialTask || person.socialMode || person.socialWorkBlocked);
 
 /**
  * Called at an authoritative task boundary before starting another work action.
@@ -28,5 +29,5 @@ export const pauseForNeedBeforeNewTask = (world: World, person: Person): boolean
     startSleepingAfterCompletedAction(world, person);
     return true;
   }
-  return false;
+  return Boolean(person.socialTask || person.socialMode || person.socialWorkBlocked);
 };

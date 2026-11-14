@@ -405,6 +405,21 @@ export interface Person {
   sleepAccumulator?: number;
   sleepState?: SleepState;
   sleepGraceTicks?: number;
+  /** 0..100 social need. Children do not consume social need. */
+  social?: number;
+  socialAccumulator?: number;
+  /** Work remains suspended at zero until social reaches the recovery threshold. */
+  socialWorkBlocked?: boolean;
+  /** Continuous social phase; only a completed first talk removes interruption penalties. */
+  socialMode?: "manual" | "idle" | "need";
+  socialCompleted?: boolean;
+  /** Shared paired conversation. Each participant points to the other. */
+  socialTask?: {
+    partnerId: number;
+    target: Hex;
+    progressTicks: number;
+    startedAtTick?: number;
+  };
   active: boolean;
   progress: number;
   movement: number;

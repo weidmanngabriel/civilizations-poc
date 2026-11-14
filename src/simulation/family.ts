@@ -65,6 +65,8 @@ const familyTaskBoundary = (person: Person): boolean =>
   !person.farmTask &&
   !person.outdoorCarry &&
   !person.educationTask &&
+  !person.socialMode &&
+  !person.socialTask &&
   !person.hungerState &&
   !person.sleepState &&
   !person.equipmentTask &&

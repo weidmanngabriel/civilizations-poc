@@ -284,7 +284,8 @@ export function mountPersonPanel(world: World): void {
         ${person.ageStage === "child"
           ? `<span>🧒 Kind</span>`
           : `<span title="Hunger">🍴 <b data-person-hunger="${person.id}">${displayNeed(person.hunger)}</b></span>
-             <span title="Schlaf">💤 <b data-person-sleep="${person.id}">${displayNeed(person.sleep)}</b></span>`}
+             <span title="Schlaf">💤 <b data-person-sleep="${person.id}">${displayNeed(person.sleep)}</b></span>
+             <span title="Soziales">💬 <b data-person-social="${person.id}">${displayNeed(person.social)}</b></span>`}
       </span>
     </button>
     ${staffPicker ? "" : `<label class="person-family-select" title="Für gemeinsamen Partner-suchen-Befehl auswählen"><input type="checkbox" data-family-select-person="${person.id}" ${familySelection.has(person.id) ? "checked" : ""} ${person.ageStage === "child" ? "disabled" : ""}><span>Mehrfach</span></label>`}
@@ -358,8 +359,10 @@ export function mountPersonPanel(world: World): void {
     for (const person of world.people) {
       const hunger = list.querySelector<HTMLElement>(`[data-person-hunger="${person.id}"]`);
       const sleep = list.querySelector<HTMLElement>(`[data-person-sleep="${person.id}"]`);
+      const social = list.querySelector<HTMLElement>(`[data-person-social="${person.id}"]`);
       if (hunger) hunger.textContent = String(displayNeed(person.hunger));
       if (sleep) sleep.textContent = String(displayNeed(person.sleep));
+      if (social) social.textContent = String(displayNeed(person.social));
     }
   };
   const renderInspector = (): void => {
@@ -410,6 +413,7 @@ export function mountPersonPanel(world: World): void {
     const experience = profession ? Math.round(professionExperience(person, profession)) : undefined;
     const hunger = displayNeed(person.hunger);
     const sleep = displayNeed(person.sleep);
+    const social = displayNeed(person.social);
     const workplace = workplaceLabel(world, person);
     const activity = personActivityLabel(person);
     const currentAlerts = personAlerts(world, person);
@@ -445,6 +449,7 @@ export function mountPersonPanel(world: World): void {
       experience ?? "",
       hunger,
       sleep,
+      social,
       workplace,
       activity,
       currentAlerts.map((alert) => `${alert.severity}:${alert.code}:${alert.label}`).join(","),
@@ -488,6 +493,11 @@ export function mountPersonPanel(world: World): void {
           <span>Schlaf</span>
           <div class="person-meter"><i style="width:${sleep}%"></i></div>
           <strong>${sleep}</strong>
+        </div>
+        <div class="person-need-row social">
+          <span>Soziales</span>
+          <div class="person-meter"><i style="width:${social}%"></i></div>
+          <strong>${social}</strong>
         </div>
       </div>
       <dl class="person-facts person-facts-primary">

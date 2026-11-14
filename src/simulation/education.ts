@@ -149,7 +149,7 @@ export function startEducation(
 }
 
 const unavailableForLesson = (person: Person): boolean =>
-  Boolean(person.hungerState || person.sleepState);
+  Boolean(person.hungerState || person.sleepState || person.socialTask || person.socialWorkBlocked);
 
 const finishLesson = (world: World, student: Person, teacher: Person): void => {
   const profession = student.educationTask!.profession;

@@ -58,6 +58,7 @@ type PersonMarkerObjects = {
   nameLabel: Phaser.GameObjects.Text;
   detailLabel: Phaser.GameObjects.Text;
   cargo: Phaser.GameObjects.Text;
+  social: Phaser.GameObjects.Text;
 };
 
 /**
@@ -322,8 +323,12 @@ export class IncrementalMainScene extends MainScene {
       color: "#fff2a3",
     }).setResolution(PERSON_TEXT_RESOLUTION).setOrigin(0.5).setScale(CARGO_SCALE).setVisible(false);
 
-    this.personLayer?.add([dot, label, nameLabel, detailLabel, cargo]);
-    return { dot, label, nameLabel, detailLabel, cargo };
+    const social = this.add.text(0, 0, "💬", {
+      fontFamily: "system-ui",
+      fontSize: "10px",
+    }).setResolution(PERSON_TEXT_RESOLUTION).setOrigin(0.5).setScale(CARGO_SCALE).setVisible(false);
+    this.personLayer?.add([dot, label, nameLabel, detailLabel, cargo, social]);
+    return { dot, label, nameLabel, detailLabel, cargo, social };
   }
 
   private syncPersonMarkers(): void {
@@ -336,6 +341,7 @@ export class IncrementalMainScene extends MainScene {
         marker.nameLabel.setVisible(false);
         marker.detailLabel.setVisible(false);
         marker.cargo.setVisible(false);
+        marker.social.setVisible(false);
         continue;
       }
       marker.dot.destroy();
@@ -343,6 +349,7 @@ export class IncrementalMainScene extends MainScene {
       marker.nameLabel.destroy();
       marker.detailLabel.destroy();
       marker.cargo.destroy();
+      marker.social.destroy();
       this.personMarkers.delete(id);
     }
 
@@ -372,6 +379,8 @@ export class IncrementalMainScene extends MainScene {
       const detail = `${personProfessionLabel(this.worldRef, person)} (${personActivityLabel(person)})`;
       if (marker.detailLabel.text !== detail) marker.detailLabel.setText(detail);
       marker.detailLabel.setPosition(x, groundY + 4.6).setVisible(true);
+      marker.social.setPosition(x - PERSON_MARKER_RADIUS * 0.8, y - PERSON_MARKER_RADIUS * 1.5)
+        .setVisible(person.socialTask?.startedAtTick !== undefined);
 
       const carriedGood = person.outdoorCarry ?? (person.trip?.picked ? person.trip.good : undefined);
       if (carriedGood) {

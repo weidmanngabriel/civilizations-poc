@@ -15,6 +15,7 @@ const isBusy = (person: Person): boolean =>
   Boolean(
     person.ageStage === "child" ||
     person.familyTask ||
+    person.socialTask ||
     needDue(person) ||
     person.educationTask ||
     person.manualMoveTarget ||
@@ -53,6 +54,42 @@ const livestockResupplyPending = (world: World, person: Person): boolean => {
     !assignedBuilding.breedingGathering &&
     !assignedBuilding.breeding &&
     !productionReady(assignedBuilding)
+  );
+};
+
+/** Idle social invitations may never pull a resident away from useful work. */
+export const isIdleForSocial = (world: World, person: Person): boolean => {
+  // A profession is not an activity: a worker with no current task is idle.
+  // Keep this separate from generic idle wandering, which deliberately excludes
+  // outdoor professions even when they are waiting for work.
+  if (
+    person.ageStage === "child" ||
+    person.familyTask ||
+    person.educationTask ||
+    person.equipmentTask ||
+    person.manualMoveTarget ||
+    person.scoutWaypostTask ||
+    needDue(person) ||
+    person.socialTask ||
+    person.trip ||
+    person.farmTask ||
+    person.outdoorCarry ||
+    person.resourceTarget ||
+    person.progress > 0 ||
+    person.fishingWaitUntilTick !== undefined ||
+    person.huntTarget ||
+    person.huntAimTarget ||
+    person.huntLootTarget ||
+    (person.huntLootQueue?.length ?? 0) > 0 ||
+    (person.path.length > 0 && !person.idleTarget) ||
+    person.navigationBlocked ||
+    livestockBreedingBusy(world, person) ||
+    livestockResupplyPending(world, person)
+  ) return false;
+  const assigned = workplace(world, person);
+  return !assigned || !(
+    (person.assignment?.role === "worker" && productionReady(assigned)) ||
+    (person.assignment?.role === "builder" && constructionReady(assigned))
   );
 };
 
