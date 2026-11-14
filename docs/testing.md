@@ -6,6 +6,10 @@ Desktop and touch interactions must be tested together whenever either input mod
 
 Every newly introduced building profession requires a regression test covering the full path **set profession → find valid workplace → assign workplace**. A successful TypeScript build alone is not sufficient coverage.
 
+## Social need coverage
+
+`tests/social.test.ts` locks the double working decay versus idle decay, idle-only autonomous partner selection, partial point accrual during conversations, the first-interruption 5-point penalty without penalizing the abandoned partner, subsequent-conversation exemption after a completed conversation in the same phase, manual social orders that wait for active work to end, player movement cancellation, refusal-to-work/recovery thresholds, and JSON save-state persistence. These simulation tests exercise deterministic simulated ticks rather than wall-clock timers.
+
 ## Housing coverage
 
 Housing tests cover the apartment counts of all five residential levels, cumulative direct-build costs, next-level upgrade costs, the one-household-per-apartment capacity invariant, moving an existing household between houses, and exclusion of full houses from valid home targets. Save/load tests use the current save version so household state remains part of the authoritative JSON roundtrip. Wiki tests cover the residential rules and all five level rows. Technology tests cover the material-producer prerequisites for all five house levels and verify that removing prerequisite buildings cannot revoke a previously unlocked level.
