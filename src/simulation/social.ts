@@ -252,7 +252,7 @@ const decaySocial = (person: Person): void => {
   if (person.ageStage === "child") return;
   person.social ??= SOCIAL_RULES.max;
   person.socialAccumulator ??= 0;
-  if (!person.socialTask?.startedAtTick) {
+  if (person.socialTask?.startedAtTick === undefined) {
     const seconds = isWorkingForSocial(person)
       ? SOCIAL_RULES.workingSecondsPerPoint
       : SOCIAL_RULES.idleSecondsPerPoint;
