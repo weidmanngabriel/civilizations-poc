@@ -419,6 +419,8 @@ export interface Person {
     target: Hex;
     progressTicks: number;
     startedAtTick?: number;
+    /** A real work opportunity existed when the conversation began. */
+    resumeWork?: boolean;
   };
   active: boolean;
   progress: number;
