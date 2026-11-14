@@ -299,10 +299,13 @@ export function advanceSocial(world: World): void {
       else if (socialValue(person) <= SOCIAL_RULES.needThreshold) person.socialMode = "need";
       else continue;
     }
-    const partner = partnerCandidate(world, person, person.socialMode === "idle");
+    // Idle autonomy must never interrupt a working resident, even if the idle person was previously needy.
+    const partner = partnerCandidate(world, person, idle && person.socialMode !== "manual");
     if (partner) beginConversation(world, person, partner.person, partner.paths);
-    else if (person.socialMode !== "manual" && !person.socialCompleted) {
+    else if (person.socialMode !== "manual") {
+      // A social phase ends when no next partner is available. Do not block work indefinitely.
       stopPhase(person);
+      requestImmediateWorkDecision(world, person);
     }
   }
 }
