@@ -42,6 +42,17 @@ test("idle residents only invite other residents who are idle", () => {
   assert.equal(busy!.socialTask, undefined);
 });
 
+test("a woodcutter with no active resource task counts as idle for social invitations", () => {
+  const world = createWorld(2);
+  const [woodcutter, neighbor] = world.people;
+  woodcutter!.woodcutter = true;
+  woodcutter!.social = 80;
+  neighbor!.social = 80;
+  advanceSocial(world);
+  assert.equal(woodcutter!.socialTask?.partnerId, neighbor!.id);
+  assert.equal(neighbor!.socialTask?.partnerId, woodcutter!.id);
+});
+
 test("conversation recovery accrues continuously and the first avoidable interruption costs five points", () => {
   const world = createWorld(2);
   const [first, second] = world.people;
