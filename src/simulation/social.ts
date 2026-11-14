@@ -1,6 +1,7 @@
 import type { Hex, Person, World } from "./model";
 import { same } from "./hex";
 import { CONFIG } from "./scenario";
+import { SIMULATION_HZ } from "./timing";
 import { findNavigationPath } from "./wayposts";
 import { findPath } from "./hex";
 import { hexDistance, GRID_REFINEMENT } from "./spatial";
@@ -16,7 +17,7 @@ export const SOCIAL_RULES = {
   max: 100,
   idleSecondsPerPoint: 20,
   workingSecondsPerPoint: 10,
-  conversationTicks: 15 * CONFIG.simulationHz,
+  conversationTicks: 15 * SIMULATION_HZ,
   conversationRecovery: 12,
   needThreshold: 40,
   criticalThreshold: 20,
