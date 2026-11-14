@@ -1,6 +1,7 @@
 import type { Building, Hex, Person, SleepLocationKind, SleepState, World } from "./model";
 import { findPathBySteps, key, pathTravelCost, same, tileIndex } from "./hex";
 import { CONFIG } from "./scenario";
+import { cancelSocial } from "./social";
 import { homeForPerson } from "./housing";
 import { clearNavigationBlocked, findRequiredNavigationPath } from "./wayposts";
 import { GRID_REFINEMENT, hexDistance } from "./spatial";
@@ -408,6 +409,7 @@ export const commandSleep = (world: World, personId: number): boolean => {
   const person = world.people.find((candidate) => candidate.id === personId);
   if (person?.ageStage === "child") return false;
   if (!person || (person.sleep ?? SLEEP_MAX) >= SLEEP_MAX) return false;
+  cancelSocial(world, person, true);
   if (person.sleepState) interruptSleep(world, person);
   person.manualMoveTarget = undefined;
   startSleeping(world, person, {});
