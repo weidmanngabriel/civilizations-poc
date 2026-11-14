@@ -67,6 +67,7 @@ const hunterInterrupted = (person: Person): boolean =>
     person.sleepState ||
     person.manualMoveTarget ||
     person.socialTask ||
+    (person.socialWorkBlocked && !person.outdoorCarry && !person.huntLootTarget && !person.huntLootQueue?.length) ||
     person.trip,
   );
 
