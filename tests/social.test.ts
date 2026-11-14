@@ -14,6 +14,14 @@ import { needDueBeforeNewTask } from "../src/simulation/workNeeds";
 
 const advance = (world: ReturnType<typeof createWorld>, ticks: number): void => {
   for (let step = 0; step < ticks; step++) {
+    // Isolated social-state tests start after arrival at each participant's
+    // reachable meeting target; path movement belongs to the core tick.
+    for (const person of world.people) {
+      if (!person.socialTask || !person.path.length) continue;
+      person.position = { ...person.socialTask.target };
+      person.path = [];
+      person.movement = 0;
+    }
     world.round++;
     advanceSocial(world);
   }
