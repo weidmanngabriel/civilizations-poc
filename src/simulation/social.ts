@@ -178,11 +178,15 @@ const beginConversation = (
   const participants = [first, second] as const;
   for (const [index, person] of participants.entries()) {
     const partner = participants[1 - index]!;
-    person.socialMode ??= isIdleForSocial(world, person) ? "idle" : "need";
+    // Capture work availability before reserving the social task; once
+    // reserved, all participants correctly appear busy to the idle planner.
+    const resumeWork = !isIdleForSocial(world, person);
+    person.socialMode ??= resumeWork ? "need" : "idle";
     person.socialTask = {
       partnerId: partner.id,
       target: { ...(index === 0 ? paths.firstTarget : paths.secondTarget) },
       progressTicks: 0,
+      resumeWork,
     };
     person.idleTarget = undefined;
     person.path = index === 0 ? paths.firstPath : paths.secondPath;
@@ -287,8 +291,8 @@ const progressConversations = (world: World): void => {
       } else finishConversation(world, first, second, true);
     } else if (
       task.progressTicks >= SOCIAL_RULES.minimumConversationTicks &&
-      ((first.socialMode === "need" && socialValue(first) >= SOCIAL_RULES.max) ||
-       (second.socialMode === "need" && socialValue(second) >= SOCIAL_RULES.max))
+      ((task.resumeWork && socialValue(first) >= SOCIAL_RULES.max) ||
+       (otherTask.resumeWork && socialValue(second) >= SOCIAL_RULES.max))
     ) {
       // Work may resume after the minimum half-conversation. This is a
       // natural ending, not a player interruption or a fully completed talk.
