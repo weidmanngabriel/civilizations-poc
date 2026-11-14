@@ -28,6 +28,16 @@ Die Kartenbedienung richtet sich separat nach der aktuellen Eingabemethode. Mit 
 
 Wird der Spiel-Tab beziehungsweise die Browserseite nicht mehr sichtbar, pausiert die Simulation automatisch. Sobald die Seite wieder sichtbar wird, läuft die Simulation nur dann automatisch weiter, wenn genau dieser Sichtbarkeitswechsel sie zuvor angehalten hatte. War das Spiel bereits manuell oder durch einen anderen Spielmodus pausiert, bleibt es beim Zurückkehren pausiert. Die zuvor gewählte Simulationsgeschwindigkeit bleibt unverändert; Zeit im Hintergrund wird nicht nachsimuliert.
 
+## Soziales Bedürfnis und Gespräche
+
+Erwachsene Bewohner besitzen neben Hunger und Schlaf einen dritten Bedürfniswert **Soziales** (0–100). Im Ruhezustand sinkt er um **1 Punkt je 20 Simulationssekunden**, bei tatsächlicher Arbeit doppelt so schnell (**1 Punkt je 10 Sekunden**). Eine berufliche Zuweisung allein zählt nicht als aktive Arbeit. Bei 40 oder weniger beginnen Bewohner, Gespräche aktiv zu suchen; bei 20 oder weniger ist der Bedarf kritisch. Bei **0** verweigern sie normale Arbeit, bis sie sich auf mindestens **40** erholt haben. Kritischer Hunger und Schlaf haben Vorrang.
+
+Ein Gespräch ist eine **sichtbare, gemeinsame Aktivität zweier Bewohner**. Beide unterbrechen hierfür ihre Tätigkeit, treffen sich und reden **15 Simulationssekunden**. Dabei erhält jeder im Verlauf schrittweise insgesamt **bis zu 12 Sozialpunkte**, gedeckelt bei 100; ein vorzeitiges Ende behält die bereits verdienten Punkte. Untätige Bewohner suchen auch bei geringem Bedarf selbstständig Kontakte, sprechen dabei aber **ausschließlich andere untätige Bewohner** an. Arbeitende Bewohner suchen geeignete Gesprächspartner bevorzugt nach Abschluss eines Arbeitsschritts. Die zugewiesene Arbeit bleibt grundsätzlich bestehen und wird nach der sozialen Phase wieder aufgenommen.
+
+Der Spieler kann über **„Sozialisieren“** gezielt mehrere Gespräche bis zur vollständigen Erholung anordnen oder die soziale Aktivität mit **„Gespräch beenden“** jederzeit beenden. Direkte Bewegungsbefehle, Berufs- oder Arbeitsplatzwechsel und andere wichtigere Ereignisse unterbrechen die Aktivität ebenfalls. Ein vermeidbarer Abbruch des **ersten noch nicht abgeschlossenen Gesprächs einer zusammenhängenden Sozialphase** kostet den betroffenen Bewohner **5 Sozialpunkte**. Hat er innerhalb dieser Phase bereits **ein Gespräch vollständig abgeschlossen**, kosten auch mittendrin beendete zweite oder spätere Gespräche **keine weiteren Sozialpunkte**. Unverschuldeter Ausfall des Gesprächspartners, kritischer Hunger und Schlaf führen nicht zu einem Strafabzug. Ein anderes Gespräch kann anschließend wieder aufgenommen werden.
+
+Das ist die **erste Ausbaustufe**. Gepflegte Gärten, Wirtshäuser mit physischer Warenversorgung und Feste sollen später stärkere und länger anhaltende soziale Erholung bieten; die diskutierte Fest-Abbruchstrafe beträgt 15 Punkte, ist aber noch nicht implementiert. Religion bleibt vorerst außerhalb der Bedürfnisbalken.
+
 ## Feineres Raumraster
 
 Die Welt verwendet intern ein **5× feineres Raster pro Raumachse**: aus 41 × 25 werden 205 × 125 Mikrozellen. Die sichtbare Kartengröße bleibt ungefähr gleich. Gebäude und Äcker belegen viele Mikrozellen; Bewohner bewegen sich flüssig und bleiben visuell lesbar.
